@@ -47,6 +47,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// CBC TESES — rotas do sistema de gestão de modelos/petições
+try {
+  const teses = require('./teses_routes');
+  teses.register(app);
+  console.log('CBC TESES routes registered');
+} catch (err) {
+  console.error('Failed to register CBC TESES routes:', err.message);
+}
+
 // ═══════════════════════════════════════════
 //  AUTHENTICATION (Supabase Auth)
 // ═══════════════════════════════════════════
