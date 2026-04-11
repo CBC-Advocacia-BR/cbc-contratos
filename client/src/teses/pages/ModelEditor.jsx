@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import {
   Button, Card, CardBody, CardHeader, Input, Label, Select, Spinner,
   StatusBadge, Textarea, Badge, EmptyState,
 } from '../components/ui/Primitives';
+import RichEditor from '../components/ui/RichEditor';
 import { useRoute } from '../router';
 import { useTesesAuth } from '../contexts/AuthContext';
+import { useDragList } from '../hooks/useDragList';
+import { docxToHtml, segmentIntoBlocks, suggestPlaceholders } from '../lib/wordImporter';
 
 const AUTO_SOURCES = [
   { value: 'manual', label: 'Preencher manualmente' },
@@ -253,6 +256,94 @@ export default function ModelEditorPage({ modelId }) {
     setBlocks(next);
   };
 
+  // Drag-and-drop: reordena e persiste display_order após soltar.
+  const onReorderBlocks = async (newOrder) => {
+    const withOrders = newOrder.map((b, i) => ({ ...b, display_order: (i + 1) * 10 }));
+    setBlocks(withOrders);
+    await Promise.all(
+      withOrders.map((b) => supabase.from('model_blocks').update({ display_order: b.display_order }).eq('id', b.id))
+    );
+  };
+  const dnd = useDragList(blocks, onReorderBlocks);
+
+  // ─── Importação de Word ────────────────────────────
+  const fileInputRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  const onImportWord = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const buf = await file.arrayBuffer();
+      const { html } = await docxToHtml(buf);
+      const segs = segmentIntoBlocks(html);
+      const sugg = suggestPlaceholders(html);
+
+      // Tenta fazer upload para Supabase Storage (pode falhar em ambientes
+      // sem bucket criado — seguimos mesmo assim salvando só o HTML)
+      let fileUrl = null;
+      try {
+        const path = `imported/${modelId}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabase.storage.from('teses-models').upload(path, file);
+        if (!upErr) {
+          const { data } = supabase.storage.from('teses-models').getPublicUrl(path);
+          fileUrl = data?.publicUrl || null;
+        }
+      } catch { /* ignora */ }
+
+      if (fileUrl) {
+        await supabase.from('models').update({ imported_file_url: fileUrl }).eq('id', modelId);
+        setModel((m) => ({ ...m, imported_file_url: fileUrl }));
+      }
+
+      // Insere blocos
+      let base = (blocks[blocks.length - 1]?.display_order || 0) + 10;
+      const created = [];
+      for (const seg of segs) {
+        const { data, error } = await supabase
+          .from('model_blocks')
+          .insert({
+            model_id: modelId,
+            title: seg.title,
+            content: seg.content,
+            content_type: 'imported_docx',
+            display_order: base,
+            is_required: false,
+            is_default_selected: true,
+            created_by: profile?.id || null,
+          })
+          .select()
+          .single();
+        if (!error && data) created.push(data);
+        base += 10;
+      }
+      setBlocks((prev) => [...prev, ...created]);
+
+      // Insere placeholders sugeridos que ainda não existem
+      const existing = new Set(placeholders.map((p) => p.key));
+      const toInsert = sugg.filter((k) => !existing.has(k)).map((k, i) => ({
+        model_id: modelId,
+        key: k,
+        label: k.replace(/_/g, ' '),
+        field_type: 'text',
+        auto_source: 'manual',
+        is_required: true,
+        display_order: (placeholders.length + i + 1) * 10,
+      }));
+      if (toInsert.length) {
+        const { data } = await supabase.from('placeholders').insert(toInsert).select();
+        if (data) setPlaceholders((p) => [...p, ...data]);
+      }
+
+      setNotice({ type: 'success', msg: `${segs.length} bloco(s) e ${toInsert.length} campo(s) importados do Word.` });
+    } catch (err) {
+      setNotice({ type: 'error', msg: 'Falha ao importar: ' + err.message });
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // ─── Placeholders ────────────────────────────────────────
   const addPlaceholder = async () => {
     const order = (placeholders[placeholders.length - 1]?.display_order || 0) + 10;
@@ -317,6 +408,9 @@ export default function ModelEditorPage({ modelId }) {
           <h1 className="text-xl font-bold text-slate-800 mt-1 truncate">{model.name}</h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/versions/${modelId}`)}>
+            🕑 Versões
+          </Button>
           {canEdit && (
             <Button variant="secondary" onClick={saveModel} disabled={saving}>
               {saving ? <Spinner /> : 'Salvar'}
@@ -451,20 +545,40 @@ export default function ModelEditorPage({ modelId }) {
 
       {tab === 'blocos' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <p className="text-xs text-slate-500 max-w-lg">
               Os blocos são as unidades que o operacional poderá (des)marcar e reordenar na hora de gerar a petição.
-              Use <code className="bg-slate-100 px-1 rounded">{'{{chave}}'}</code> para referenciar placeholders.
+              Use <code className="bg-slate-100 px-1 rounded">{'{{chave}}'}</code> para referenciar placeholders. Arraste os cards pela alça
+              para reordenar.
             </p>
-            {canEdit && <Button onClick={addBlock}>+ Adicionar bloco</Button>}
+            {canEdit && (
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={onImportWord}
+                />
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+                  {importing ? <Spinner /> : '📄 Importar Word'}
+                </Button>
+                <Button onClick={addBlock}>+ Adicionar bloco</Button>
+              </div>
+            )}
           </div>
           {blocks.length === 0 ? (
-            <EmptyState title="Sem blocos" description="Adicione o primeiro bloco do modelo." />
+            <EmptyState title="Sem blocos" description="Adicione o primeiro bloco do modelo ou importe um arquivo Word." />
           ) : (
             blocks.map((b, i) => (
-              <Card key={b.id}>
+              <Card key={b.id} {...(canEdit ? dnd.getItemProps(b) : {})}>
                 <CardHeader
-                  title={`Bloco ${i + 1}`}
+                  title={
+                    <span className="flex items-center gap-2">
+                      {canEdit && <span className="cursor-grab text-slate-400" title="Arrastar para reordenar">⋮⋮</span>}
+                      {`Bloco ${i + 1}`}
+                    </span>
+                  }
                   subtitle={b.title}
                   right={
                     canEdit && (
@@ -511,12 +625,13 @@ export default function ModelEditorPage({ modelId }) {
                   </div>
                   <div className="md:col-span-3">
                     <Label required>Conteúdo</Label>
-                    <Textarea
+                    <RichEditor
                       disabled={!canEdit}
                       rows={8}
                       value={b.content || ''}
-                      onChange={(e) => updateBlock(b.id, { content: e.target.value })}
-                      placeholder="Texto do bloco. Use {{chave}} para placeholders."
+                      onChange={(html) => updateBlock(b.id, { content: html })}
+                      placeholder="Texto do bloco. Digite {{ para inserir placeholder."
+                      placeholderKeys={placeholders.map((p) => p.key)}
                     />
                   </div>
                 </CardBody>

@@ -148,16 +148,7 @@ export async function generatePetitionDocx({ model, blocks, title, office }) {
   return await Packer.toBlob(doc);
 }
 
-/**
- * Dispara download de um Blob no browser.
- */
-export function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+// downloadBlob foi movido para ./downloadBlob.js para permitir
+// code-splitting efetivo: este arquivo (com dep pesada em docx-js)
+// só é carregado quando o usuário clica em "Gerar DOCX".
+export { downloadBlob } from './downloadBlob';

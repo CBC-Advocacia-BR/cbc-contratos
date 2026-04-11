@@ -1,8 +1,27 @@
-import { Card, CardBody, CardHeader } from '../components/ui/Primitives';
+import { useState } from 'react';
+import { Card, CardBody, CardHeader, Button } from '../components/ui/Primitives';
 import { SUPABASE_CONFIGURED } from '../lib/supabaseClient';
 import { API_URL } from '../../config';
+import {
+  syncApprovedModelsCache, clearOfflineCache, getCacheTimestamp, getCachedModelList,
+} from '../lib/offlineCache';
 
 export default function SettingsPage() {
+  const [syncing, setSyncing] = useState(false);
+  const [ts, setTs] = useState(getCacheTimestamp());
+  const cached = getCachedModelList();
+
+  const doSync = async () => {
+    setSyncing(true);
+    await syncApprovedModelsCache();
+    setTs(getCacheTimestamp());
+    setSyncing(false);
+  };
+  const doClear = () => {
+    clearOfflineCache();
+    setTs(null);
+  };
+
   return (
     <div className="space-y-5 max-w-3xl">
       <div>
@@ -40,6 +59,28 @@ export default function SettingsPage() {
               <li><code>teses-generated</code> — petições geradas</li>
               <li><code>teses-assets</code> — timbrado, logos, assinaturas</li>
             </ul>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Cache offline"
+          right={
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={doSync} disabled={syncing}>
+                {syncing ? 'Sincronizando...' : '↻ Sincronizar'}
+              </Button>
+              <Button size="sm" variant="danger" onClick={doClear}>Limpar</Button>
+            </div>
+          }
+        />
+        <CardBody className="text-xs text-slate-700 space-y-1">
+          <div><strong>Modelos em cache:</strong> {cached.length}</div>
+          <div><strong>Última sincronização:</strong> {ts ? new Date(ts).toLocaleString('pt-BR') : 'nunca'}</div>
+          <div className="text-slate-500">
+            O cache permite gerar petições mesmo offline — modelos aprovados,
+            blocos, placeholders e resorts ficam em <code>localStorage</code>.
           </div>
         </CardBody>
       </Card>

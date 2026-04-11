@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { TesesAuthProvider, useTesesAuth } from './contexts/AuthContext';
 import { useRoute, matchRoute } from './router';
 import Layout from './components/layout/Layout';
@@ -15,16 +16,20 @@ import ApprovalsPage from './pages/Approvals';
 import ThemesPage from './pages/Themes';
 import UsersPage from './pages/Users';
 import SettingsPage from './pages/Settings';
+import VersionHistoryPage from './pages/VersionHistory';
 import { Spinner } from './components/ui/Primitives';
+import { syncApprovedModelsCache } from './lib/offlineCache';
 
 function Router() {
   const { path } = useRoute();
 
-  // Rotas dinâmicas (/models/:id, /resorts/:id)
+  // Rotas dinâmicas (/models/:id, /resorts/:id, /versions/:id)
   const modelMatch = matchRoute(path, '/models/:id');
   if (modelMatch) return <ModelEditorPage modelId={modelMatch.id} />;
   const resortMatch = matchRoute(path, '/resorts/:id');
   if (resortMatch) return <ResortEditorPage resortId={resortMatch.id} />;
+  const versionMatch = matchRoute(path, '/versions/:id');
+  if (versionMatch) return <VersionHistoryPage modelId={versionMatch.id} />;
 
   const first = path.split('/').filter(Boolean)[0] || 'dashboard';
   switch (first) {
@@ -44,6 +49,13 @@ function Router() {
 
 function AuthGate() {
   const { session, profile, loading } = useTesesAuth();
+
+  // Sincroniza cache offline ao autenticar
+  useEffect(() => {
+    if (profile?.id) {
+      syncApprovedModelsCache().catch(() => { /* ignora em offline */ });
+    }
+  }, [profile?.id]);
 
   if (loading) {
     return (

@@ -154,11 +154,40 @@ pelos assets corretos quando disponíveis — inclua-os em
   com múltiplos workers, trocar por Redis.
 - Supabase Pro recomendado para 20+ usuários simultâneos.
 
-## Pontos de extensão futuros (Fase 7)
+## Fase 7 — Polimento (implementado)
 
-- Importação direta de .docx para extrair blocos (parser mammoth + UI
-  de delimitação — o schema já prevê `models.imported_file_url` e
-  `content_type = 'imported_docx'`).
-- Diff visual de versões (snapshot em `model_versions.snapshot` já permite).
-- Modo offline por Service Worker (cache dos modelos aprovados).
-- Integração com o módulo de cálculo para o placeholder `requires_calculation`.
+- **Editor rico** (`components/ui/RichEditor.jsx`): contenteditable com
+  formatação (B/I/U, alinhamento, listas, limpar formatação) e
+  **autocomplete de placeholders** ao digitar `{{` — sugere as chaves
+  já definidas no modelo.
+- **Drag-and-drop nativo** (`hooks/useDragList.js`): reordena blocos no
+  `ModelEditor` (salvando `display_order` imediato) e na etapa 4 do
+  `Generator`, sem depender de bibliotecas externas.
+- **Importação de .docx via mammoth** (`lib/wordImporter.js` + botão no
+  `ModelEditor`): parse do Word, segmentação por headings em blocos,
+  sugestão automática de placeholders a partir de `[CAMPOS]` entre
+  colchetes, upload opcional para o bucket `teses-models`.
+- **Diff visual de versões** (`pages/VersionHistory.jsx` + `lib/versionDiff.js`):
+  linha do tempo, seleção A/B e comparação por palavras com marcação
+  verde (adicionado) / vermelho (removido) de metadados, blocos e
+  placeholders. Rota `#/versions/:id`.
+- **Cache offline** (`lib/offlineCache.js`): ao autenticar, sincroniza
+  todos os modelos aprovados + blocos + placeholders + resorts no
+  `localStorage`. O `Generator` usa `loadModelWithFallback` e um banner
+  avisa o usuário quando o app detecta `navigator.onLine === false`.
+  A página de configurações permite sincronizar manualmente e limpar.
+- **Code-splitting**: `docxGenerator` e `mammoth` viraram dynamic imports,
+  economizando ~840 KB do bundle inicial. Resultado atual:
+  - chunk principal: ~906 KB (era 1.744 KB)
+  - `docxGenerator`: 341 KB (lazy — só ao gerar petição)
+  - `mammoth`: 495 KB (lazy — só ao importar Word)
+- **Testes unitários (vitest + jsdom)**: 24 testes cobrindo
+  `placeholders`, `versionDiff` e `wordImporter`. Rodar com `npm test`.
+
+## Pontos de extensão futuros
+
+- Integração com o módulo de cálculo para o placeholder
+  `requires_calculation` (hoje é só um flag).
+- Service Worker completo com `workbox` se for necessário cache de
+  assets estáticos além dos dados (o localStorage já cobre os dados).
+- Substituir o timbrado placeholder do `docxGenerator` pelo oficial.

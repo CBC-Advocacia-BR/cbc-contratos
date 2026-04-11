@@ -10,8 +10,10 @@ import { fetchDatajudProcess, mergeDatajudIntoBundle } from '../lib/datajud';
 import {
   buildInitialValues, fillHtml, fillPlainText, extractPlaceholderKeys,
 } from '../lib/placeholders';
-import { generatePetitionDocx, downloadBlob } from '../lib/docxGenerator';
+import { downloadBlob } from '../lib/downloadBlob';
 import { convertDocxToPdf, printHtmlAsPdf } from '../lib/pdfGenerator';
+import { loadModelWithFallback, getCachedModelList, getCachedResorts } from '../lib/offlineCache';
+import { useDragList } from '../hooks/useDragList';
 
 const STEPS = [
   { key: 'processo', label: '1. Processo' },
@@ -47,17 +49,35 @@ export default function GeneratorPage() {
   const [blockOrder, setBlockOrder] = useState([]);
   const [values, setValues] = useState({});
 
-  // Carrega modelos aprovados + temas
+  const [offline, setOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const on = () => setOffline(false);
+    const off = () => setOffline(true);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+
+  // Carrega modelos aprovados + temas (online) com fallback para cache local
   useEffect(() => {
     (async () => {
-      const [m, t, r] = await Promise.all([
-        supabase.from('models').select('*').eq('status', 'aprovado').order('name'),
-        supabase.from('themes').select('*').eq('is_active', true).order('display_order'),
-        supabase.from('resorts').select('id,trade_name,legal_name,cnpj,economic_group,state,category').eq('is_active', true).order('trade_name'),
-      ]);
-      setModels(m.data || []);
-      setThemes(t.data || []);
-      setResorts(r.data || []);
+      try {
+        const [m, t, r] = await Promise.all([
+          supabase.from('models').select('*').eq('status', 'aprovado').order('name'),
+          supabase.from('themes').select('*').eq('is_active', true).order('display_order'),
+          supabase.from('resorts').select('id,trade_name,legal_name,cnpj,economic_group,state,category').eq('is_active', true).order('trade_name'),
+        ]);
+        if (m.data?.length) {
+          setModels(m.data);
+          setThemes(t.data || []);
+          setResorts(r.data || []);
+          return;
+        }
+      } catch { /* cai no cache */ }
+      // Fallback offline
+      const cached = getCachedModelList();
+      setModels(cached);
+      setResorts(getCachedResorts());
     })();
   }, []);
 
@@ -73,22 +93,16 @@ export default function GeneratorPage() {
     })();
   }, [selectedResortId]);
 
-  // Carrega blocos + placeholders ao escolher modelo
+  // Carrega blocos + placeholders ao escolher modelo (com fallback offline)
   useEffect(() => {
     if (!selectedModelId) { setSelectedModel(null); return; }
     (async () => {
-      const [m, b, p] = await Promise.all([
-        supabase.from('models').select('*').eq('id', selectedModelId).maybeSingle(),
-        supabase.from('model_blocks').select('*').eq('model_id', selectedModelId).order('display_order'),
-        supabase.from('placeholders').select('*').eq('model_id', selectedModelId).order('display_order'),
-      ]);
-      const model = m.data;
-      const blocks = b.data || [];
-      const phs = p.data || [];
+      const result = await loadModelWithFallback(selectedModelId);
+      if (!result) return;
+      const { model, blocks, placeholders: phs } = result;
       setSelectedModel(model);
       setModelBlocks(blocks);
       setModelPlaceholders(phs);
-      // seleção inicial: obrigatórios + default
       const sel = blocks.filter((x) => x.is_required || x.is_default_selected).map((x) => x.id);
       setSelectedBlockIds(sel);
       setBlockOrder(blocks.map((x) => x.id));
@@ -178,6 +192,14 @@ export default function GeneratorPage() {
     });
   };
 
+  // DnD nativo nos cards de bloco
+  const orderedForDnd = useMemo(
+    () => blockOrder.map((id) => modelBlocks.find((b) => b.id === id)).filter(Boolean),
+    [blockOrder, modelBlocks]
+  );
+  const setOrderedForDnd = (arr) => setBlockOrder(arr.map((b) => b.id));
+  const blockDnd = useDragList(orderedForDnd, setOrderedForDnd);
+
   // Descobre placeholders efetivamente usados na seleção
   const usedPlaceholderKeys = useMemo(() => {
     const set = new Set();
@@ -220,6 +242,9 @@ export default function GeneratorPage() {
     if (!selectedModel) return;
     setBusy(true);
     try {
+      // Code splitting: carrega docxGenerator apenas quando usuário gera.
+      // Isso reduz o bundle inicial (~500 KB de docx-js).
+      const { generatePetitionDocx } = await import('../lib/docxGenerator');
       const finalBlocks = orderedBlocks
         .filter((b) => selectedBlockIds.includes(b.id))
         .map((b) => ({ title: b.title, content: fillPlainText(b.content, values) }));
@@ -271,6 +296,13 @@ export default function GeneratorPage() {
         <h1 className="text-xl font-bold text-slate-800">Gerar petição</h1>
         <p className="text-xs text-slate-500">Fluxo guiado — do processo ao DOCX em poucos cliques.</p>
       </div>
+
+      {offline && (
+        <div className="rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-900 text-xs px-3 py-2">
+          📴 <strong>Modo offline</strong> — usando modelos em cache local. A busca no Advbox/DataJud
+          e o registro da petição ficarão indisponíveis até reconectar.
+        </div>
+      )}
 
       {/* Stepper */}
       <div className="flex flex-wrap gap-2">
@@ -428,12 +460,17 @@ export default function GeneratorPage() {
       {/* Step 4: Blocos */}
       {step === 'blocos' && selectedModel && (
         <Card>
-          <CardHeader title="Blocos do modelo" subtitle="Selecione e reordene os blocos que irão compor a petição" />
+          <CardHeader title="Blocos do modelo" subtitle="Selecione, arraste para reordenar, e ajuste a ordem dos blocos da petição" />
           <CardBody className="space-y-2">
             {orderedBlocks.map((b, i) => {
               const checked = selectedBlockIds.includes(b.id);
               return (
-                <div key={b.id} className={`flex items-start gap-3 p-3 rounded-lg border ${checked ? 'border-slate-800 bg-slate-50' : 'border-slate-200'}`}>
+                <div
+                  key={b.id}
+                  {...blockDnd.getItemProps(b)}
+                  className={`flex items-start gap-3 p-3 rounded-lg border ${checked ? 'border-slate-800 bg-slate-50' : 'border-slate-200'}`}
+                >
+                  <span className="cursor-grab text-slate-400 mt-1 select-none" title="Arrastar para reordenar">⋮⋮</span>
                   <input
                     type="checkbox"
                     className="mt-1"
