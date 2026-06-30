@@ -1,12 +1,23 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { CLAUSULAS_PADRAO } from './data/clausulas';
 
 const ContractContext = createContext();
 
-const STORAGE_KEY = 'cbc_contrato_rascunho';
+function getStorageKey() {
+  try {
+    const session = JSON.parse(localStorage.getItem('sb-vygczeepvoyaehfchxko-auth-token') || '{}');
+    const email = session?.user?.email || 'anon';
+    return `cbc_rascunho_${email.replace(/[^a-z0-9]/gi, '_')}`;
+  } catch { return 'cbc_contrato_rascunho'; }
+}
 
 const defaultContratante = () => ({
+  // (PJ 25/06) tipo discrimina Pessoa Fisica (padrao) vs Pessoa Juridica (Cliente Empresa).
+  // Em PJ, os campos de pessoa abaixo (nome, cpf, rg, endereco...) descrevem o REPRESENTANTE
+  // LEGAL — assim genero/mascaras/validacao/lookup CEP/qualificacao funcionam sem ramificacao.
+  tipo: 'pf',
   nome: '',
+  sexo: '', // M ou F
   nacionalidade: 'brasileiro(a)',
   profissao: '',
   estadoCivil: '',
@@ -14,11 +25,26 @@ const defaultContratante = () => ({
   cpf: '',
   email: '',
   endereco: '',
+  numero: '',
   bairro: '',
   cidade: '',
   uf: '',
   cep: '',
   complemento: '',
+  telefone: '',
+  linkKommo: '',
+  dataNascimento: '',
+  // ─── Campos exclusivos de Pessoa Juridica (empresa) ───
+  razaoSocial: '',
+  cnpj: '',
+  emailEmpresa: '',
+  enderecoEmpresa: '',
+  numeroEmpresa: '',
+  bairroEmpresa: '',
+  cidadeEmpresa: '',
+  ufEmpresa: '',
+  cepEmpresa: '',
+  complementoEmpresa: '',
 });
 
 function getDefaultVencimento() {
@@ -54,12 +80,20 @@ const defaultState = {
   clausulas: {},
   clausulasOrder: null, // null = default order; array of IDs = custom order
   clausulasAvulsas: [], // [{ id, titulo, texto }]
+  escritorioArcaCustas: false, // Se marcado, escritório paga as custas processuais
+  naoMandarMensagem: false, // (chatguru removal 2026-05) flag legado — sem efeito apos remocao do envio automatico
+  documentosRecebidos: {}, // Checklist de documentos: { rg: true, cpf: true, ... }
+  observacoesInternas: '', // Notas internas que NÃO aparecem no contrato
+  origemCliente: '', // Origem do cliente (interno — não aparece no contrato)
+  dataPrimeiraMensagem: '', // Data da primeira mensagem do cliente
+  linkGoogleDrive: '', // Link da pasta do cliente no Google Drive
   zapSignToken: '',
 };
 
 function loadFromStorage() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const key = getStorageKey();
+    const saved = localStorage.getItem(key);
     if (saved) return JSON.parse(saved);
   } catch { /* ignore */ }
   return null;
@@ -71,8 +105,8 @@ export function ContractProvider({ children }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch { /* ignore */ }
+      localStorage.setItem(getStorageKey(), JSON.stringify(data));
+    } catch { /* ignore — quota exceeded or private browsing */ }
   }, [data]);
 
   const updateData = useCallback((updates) => {
@@ -166,16 +200,26 @@ export function ContractProvider({ children }) {
   const resetAll = useCallback(() => {
     setData(defaultState);
     setCurrentStep(0);
-    localStorage.removeItem(STORAGE_KEY);
+    try { localStorage.removeItem(getStorageKey()); } catch { /* ignore */ }
   }, []);
 
+  // (perf 31/05) value memoizado. As funcoes ja sao useCallback estaveis; assim o
+  // objeto so e recriado quando 'data' ou 'currentStep' mudam (re-render necessario),
+  // evitando recriacao a cada render do provider por causas externas.
+  const value = useMemo(() => ({
+    data, updateData, updateContratante, updateHonorarios,
+    updateClausula, resetClausula, getClausulaTexto, isClausulaModificada,
+    getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa,
+    getResortName, resetAll, currentStep, setCurrentStep,
+  }), [
+    data, updateData, updateContratante, updateHonorarios,
+    updateClausula, resetClausula, getClausulaTexto, isClausulaModificada,
+    getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa,
+    getResortName, resetAll, currentStep, setCurrentStep,
+  ]);
+
   return (
-    <ContractContext.Provider value={{
-      data, updateData, updateContratante, updateHonorarios,
-      updateClausula, resetClausula, getClausulaTexto, isClausulaModificada,
-      getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa,
-      getResortName, resetAll, currentStep, setCurrentStep,
-    }}>
+    <ContractContext.Provider value={value}>
       {children}
     </ContractContext.Provider>
   );

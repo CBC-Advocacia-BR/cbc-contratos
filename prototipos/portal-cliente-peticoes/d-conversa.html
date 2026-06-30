@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Meu Processo · CBC Advogados</title>
+<meta name="theme-color" content="#163d5b" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#161b20; --ink-soft:#3b4046; --ink-faint:#575b60;
+    --paper:#f9fafb; --paper-warm:#f2f4f5; --card:#FFFFFF; --hairline:#e2e5e7;
+    --hairline-soft:#e2e5e7;
+    --gold:#163d5b; --gold-soft:#c1d9f1; --gold-faint:#eff6fd; --gold-text:#163d5b;
+    --navy:#163d5b; --navy-deep:#0f2233; --navy-light:#173047;
+    --ok:#00682a; --ok-bg:#dff6e3; --ok-pill:#00682a; --warn:#723f00; --warn-bg:#ffedcf;
+    --due:#a9131f; --due-bg:#ffe4e1;
+    --r:18px; --r-sub:16px; --r-in:12px; --r-bolha:16px;
+    --shadow:0 1px 2px rgba(22,61,91,.05),0 8px 28px -12px rgba(22,61,91,.14);
+    --shadow-bolha:0 1px 2px rgba(22,61,91,.04),0 4px 16px -10px rgba(22,61,91,.16);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  button:focus-visible,a:focus-visible,textarea:focus-visible,summary:focus-visible,.termo:focus-visible,.caso-chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+  body{
+    font-family:'Lato',-apple-system,sans-serif;background:var(--paper);color:var(--ink);
+    font-size:1rem;line-height:1.55;min-height:100dvh;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px calc(96px + env(safe-area-inset-bottom))}
+
+  /* ---------- topo institucional ---------- */
+  .topo{padding:18px 2px 4px;text-align:center}
+  .a11y{position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:5}
+  .a11y button{width:42px;height:42px;border-radius:11px;border:1.5px solid var(--hairline);background:var(--card);
+    color:var(--ink-soft);font-weight:700;cursor:pointer;font-family:'Lato';
+    transition:border-color .15s,color .15s,transform .12s ease-out}
+  .a11y button:hover{border-color:var(--gold);color:var(--ink)}
+  .a11y button:active{transform:scale(.93)}
+  .a11y button:first-child{font-size:0.6875rem}.a11y button:last-child{font-size:0.9375rem}
+  .selo{
+    width:46px;height:46px;margin:0 auto 8px;border-radius:50%;
+    border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.0625rem;color:var(--gold);
+    letter-spacing:.05em;background:linear-gradient(160deg,#fff, var(--gold-faint));
+    box-shadow:var(--shadow),0 0 0 3px var(--paper),0 0 0 4px var(--gold-soft);
+  }
+  .firma{font-size:0.65625rem;letter-spacing:.30em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .firma .oab-in{color:var(--gold-text)}
+  .saud{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.625rem;line-height:1.15;margin-top:10px}
+  .saud em{font-style:italic;color:var(--gold)}
+  .saud-sub{color:var(--ink-soft);font-size:0.84375rem;margin-top:3px}
+  .vigia{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin:11px auto 0;
+    font-size:0.71875rem;font-weight:700;color:var(--ok);background:var(--ok-bg);border-radius:999px;padding:7px 14px}
+  .vigia .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulsa 2.2s infinite}
+  @keyframes pulsa{0%,100%{box-shadow:0 0 0 0 rgba(0,104,42,.45)}50%{box-shadow:0 0 0 5px rgba(0,104,42,0)}}
+  .vigia-prox{text-align:center;font-size:0.6875rem;color:var(--ink-faint);margin:6px auto 0;max-width:34rem;line-height:1.5;padding:0 14px}
+
+  /* ---------- cabecalho compacto fixo da conversa (so na aba Meu caso) ---------- */
+  .convo-head{
+    position:sticky;top:0;z-index:30;margin:14px -16px 4px;padding:12px 16px 13px;
+    background:linear-gradient(168deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;
+    border-radius:0 0 var(--r) var(--r);box-shadow:0 6px 22px -14px rgba(22,61,91,.7);
+  }
+  .ch-top{display:flex;align-items:center;gap:10px}
+  .ch-avatar{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:0.9375rem;letter-spacing:.04em;color:var(--navy);
+    background:linear-gradient(160deg,var(--gold-faint),var(--gold-soft));border:1.5px solid var(--gold)}
+  .ch-id{flex:1;min-width:0}
+  .ch-status{font-family:'Cormorant Garamond',serif;font-size:1.1875rem;font-weight:600;line-height:1.2;
+    display:flex;align-items:center;gap:7px}
+  .ch-status svg{flex:0 0 auto;width:18px;height:18px;color:var(--gold-soft)}
+  .ch-vez{font-size:0.71875rem;color:rgba(255,255,255,.72);margin-top:2px;line-height:1.4}
+  .ch-vez b{color:var(--gold-soft);font-weight:700}
+  /* mini-jornada (6 bolinhas) */
+  .ch-mini{display:flex;align-items:center;gap:0;margin-top:11px;padding-top:11px;border-top:1px solid rgba(255,255,255,.12)}
+  .ch-m{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+  .ch-m::before{content:'';position:absolute;top:5px;left:-50%;width:100%;height:2px;background:rgba(255,255,255,.16)}
+  .ch-m:first-child::before{display:none}
+  .ch-m.done::before{background:var(--gold-soft)}
+  .ch-d{width:11px;height:11px;border-radius:50%;background:transparent;border:2px solid rgba(255,255,255,.35);position:relative;z-index:1}
+  .ch-m.done .ch-d{background:var(--gold-soft);border-color:var(--gold-soft)}
+  .ch-m.atual .ch-d{background:var(--gold-soft);border-color:var(--gold-soft);box-shadow:0 0 0 4px rgba(193,217,241,.32);animation:pulsoAtual 2.8s ease-in-out infinite}
+  @keyframes pulsoAtual{0%,100%{box-shadow:0 0 0 4px rgba(193,217,241,.32)}50%{box-shadow:0 0 0 7px rgba(193,217,241,.10)}}
+  .ch-l{font-size:0.5625rem;letter-spacing:.02em;margin-top:6px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;text-align:center;line-height:1.2}
+  .ch-m.done .ch-l{color:rgba(255,255,255,.78)}
+  .ch-m.atual .ch-l{color:var(--gold-soft)}
+
+  /* ---------- carteira de casos (multi-processo) — chips ---------- */
+  .carteira{margin:14px 2px 4px}
+  .carteira-resumo{font-family:'Cormorant Garamond',serif;font-style:italic;
+    font-size:0.9375rem;color:var(--ink-soft);text-align:center;margin-bottom:10px}
+  .carteira-resumo b{color:var(--gold-text);font-style:normal}
+  .casos-chips{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .casos-chips::-webkit-scrollbar{display:none}
+  .caso-chip{flex:0 0 auto;max-width:260px;text-align:left;cursor:pointer;background:var(--card);
+    border:1.5px solid var(--hairline);border-radius:14px;padding:10px 13px;min-height:44px;
+    transition:border-color .18s,box-shadow .18s,transform .12s ease-out;font-family:'Lato'}
+  .caso-chip:active{transform:scale(.98)}
+  .caso-chip[aria-pressed="true"]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+  .cc-top{display:flex;align-items:center;gap:7px}
+  .cc-num{font-size:0.5625rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .cc-badge{font-size:0.5625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-text);
+    background:var(--gold-faint);border:1px solid var(--gold-soft);border-radius:999px;padding:1px 7px}
+  .cc-tit{font-family:'Cormorant Garamond',serif;font-size:1.0625rem;font-weight:700;line-height:1.2;color:var(--ink);margin-top:3px;white-space:nowrap}
+  .cc-fase{display:flex;align-items:center;gap:5px;font-size:0.6875rem;font-weight:700;margin-top:4px}
+  .cc-fase .dotc{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+
+  /* ---------- feed da conversa ---------- */
+  .feed{position:relative;padding:6px 0 4px}
+  .dia-sep{text-align:center;margin:16px 0 6px}
+  .dia-sep span{font-size:0.625rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);
+    background:var(--paper-warm);border:1px solid var(--hairline-soft);border-radius:999px;padding:4px 12px}
+
+  /* uma mensagem do escritorio = bolha alinhada a esquerda com avatar */
+  .msg{display:flex;gap:9px;align-items:flex-start;margin-top:13px;max-width:100%}
+  .msg-av{width:32px;height:32px;border-radius:50%;flex:0 0 auto;margin-top:2px;display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:0.78125rem;letter-spacing:.02em;
+    color:var(--navy);background:linear-gradient(160deg,#fff,var(--gold-faint));border:1.5px solid var(--gold-soft)}
+  .msg-av.cbc{color:var(--gold-soft);background:linear-gradient(160deg,var(--navy-light),var(--navy));border-color:var(--gold);font-size:0.625rem;letter-spacing:.03em}
+  .bolha{flex:1;min-width:0;background:var(--card);border:1px solid var(--hairline);border-radius:4px var(--r-bolha) var(--r-bolha) var(--r-bolha);
+    padding:13px 15px;box-shadow:var(--shadow-bolha);position:relative}
+  .msg-quem{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+  .msg-nome{font-size:0.78125rem;font-weight:700;color:var(--ink)}
+  .msg-papel{font-size:0.625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-text)}
+  .msg-hora{font-size:0.625rem;color:var(--ink-faint);margin-left:auto;font-variant-numeric:tabular-nums;letter-spacing:.04em}
+  .bolha p{font-size:0.90625rem;color:var(--ink-soft);line-height:1.55}
+  .bolha p + p{margin-top:8px}
+  .bolha p b{color:var(--ink)}
+  .bolha .fonte{margin-top:7px;font-size:0.6875rem;color:var(--ink-faint);letter-spacing:.03em}
+
+  /* bolha mais recente em destaque (claro, borda navy) */
+  .msg.recente .bolha{border-color:var(--gold-soft);background:linear-gradient(180deg,#fff,var(--gold-faint));box-shadow:var(--shadow)}
+  .msg.recente .selo-novo{display:inline-flex;align-items:center;gap:4px;font-size:0.625rem;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--gold-text);background:var(--gold-faint);
+    border:1px solid var(--gold-soft);border-radius:999px;padding:2px 8px}
+
+  /* bolha-destaque navy (evento favoravel) */
+  .msg.destaque .bolha{border:1.5px solid var(--gold);background:linear-gradient(165deg,#FAFCFE,var(--gold-faint));box-shadow:var(--shadow)}
+  .bolha-tit{font-family:'Cormorant Garamond',serif;font-size:1.1875rem;font-weight:600;color:var(--ink);line-height:1.22;margin-bottom:6px}
+  .bolha-data{margin-top:9px;font-size:0.6875rem;font-weight:700;letter-spacing:.06em;color:var(--gold-text);font-variant-numeric:tabular-nums}
+
+  /* bolha de aviso (algo para voce) */
+  .msg.aviso .bolha{border-color:var(--gold-soft)}
+  .aviso-tag{display:inline-flex;align-items:center;gap:5px;font-size:0.625rem;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--due);background:var(--due-bg);border-radius:999px;padding:3px 9px;margin-bottom:7px}
+  .aviso-tag.calmo{color:var(--ok);background:var(--ok-bg)}
+
+  /* bloco de "trabalho da equipe" dentro de uma bolha (numeros) */
+  .work-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
+  .work-cell{background:var(--paper-warm);border:1px solid var(--hairline-soft);border-radius:11px;padding:11px 12px}
+  .work-cell .n{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;color:var(--gold-text);line-height:1.1;font-variant-numeric:tabular-nums}
+  .work-cell .r{font-size:0.625rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-top:2px}
+  .work-extra{margin-top:9px;font-size:0.75rem;color:var(--ink-soft);line-height:1.5}
+  .work-extra .sep{color:var(--gold)}
+  .work-ass{margin-top:9px;padding-top:9px;border-top:1px dashed var(--hairline);font-size:0.78125rem;color:var(--ink-soft)}
+  .work-ass b{color:var(--ink)}
+
+  /* botao ouvir + acoes na bolha */
+  .bolha-acoes{display:flex;flex-wrap:wrap;gap:8px;margin-top:11px}
+  .ouvir{display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:700;min-height:42px;
+    border:1.5px solid var(--hairline);border-radius:999px;padding:8px 14px;background:var(--card);color:var(--ink-soft);cursor:pointer;
+    transition:transform .12s ease-out,border-color .15s,color .15s}
+  .ouvir:active{transform:scale(.96)}
+  .ouvir.tocando{border-color:var(--gold);color:var(--gold-text)}
+  .ouvir.tocando svg{animation:tocandoAnim 1.1s ease-in-out infinite}
+  @keyframes tocandoAnim{50%{opacity:.3;transform:scale(.85)}}
+
+  /* termos glossario na conversa */
+  .termo{border-bottom:1.5px dotted var(--gold);cursor:pointer;position:relative;color:var(--ink)}
+  .termo::after{content:'';position:absolute;inset:-12px -8px}
+
+  /* educacao por fase (details) dentro do feed */
+  .edu{margin-top:11px}
+  .edu details{background:var(--paper-warm);border:1px solid var(--hairline-soft);border-radius:12px;margin-top:8px;overflow:hidden}
+  .edu summary{padding:12px 14px;font-size:0.84375rem;font-weight:700;color:var(--ink);cursor:pointer;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px}
+  .edu summary::-webkit-details-marker{display:none}
+  .edu summary::after{content:'+';color:var(--gold);font-size:1.1875rem;font-weight:400;line-height:1;transition:transform .25s ease}
+  .edu details[open] summary::after{transform:rotate(45deg)}
+  .edu .corpo-edu{padding:0 14px 13px;font-size:0.84375rem;color:var(--ink-soft)}
+  .edu .nao{margin-top:9px;padding:10px 12px;background:var(--ok-bg);border-radius:10px;font-size:0.8125rem}
+  .edu .nao b{color:var(--ok)}
+  .edu .faq-q{font-weight:700;color:var(--ink);margin-top:10px;font-size:0.8125rem}
+  .edu .faq-a{font-size:0.8125rem;margin-top:2px}
+
+  .ver-mais{margin:14px 0 4px;background:var(--card);border:1.5px solid var(--hairline);border-radius:999px;
+    padding:11px 18px;font-size:0.8125rem;font-weight:700;color:var(--ink-soft);cursor:pointer;min-height:44px;width:100%;
+    transition:transform .12s ease-out,border-color .15s}
+  .ver-mais:active{transform:scale(.98)}
+
+  /* campo "pergunte aqui" estilo digitar mensagem (fim do feed) */
+  .compose{margin:20px 0 6px;display:flex;gap:9px;align-items:flex-end}
+  .compose .av{width:32px;height:32px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:0.625rem;letter-spacing:.03em;color:var(--gold-soft);
+    background:linear-gradient(160deg,var(--navy-light),var(--navy));border:1.5px solid var(--gold)}
+  .compose-box{flex:1;background:var(--card);border:1.5px solid var(--hairline);border-radius:var(--r-bolha);padding:10px 12px;box-shadow:var(--shadow-bolha)}
+  .compose-box .lab{font-size:0.625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-text);margin-bottom:5px}
+  .compose-box textarea{width:100%;border:none;background:transparent;font-family:'Lato';font-size:1rem;color:var(--ink);resize:none;line-height:1.5;min-height:24px;max-height:140px}
+  .compose-box textarea:focus{outline:none}
+  .compose-box textarea::placeholder{color:var(--ink-faint)}
+  .compose-foot{display:flex;align-items:center;gap:9px;margin-top:9px}
+  .compose-foot .nota{flex:1;font-size:0.6875rem;color:var(--ink-faint);line-height:1.4}
+  .send-btn{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:none;background:var(--navy);color:#fff;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:transform .12s ease-out,background .18s}
+  .send-btn:active{transform:scale(.92)}
+  .send-btn svg{width:19px;height:19px}
+
+  /* minhas perguntas — bolhas do cliente (alinhadas a direita) */
+  .msg.eu{flex-direction:row-reverse}
+  .msg.eu .bolha{border-radius:var(--r-bolha) 4px var(--r-bolha) var(--r-bolha);background:var(--paper-warm);border-color:var(--hairline)}
+  .msg.eu .msg-av{color:var(--ink-soft);background:var(--card);border-color:var(--hairline)}
+  .pq-status{font-size:0.5625rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:2px 8px;margin-left:auto}
+  .pq-status.pendente{background:var(--warn-bg);color:var(--warn)}
+  .pq-status.respondida{background:var(--ok-bg);color:var(--ok)}
+  .pq-resp{margin-top:9px;padding:10px 12px;background:var(--ok-bg);border-radius:10px;font-size:0.84375rem;color:var(--ink-soft)}
+  .pq-resp b{color:var(--ok)}
+
+  /* whatsapp */
+  .btn-whats{display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border:none;min-height:44px;padding:0 18px;border-radius:999px;font-family:Lato;font-size:0.84375rem;font-weight:700;text-decoration:none;transition:transform .12s ease-out}
+  .btn-whats:active{transform:scale(.97)}
+  .btn-whats svg{flex:0 0 auto}
+
+  /* ---------- pagamentos / acordo / duvidas (cards padrao) ---------- */
+  .pane-intro{font-family:'Cormorant Garamond',serif;font-size:1.4375rem;font-weight:700;line-height:1.2;margin:14px 2px 2px}
+  .pane-sub{font-size:0.84375rem;color:var(--ink-soft);margin:0 2px 6px}
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .rotulo{font-size:0.625rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .resumo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .resumo .card{padding:16px}
+  .resumo .rotulo{margin-bottom:4px}
+  .resumo .valor{font-family:'Cormorant Garamond',serif;font-size:1.625rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+  .resumo .ok{color:var(--ok)} .resumo .pend{color:var(--warn)}
+  .nota-card{font-size:0.71875rem;color:var(--ink-faint);margin-top:2px}
+  .sec-tit{font-family:'Cormorant Garamond',serif;font-size:1.3125rem;font-weight:700;margin:24px 2px 10px;line-height:1.2;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .sec-tit span{font-size:0.71875rem;color:var(--ink-faint);font-family:'Lato';font-weight:700}
+  .bol{margin-top:12px;padding:18px}
+  .bol-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .bol .venc{font-size:0.75rem;color:var(--ink-faint)}
+  .bol .venc b{display:block;font-size:1.0625rem;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bol .valor{font-family:'Cormorant Garamond',serif;font-size:1.625rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1.15}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:0.625rem;font-weight:700;letter-spacing:.06em;border-radius:999px;padding:4px 10px;text-transform:uppercase}
+  .pill.pago{background:var(--ok-bg);color:var(--ok-pill)}
+  .pill.pendente{background:var(--warn-bg);color:var(--warn)}
+  .pill.vencido{background:var(--due-bg);color:var(--due)}
+  .bol .desc{margin-top:8px;font-size:0.8125rem;color:var(--ink-soft)}
+  .bol-acoes{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;border-radius:var(--r-in);
+    font-size:0.875rem;font-weight:700;cursor:pointer;text-decoration:none;transition:transform .12s ease-out,background .18s}
+  .btn:active{transform:scale(.97)}
+  .btn-ouro{background:var(--navy);color:#fff;border:none}
+  .btn-ouro.copiado{background:var(--ok)}
+  .btn-claro{background:#fff;color:var(--ink);border:1.5px solid var(--hairline)}
+  .btn svg{width:17px;height:17px;flex:0 0 auto}
+  .link-cal{display:flex;align-items:center;justify-content:center;text-align:center;margin-top:12px;font-size:0.78125rem;font-weight:700;color:var(--ink-soft);
+    text-decoration:none;border:1.5px dashed var(--hairline);border-radius:var(--r-in);padding:9px 12px;min-height:48px;cursor:pointer;background:none;width:100%;
+    transition:transform .12s ease-out,border-color .15s}
+  .link-cal:active{transform:scale(.98)}
+  .bol.pago-card{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}
+  .bol.pago-card .valor{font-size:1.1875rem}
+  .pago-card .venc{font-size:0.6875rem}
+  .pago-card .venc b{display:inline;font-size:0.8125rem}
+  .ct-card{margin-top:14px;padding:18px 20px}
+  .ct-card .ct-tipo{font-family:'Cormorant Garamond',serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:5px}
+  .quadro-tag{display:inline-block;margin-top:8px;font-size:0.6875rem;font-weight:700;letter-spacing:.06em;color:var(--gold-text);
+    background:var(--gold-faint);border:1px solid var(--gold-soft);border-radius:6px;padding:3px 9px;text-transform:uppercase}
+  .ac-linha{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0;border-bottom:1px dashed var(--hairline);font-size:0.90625rem;color:var(--ink-soft)}
+  .ac-linha:last-child{border-bottom:none}
+  .ac-linha b{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .barra{height:7px;border-radius:4px;background:var(--gold-faint);overflow:hidden;margin-top:10px}
+  .barra i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--ok))}
+
+  /* ---------- acerto (prestacao de contas) ---------- */
+  .acerto-meta{margin-top:14px;display:flex;flex-direction:column;gap:0}
+  .acerto-meta > div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px dashed var(--hairline);font-size:0.8125rem;color:var(--ink-faint)}
+  .acerto-meta > div:last-child{border-bottom:none}
+  .acerto-meta b{color:var(--ink);font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+  .acerto-destaque{margin-top:14px;padding:20px 22px;border-radius:var(--r);
+    background:linear-gradient(165deg,var(--navy-light),var(--navy-deep));color:#fff;box-shadow:var(--shadow)}
+  .acerto-destaque .rot{font-size:0.6875rem;letter-spacing:.10em;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:700;line-height:1.4}
+  .acerto-destaque .big{font-family:'Cormorant Garamond',serif;font-size:2.375rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:6px}
+  .acerto-nota{margin-top:14px;padding:14px 16px;font-size:0.84375rem;color:var(--ink-soft);line-height:1.55}
+  .acerto-nota b{color:var(--ink)}
+  .estado{padding:50px 24px;text-align:center}
+  .estado h2{font-family:'Cormorant Garamond',serif;font-size:1.5rem;line-height:1.2;margin-top:6px}
+  .estado p{color:var(--ink-soft);margin-top:8px;font-size:0.9375rem}
+  .extrato-btn{background:none;border:none;font-size:0.8125rem;font-weight:700;color:var(--gold-text);cursor:pointer;font-family:Lato;min-height:44px;padding:10px 0 10px 14px}
+
+  /* duvidas / faq */
+  .compose.faq{margin-top:14px}
+  .glossario-box{margin-top:14px}
+  .gl-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px dashed var(--hairline);font-size:0.84375rem}
+  .gl-item:last-child{border-bottom:none}
+  .gl-item b{color:var(--gold-text);flex:0 0 auto;font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700}
+  .gl-item span{color:var(--ink-soft)}
+
+  /* ---------- nav inferior ---------- */
+  nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:rgba(249,250,251,.93);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-top:1px solid var(--hairline);padding:8px 16px calc(8px + env(safe-area-inset-bottom));
+  }
+  .nav-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--paper-warm);
+    border-radius:999px;padding:4px;border:1px solid var(--hairline)}
+  .nav-inner.quatro{grid-template-columns:repeat(4,1fr)}
+  .nav-inner.quatro .nav-btn{font-size:0.6875rem;gap:3px;padding:0 1px}
+  .nav-inner.quatro .nav-btn svg{width:15px;height:15px}
+  .nav-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:46px;border-radius:999px;
+    border:none;background:transparent;font-family:'Lato';font-size:0.78125rem;font-weight:700;color:var(--ink-faint);
+    cursor:pointer;transition:background .2s ease-out,color .2s ease-out,transform .12s ease-out;padding:0 2px}
+  .nav-btn:active{transform:scale(.93)}
+  .nav-btn svg{width:16px;height:16px}
+  .nav-btn[aria-pressed="true"]{background:var(--navy);color:#fff;box-shadow:var(--shadow)}
+  .nav-btn[hidden]{display:none}
+  .badge{min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#fff;font-size:0.625rem;
+    display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-variant-numeric:tabular-nums}
+  .badge[hidden]{display:none}
+
+  /* toast */
+  .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);
+    background:var(--navy);color:#fff;font-size:0.84375rem;font-weight:700;padding:11px 20px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;box-shadow:var(--shadow);max-width:88%;text-align:center;line-height:1.4}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* footer */
+  .divisor{width:54px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:28px auto 2px;border:0}
+  footer{margin-top:8px;text-align:center;font-size:0.6875rem;color:var(--ink-faint);line-height:1.7;padding-top:16px}
+  footer .frase{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.84375rem;color:var(--ink-soft);margin-bottom:10px}
+  footer .oab{letter-spacing:.16em;text-transform:uppercase}
+  footer .autoridade{margin-top:8px}
+  footer .autoridade b{color:var(--gold-text)}
+
+  /* realce de entrada CURTO — sempre termina em opacity 1 */
+  .entra{animation:entra .42s ease-out both}
+  @keyframes entra{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  #conteudo{transition:opacity .16s ease-out}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}.entra{opacity:1!important;transform:none!important}}
+
+  /* ---------- extrato para impressao (autocontido, sem libs) ---------- */
+  #extrato-print{display:none}
+  @media print{
+    body{background:#fff}
+    body > *{display:none!important}
+    #extrato-print{display:block!important;color:#161b20;font-family:'Lato',sans-serif;padding:0;margin:0}
+    #extrato-print .ep-firma{text-align:center}
+    #extrato-print .ep-nome{font-family:'Cormorant Garamond',serif;font-size:20pt;font-weight:700;color:#161b20}
+    #extrato-print .ep-oab{font-size:8.5pt;color:#575b60;margin-top:2px}
+    #extrato-print hr{border:0;border-top:1px solid #163d5b;margin:14px 0}
+    #extrato-print h1{font-size:14pt;font-weight:700;margin:0 0 6px}
+    #extrato-print .ep-meta{font-size:9.5pt;color:#3b4046;line-height:1.6}
+    #extrato-print .ep-tot{font-size:10pt;font-weight:700;margin:10px 0 14px}
+    #extrato-print .ep-pago{color:#00682a}
+    #extrato-print .ep-aberto{color:#723f00}
+    #extrato-print table{width:100%;border-collapse:collapse;font-size:9.5pt}
+    #extrato-print th{text-align:left;font-weight:700;color:#161b20;border-bottom:1px solid #e2e5e7;padding:4px 0}
+    #extrato-print th.r,#extrato-print td.r{text-align:right}
+    #extrato-print td{color:#3b4046;padding:4px 0;border-bottom:1px solid #e2e5e7}
+    #extrato-print .ep-rodape{font-size:7.5pt;color:#575b60;margin-top:16px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="a11y" aria-label="Tamanho da letra">
+    <button id="fonte-menos" aria-label="Diminuir letra">A−</button>
+    <button id="fonte-mais" aria-label="Aumentar letra">A+</button>
+  </div>
+  <header class="topo entra">
+    <div class="selo" aria-hidden="true">CBC</div>
+    <div class="firma">Conforto, Bergonsi &amp; Cavalari&nbsp;·&nbsp;<span class="oab-in">OAB/SP 55227</span></div>
+    <div class="saud" id="saudacao">Carregando<em>…</em></div>
+    <div class="saud-sub" id="saud-sub">Buscando as informações do seu caso</div>
+    <div id="vigia-box"></div>
+  </header>
+
+  <main id="conteudo"></main>
+
+  <footer>
+    <hr class="divisor" />
+    <div class="frase" id="frase-fe"></div>
+    <div class="oab">OAB/SP 55227 · Americana–SP</div>
+    <div class="autoridade" id="autoridade"></div>
+    <div style="margin-top:8px">Dúvidas? Fale com a gente pelo WhatsApp do escritório.<br/>Atualizado automaticamente todos os dias úteis.</div>
+  </footer>
+</div>
+
+<nav id="nav" aria-label="Seções do portal">
+  <div class="nav-inner">
+    <button class="nav-btn" id="nav-proc" aria-pressed="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.5h9M7.5 12h5M21 11.5a8.4 8.4 0 0 1-12.1 7.5L3 20l1.1-3.9A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+      Meu caso
+    </button>
+    <button class="nav-btn" id="nav-pag" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path stroke-linecap="round" d="M3 10.5h18M7 15h4"/></svg>
+      Pagamentos <span class="badge" id="badge-pend" hidden></span>
+    </button>
+    <button class="nav-btn" id="nav-acordo" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+      Acerto
+    </button>
+    <button class="nav-btn" id="nav-faq" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"/></svg>
+      Dúvidas
+    </button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="extrato-print" aria-hidden="true"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const DADOS = {
+    "cliente": { "nome": "Maria Helena Cardoso", "primeiro_nome": "Maria" },
+    "processos": [
+      {
+        "jornada": 2, "mesma_fase": 8, "rapidez": true,
+        "numero": "1001234-56.2025.8.26.0152", "tipo": "Ação de cobrança",
+        "fase": "Instrução Processual", "quadro": "JUDICIAL",
+        "fase_texto": "Seu caso está na fase em que o juiz analisa as provas e os documentos das duas partes antes de decidir.",
+        "proximos_passos": "Aguardamos a análise das provas pelo juiz; na sequência, o caso fica pronto para a sentença.",
+        "prazo_medio": "2 a 4 meses", "distribuido_em": "2025-09-12",
+        "atividades": { "tarefas_concluidas": 14, "movimentos": 31, "mov_mes": 4, "atv_mes": 3, "publicacoes": 7, "horas": 9.5, "vez": "tribunal", "vez_dias": 12, "audiencia": null, "ultima": { "titulo": "Petição de réplica protocolada", "por": "Ana Bergonsi", "em": "2026-06-14" } },
+        "espera": "juiz", "evento": null,
+        "prestacao": {
+          "status": "pendente", "tipo": "acordo",
+          "processo": "1001234-56.2025.8.26.0152", "cumprimento": null,
+          "resort": "Residencial Jardins", "data_caiu": "2026-06-05",
+          "valor_recebido": 32000, "honorarios": 9600, "hon_pct": 30,
+          "custas": 850, "correcao": 1240, "valor_cliente": 22790,
+          "parcelas": 1, "levantamento": ""
+        },
+        "andamentos": [
+          { "data": "2026-06-14", "texto": "Petição da nossa equipe juntada ao processo", "fonte": "Tribunal de Justiça" },
+          { "data": "2026-05-30", "texto": "A outra parte apresentou a sua defesa", "fonte": "DJe" },
+          { "data": "2026-05-12", "texto": "A outra parte foi oficialmente notificada do processo", "fonte": "Oficial de Justiça" },
+          { "data": "2025-09-12", "texto": "Seu processo foi distribuído e recebeu número oficial", "fonte": "Tribunal de Justiça" }
+        ]
+      },
+      {
+        "jornada": 4, "mesma_fase": 3, "rapidez": false,
+        "numero": "2007765-43.2024.8.26.0152", "tipo": "Indenização por danos",
+        "fase": "Cumprimento de Sentença", "quadro": "EXECUÇÃO",
+        "fase_texto": "Você já venceu; agora estamos na fase de receber e liberar os valores a que você tem direito.",
+        "proximos_passos": "Cálculo dos valores e expedição do alvará para liberação.",
+        "prazo_medio": "1 a 3 meses", "distribuido_em": "2024-03-04",
+        "atividades": { "tarefas_concluidas": 22, "movimentos": 48, "mov_mes": 2, "atv_mes": 1, "publicacoes": 11, "horas": 16, "vez": "escritorio", "vez_dias": 3, "audiencia": null, "ultima": { "titulo": "Cálculo de liquidação iniciado", "por": "Paulo Conforto", "em": "2026-06-10" } },
+        "espera": null,
+        "evento": { "tipo": "sentenca_favoravel", "data": "2026-04-22" },
+        "prestacao": {
+          "status": "pago", "tipo": "alvara",
+          "processo": "2007765-43.2024.8.26.0152", "cumprimento": "0011223-45.2026.8.26.0152",
+          "resort": "Hot Beach Suites", "data_caiu": "2026-06-12",
+          "valor_recebido": 48500, "honorarios": 14550, "hon_pct": 30,
+          "custas": 1320, "correcao": 2180, "valor_cliente": 34810,
+          "parcelas": 1, "levantamento": "1º Levantamento"
+        },
+        "andamentos": [
+          { "data": "2026-06-10", "texto": "Iniciamos o cálculo dos valores que você tem a receber", "fonte": "CBC Advogados" },
+          { "data": "2026-04-22", "texto": "Saiu a sentença — e foi favorável a você", "fonte": "Tribunal de Justiça" }
+        ]
+      }
+    ],
+    "acordo": null,
+    "contrato": { "tipo": "Ação de cobrança", "resort": "Residencial Jardins", "honorarios_total": 4800, "parcelas": 6, "valor_parcela": 800, "exito_pct": 20, "assinado_em": "2025-08-20", "outros_contratos": 1 },
+    "equipe": { "fotos": [] },
+    "escritorio": { "tarefas_mes": 1280, "mes": "junho" },
+    "vigilancia": { "ultima_verificacao": "2026-06-22T09:14:00-03:00", "dias_monitoramento": 280, "proxima_verificacao": "2026-06-23" },
+    "recesso": null,
+    "tem_vencida": true,
+    "pagamento_recente": null,
+    "so_exito": false,
+    "contato": { "whatsapp": "5519999990000", "horario": "de segunda a sexta, das 9h às 18h" },
+    "instituicao": { "processos_ativos": 3214, "tarefas_ano": 18450, "casos_exito": 612 },
+    "faq": [
+      { "pergunta": "Quanto tempo o meu processo costuma demorar?", "resposta": "Cada caso tem o seu ritmo, definido pela Justiça. Acompanhamos o seu todos os dias úteis e avisamos você sempre que houver novidade — você não precisa ficar conferindo." },
+      { "pergunta": "Preciso fazer alguma coisa agora?", "resposta": "Quando algo depender de você, avisamos com clareza aqui no portal e pelo WhatsApp. Se não há nada sinalizado, é porque está tudo sob nossos cuidados." },
+      { "pergunta": "Por que às vezes fica um tempo sem movimentação?", "resposta": "É normal. Em várias fases o processo aguarda uma análise do juiz ou um prazo da outra parte. O silêncio costuma ser sinal de que tudo segue o seu curso." }
+    ],
+    "glossario": [
+      { "t": "Réplica", "d": "a resposta da nossa parte à defesa apresentada pela outra parte." },
+      { "t": "Distribuído", "d": "quando o processo recebe um número oficial e um juiz responsável." },
+      { "t": "Alvará", "d": "a autorização do juiz para liberar os valores a que você tem direito." }
+    ],
+    "review_url": "https://g.page/r/exemplo-cbc",
+    "pagamentos": {
+      "resumo": { "total_pago": 2400, "total_pendente": 2400, "qtd_pagos": 3, "qtd_pendentes": 3, "proximo_vencimento": "2026-06-25" },
+      "pendentes": [
+        { "valor": 800, "vencimento": "2026-06-10", "descricao": "Honorários iniciais", "parcela": "4/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986540", "vencido": true },
+        { "valor": 800, "vencimento": "2026-07-10", "descricao": "Honorários iniciais", "parcela": "5/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986541", "vencido": false },
+        { "valor": 800, "vencimento": "2026-08-10", "descricao": "Honorários iniciais", "parcela": "6/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986542", "vencido": false }
+      ],
+      "pagos": [
+        { "valor": 800, "vencimento": "2026-03-10", "pago_em": "2026-03-09", "descricao": "Honorários iniciais", "parcela": "1/6" },
+        { "valor": 800, "vencimento": "2026-04-10", "pago_em": "2026-04-08", "descricao": "Honorários iniciais", "parcela": "2/6" },
+        { "valor": 800, "vencimento": "2026-05-10", "pago_em": "2026-05-10", "descricao": "Honorários iniciais", "parcela": "3/6" }
+      ]
+    }
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  var dataBR = function(iso){ if(!iso) return '—'; var p=String(iso).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+  var plural = function(n,um,varios){ return (Number(n)||0)===1 ? um : varios; };
+  var numBR = function(v){ if(v==null||v==='') return null; if(typeof v==='number') return v; var s=String(v).trim(); if(/,\d{1,2}$/.test(s)) s=s.replace(/\./g,'').replace(',','.'); var n=parseFloat(s); return isNaN(n)?null:n; };
+  var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var titulo = function(s){ return String(s||'').toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase();}); };
+  var state = { dados:null, proc:0, aba:'proc', expand:false, semEntra:false };
+
+  function toast(msg, ms){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');}, ms||2600); }
+
+  // acessibilidade: tamanho da letra
+  (function(){
+    var nivel=0; try{ nivel=Math.min(2,Math.max(0,+localStorage.getItem('cbc_fonte')||0)); }catch(e){}
+    function aplica(){ document.documentElement.style.fontSize=(100+nivel*12.5)+'%'; try{localStorage.setItem('cbc_fonte',String(nivel));}catch(e){} }
+    aplica();
+    $('fonte-mais').addEventListener('click',function(){ if(nivel<2){nivel++;aplica();} });
+    $('fonte-menos').addEventListener('click',function(){ if(nivel>0){nivel--;aplica();} });
+  })();
+
+  function diasDesde(d){ if(!d) return 999; var t=new Date(String(d).slice(0,10)).getTime(); return isNaN(t)?999:Math.floor((Date.now()-t)/86400000); }
+  function diasAte(d){ if(!d) return 999; return Math.ceil((new Date(String(d).slice(0,10)).getTime()-Date.now())/86400000); }
+  function tituloCaso(x){ var t=String(x.tipo||'').trim(); return t?titulo(t):('Processo '+x.numero); }
+  function statusCurto(x){
+    var dias = diasDesde((x.andamentos||[])[0]&&x.andamentos[0].data);
+    var nov = dias<=7;
+    if(x.jornada>=4) return { txt:'Reta final', cor:'var(--gold-text)', novidade:nov };
+    if(nov) return { txt:'Novidade recente', cor:'var(--gold-text)', novidade:true };
+    if(dias>30) return { txt:'Sob vigilância diária', cor:'var(--ok)', novidade:false };
+    return { txt:'Caminhando bem', cor:'var(--ok)', novidade:false };
+  }
+  // status humano no cabecalho da conversa
+  function statusHumano(p){
+    var d=(p.andamentos&&p.andamentos[0])?p.andamentos[0].data:null;
+    var dias=d?diasDesde(d):999;
+    var reta=p.jornada>=4, nov=dias<=7;
+    return reta?'Reta final do seu caso':(nov?'Novidades recentes':(dias>30?'Tudo em ordem, sob vigilância':'Tudo caminhando bem'));
+  }
+  // "de quem e a vez"
+  function vezTexto(p){
+    var a=p.atividades; if(!a||!a.vez) return '';
+    if(a.vez==='escritorio') return 'Agora é a <b>nossa vez</b> de agir — já estamos cuidando.';
+    var dias=a.vez_dias||0;
+    return 'Agora é a vez do <b>tribunal</b>'+(dias>1?' (há '+dias+' dias)':'')+' — acompanhamos todos os dias úteis.';
+  }
+  function vezMicrocopy(p){
+    var a=p.atividades; if(!a||!a.vez) return '';
+    if(a.vez==='escritorio') return 'Estamos com uma tarefa em aberto no seu caso e já cuidando dela — é a nossa vez de agir.';
+    var dias=a.vez_dias||0;
+    var porEspera={
+      juiz:'Seu caso está concluso para decisão: aguardamos o juiz analisar. Nessa fase, o silêncio costuma ser sinal de que tudo segue seu curso.',
+      parte:'Corre um prazo da outra parte (ou uma etapa entre os advogados). É um tempo normal e previsto pela lei.',
+      pericia:'Aguardamos uma etapa técnica do processo (perícia ou diligência). Assim que o resultado chegar, retomamos.',
+      audiencia:'O próximo passo é uma audiência já no horizonte — perto da data falamos com você.'
+    };
+    var base=porEspera[p.espera]||'Neste momento o próximo passo cabe ao tribunal — por isso não há ação recente da nossa parte.';
+    base += dias>=21 ? ' A fila está um pouco mais lenta que o usual, mas verificamos o seu processo todos os dias úteis.'
+                     : ' Continuamos verificando o seu processo todos os dias úteis.';
+    return base;
+  }
+  // iniciais de quem assina cada mensagem
+  function iniciais(nome){
+    var ps=String(nome||'').trim().split(/\s+/);
+    if(!ps[0]) return 'CB';
+    return (ps[0][0]+(ps[1]?ps[1][0]:'')).toUpperCase();
+  }
+  // hora aproximada para a "mensagem" (estetica de conversa; usa a data do andamento)
+  var HORAS=['08:42','09:15','10:08','11:30','14:05','15:22','16:48','17:31'];
+  function horaFake(seed){ return HORAS[Math.abs(seed)%HORAS.length]; }
+
+  // WhatsApp contextualizado
+  function linkWhats(p){
+    var w=(state.dados.contato||{}).whatsapp; if(!w) return '';
+    var nome=(state.dados.cliente||{}).primeiro_nome||'';
+    var proc=(p&&p.numero)?(' (processo '+p.numero+')'):'';
+    return 'https://wa.me/'+w+'?text='+encodeURIComponent('Olá! Sou '+nome+proc+'. Gostaria de tirar uma dúvida sobre o meu caso.');
+  }
+  function btnWhats(p,rotulo){
+    var l=linkWhats(p); if(!l) return '';
+    return '<a class="btn-whats" href="'+l+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.26A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.13l-.3-.18-2.85.75.76-2.78-.19-.29A8 8 0 1 1 12 20Zm4.5-5.9c-.25-.12-1.47-.72-1.7-.8s-.39-.13-.56.13-.64.8-.78.97-.29.18-.54.06a6.5 6.5 0 0 1-1.92-1.18 7.2 7.2 0 0 1-1.33-1.65c-.14-.24 0-.37.1-.49s.25-.29.37-.43.17-.24.25-.4a.45.45 0 0 0 0-.43c-.06-.12-.56-1.35-.77-1.85s-.4-.42-.56-.43-.34-.01-.48-.01a.92.92 0 0 0-.66.31 2.78 2.78 0 0 0-.87 2.07 4.83 4.83 0 0 0 1 2.55 11 11 0 0 0 4.2 3.7c.59.26 1.05.4 1.4.52a3.4 3.4 0 0 0 1.55.1 2.54 2.54 0 0 0 1.66-1.17 2.06 2.06 0 0 0 .14-1.17c-.06-.1-.22-.16-.47-.28Z"/></svg>'+(rotulo||'Falar no WhatsApp')+'</a>';
+  }
+
+  // glossario-tooltip
+  function marcaTermos(txtEsc){
+    var gl=state.dados.glossario||[]; if(!gl.length) return txtEsc;
+    var s=txtEsc;
+    for(var i=0;i<gl.length;i++){
+      var t=gl[i].t; if(!t||t.length<4) continue;
+      try{
+        var re=new RegExp('(^|[^\\wÀ-ÿ>])('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?![\\wÀ-ÿ])','i');
+        if(re.test(s)){ s=s.replace(re,function(m,a,b){ return a+'<span class="termo" data-gi="'+i+'" role="button" tabindex="0">'+b+'</span>'; }); }
+      }catch(e){}
+    }
+    return s;
+  }
+
+  // ========== RENDER: MEU CASO (conversa) ==========
+  function vProcesso(){
+    var d = state.dados, ps = d.processos||[];
+    if(!ps.length) return '<div class="card estado entra"><h2>Seu processo está sendo preparado</h2><p>Assim que for distribuído, ele aparece aqui automaticamente.</p></div>';
+    var p = ps[Math.min(state.proc, ps.length-1)];
+    var h = '';
+
+    // ---- cabecalho compacto fixo da conversa ----
+    var marcos=['Contrato','Distrib.','Citação','Sentença','Cumpr.','Êxito'];
+    var miniJornada = marcos.map(function(m,i){
+      var cls = i<p.jornada ? 'done' : (i===p.jornada ? 'done atual' : '');
+      return '<div class="ch-m '+cls+'"><span class="ch-d"></span><span class="ch-l">'+m+'</span></div>';
+    }).join('');
+    var checkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>';
+    h += '<div class="convo-head entra">'+
+      '<div class="ch-top">'+
+        '<div class="ch-avatar" aria-hidden="true">CBC</div>'+
+        '<div class="ch-id">'+
+          '<div class="ch-status">'+checkSvg+'<span>'+esc(statusHumano(p))+'</span></div>'+
+          (vezTexto(p)?'<div class="ch-vez">'+vezTexto(p)+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div class="ch-mini" aria-label="Jornada do processo: marco '+(p.jornada+1)+' de 6">'+miniJornada+'</div>'+
+    '</div>';
+
+    // ---- carteira de casos (multi-processo) ----
+    if(ps.length>1){
+      var comNov = ps.filter(function(x){ return diasDesde((x.andamentos||[])[0]&&x.andamentos[0].data)<=7; }).length;
+      var reta = ps.filter(function(x){ return x.jornada>=4; }).length;
+      var partes=['<b>'+ps.length+'</b> casos sob nossos cuidados'];
+      if(comNov) partes.push('<b>'+comNov+'</b> com novidade esta semana');
+      if(reta) partes.push('<b>'+reta+'</b> na reta final');
+      h += '<div class="carteira entra"><p class="carteira-resumo">'+partes.join(' · ')+'</p>'+
+        '<div class="casos-chips" role="group" aria-label="Seus casos">'+ps.map(function(x,i){
+          var st=statusCurto(x);
+          return '<button class="caso-chip" aria-pressed="'+(i===state.proc)+'" data-proc="'+i+'" aria-label="Caso '+(i+1)+' de '+ps.length+': '+esc(tituloCaso(x))+' — '+st.txt+'">'+
+            '<div class="cc-top"><span class="cc-num">Caso '+(i+1)+'</span>'+(st.novidade?'<span class="cc-badge">novidade</span>':'')+'</div>'+
+            '<div class="cc-tit">'+esc(tituloCaso(x))+'</div>'+
+            '<div class="cc-fase" style="color:'+st.cor+'"><span class="dotc" style="background:'+st.cor+'"></span>'+st.txt+'</div>'+
+          '</button>';
+        }).join('')+'</div></div>';
+    }
+
+    // ========== FEED ==========
+    h += '<div class="feed entra">';
+
+    var evs = (p.andamentos||[]).slice();
+    var ev = p.evento;
+    var atv = p.atividades;
+    var au = atv && atv.audiencia;
+
+    // separador de "hoje" / dia mais recente
+    h += '<div class="dia-sep"><span>'+(evs[0]?'Conversa sobre o seu caso':'Seu caso')+'</span></div>';
+
+    // --- 1) MENSAGEM 1: situacao atual (boas-vindas humana, a mais recente em destaque se nao houver evento) ---
+    var temEvento = ev && ev.tipo && ev.tipo!=='audiencia';
+    var assina = (atv && atv.ultima && atv.ultima.por) ? String(atv.ultima.por).trim() : 'Equipe CBC';
+    var primeiroNomeAss = assina.split(/\s+/)[0];
+
+    // bolha de boas-vindas / situacao (destaque so se nao houver card de evento navy)
+    var temPend=!!state.dados.tem_vencida || (au && diasAte(au.data)>=0 && diasAte(au.data)<=7);
+    var corpoSit = '';
+    corpoSit += '<p>'+(p.fase_texto?esc(p.fase_texto):'Seu caso segue em andamento e sob nossos cuidados.')+'</p>';
+    if(vezMicrocopy(p)) corpoSit += '<p>'+esc(vezMicrocopy(p))+'</p>';
+    if(p.proximos_passos) corpoSit += '<p><b>Próximos passos:</b> '+esc(p.proximos_passos)+(p.prazo_medio?' <span style="color:var(--ink-faint)">(prazo médio: '+esc(p.prazo_medio)+')</span>':'')+'</p>';
+    if(!temPend){
+      corpoSit += '<div class="edu" style="margin-top:11px"><div class="nao" style="margin:0;background:var(--ok-bg)"><b>Nada pendente do seu lado.</b> Você não precisa fazer nada agora. Se algo precisar de você, a gente avisa por aqui e pelo WhatsApp.</div></div>';
+    }
+    h += msgBolha({
+      av:'AB', avCls:'', nome:'Ana Bergonsi', papel:'sua advogada', hora:horaFake(3),
+      destaque:false, recente:!temEvento,
+      corpo:corpoSit,
+      acoes:'<button class="ouvir" id="ouvir-resumo" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ouvir resumo</button>'
+    });
+
+    // --- 1b) AVISO discreto: ha um acerto/levantamento neste caso ---
+    if(p.prestacao){
+      var pago=p.prestacao.status==='pago';
+      var avisoAcerto = pago
+        ? 'Seu levantamento foi concluído — veja o detalhamento em <b>Acerto</b>.'
+        : (p.prestacao.tipo==='acordo' ? 'Há um acerto em andamento — veja o detalhamento em <b>Acerto</b>.' : '');
+      if(avisoAcerto){
+        h += '<div class="msg aviso entra"><div class="msg-av cbc" aria-hidden="true">CBC</div>'+
+          '<div class="bolha">'+
+            '<span class="aviso-tag calmo">'+(pago?'Acerto concluído':'Acerto em andamento')+'</span>'+
+            '<div class="msg-quem"><span class="msg-nome">Equipe CBC</span><span class="msg-hora">'+horaFake(7)+'</span></div>'+
+            '<p>'+avisoAcerto+'</p>'+
+          '</div></div>';
+      }
+    }
+
+    // --- 2) MENSAGEM-DESTAQUE NAVY: evento favoravel (Caso 2) ---
+    if(temEvento){
+      h += cardEventoMsg(p);
+    }
+
+    // --- 3) AVISO: compromisso marcado (audiencia futura) ---
+    if(au){
+      h += '<div class="msg aviso entra"><div class="msg-av" aria-hidden="true">CBC</div>'+
+        '<div class="bolha">'+
+          '<span class="aviso-tag">Compromisso marcado</span>'+
+          '<div class="msg-quem"><span class="msg-nome">Equipe CBC</span><span class="msg-hora">'+horaFake(5)+'</span></div>'+
+          '<p><b>'+esc(titulo(au.titulo))+'</b> — '+dataBR(au.data)+'. Perto da data entraremos em contato com todas as orientações. Você não precisa fazer nada agora.</p>'+
+        '</div></div>';
+    }
+
+    // --- 4) AVISO suave: ha 1 item para voce (boleto vencido) ---
+    if(state.dados.tem_vencida){
+      h += '<div class="msg aviso entra"><div class="msg-av" aria-hidden="true">CBC</div>'+
+        '<div class="bolha">'+
+          '<span class="aviso-tag">Há 1 item para você</span>'+
+          '<div class="msg-quem"><span class="msg-nome">Financeiro CBC</span><span class="msg-hora">'+horaFake(2)+'</span></div>'+
+          '<p>Há um boleto em aberto na aba <b>Pagamentos</b>. É rápido de resolver — toque em Pagamentos para ver o PIX e o boleto.</p>'+
+        '</div></div>';
+    }
+
+    // --- 5) MENSAGEM: o trabalho da equipe (numeros) ---
+    if(atv && (atv.tarefas_concluidas || atv.movimentos)){
+      var work = '<p>Nos bastidores, seguimos trabalhando no seu caso. Veja o que já fizemos:</p>'+
+        '<div class="work-grid">'+
+          '<div class="work-cell"><div class="n">'+(atv.tarefas_concluidas||0)+'</div><div class="r">Tarefas concluídas</div></div>'+
+          '<div class="work-cell"><div class="n">'+(atv.movimentos||0)+'</div><div class="r">Movimentações acompanhadas</div></div>'+
+        '</div>';
+      var extras=[];
+      if(atv.horas>=1) extras.push('~'+String(atv.horas).replace('.',',')+' horas dedicadas');
+      if(atv.publicacoes) extras.push(atv.publicacoes+' '+plural(atv.publicacoes,'publicação oficial analisada','publicações oficiais analisadas'));
+      if(extras.length) work += '<div class="work-extra">'+extras.join(' <span class="sep">•</span> ')+'</div>';
+      if(atv.mov_mes || atv.atv_mes){
+        var mesNome=((state.dados.escritorio||{}).mes||''); mesNome=mesNome.charAt(0).toUpperCase()+mesNome.slice(1);
+        var linhas=[];
+        if(atv.mov_mes) linhas.push('<b>'+atv.mov_mes+'</b> '+plural(atv.mov_mes,'movimentação acompanhada','movimentações acompanhadas'));
+        if(atv.atv_mes) linhas.push('<b>'+atv.atv_mes+'</b> '+plural(atv.atv_mes,'atividade concluída','atividades concluídas'));
+        work += '<div class="work-extra"><b style="color:var(--ink)">Em '+esc(mesNome)+':</b> '+linhas.join(' · ')+'</div>';
+      }
+      if(atv.ultima && atv.ultima.titulo){
+        work += '<div class="work-ass">Última atividade: <b>'+esc(titulo(atv.ultima.titulo))+'</b>'+
+          (atv.ultima.por?' — '+esc(primeiroNomeAss):'')+(atv.ultima.em?' <span style="color:var(--ink-faint)">('+dataBR(atv.ultima.em)+')</span>':'')+'</div>';
+      }
+      h += msgBolha({ av:'CBC', avCls:'cbc', nome:'Equipe CBC', papel:'em ação', hora:horaFake(6), corpo:work });
+    }
+
+    // --- 6) selo de ritmo (mensagem curta navy quando rapidez=true) ---
+    if(p.rapidez){
+      h += '<div class="msg entra"><div class="msg-av cbc" aria-hidden="true">CBC</div>'+
+        '<div class="bolha" style="border-color:var(--gold-soft);background:linear-gradient(180deg,#fff,var(--gold-faint))">'+
+          '<div class="msg-quem"><span class="msg-papel" style="color:var(--gold-text)">✦ Boa notícia</span><span class="msg-hora">'+horaFake(1)+'</span></div>'+
+          '<p>Seu processo está <b>avançando acima do ritmo médio</b> de casos semelhantes.'+
+          (p.mesma_fase>=5?' E você não está sozinho: <b>'+p.mesma_fase+'</b> outros clientes do escritório estão nesta mesma fase agora — o ritmo do seu caso está dentro do esperado.':'')+'</p>'+
+        '</div></div>';
+    }
+
+    // --- 7) "entenda esta fase" (educacao) como mensagem com expansores ---
+    h += '<div class="msg entra"><div class="msg-av cbc" aria-hidden="true">CBC</div>'+
+      '<div class="bolha">'+
+        '<div class="msg-quem"><span class="msg-nome">Equipe CBC</span><span class="msg-papel">entenda</span><span class="msg-hora">'+horaFake(4)+'</span></div>'+
+        '<p>Para ficar tranquilo(a), explicamos abaixo o que esperar desta fase:</p>'+
+        '<div class="edu">'+
+          '<details><summary>Entenda a fase de '+esc(p.fase||'agora')+'</summary><div class="corpo-edu">'+esc(p.fase_texto||'Seu caso segue o curso normal previsto pela Justiça.')+
+            '<div class="nao"><b>O que NÃO vai acontecer agora:</b> nada de surpresa. Não há nada que você precise assinar ou pagar fora do que já está combinado, e nenhuma decisão final sai sem que a gente te avise.</div></div></details>'+
+          '<details><summary>Por que às vezes fica um tempo sem movimentação?</summary><div class="corpo-edu">É normal. Em várias fases o processo aguarda uma análise do juiz ou um prazo da outra parte. O silêncio costuma ser sinal de que tudo segue o seu curso — e seguimos verificando todos os dias úteis.</div></details>'+
+        '</div>'+
+      '</div></div>';
+
+    // --- 8) LINHA DO TEMPO: cada andamento vira uma mensagem humana ---
+    h += '<div class="dia-sep"><span>Linha do tempo do processo</span></div>';
+    h += '<div class="msg entra"><div class="msg-av cbc" aria-hidden="true">CBC</div>'+
+      '<div class="bolha" style="background:var(--paper-warm)">'+
+        '<p style="font-size:0.84375rem">A maior parte das movimentações são registros normais do tribunal e <b>não exigem nenhuma ação</b> — nem sua, nem nossa. Quando algo depende do escritório, criamos a tarefa e concluímos antes do prazo judicial.</p>'+
+      '</div></div>';
+
+    if(!evs.length){
+      h += '<div class="msg entra"><div class="msg-av cbc" aria-hidden="true">CBC</div><div class="bolha"><p>Ainda não há movimentações registradas pelos tribunais. Verificamos seu processo todos os dias e este espaço se atualiza sozinho.</p></div></div>';
+    } else {
+      var vis = state.expand ? evs : evs.slice(0,5);
+      vis.forEach(function(e,i){
+        var fonteCbc = /cbc|escrit/i.test(e.fonte||'');
+        h += '<div class="msg entra"><div class="msg-av '+(fonteCbc?'cbc':'')+'" aria-hidden="true">'+(fonteCbc?'CBC':'TJ')+'</div>'+
+          '<div class="bolha">'+
+            '<div class="msg-quem"><span class="msg-nome">'+(fonteCbc?'Equipe CBC':'Tribunal de Justiça')+'</span><span class="msg-hora">'+dataBR(e.data)+'</span></div>'+
+            '<p>'+marcaTermos(esc(e.texto))+'</p>'+
+            (e.fonte?'<div class="fonte">Fonte: '+esc(e.fonte)+'</div>':'')+
+          '</div></div>';
+      });
+      if(evs.length>5){
+        h += '<button class="ver-mais" id="ver-mais">'+(state.expand?'Mostrar menos':'Ver histórico completo ('+evs.length+')')+'</button>';
+      }
+    }
+
+    // --- escritorio em numeros (rodape do feed) ---
+    var of = state.dados.escritorio;
+    if(of && of.tarefas_mes>=50){
+      h += '<div class="msg entra"><div class="msg-av cbc" aria-hidden="true">CBC</div><div class="bolha" style="background:var(--paper-warm)"><p style="font-size:0.84375rem">Em '+esc(of.mes)+', nossa equipe já concluiu <b style="color:var(--gold-text)">'+Number(of.tarefas_mes).toLocaleString('pt-BR')+'</b> tarefas processuais para clientes como você. Você está em boas mãos.</p></div></div>';
+    }
+
+    // --- COMPOSE: "pergunte aqui" estilo digitar mensagem ---
+    h += '<div class="compose entra">'+
+      '<div class="av" aria-hidden="true">você</div>'+
+      '<div class="compose-box">'+
+        '<div class="lab">Fale com a sua equipe</div>'+
+        '<textarea id="pq-texto" rows="1" placeholder="Escreva sua mensagem ou dúvida…" autocapitalize="sentences" autocorrect="on" spellcheck="true" enterkeyhint="send" aria-label="Escreva sua mensagem para a equipe"></textarea>'+
+        '<div class="compose-foot">'+
+          '<span class="nota">Sua mensagem vai direto para a equipe — respondemos em até 1 dia útil.</span>'+
+          '<button class="send-btn" id="pq-envia" type="button" aria-label="Enviar mensagem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 14-7-5 14-2.5-5.5L5 12Z"/></svg></button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+    // perguntas ja enviadas (bolhas do cliente)
+    var mp = state.dados.minhas_perguntas||[];
+    if(mp.length){
+      h += mp.map(function(q){
+        return '<div class="msg eu entra"><div class="msg-av" aria-hidden="true">você</div>'+
+          '<div class="bolha">'+
+            '<div class="msg-quem"><span class="msg-nome">Você</span>'+
+            '<span class="pq-status '+(q.status==='respondida'?'respondida':'pendente')+'">'+(q.status==='respondida'?'Respondida':'Aguardando')+'</span></div>'+
+            '<p>'+esc(q.pergunta)+'</p>'+
+            (q.resposta?'<div class="pq-resp"><b>Equipe CBC:</b> '+esc(q.resposta)+'</div>':'')+
+          '</div></div>';
+      }).join('');
+    }
+
+    // botao whatsapp ao final
+    var bw=btnWhats(p);
+    if(bw) h += '<div class="entra" style="text-align:center;margin-top:18px">'+bw+'<div style="font-size:0.71875rem;color:var(--ink-faint);margin-top:7px">Atendemos '+esc(((state.dados.contato||{}).horario)||'em horário comercial')+' e respondemos cada dúvida com calma.</div></div>';
+
+    h += '</div>'; // .feed
+    return h;
+  }
+
+  // helper: monta uma bolha do escritorio
+  function msgBolha(o){
+    var cls='msg entra'+(o.destaque?' destaque':'')+(o.recente?' recente':'');
+    var sel=o.recente?'<span class="selo-novo">✦ mais recente</span>':'';
+    return '<div class="'+cls+'"><div class="msg-av '+(o.avCls||'')+'" aria-hidden="true">'+esc(o.av||'CBC')+'</div>'+
+      '<div class="bolha">'+
+        '<div class="msg-quem"><span class="msg-nome">'+esc(o.nome||'Equipe CBC')+'</span>'+(o.papel?'<span class="msg-papel">'+esc(o.papel)+'</span>':'')+sel+'<span class="msg-hora">'+esc(o.hora||'')+'</span></div>'+
+        (o.corpo||'')+
+        (o.acoes?'<div class="bolha-acoes">'+o.acoes+'</div>':'')+
+      '</div></div>';
+  }
+
+  // card de evento critico como MENSAGEM-DESTAQUE NAVY
+  function cardEventoMsg(p){
+    var ev=p.evento; if(!ev||ev.tipo==='audiencia') return '';
+    var M={
+      sentenca_favoravel:{tit:'Saiu a decisão — e foi favorável a você! 🎉',txt:'O juiz reconheceu o seu direito. É uma grande conquista. <b>Um detalhe importante:</b> a vitória ainda não é o dinheiro na conta — agora começa o cumprimento de sentença (cálculos e liberação dos valores), que acompanhamos de perto. Em breve detalhamos os próximos passos.'},
+      decisao_neutra:{tit:'Houve uma decisão no seu caso',txt:'O juiz analisou o seu processo e proferiu uma decisão. Nossa equipe já está estudando o conteúdo e as melhores opções e <b>vai entrar em contato com você</b> para explicar tudo com calma. Você não precisa fazer nada agora.'},
+      citacao:{tit:'A outra parte foi oficialmente notificada',txt:'A Justiça comunicou oficialmente a outra parte sobre o seu processo. Isso é um passo positivo: o seu caso entrou em movimento. A partir daqui corre o prazo de resposta dela — etapa normal e prevista.'},
+      acordo:{tit:'Acordo homologado',txt:'Um acordo foi homologado pela Justiça no seu caso. Os detalhes e valores aparecem na aba Acordo. É um caminho que costuma trazer a solução mais rápida.'}
+    };
+    var c=M[ev.tipo]; if(!c) return '';
+    return '<div class="msg destaque recente entra"><div class="msg-av cbc" aria-hidden="true">CBC</div>'+
+      '<div class="bolha">'+
+        '<div class="msg-quem"><span class="msg-papel" style="color:var(--gold-text)">Novidade importante</span><span class="selo-novo">✦ mais recente</span><span class="msg-hora">'+dataBR(ev.data)+'</span></div>'+
+        '<div class="bolha-tit">'+c.tit+'</div>'+
+        '<p>'+c.txt+'</p>'+
+        '<div class="bolha-data">Registrado em '+dataBR(ev.data)+'</div>'+
+      '</div></div>';
+  }
+
+  // ========== RENDER: PAGAMENTOS ==========
+  function vPagamentos(){
+    var pg = state.dados.pagamentos||{resumo:{},pendentes:[],pagos:[]};
+    var r = pg.resumo||{};
+    var h = '<div class="pane-intro">Seus pagamentos</div><div class="pane-sub">Honorários contratados, parcelas e histórico — tudo em um lugar.</div>';
+
+    var pr=state.dados.pagamento_recente;
+    if(pr){ h += '<div class="card entra" style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;margin-top:14px;background:var(--ok-bg);border-color:var(--gold-soft)"><span style="font-size:1.5rem;flex:0 0 auto" aria-hidden="true">🤝</span>'+
+      '<div style="font-size:0.875rem"><b style="color:var(--ok)">Recebemos o seu pagamento de '+BRL.format(pr.valor)+' — muito obrigado!</b><br><span style="color:var(--ink-soft)">Já está tudo registrado aqui no seu portal. A confirmação é automática.</span></div></div>'; }
+
+    h += '<div class="resumo entra">'+
+      '<div class="card"><div class="rotulo">Já pago</div><div class="valor ok">'+BRL.format(r.total_pago||0)+'</div><div class="nota-card">'+(r.qtd_pagos||0)+' '+plural(r.qtd_pagos,'pagamento','pagamentos')+'</div></div>'+
+      '<div class="card"><div class="rotulo">Em aberto</div><div class="valor pend">'+BRL.format(r.total_pendente||0)+'</div><div class="nota-card">'+(r.qtd_pendentes||0)+' '+plural(r.qtd_pendentes,'parcela','parcelas')+'</div></div>'+
+    '</div>';
+
+    if((pg.pendentes||[]).length){
+      h += '<div class="sec-tit">Próximas parcelas</div>';
+      h += pg.pendentes.map(function(b,i){
+        return '<section class="card bol entra">'+
+          '<div class="bol-head"><div class="venc">Vencimento<b>'+dataBR(b.vencimento)+'</b></div>'+
+          '<div style="text-align:right"><div class="valor">'+BRL.format(b.valor)+'</div>'+
+          '<span class="pill '+(b.vencido?'vencido':'pendente')+'">'+(b.vencido?'Vencido':'Em aberto')+'</span></div></div>'+
+          '<div class="desc">'+esc(b.descricao)+(b.parcela?' · parcela '+esc(b.parcela):'')+'</div>'+
+          '<div class="bol-acoes">'+
+            (b.pix?'<button class="btn btn-ouro" data-pix="'+i+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar PIX</button>':'')+
+            (b.boleto_url?'<a class="btn btn-claro" href="'+esc(b.boleto_url)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 5v14M8 5v14M12 5v10m4-10v14m4-14v10"/></svg>Ver boleto</a>':'')+
+          '</div>'+
+          '<button class="link-cal" data-cal="'+i+'" type="button">+ Adicionar lembrete no calendário do celular</button>'+
+        '</section>';
+      }).join('');
+    } else if(state.dados.so_exito){
+      h += '<div class="card estado entra"><h2>Você só paga se ganhar</h2><p>Seu contrato é exclusivamente por êxito: <b>não há honorários iniciais nem parcelas</b>. Você só paga quando — e se — receber o resultado do seu caso.</p></div>';
+    } else {
+      h += '<div class="card estado entra"><h2>Tudo em dia</h2><p>Você não tem parcelas em aberto no momento. Se houver novas parcelas, elas aparecem aqui automaticamente.</p></div>';
+    }
+
+    // contrato (contexto)
+    var ct = state.dados.contrato;
+    if(ct){
+      var tot=numBR(ct.honorarios_total), vparc=numBR(ct.valor_parcela), pago=r.total_pago||0;
+      var pct=tot?Math.min(100,Math.round(pago/tot*100)):0;
+      h += '<section class="card ct-card entra">'+
+        '<div class="rotulo">Seu contrato</div>'+
+        '<div class="ct-tipo">'+esc(ct.tipo||'Honorários contratados')+'</div>'+
+        (ct.resort?'<span class="quadro-tag">'+esc(ct.resort)+'</span>':'')+
+        '<div style="margin-top:12px">'+
+          (tot!=null?'<div class="ac-linha"><span>Honorários iniciais'+(ct.parcelas>1&&vparc?'<br><small style="color:var(--ink-faint)">em '+ct.parcelas+' parcelas de '+BRL.format(vparc)+'</small>':'')+'</span><b>'+BRL.format(tot)+'</b></div>':'')+
+          (ct.exito_pct?'<div class="ac-linha"><span>Honorários de êxito<br><small style="color:var(--ink-faint)">somente sobre o que você receber no final</small></span><b>'+esc(ct.exito_pct)+'%</b></div>':'')+
+        '</div>'+
+        (tot?'<div style="margin-top:10px"><div class="barra"><i style="width:'+pct+'%"></i></div><div class="nota-card" style="margin-top:5px">'+pct+'% dos honorários iniciais quitados — '+BRL.format(pago)+' pagos</div></div>':'')+
+      '</section>';
+    }
+
+    if((pg.pagos||[]).length){
+      h += '<div class="sec-tit">Histórico de pagamentos <button id="btn-extrato" type="button" class="extrato-btn">Imprimir / salvar extrato</button></div>';
+      h += pg.pagos.map(function(b){
+        return '<section class="card bol pago-card entra"><div><div class="venc">Pago em <b>'+dataBR(b.pago_em||b.vencimento)+'</b></div>'+
+          '<div class="desc" style="margin-top:3px">'+esc(b.descricao)+(b.parcela?' · '+esc(b.parcela):'')+'</div></div>'+
+          '<div style="text-align:right"><div class="valor">'+BRL.format(b.valor)+'</div><span class="pill pago">✓ Pago</span></div></section>';
+      }).join('');
+    }
+    return h;
+  }
+
+  // ========== RENDER: ACERTO (prestacao de contas do caso selecionado) ==========
+  function vAcordo(){
+    var ps=state.dados.processos||[];
+    var p=ps[Math.min(state.proc,ps.length-1)]||null;
+    var a=p&&p.prestacao;
+    if(!a){
+      return '<div class="card estado entra"><h2>Ainda não há acerto neste caso</h2><p>Quando o seu caso tiver um acordo ou um levantamento de valores, o acerto detalhado aparece aqui — com calma e por extenso.</p></div>';
+    }
+
+    var recebido=numBR(a.valor_recebido), hon=numBR(a.honorarios), custas=numBR(a.custas), corr=numBR(a.correcao), meu=numBR(a.valor_cliente);
+    var parc=parseInt(a.parcelas||'1',10)||1;
+    var pago=a.status==='pago';
+    var alvara=a.tipo==='alvara';
+
+    // titulo + pilula
+    var tit = alvara
+      ? ('Levantamento de alvará'+(a.levantamento?' <span style="color:var(--ink-faint);font-size:0.875rem">· '+esc(a.levantamento)+'</span>':''))
+      : (pago ? 'Prestação de contas concluída' : 'Prestação de contas do seu acordo');
+    var pill = pago
+      ? '<span class="pill pago" style="margin-top:10px">✓ Concluída</span>'
+      : '<span class="pill pendente" style="margin-top:10px">Em andamento</span>';
+
+    var h = '<div class="pane-intro">Seu acerto</div><div class="pane-sub">Para onde foi cada valor do seu caso — explicado por extenso, sem letras miúdas.</div>';
+
+    h += '<section class="card ct-card entra">'+
+      '<div class="rotulo">'+(alvara?'Levantamento de valores':'Prestação de contas')+'</div>'+
+      '<div class="ct-tipo">'+tit+'</div>'+
+      pill+
+      (a.resort?'<span class="quadro-tag" style="display:inline-block;margin-top:10px">'+esc(a.resort)+'</span>':'')+
+      '<div class="acerto-meta">'+
+        (a.processo?'<div><span>Processo</span><b>'+esc(a.processo)+'</b></div>':'')+
+        (a.cumprimento?'<div><span>Cumprimento de sentença</span><b>'+esc(a.cumprimento)+'</b></div>':'')+
+        (a.resort?'<div><span>Referente a</span><b>'+esc(a.resort)+'</b></div>':'')+
+        (a.data_caiu?'<div><span>Valor caiu em conta em</span><b>'+dataBR(a.data_caiu)+'</b></div>':'')+
+      '</div>'+
+    '</section>';
+
+    // como o valor se distribui
+    var linha=function(rot,val,sin){ if(val==null) return ''; return '<div class="ac-linha"><span>'+rot+'</span><b>'+(sin?sin+' ':'')+BRL.format(val)+'</b></div>'; };
+    h += '<div class="sec-tit">Como o valor se distribui</div>';
+    h += '<section class="card entra" style="padding:6px 18px">'+
+      linha((alvara?'Valor levantado (alvará)':'Valor recebido no acordo'), recebido)+
+      linha('Honorários advocatícios'+(a.hon_pct?' ('+esc(a.hon_pct)+'%)':''), hon, '−')+
+      linha('Custas e despesas do processo', custas, '−')+
+      ((corr&&corr>0)?linha('Correção monetária a seu favor', corr, '+'):'')+
+    '</section>';
+
+    // destaque navy
+    if(meu!=null){
+      h += '<section class="acerto-destaque entra">'+
+        '<div class="rot">'+(pago?'Valor líquido repassado a você':'Valor líquido para você')+(parc>1?' · em '+parc+' parcelas':'')+'</div>'+
+        '<div class="big">'+BRL.format(meu)+'</div>'+
+      '</section>';
+    }
+
+    // nota final
+    h += '<section class="card acerto-nota entra">'+
+      (pago
+        ? '<p>Esta prestação de contas foi <b>concluída</b> e o valor já repassado a você. Guarde esta página como registro do acerto — qualquer dúvida sobre os valores, é só nos chamar.</p>'
+        : '<p>Estes valores passam pela <b>conferência final</b> da nossa equipe antes do repasse. Assim que estiver tudo pronto, entraremos em contato para confirmar seus dados bancários e concluir o pagamento.</p>')+
+    '</section>';
+
+    var bw=btnWhats(p,'Falar sobre o acerto');
+    if(bw) h += '<div class="entra" style="text-align:center;margin-top:16px">'+bw+'</div>';
+
+    return h;
+  }
+
+  // ========== RENDER: DUVIDAS ==========
+  function vFaq(){
+    var h = '<div class="pane-intro">Toda dúvida merece resposta</div>'+
+      '<div class="pane-sub">Reunimos o que os clientes mais perguntam. Se a sua não estiver aqui, escreva — respondemos em até 1 dia útil.</div>';
+    var pAtual = (state.dados.processos||[])[Math.min(state.proc,(state.dados.processos||[]).length-1)]||null;
+    var bw=btnWhats(pAtual,'Falar no WhatsApp');
+    if(bw) h += '<div class="entra" style="margin-top:12px">'+bw+'</div>';
+
+    var faq=state.dados.faq||[];
+    h += '<div class="sec-tit">Dúvidas frequentes</div>';
+    if(faq.length){
+      h += '<div class="edu entra" style="margin-top:0">'+faq.map(function(f){
+        return '<details><summary>'+esc(f.pergunta)+'</summary><div class="corpo-edu">'+esc(f.resposta)+'</div></details>';
+      }).join('')+'</div>';
+    } else {
+      h += '<div class="card estado entra"><p>Em breve reuniremos aqui as dúvidas mais comuns.</p></div>';
+    }
+
+    // glossario
+    var gl=state.dados.glossario||[];
+    if(gl.length){
+      h += '<div class="sec-tit">Palavras do processo, em português claro</div>';
+      h += '<section class="card entra glossario-box" style="padding:6px 18px">'+gl.map(function(g){
+        return '<div class="gl-item"><b>'+esc(g.t)+'</b><span>'+esc(g.d)+'</span></div>';
+      }).join('')+'</section>';
+    }
+
+    // pergunte aqui (estilo digitar mensagem, igual ao feed)
+    h += '<div class="sec-tit">Não encontrou? Pergunte aqui</div>';
+    h += '<div class="compose faq entra" style="margin-top:0">'+
+      '<div class="av" aria-hidden="true">você</div>'+
+      '<div class="compose-box">'+
+        '<div class="lab">Fale com a sua equipe</div>'+
+        '<textarea id="pq-texto" rows="2" placeholder="Escreva sua pergunta…" autocapitalize="sentences" autocorrect="on" spellcheck="true" enterkeyhint="send" aria-label="Escreva sua pergunta"></textarea>'+
+        '<div class="compose-foot">'+
+          '<span class="nota">Sua pergunta vai direto para a equipe — respondemos em até 1 dia útil e a resposta aparece em "Meu caso".</span>'+
+          '<button class="send-btn" id="pq-envia" type="button" aria-label="Enviar pergunta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 14-7-5 14-2.5-5.5L5 12Z"/></svg></button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+    return h;
+  }
+
+  // ---------- lembrete de parcela no calendario ----------
+  function agendaCalendario(b){
+    var d=String(b.vencimento||'').slice(0,10); if(!d) return;
+    var dt=d.replace(/-/g,'');
+    var tit='Parcela CBC Advogados — '+BRL.format(b.valor);
+    var det='Pagamento de honorários CBC Advogados. Boleto e PIX no seu portal.';
+    if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      var ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CBC//Portal//PT\r\nBEGIN:VEVENT\r\nUID:cbc-'+dt+'-'+Math.random().toString(36).slice(2)+'\r\nDTSTART;VALUE=DATE:'+dt+'\r\nSUMMARY:'+tit.replace(/,/g,'\\,')+'\r\nDESCRIPTION:'+det.replace(/,/g,'\\,')+'\r\nBEGIN:VALARM\r\nTRIGGER:-PT15H\r\nACTION:DISPLAY\r\nDESCRIPTION:'+tit.replace(/,/g,'\\,')+'\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR';
+      var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='parcela-cbc-'+d+'.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Abra o arquivo para salvar no seu Calendário');
+    } else {
+      window.open('https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(tit)+'&dates='+dt+'/'+dt+'&details='+encodeURIComponent(det),'_blank');
+    }
+  }
+
+  // ---------- extrato (impressao nativa do navegador, sem libs externas) ----------
+  function geraExtrato(){
+    var c=state.dados.cliente||{};
+    var pg=state.dados.pagamentos||{}; var r=pg.resumo||{};
+    var qp=r.qtd_pagos||0, qa=r.qtd_pendentes||0;
+    var linhas=(pg.pagos||[]).map(function(b){
+      return '<tr><td>'+esc(dataBR(b.pago_em||b.vencimento))+'</td>'+
+        '<td>'+esc(String(b.descricao||'Parcela de honorários')+(b.parcela?' · '+b.parcela:''))+'</td>'+
+        '<td class="r">'+esc(BRL.format(b.valor||0))+'</td></tr>';
+    }).join('');
+    if(!(pg.pagos||[]).length) linhas='<tr><td colspan="3">Nenhum pagamento registrado ainda.</td></tr>';
+    $('extrato-print').innerHTML=
+      '<div class="ep-firma"><div class="ep-nome">CBC Advogados</div>'+
+        '<div class="ep-oab">Conforto, Bergonsi &amp; Cavalari · OAB/SP 55227 · Americana–SP</div></div>'+
+      '<hr/>'+
+      '<h1>Extrato de honorários</h1>'+
+      '<div class="ep-meta">Cliente: '+esc(c.nome||'')+'<br/>'+
+        'Emitido em '+esc(new Date().toLocaleString('pt-BR'))+' pelo Portal do Cliente</div>'+
+      '<div class="ep-tot"><span class="ep-pago">Total pago: '+esc(BRL.format(r.total_pago||0))+
+        ' ('+qp+' '+plural(qp,'pagamento','pagamentos')+')</span><br/>'+
+        '<span class="ep-aberto">Em aberto: '+esc(BRL.format(r.total_pendente||0))+
+        ' ('+qa+' '+plural(qa,'parcela','parcelas')+')</span></div>'+
+      '<table><thead><tr><th>Pago em</th><th>Descrição</th><th class="r">Valor</th></tr></thead>'+
+        '<tbody>'+linhas+'</tbody></table>'+
+      '<div class="ep-rodape">Documento informativo gerado automaticamente pelo Portal do Cliente.</div>';
+    window.print();
+  }
+
+  // ---------- ouvir resumo (voz nativa) ----------
+  var falando=false;
+  function ouvirResumo(){
+    if(!('speechSynthesis' in window)){ toast('Seu aparelho não suporta leitura em voz'); return; }
+    var btn=$('ouvir-resumo');
+    if(falando){ speechSynthesis.cancel(); falando=false; if(btn)btn.classList.remove('tocando'); return; }
+    var ps=state.dados.processos||[]; var p=ps[Math.min(state.proc,ps.length-1)]; if(!p) return;
+    var partes=['Situação do seu caso: '+statusHumano(p)+'.','Fase atual: '+(p.fase||'em andamento')+'.'];
+    if(p.atividades&&p.atividades.vez==='tribunal') partes.push('Neste momento aguardamos o tribunal — você não precisa fazer nada.');
+    if(p.atividades&&p.atividades.vez==='escritorio') partes.push('Nossa equipe está trabalhando no seu caso agora.');
+    if((p.andamentos||[])[0]) partes.push('Última movimentação, em '+dataBR(p.andamentos[0].data)+': '+p.andamentos[0].texto);
+    if(p.proximos_passos) partes.push('Próximos passos: '+p.proximos_passos);
+    partes.push('Qualquer novidade, este portal e a nossa equipe avisam você.');
+    var u=new SpeechSynthesisUtterance(partes.join(' ')); u.lang='pt-BR'; u.rate=0.96;
+    u.onend=function(){ falando=false; if(btn)btn.classList.remove('tocando'); };
+    falando=true; if(btn)btn.classList.add('tocando');
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+
+  // ---------- render orquestrador ----------
+  function render(){
+    var alvo=$('conteudo'); if(!state.dados) return;
+    var mudouAba = alvo._aba!==state.aba; alvo._aba=state.aba;
+    var prm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!prm && !state.semEntra && alvo.innerHTML){
+      alvo.style.opacity='0';
+      clearTimeout(alvo._fade);
+      alvo._fade=setTimeout(function(){ pinta(); alvo.style.opacity='1'; }, 150);
+    } else { pinta(); }
+
+    function pinta(){
+      alvo.innerHTML = state.aba==='proc' ? vProcesso() : state.aba==='pag' ? vPagamentos() : state.aba==='faq' ? vFaq() : vAcordo();
+      if(!state.semEntra && !prm){
+        alvo.querySelectorAll('.entra').forEach(function(el,i){ el.style.animationDelay=Math.min(i*40,440)+'ms'; });
+      } else {
+        alvo.querySelectorAll('.entra').forEach(function(el){ el.style.animation='none'; el.style.opacity='1'; });
+      }
+      $('nav-proc').setAttribute('aria-pressed', state.aba==='proc');
+      $('nav-pag').setAttribute('aria-pressed', state.aba==='pag');
+      $('nav-acordo').setAttribute('aria-pressed', state.aba==='acordo');
+      $('nav-faq').setAttribute('aria-pressed', state.aba==='faq');
+
+      // handlers
+      var ouvirBtn=$('ouvir-resumo'); if(ouvirBtn) ouvirBtn.addEventListener('click', ouvirResumo);
+      var extBtn=$('btn-extrato'); if(extBtn) extBtn.addEventListener('click', geraExtrato);
+      alvo.querySelectorAll('[data-cal]').forEach(function(el){
+        el.addEventListener('click', function(){ var b=state.dados.pagamentos.pendentes[+el.dataset.cal]; if(b) agendaCalendario(b); });
+      });
+      // pergunte aqui
+      var pqBtn=$('pq-envia'), pqTxt=$('pq-texto');
+      if(pqTxt){ pqTxt.addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,140)+'px'; }); }
+      if(pqBtn) pqBtn.addEventListener('click', function(){
+        var txt=(pqTxt && pqTxt.value||'').trim();
+        if(txt.length<5){ toast('Escreva sua mensagem com um pouco mais de detalhe'); return; }
+        (state.dados.minhas_perguntas = state.dados.minhas_perguntas||[]).unshift({ pergunta:txt, status:'pendente', criado_em:new Date().toISOString() });
+        toast('Mensagem enviada — respondemos em até 1 dia útil');
+        state.aba='proc'; state.semEntra=false; render();
+      });
+      // glossario
+      alvo.querySelectorAll('.termo').forEach(function(el){
+        function abreDef(){ var g=(state.dados.glossario||[])[+el.dataset.gi]; if(g) toast('“'+g.t+'”: '+g.d, 7000); }
+        el.addEventListener('click', abreDef);
+        el.addEventListener('keydown', function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); abreDef(); } });
+      });
+      // seletor de caso
+      alvo.querySelectorAll('[data-proc]').forEach(function(el){
+        el.addEventListener('click', function(){
+          state.proc=+el.dataset.proc; state.expand=false; state.semEntra=true;
+          render();
+        });
+      });
+      // ver mais
+      var vm=$('ver-mais'); if(vm) vm.addEventListener('click', function(){ state.expand=!state.expand; state.semEntra=true; render(); });
+      // copiar PIX
+      alvo.querySelectorAll('[data-pix]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var b=state.dados.pagamentos.pendentes[+el.dataset.pix];
+          var ok=function(){ el.classList.add('copiado'); el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>PIX copiado!';
+            toast('Código PIX copiado — cole no app do seu banco');
+            setTimeout(function(){ el.classList.remove('copiado'); el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar PIX'; }, 3200); };
+          if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(b.pix).then(ok).catch(function(){ toast('Não foi possível copiar — segure para selecionar'); }); }
+          else { try{ var ta=document.createElement('textarea'); ta.value=b.pix; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); ok(); }catch(e){ toast('Não foi possível copiar'); } }
+        });
+      });
+
+      if(mudouAba) window.scrollTo({top:0,behavior:'instant'});
+      state.semEntra=false;
+    }
+  }
+
+  $('nav-proc').addEventListener('click', function(){ state.aba='proc'; render(); });
+  $('nav-pag').addEventListener('click', function(){ state.aba='pag'; render(); });
+  $('nav-acordo').addEventListener('click', function(){ state.aba='acordo'; render(); });
+  $('nav-faq').addEventListener('click', function(){ state.aba='faq'; render(); });
+
+  var FRASES=[
+    'Seu caso tem nome, rosto e responsável — não é um número.',
+    'Verificamos cada processo todos os dias, automaticamente.',
+    'Você não precisa entender de Direito: explicar é a nossa parte.',
+    'Cada prazo do seu caso é monitorado pela nossa equipe.',
+    'Transparência não é cortesia — é compromisso.'
+  ];
+
+  function montaTudo(j){
+    state.dados=j;
+    var c=j.cliente||{};
+    var temAcerto=(j.processos||[]).some(function(x){ return x&&x.prestacao; });
+    state.proc=0; // sempre inicia no Caso 1 (comparacao limpa entre prototipos)
+
+    var hora=new Date().getHours();
+    var sauda=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
+    $('saudacao').innerHTML=sauda+', <em>'+esc(c.primeiro_nome||'cliente')+'</em>';
+    $('saud-sub').textContent='Acompanhe aqui o seu caso'+(temAcerto?', seus pagamentos e o seu acerto':' e seus pagamentos');
+
+    // vigilancia
+    var vg=j.vigilancia||{}, vhtml='';
+    if(vg.ultima_verificacao){
+      var dv=new Date(vg.ultima_verificacao);
+      var opts={timeZone:'America/Sao_Paulo'};
+      var ehHoje=dv.toLocaleDateString('pt-BR',opts)===new Date().toLocaleDateString('pt-BR',opts);
+      var hhmm=dv.toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+      vhtml+='<div class="vigia entra"><span class="dot"></span>'+(ehHoje?'Verificado hoje às '+hhmm:'Última verificação: '+dv.toLocaleDateString('pt-BR',opts)+' '+hhmm)+' · monitoramento há '+(vg.dias_monitoramento||1)+' dias</div>';
+      if(vg.proxima_verificacao) vhtml+='<div class="vigia-prox entra">Próxima verificação automática no próximo dia útil — você não precisa voltar todos os dias, a gente te avisa quando houver novidade.</div>';
+    }
+    $('vigia-box').innerHTML=vhtml;
+
+    // autoridade
+    var inst=j.instituicao;
+    if(inst){
+      $('autoridade').innerHTML='Acompanhamos <b>'+Number(inst.processos_ativos||0).toLocaleString('pt-BR')+'</b> processos ativos · '+
+        '<b>'+Number(inst.tarefas_ano||0).toLocaleString('pt-BR')+'</b> tarefas concluídas em '+(new Date().getFullYear())+' · '+
+        '<b>'+Number(inst.casos_exito||0).toLocaleString('pt-BR')+'</b> casos conduzidos até a fase de êxito';
+    }
+
+    // badge pendentes + aba acerto (visivel se qualquer caso tem prestacao de contas)
+    var pend=(j.pagamentos&&j.pagamentos.resumo&&j.pagamentos.resumo.qtd_pendentes)||0;
+    if(pend){ var bd=$('badge-pend'); bd.textContent=pend; bd.hidden=false; }
+    if(temAcerto){
+      $('nav-acordo').hidden=false;
+      document.querySelector('.nav-inner').classList.add('quatro');
+    }
+
+    // frase de fe (rodape)
+    try{
+      var doy=Math.floor((Date.now()-Date.UTC(new Date().getFullYear(),0,0))/86400000);
+      $('frase-fe').textContent='“'+FRASES[doy%FRASES.length]+'”';
+    }catch(e){}
+
+    render();
+  }
+
+  montaTudo(DADOS);
+})();
+</script>
+</body>
+</html>

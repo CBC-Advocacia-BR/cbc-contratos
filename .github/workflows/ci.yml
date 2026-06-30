@@ -1,0 +1,40 @@
+name: CI
+
+# Roda build + lint a cada push/PR. O BUILD é o portão (falha = bloqueia).
+# O LINT é informativo por enquanto (há ~35 erros de baseline conhecidos);
+# vira portão obrigatório depois que o baseline for zerado (Qualidade de Código #2).
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build (portão — falha bloqueia)
+        run: npm run build
+
+      - name: Testes (portão — falha bloqueia) (bug-9)
+        run: npm test
+
+      - name: Lint (informativo até o baseline ser zerado)
+        run: npm run lint || echo "::warning::Lint encontrou problemas (baseline conhecido). Não bloqueia o build por enquanto."

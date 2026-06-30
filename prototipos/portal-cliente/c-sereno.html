@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Meu Processo · CBC Advogados — Sereno</title>
+<meta name="theme-color" content="#142A43" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#142A43; --ink-soft:#3D5570; --ink-faint:#5A6D82;
+    --paper:#FBFAF7; --paper-2:#F7F3EB; --card:#FFFFFF; --hairline:#E8E1D2; --hairline-soft:#F0EADD;
+    --gold:#B99249; --gold-2:#C9A84C; --gold-soft:#E7D9B8; --gold-faint:#F4EDDD; --gold-text:#7E5F26;
+    --ok:#5C7A4E; --ok-bg:#EDF2E6; --warn:#8F5A18; --warn-bg:#FBF1DE;
+    --due:#9A4B2D; --due-bg:#F6E6DD;
+    --navy-grad:linear-gradient(150deg,#0F2035,#1B3A5C);
+    --r:18px; --r-sub:15px; --r-in:12px;
+    --shadow:0 1px 2px rgba(20,42,67,.05),0 10px 30px -16px rgba(20,42,67,.16);
+    --shadow-soft:0 1px 2px rgba(20,42,67,.04),0 6px 18px -12px rgba(20,42,67,.12);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  button:focus-visible,a:focus-visible,textarea:focus-visible,summary:focus-visible,.termo:focus-visible,[role="button"]:focus-visible{
+    outline:2px solid var(--gold);outline-offset:2px;border-radius:9px}
+  body{
+    font-family:'Lato',-apple-system,sans-serif;background:var(--paper);color:var(--ink);
+    font-size:1rem;line-height:1.55;min-height:100dvh;
+    background-image:radial-gradient(rgba(185,146,73,.045) 1px,transparent 1px);
+    background-size:24px 24px;
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px calc(94px + env(safe-area-inset-bottom))}
+
+  /* ---------- header compacto ---------- */
+  header{position:relative;padding:16px 0 2px;text-align:center}
+  .a11y{position:absolute;top:8px;right:0;display:flex;gap:6px}
+  .a11y button{width:44px;height:44px;border-radius:11px;border:1.5px solid var(--hairline);background:var(--card);
+    color:var(--ink-soft);font-weight:700;cursor:pointer;font-family:'Lato';box-shadow:var(--shadow-soft);
+    transition:border-color .15s,color .15s,transform .12s ease-out}
+  .a11y button:hover{border-color:var(--gold);color:var(--ink)}
+  .a11y button:active{transform:scale(.93)}
+  .a11y button:first-child{font-size:0.6875rem}.a11y button:last-child{font-size:0.9375rem}
+  .brand-row{display:flex;align-items:center;justify-content:center;gap:11px;text-align:left}
+  .selo{
+    width:44px;height:44px;flex:0 0 auto;border-radius:50%;
+    border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:1.0625rem;color:var(--gold);
+    letter-spacing:.05em;background:linear-gradient(160deg,#fff, var(--gold-faint));
+    box-shadow:var(--shadow-soft),0 0 0 3px var(--paper),0 0 0 4px var(--gold-soft);
+  }
+  .brand-txt{display:flex;flex-direction:column;gap:2px}
+  .firma{font-size:0.625rem;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .firma .oab-in{color:var(--gold-text)}
+  #saudacao h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:1.4375rem;line-height:1.1}
+  #saudacao h1 em{font-style:italic;color:var(--gold)}
+  .sub{display:none}
+  #vigia-box{min-height:30px}
+  .vigia{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin:11px auto 0;
+    font-size:0.71875rem;font-weight:700;color:var(--ok);background:var(--ok-bg);border-radius:999px;padding:7px 14px}
+  .vigia .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulsa 2.2s infinite}
+  @keyframes pulsa{0%,100%{box-shadow:0 0 0 0 rgba(92,122,78,.45)}50%{box-shadow:0 0 0 5px rgba(92,122,78,0)}}
+  .vigia-prox{text-align:center;font-size:0.6875rem;color:var(--ink-faint);margin:6px auto 0;max-width:34rem;line-height:1.5;padding:0 14px}
+
+  /* ---------- seletor de casos (chips) ---------- */
+  .carteira-resumo{margin:14px 2px 8px;font-family:'Cormorant Garamond',serif;font-style:italic;
+    font-size:0.9375rem;color:var(--ink-soft);text-align:center}
+  .carteira-resumo b{color:var(--gold-text);font-style:normal}
+  .casos-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .casos-chips::-webkit-scrollbar{display:none}
+  .caso-chip{flex:0 0 auto;display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;cursor:pointer;
+    background:var(--card);border:1.5px solid var(--hairline);border-radius:13px;padding:9px 14px;min-height:48px;
+    font-family:'Lato';transition:border-color .18s,box-shadow .18s,transform .12s ease-out,background .18s}
+  .caso-chip:active{transform:scale(.97)}
+  .caso-chip[aria-pressed="true"]{border-color:var(--gold);background:var(--gold-faint);box-shadow:var(--shadow-soft)}
+  .caso-chip .cc-top{display:flex;align-items:center;gap:7px}
+  .caso-chip .cc-name{font-size:0.8125rem;font-weight:700;color:var(--ink);white-space:nowrap}
+  .caso-chip .cc-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  .caso-chip .cc-sub{font-size:0.6875rem;color:var(--ink-faint);white-space:nowrap}
+  .caso-chip .cc-badge{font-size:0.5625rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;
+    background:var(--gold);border-radius:999px;padding:2px 7px;white-space:nowrap}
+
+  /* ---------- barra de jornada horizontal segmentada ---------- */
+  .jornada-bar{margin-top:6px;padding:16px 14px 13px;background:var(--card);border:1px solid var(--hairline);
+    border-radius:var(--r);box-shadow:var(--shadow-soft)}
+  .jb-cap{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:13px}
+  .jb-cap .rotulo{font-size:0.625rem;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .jb-cap .jb-passo{font-size:0.6875rem;color:var(--gold-text);font-weight:700}
+  .jb-track{display:flex;gap:6px;align-items:flex-end}
+  .jb-seg{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;position:relative}
+  .jb-bar{width:100%;height:6px;border-radius:999px;background:var(--hairline-soft);transition:background .3s}
+  .jb-seg.done .jb-bar{background:linear-gradient(90deg,var(--gold),var(--gold-2))}
+  .jb-seg.atual .jb-bar{background:linear-gradient(90deg,var(--gold-2),var(--gold));
+    box-shadow:0 0 0 0 rgba(201,168,76,.5);animation:segPulse 2.6s ease-in-out infinite}
+  @keyframes segPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.0)}50%{box-shadow:0 0 8px 0 rgba(201,168,76,.45)}}
+  .jb-num{width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:0.625rem;font-weight:700;font-variant-numeric:tabular-nums;
+    background:var(--card);border:1.5px solid var(--hairline);color:var(--ink-faint)}
+  .jb-seg.done .jb-num{background:var(--gold);border-color:var(--gold);color:#fff}
+  .jb-seg.atual .jb-num{background:#fff;border-color:var(--gold);color:var(--gold-text);
+    box-shadow:0 0 0 3px var(--gold-faint)}
+  .jb-lbl{font-size:0.5625rem;letter-spacing:.01em;text-align:center;color:var(--ink-faint);font-weight:700;
+    text-transform:uppercase;line-height:1.2;hyphens:auto;overflow-wrap:break-word}
+  .jb-seg.done .jb-lbl{color:var(--ink-soft)}
+  .jb-seg.atual .jb-lbl{color:var(--gold-text)}
+  .jb-ritmo{margin-top:12px;padding-top:11px;border-top:1px dashed var(--hairline);
+    display:flex;gap:7px;align-items:center;font-size:0.71875rem;color:var(--gold-text);font-weight:700;line-height:1.4}
+  .jb-ritmo svg{flex:0 0 auto}
+
+  /* ---------- dashboard de cards glanceaveis ---------- */
+  .dash{display:grid;grid-template-columns:1fr;gap:11px;margin-top:11px}
+  @media(min-width:430px){ .dash{grid-template-columns:1fr 1fr} .dash .col-2{grid-column:1 / -1} }
+  .gcard{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow-soft);
+    padding:16px 17px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .gcard .rotulo{font-size:0.625rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  /* card 1 — situacao */
+  .g-status{border-left:none}
+  .g-status .status-humano{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;line-height:1.16;
+    margin-top:7px;display:flex;align-items:center;gap:8px}
+  .g-status .fase-sub{margin-top:9px;font-size:0.6875rem;color:var(--ink-faint);text-transform:uppercase;
+    letter-spacing:.06em;font-weight:700}
+  .g-status .fase-sub b{color:var(--ink-soft)}
+  .g-status .calma{margin-top:12px;display:flex;gap:8px;align-items:flex-start;font-size:0.78125rem;color:var(--ink-soft);
+    background:var(--ok-bg);border-radius:11px;padding:10px 12px;line-height:1.45}
+  .g-status .calma b{color:var(--ok)}
+  .g-status .calma.aviso{background:var(--due-bg)}
+  .g-status .calma.aviso b{color:var(--due)}
+  .g-status .calma .mark{flex:0 0 auto;font-weight:700}
+  .g-status .calma .mark.ok{color:var(--ok)} .g-status .calma .mark.due{color:var(--due)}
+  /* card 2 — proximo passo + de quem e a vez */
+  .g-vez .vez{display:inline-flex;align-items:center;gap:6px;font-size:0.6875rem;font-weight:700;letter-spacing:.05em;
+    border-radius:999px;padding:6px 12px;text-transform:uppercase;margin-top:8px;align-self:flex-start}
+  .g-vez .vez.tribunal{background:var(--ok-bg);color:var(--ok)}
+  .g-vez .vez.escritorio{background:var(--gold-faint);color:var(--warn)}
+  .g-vez .passo-txt{margin-top:11px;font-size:0.84375rem;color:var(--ink);line-height:1.5}
+  .g-vez .prazo{margin-top:8px;font-size:0.6875rem;color:var(--ink-faint)}
+  .g-vez .prazo b{color:var(--ink-soft)}
+  .g-vez .vez-micro{margin-top:9px;font-size:0.75rem;line-height:1.5;color:var(--ink-soft)}
+  .g-vez .ouvir{display:inline-flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:700;min-height:42px;margin-top:11px;
+    border:1.5px solid var(--hairline);border-radius:999px;padding:8px 15px;background:var(--card);color:var(--ink-soft);
+    cursor:pointer;align-self:flex-start;transition:transform .12s ease-out,border-color .15s,color .15s}
+  .g-vez .ouvir:active{transform:scale(.96)}
+  .g-vez .ouvir.tocando{border-color:var(--gold);color:var(--gold-text)}
+  .g-vez .ouvir.tocando svg{animation:tocandoA 1.1s ease-in-out infinite}
+  @keyframes tocandoA{50%{opacity:.3;transform:scale(.85)}}
+  /* card 3 — equipe em acao (contadores) */
+  .g-equipe .mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 8px;margin-top:11px}
+  .mini-kpi .v{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;
+    color:var(--gold-text);line-height:1.05}
+  .mini-kpi .l{font-size:0.625rem;color:var(--ink-faint);margin-top:2px;line-height:1.25}
+  .g-equipe .equipe-extra{margin-top:11px;padding-top:10px;border-top:1px dashed var(--hairline);
+    font-size:0.71875rem;color:var(--ink-soft);line-height:1.5}
+  .g-equipe .ultima{margin-top:9px;display:flex;gap:8px;align-items:flex-start;font-size:0.75rem;color:var(--ink-soft)}
+  .g-equipe .ultima svg{flex:0 0 auto;margin-top:1px}
+  .g-equipe .ultima b{color:var(--ink)}
+  /* card 4 — pagamentos snapshot */
+  .g-pag .pag-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:11px}
+  .pag-num{display:flex;flex-direction:column}
+  .pag-num .v{font-family:'Cormorant Garamond',serif;font-size:1.4375rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+  .pag-num .v.ok{color:var(--ok)} .pag-num .v.pend{color:var(--warn)}
+  .pag-num .l{font-size:0.625rem;color:var(--ink-faint);margin-top:2px}
+  .g-pag .alerta-venc{margin-top:11px;display:flex;gap:8px;align-items:center;background:var(--due-bg);border-radius:11px;
+    padding:9px 12px;font-size:0.75rem;color:var(--ink);line-height:1.4}
+  .g-pag .alerta-venc b{color:var(--due)}
+  .g-pag .ir-pag{margin-top:11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;
+    border:none;border-radius:var(--r-in);background:var(--ink);color:#fff;font-family:'Lato';font-size:0.8125rem;font-weight:700;
+    cursor:pointer;width:100%;transition:transform .12s ease-out,background .18s}
+  .g-pag .ir-pag:active{transform:scale(.98)}
+
+  /* evento critico (sentenca favoravel) */
+  .evento-card{margin-top:12px;padding:16px 18px;background:var(--card);border:1px solid var(--gold-soft);
+    border-radius:var(--r);box-shadow:var(--shadow);position:relative}
+  .evento-card::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;border-radius:18px 0 0 18px;
+    background:linear-gradient(180deg,var(--gold),var(--gold-2))}
+  .evento-card .rotulo{font-size:0.625rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-text);font-weight:700}
+  .evento-tit{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:600;color:var(--ink);line-height:1.2;margin-top:4px}
+  .evento-txt{margin-top:8px;font-size:0.84375rem;line-height:1.6;color:var(--ink-soft)}
+  .evento-txt b{color:var(--ink)}
+  .evento-data{margin-top:10px;font-size:0.6875rem;font-weight:700;letter-spacing:.06em;color:var(--gold-text);font-variant-numeric:tabular-nums}
+
+  /* ---------- timeline ---------- */
+  .divisor{width:54px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+    margin:26px auto 4px;border:0}
+  .tl-titulo{display:flex;align-items:baseline;justify-content:space-between;margin:20px 2px 8px}
+  .tl-titulo h2{font-family:'Cormorant Garamond',serif;font-size:1.375rem;font-weight:700;line-height:1.2}
+  .tl-titulo span{font-size:0.71875rem;color:var(--ink-faint)}
+  .tl-intro{font-size:0.78125rem;color:var(--ink-soft);margin:-2px 2px 12px;line-height:1.55}
+  .tl-intro b{color:var(--ink)}
+  .timeline{position:relative;padding-left:26px}
+  .timeline::before{content:'';position:absolute;left:8px;top:8px;bottom:14px;width:1.5px;
+    background:linear-gradient(180deg,var(--gold) 0%,var(--hairline) 70%,transparent)}
+  .evento{position:relative;padding:0 0 22px}
+  .evento::before{content:'';position:absolute;left:-24px;top:5px;width:11px;height:11px;border-radius:50%;
+    background:var(--card);border:2.5px solid var(--gold);box-shadow:0 0 0 3px var(--paper)}
+  .evento:first-child::before{background:var(--gold)}
+  .evento .data{font-size:0.6875rem;font-weight:700;letter-spacing:.08em;color:var(--gold-text);font-variant-numeric:tabular-nums}
+  .evento .txt{margin-top:3px;font-size:0.875rem;color:var(--ink)}
+  .evento .fonte{margin-top:2px;font-size:0.6875rem;color:var(--ink-faint);letter-spacing:.03em}
+  .ver-mais{margin:2px 0 8px;background:var(--card);border:1.5px solid var(--hairline);border-radius:999px;
+    padding:10px 18px;font-size:0.8125rem;font-weight:700;color:var(--ink-soft);cursor:pointer;min-height:46px;width:100%;
+    transition:transform .12s ease-out,border-color .15s}
+  .ver-mais:active{transform:scale(.98)}
+  .termo{border-bottom:1.5px dotted var(--gold);cursor:pointer;position:relative}
+  .termo::after{content:'';position:absolute;inset:-12px -8px}
+
+  /* ---------- pagamentos (aba) ---------- */
+  .card{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r);box-shadow:var(--shadow-soft);overflow:hidden}
+  .resumo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+  .resumo .card{padding:16px}
+  .resumo .rotulo{font-size:0.625rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:4px}
+  .resumo .valor{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+  .resumo .ok{color:var(--ok)} .resumo .pend{color:var(--warn)}
+  .nota-card{font-size:0.6875rem;color:var(--ink-faint);margin-top:2px}
+  .pag-ok{display:flex;gap:11px;align-items:flex-start;background:var(--ok-bg);border:1px solid var(--gold-soft);
+    border-radius:var(--r-sub);padding:13px 15px;margin-top:13px;font-size:0.84375rem;line-height:1.5}
+  .pag-ok b{color:var(--ok)}
+  .bol{margin-top:11px;padding:17px}
+  .bol-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .bol-head>div:last-child{text-align:right}
+  .bol .venc{font-size:0.71875rem;color:var(--ink-faint)}
+  .bol .venc b{display:block;font-size:1.0625rem;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bol .valor{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;line-height:1.15}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:0.625rem;font-weight:700;letter-spacing:.06em;
+    border-radius:999px;padding:4px 10px;text-transform:uppercase;margin-top:5px}
+  .pill.pago{background:var(--ok-bg);color:var(--ok)}
+  .pill.pendente{background:var(--warn-bg);color:var(--warn)}
+  .pill.vencido{background:var(--due-bg);color:var(--due)}
+  .bol .desc{margin-top:8px;font-size:0.78125rem;color:var(--ink-soft)}
+  .bol-acoes{display:flex;gap:10px;margin-top:13px}
+  .btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;border-radius:var(--r-in);
+    font-size:0.84375rem;font-weight:700;cursor:pointer;text-decoration:none;border:none;font-family:'Lato';
+    transition:transform .12s ease-out, background .18s}
+  .btn:active{transform:scale(.97)}
+  .btn-ouro{background:var(--ink);color:#fff}
+  .btn-ouro.copiado{background:var(--ok)}
+  .btn-claro{background:#fff;color:var(--ink);border:1.5px solid var(--hairline)}
+  .btn svg{width:16px;height:16px;flex:0 0 auto}
+  .link-cal{display:flex;align-items:center;justify-content:center;text-align:center;margin-top:11px;font-size:0.75rem;
+    font-weight:700;color:var(--ink-soft);text-decoration:none;border:1.5px dashed var(--hairline);border-radius:var(--r-in);
+    padding:9px 12px;min-height:46px;cursor:pointer;background:none;width:100%;
+    transition:transform .12s ease-out,border-color .15s}
+  .link-cal:active{transform:scale(.98)}
+  .fase-card{padding:18px 17px;position:relative}
+  .fase-card::before{content:'';position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(180deg,var(--gold),var(--gold-soft))}
+  .fase-card .rotulo{font-size:0.625rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .fase-nome{font-family:'Cormorant Garamond',serif;font-size:1.375rem;font-weight:700;line-height:1.18;margin-top:6px}
+  .quadro-tag{display:inline-block;margin-top:8px;font-size:0.625rem;font-weight:700;letter-spacing:.06em;color:var(--gold-text);
+    background:var(--gold-faint);border:1px solid var(--gold-soft);border-radius:6px;padding:3px 9px;text-transform:uppercase}
+  .ac-linha{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px dashed var(--hairline);font-size:0.84375rem;color:var(--ink-soft)}
+  .ac-linha:last-child{border-bottom:none}
+  .ac-linha b{color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .barra{height:7px;border-radius:4px;background:var(--gold-faint);overflow:hidden;margin-top:10px}
+  .barra i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--ok))}
+  .secao-pagos{margin-top:8px}
+  .bol.pago-card{padding:14px 17px;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}
+  .bol.pago-card .valor{font-size:1.125rem}
+  .pago-card .venc b{display:inline;font-size:0.8125rem}
+
+  /* ---------- FAQ / glossario ---------- */
+  .edu{margin-top:8px}
+  .edu details{background:var(--card);border:1px solid var(--hairline);border-radius:var(--r-sub);margin-top:9px;
+    overflow:hidden;box-shadow:var(--shadow-soft)}
+  .edu summary{padding:14px 16px;font-size:0.875rem;font-weight:700;color:var(--ink);cursor:pointer;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px}
+  .edu summary::-webkit-details-marker{display:none}
+  .edu summary::after{content:'+';color:var(--gold);font-size:1.1875rem;font-weight:400;line-height:1;transition:transform .25s ease;flex:0 0 auto}
+  .edu details[open] summary::after{transform:rotate(45deg)}
+  .edu .corpo-edu{padding:0 16px 15px;font-size:0.84375rem;color:var(--ink-soft);line-height:1.6}
+  .pq-status{font-size:0.5625rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 9px;flex:0 0 auto}
+  .pq-status.pendente{background:var(--warn-bg);color:var(--warn)}
+  .pq-status.respondida{background:var(--ok-bg);color:var(--ok)}
+  .pq-resposta{margin-top:8px;padding:11px 13px;background:var(--ok-bg);border-radius:var(--r-in);font-size:0.84375rem}
+  .nps-area{width:100%;border:1.5px solid var(--hairline);border-radius:var(--r-in);padding:11px 13px;
+    font-family:'Lato';font-size:1rem;color:var(--ink);resize:vertical;background:#fff}
+  .fase-texto{margin-top:13px;font-size:0.875rem;color:var(--ink-soft);line-height:1.6}
+  .btn-whats{display:inline-flex;align-items:center;gap:8px;background:#25613f;color:#fff;min-height:46px;padding:0 18px;
+    border-radius:999px;font-size:0.84375rem;font-weight:700;text-decoration:none;justify-content:center;width:100%}
+  .btn-whats svg{flex:0 0 auto}
+
+  /* ---------- nav inferior ---------- */
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:rgba(251,250,247,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border-top:1px solid var(--hairline);padding:8px 16px calc(8px + env(safe-area-inset-bottom))}
+  .nav-inner{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--paper-2);
+    border-radius:999px;padding:4px;border:1px solid var(--hairline)}
+  .nav-inner.quatro{grid-template-columns:repeat(4,1fr)}
+  .nav-inner.quatro .nav-btn{font-size:0.6875rem;gap:3px}
+  .nav-btn{display:flex;align-items:center;justify-content:center;gap:5px;min-height:46px;border-radius:999px;
+    border:none;background:transparent;font-family:'Lato';font-size:0.78125rem;font-weight:700;color:var(--ink-faint);
+    cursor:pointer;transition:background .2s ease-out,color .2s ease-out,transform .12s ease-out;padding:0 2px}
+  .nav-btn:active{transform:scale(.93)}
+  .nav-btn svg{width:16px;height:16px}
+  .nav-inner.quatro .nav-btn svg{width:15px;height:15px}
+  .nav-btn[aria-pressed="true"]{background:var(--ink);color:#fff;box-shadow:var(--shadow-soft)}
+  .nav-btn[hidden]{display:none}
+  .badge{min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#fff;font-size:0.625rem;
+    display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-variant-numeric:tabular-nums}
+  .badge[hidden]{display:none}
+
+  /* ---------- estados / toast ---------- */
+  .estado{padding:50px 24px;text-align:center}
+  .estado h2{font-family:'Cormorant Garamond',serif;font-size:1.5rem;margin-top:8px;line-height:1.2}
+  .estado p{color:var(--ink-soft);margin-top:8px;font-size:0.9375rem}
+  .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(8px);
+    background:var(--ink);color:#fff;font-size:0.84375rem;font-weight:700;padding:11px 20px;border-radius:999px;
+    max-width:88%;text-align:center;opacity:0;pointer-events:none;transition:all .25s ease-out;z-index:60;box-shadow:var(--shadow)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .entra{animation:entra .45s ease-out both}
+  @keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .sem-anim .entra{animation:none!important}
+  #conteudo{transition:opacity .18s ease-out}
+
+  footer{margin-top:32px;text-align:center;font-size:0.6875rem;color:var(--ink-faint);line-height:1.7}
+  footer .linha-ouro{width:54px;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 14px;border:0}
+  footer .frase-fe{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:0.875rem;color:var(--ink-soft);margin-bottom:10px}
+  footer .oab{letter-spacing:.16em;text-transform:uppercase}
+  .autoridade{margin-top:8px;font-size:0.6875rem;color:var(--ink-faint)}
+  .autoridade b{color:var(--gold-text)}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="a11y" aria-label="Tamanho da letra">
+      <button id="fonte-menos" aria-label="Diminuir letra">A−</button>
+      <button id="fonte-mais" aria-label="Aumentar letra">A+</button>
+    </div>
+    <div class="brand-row">
+      <div class="selo" aria-hidden="true">CBC</div>
+      <div class="brand-txt">
+        <div class="firma">Conforto, Bergonsi &amp; Cavalari&nbsp;·&nbsp;<span class="oab-in">OAB/SP 55227</span></div>
+        <div id="saudacao"><h1>Bom dia</h1></div>
+      </div>
+    </div>
+    <div id="vigia-box"></div>
+  </header>
+
+  <main id="conteudo"></main>
+
+  <footer>
+    <hr class="linha-ouro" />
+    <div class="frase-fe" id="frase-fe"></div>
+    <div class="oab">OAB/SP 55227 · Americana–SP</div>
+    <div class="autoridade" id="autoridade"></div>
+    <div style="margin-top:8px">Dúvidas? Fale com a gente pelo WhatsApp do escritório.<br/>Atualizado automaticamente todos os dias úteis.</div>
+  </footer>
+</div>
+
+<nav id="nav" aria-label="Seções do portal">
+  <div class="nav-inner">
+    <button class="nav-btn" id="nav-proc" aria-pressed="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-9-5 3-9 3 9a3.5 3.5 0 0 1-6 0Zm12 0 3-9 3 9a3.5 3.5 0 0 1-6 0ZM7 7h10"/></svg>
+      Meu caso
+    </button>
+    <button class="nav-btn" id="nav-pag" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path stroke-linecap="round" d="M3 10.5h18M7 15h4"/></svg>
+      Pagamentos <span class="badge" id="badge-pend" hidden></span>
+    </button>
+    <button class="nav-btn" id="nav-acordo" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+      Acordo
+    </button>
+    <button class="nav-btn" id="nav-faq" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"/></svg>
+      Dúvidas
+    </button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ================= DADOS DE EXEMPLO (embutidos) =================
+  const DADOS = {
+  "cliente": { "nome": "Maria Helena Cardoso", "primeiro_nome": "Maria" },
+  "processos": [
+    {
+      "jornada": 2, "mesma_fase": 8, "rapidez": true,
+      "numero": "1001234-56.2025.8.26.0152", "tipo": "Ação de cobrança",
+      "fase": "Instrução Processual", "quadro": "JUDICIAL",
+      "fase_texto": "Seu caso está na fase em que o juiz analisa as provas e os documentos das duas partes antes de decidir.",
+      "proximos_passos": "Aguardamos a análise das provas pelo juiz; na sequência, o caso fica pronto para a sentença.",
+      "prazo_medio": "2 a 4 meses", "distribuido_em": "2025-09-12",
+      "atividades": { "tarefas_concluidas": 14, "movimentos": 31, "mov_mes": 4, "atv_mes": 3, "publicacoes": 7, "horas": 9.5, "vez": "tribunal", "vez_dias": 12, "audiencia": null, "ultima": { "titulo": "Petição de réplica protocolada", "por": "Ana Bergonsi", "em": "2026-06-14" } },
+      "espera": "juiz", "evento": null,
+      "andamentos": [
+        { "data": "2026-06-14", "texto": "Petição da nossa equipe juntada ao processo", "fonte": "Tribunal de Justiça" },
+        { "data": "2026-05-30", "texto": "A outra parte apresentou a sua defesa", "fonte": "DJe" },
+        { "data": "2026-05-12", "texto": "A outra parte foi oficialmente notificada do processo", "fonte": "Oficial de Justiça" },
+        { "data": "2025-09-12", "texto": "Seu processo foi distribuído e recebeu número oficial", "fonte": "Tribunal de Justiça" }
+      ]
+    },
+    {
+      "jornada": 4, "mesma_fase": 3, "rapidez": false,
+      "numero": "2007765-43.2024.8.26.0152", "tipo": "Indenização por danos",
+      "fase": "Cumprimento de Sentença", "quadro": "EXECUÇÃO",
+      "fase_texto": "Você já venceu; agora estamos na fase de receber e liberar os valores a que você tem direito.",
+      "proximos_passos": "Cálculo dos valores e expedição do alvará para liberação.",
+      "prazo_medio": "1 a 3 meses", "distribuido_em": "2024-03-04",
+      "atividades": { "tarefas_concluidas": 22, "movimentos": 48, "mov_mes": 2, "atv_mes": 1, "publicacoes": 11, "horas": 16, "vez": "escritorio", "vez_dias": 3, "audiencia": null, "ultima": { "titulo": "Cálculo de liquidação iniciado", "por": "Paulo Conforto", "em": "2026-06-10" } },
+      "espera": null,
+      "evento": { "tipo": "sentenca_favoravel", "data": "2026-04-22" },
+      "andamentos": [
+        { "data": "2026-06-10", "texto": "Iniciamos o cálculo dos valores que você tem a receber", "fonte": "CBC Advogados" },
+        { "data": "2026-04-22", "texto": "Saiu a sentença — e foi favorável a você", "fonte": "Tribunal de Justiça" }
+      ]
+    }
+  ],
+  "acordo": null,
+  "contrato": { "tipo": "Ação de cobrança", "resort": "Residencial Jardins", "honorarios_total": 4800, "parcelas": 6, "valor_parcela": 800, "exito_pct": 20, "assinado_em": "2025-08-20", "outros_contratos": 1 },
+  "equipe": { "fotos": [] },
+  "escritorio": { "tarefas_mes": 1280, "mes": "junho" },
+  "vigilancia": { "ultima_verificacao": "2026-06-22T09:14:00-03:00", "dias_monitoramento": 280, "proxima_verificacao": "2026-06-23" },
+  "recesso": null,
+  "tem_vencida": true,
+  "pagamento_recente": null,
+  "so_exito": false,
+  "contato": { "whatsapp": "5519999990000", "horario": "de segunda a sexta, das 9h às 18h" },
+  "instituicao": { "processos_ativos": 3214, "tarefas_ano": 18450, "casos_exito": 612 },
+  "faq": [
+    { "pergunta": "Quanto tempo o meu processo costuma demorar?", "resposta": "Cada caso tem o seu ritmo, definido pela Justiça. Acompanhamos o seu todos os dias úteis e avisamos você sempre que houver novidade — você não precisa ficar conferindo." },
+    { "pergunta": "Preciso fazer alguma coisa agora?", "resposta": "Quando algo depender de você, avisamos com clareza aqui no portal e pelo WhatsApp. Se não há nada sinalizado, é porque está tudo sob nossos cuidados." },
+    { "pergunta": "Por que às vezes fica um tempo sem movimentação?", "resposta": "É normal. Em várias fases o processo aguarda uma análise do juiz ou um prazo da outra parte. O silêncio costuma ser sinal de que tudo segue o seu curso." }
+  ],
+  "glossario": [
+    { "t": "Réplica", "d": "a resposta da nossa parte à defesa apresentada pela outra parte." },
+    { "t": "Distribuído", "d": "quando o processo recebe um número oficial e um juiz responsável." },
+    { "t": "Alvará", "d": "a autorização do juiz para liberar os valores a que você tem direito." }
+  ],
+  "review_url": "https://g.page/r/exemplo-cbc",
+  "pagamentos": {
+    "resumo": { "total_pago": 2400, "total_pendente": 2400, "qtd_pagos": 3, "qtd_pendentes": 3, "proximo_vencimento": "2026-06-25" },
+    "pendentes": [
+      { "valor": 800, "vencimento": "2026-06-10", "descricao": "Honorários iniciais", "parcela": "4/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986540" , "vencido": true },
+      { "valor": 800, "vencimento": "2026-07-10", "descricao": "Honorários iniciais", "parcela": "5/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986541", "vencido": false },
+      { "valor": 800, "vencimento": "2026-08-10", "descricao": "Honorários iniciais", "parcela": "6/6", "boleto_url": "#", "pix": "00020126360014BR.GOV.BCB.PIX0114+5519999990000520400005303986542", "vencido": false }
+    ],
+    "pagos": [
+      { "valor": 800, "vencimento": "2026-03-10", "pago_em": "2026-03-09", "descricao": "Honorários iniciais", "parcela": "1/6" },
+      { "valor": 800, "vencimento": "2026-04-10", "pago_em": "2026-04-08", "descricao": "Honorários iniciais", "parcela": "2/6" },
+      { "valor": 800, "vencimento": "2026-05-10", "pago_em": "2026-05-10", "descricao": "Honorários iniciais", "parcela": "3/6" }
+    ]
+  }
+  };
+  // ================================================================
+
+  var $ = function(id){ return document.getElementById(id); };
+  var BRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  var dataBR = function(iso){ if(!iso) return '—'; var p=String(iso).slice(0,10).split('-'); return p[2]+'/'+p[1]+'/'+p[0]; };
+  var plural = function(n,um,varios){ return (Number(n)||0)===1 ? um : varios; };
+  var numBR = function(v){ if(v==null||v==='') return null; if(typeof v==='number') return v; var n=parseFloat(String(v)); return isNaN(n)?null:n; };
+  var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var titulo = function(s){ return String(s||'').toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase();}); };
+  var state = { dados:DADOS, proc:0, aba:'proc', expand:false, semEntra:false, keepScroll:null };
+
+  function toast(msg, ms){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');}, ms||2600); }
+
+  // acessibilidade A+/A- (3 niveis, persistido)
+  (function(){
+    var nivel=0; try{ nivel=Math.min(2,Math.max(0,+localStorage.getItem('cbc_fonte')||0)); }catch(e){}
+    function aplica(){ document.documentElement.style.fontSize=(100+nivel*12.5)+'%'; try{localStorage.setItem('cbc_fonte',String(nivel));}catch(e){} }
+    aplica();
+    $('fonte-mais').addEventListener('click',function(){ if(nivel<2){nivel++;aplica();} });
+    $('fonte-menos').addEventListener('click',function(){ if(nivel>0){nivel--;aplica();} });
+  })();
+
+  function diasDesde(d){ if(!d) return 999; var t=new Date(String(d).slice(0,10)).getTime(); return isNaN(t)?999:Math.floor((Date.now()-t)/86400000); }
+  function diasAte(d){ if(!d) return 999; return Math.ceil((new Date(String(d).slice(0,10)).getTime()-Date.now())/86400000); }
+  function tituloCaso(x){ var t=String(x.tipo||'').trim(); return t?titulo(t):('Processo '+x.numero); }
+  function statusCurto(x){
+    var dias = diasDesde((x.andamentos||[])[0]&&x.andamentos[0].data);
+    var novidade = dias <= 7;
+    if(x.jornada >= 4) return { txt:'Reta final', cor:'var(--gold-text)', novidade:novidade };
+    if(novidade) return { txt:'Novidade recente', cor:'var(--gold-text)', novidade:true };
+    if(dias > 30) return { txt:'Sob vigilância diária', cor:'var(--ok)', novidade:false };
+    return { txt:'Caminhando bem', cor:'var(--ok)', novidade:false };
+  }
+  function statusHumano(p){
+    var svg='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:0 0 auto"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>';
+    var d=(p.andamentos&&p.andamentos[0])?p.andamentos[0].data:null;
+    var dias=d?Math.floor((Date.now()-new Date(String(d).slice(0,10)).getTime())/86400000):999;
+    var reta=p.jornada>=4, nov=dias<=7;
+    var txt=reta?'Reta final do seu caso':(nov?'Novidades recentes no seu caso':(dias>30?'Sob vigilância diária — tudo em ordem':'Tudo caminhando bem'));
+    return { html: svg+'<span>'+txt+'</span>', cor: (reta||nov)?'var(--gold-text)':'var(--ok)' };
+  }
+  function vezMicrocopy(p){
+    var a=p.atividades; if(!a||!a.vez) return '';
+    if(a.vez==='escritorio') return 'Estamos com uma tarefa em aberto no seu caso e já cuidando dela — é a nossa vez de agir.';
+    var dias=a.vez_dias||0;
+    var porEspera={
+      juiz:'Seu caso está concluso para decisão: aguardamos o juiz analisar. Nessa fase, o silêncio costuma ser sinal de que tudo segue seu curso.',
+      parte:'Corre um prazo da outra parte (ou uma etapa entre os advogados). É um tempo normal e previsto pela lei.',
+      pericia:'Aguardamos uma etapa técnica do processo (perícia ou diligência). Assim que o resultado chegar, retomamos.',
+      audiencia:'O próximo passo é uma audiência já no horizonte — perto da data falamos com você.'
+    };
+    var base=porEspera[p.espera]||'Neste momento o próximo passo cabe ao tribunal — por isso não há ação recente da nossa parte.';
+    base += dias>=21 ? ' A fila está um pouco mais lenta que o usual, mas verificamos o seu processo todos os dias úteis.'
+                     : ' Continuamos verificando o seu processo todos os dias úteis.';
+    return base;
+  }
+  function cardEvento(p){
+    var ev=p.evento; if(!ev||ev.tipo==='audiencia') return '';
+    var M={
+      sentenca_favoravel:{tit:'Saiu a decisão — e foi favorável a você! 🎉',txt:'O juiz reconheceu o seu direito. É uma grande conquista. <b>Um detalhe importante:</b> a vitória ainda não é o dinheiro na conta — agora começa o <b>cumprimento de sentença</b> (cálculos e liberação dos valores), que acompanhamos de perto. Em breve detalhamos os próximos passos.'},
+      decisao_neutra:{tit:'Houve uma decisão no seu caso',txt:'O juiz analisou o seu processo e proferiu uma decisão. Nossa equipe já está estudando o conteúdo e as melhores opções e <b>vai entrar em contato com você</b> para explicar tudo com calma. Você não precisa fazer nada agora.'},
+      citacao:{tit:'A outra parte foi oficialmente notificada',txt:'A Justiça comunicou oficialmente a outra parte sobre o seu processo. Isso é um passo positivo: o seu caso entrou em movimento. A partir daqui corre o prazo de resposta dela — etapa normal e prevista.'},
+      acordo:{tit:'Acordo homologado',txt:'Um acordo foi homologado pela Justiça no seu caso. Os detalhes e valores aparecem na aba Acordo. É um caminho que costuma trazer a solução mais rápida.'}
+    };
+    var c=M[ev.tipo]; if(!c) return '';
+    return '<section class="evento-card entra">'+
+      '<div class="rotulo">Novidade importante</div>'+
+      '<div class="evento-tit">'+c.tit+'</div>'+
+      '<p class="evento-txt">'+c.txt+'</p>'+
+      '<div class="evento-data">Registrado em '+dataBR(ev.data)+'</div></section>';
+  }
+  function linkWhats(p){
+    var w=(state.dados.contato||{}).whatsapp; if(!w) return '';
+    var nome=(state.dados.cliente||{}).primeiro_nome||'';
+    var proc=(p&&p.numero)?(' (processo '+p.numero+')'):'';
+    return 'https://wa.me/'+w+'?text='+encodeURIComponent('Olá! Sou '+nome+proc+'. Gostaria de tirar uma dúvida sobre o meu caso.');
+  }
+  function btnWhats(p,rotulo){
+    var l=linkWhats(p); if(!l) return '';
+    return '<a class="btn btn-whats" href="'+l+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.26A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.13l-.3-.18-2.85.75.76-2.78-.19-.29A8 8 0 1 1 12 20Zm4.5-5.9c-.25-.12-1.47-.72-1.7-.8s-.39-.13-.56.13-.64.8-.78.97-.29.18-.54.06a6.5 6.5 0 0 1-1.92-1.18 7.2 7.2 0 0 1-1.33-1.65c-.14-.24 0-.37.1-.49s.25-.29.37-.43.17-.24.25-.4a.45.45 0 0 0 0-.43c-.06-.12-.56-1.35-.77-1.85s-.4-.42-.56-.43-.34-.01-.48-.01a.92.92 0 0 0-.66.31 2.78 2.78 0 0 0-.87 2.07 4.83 4.83 0 0 0 1 2.55 11 11 0 0 0 4.2 3.7c.59.26 1.05.4 1.4.52a3.4 3.4 0 0 0 1.55.1 2.54 2.54 0 0 0 1.66-1.17 2.06 2.06 0 0 0 .14-1.17c-.06-.1-.22-.16-.47-.28Z"/></svg>'+(rotulo||'Falar com a equipe no WhatsApp')+'</a>';
+  }
+
+  // glossario: termos sublinhados na timeline
+  function marcaTermos(txtEsc){
+    var gl=state.dados.glossario||[]; if(!gl.length) return txtEsc;
+    var s=txtEsc;
+    for(var i=0;i<gl.length;i++){
+      var t=gl[i].t; if(!t||t.length<4) continue;
+      try{
+        var re=new RegExp('(^|[^\\wÀ-ÿ>])('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?![\\wÀ-ÿ])','i');
+        if(re.test(s)){ s=s.replace(re,function(m,a,b){ return a+'<span class="termo" data-gi="'+i+'" role="button" tabindex="0">'+b+'</span>'; }); }
+      }catch(e){}
+    }
+    return s;
+  }
+  // numeros que sobem
+  function countUp(raiz){
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    raiz.querySelectorAll('[data-count]').forEach(function(el){
+      var fim=+el.dataset.count||0; if(fim<2) return; var t0=null;
+      function tick(t){ if(!t0)t0=t; var k=Math.min(1,(t-t0)/650); var e=1-Math.pow(1-k,3);
+        el.textContent=Math.round(fim*(0.25+0.75*e)).toLocaleString('pt-BR');
+        if(k<1)requestAnimationFrame(tick); else el.textContent=fim.toLocaleString('pt-BR'); }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // ---------- render: MEU CASO (dashboard sereno) ----------
+  function vProcesso(){
+    var d = state.dados, ps = d.processos||[];
+    if(!ps.length) return '<div class="card estado entra"><h2>Seu processo está sendo preparado</h2><p>Assim que for distribuído, ele aparece aqui automaticamente.</p></div>';
+    var p = ps[Math.min(state.proc, ps.length-1)];
+    var h = '';
+
+    // seletor de casos (chips) — multi-processo
+    if(ps.length>1){
+      var comNovidade = ps.filter(function(x){ return diasDesde((x.andamentos||[])[0]&&x.andamentos[0].data) <= 7; }).length;
+      var retaFinal = ps.filter(function(x){ return x.jornada >= 4; }).length;
+      var partes = ['<b>'+ps.length+'</b> casos sob nossos cuidados'];
+      if(comNovidade) partes.push('<b>'+comNovidade+'</b> com novidade esta semana');
+      if(retaFinal) partes.push('<b>'+retaFinal+'</b> na reta final');
+      h += '<p class="carteira-resumo entra">'+partes.join(' · ')+'</p>';
+      h += '<div class="casos-chips entra" role="group" aria-label="Seus casos">'+ps.map(function(x,i){
+        var st = statusCurto(x);
+        return '<button class="caso-chip" aria-pressed="'+(i===state.proc)+'" data-proc="'+i+'" aria-label="Caso '+(i+1)+' de '+ps.length+': '+esc(tituloCaso(x))+' — '+st.txt+'">'+
+          '<div class="cc-top"><span class="cc-dot" style="background:'+st.cor+'"></span>'+
+          '<span class="cc-name">'+esc(tituloCaso(x))+'</span>'+
+          (st.novidade?'<span class="cc-badge">novo</span>':'')+'</div>'+
+          '<span class="cc-sub">'+esc(x.fase||'Em andamento')+'</span>'+
+        '</button>';
+      }).join('')+'</div>';
+    }
+
+    // === barra de jornada horizontal segmentada (acima da dobra) ===
+    if(typeof p.jornada === 'number'){
+      var marcos=['Contrato','Distribuição','Citação','Sentença','Cumprimento','Êxito'];
+      h += '<section class="jornada-bar entra">'+
+        '<div class="jb-cap"><span class="rotulo">A jornada do seu caso</span>'+
+          '<span class="jb-passo">Marco '+(p.jornada+1)+' de 6</span></div>'+
+        '<div class="jb-track">'+marcos.map(function(m,i){
+          var cls = i<p.jornada ? 'done' : (i===p.jornada ? 'done atual' : '');
+          return '<div class="jb-seg '+cls+'">'+
+            '<div class="jb-bar"></div>'+
+            '<div class="jb-num">'+(i+1)+'</div>'+
+            '<div class="jb-lbl">'+m+'</div></div>';
+        }).join('')+'</div>'+
+        (p.rapidez?'<div class="jb-ritmo"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="m13 2-9 12h6l-2 8 9-12h-6l2-8Z"/></svg><span>Seu processo está avançando acima do ritmo médio de casos semelhantes</span></div>':'')+
+        (p.mesma_fase>=5?'<div class="jb-ritmo" style="color:var(--ink-soft);font-weight:400"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path stroke-linecap="round" d="M3.5 20a5.5 5.5 0 0 1 11 0M16 5.5a3 3 0 0 1 0 5.4M19 20a5.4 5.4 0 0 0-3-4.8"/></svg><span>Você não está sozinho — <b style="color:var(--gold-text)">'+p.mesma_fase+'</b> outros clientes estão nesta mesma fase agora.</span></div>':'')+
+      '</section>';
+    }
+
+    // === dashboard de cards glanceaveis ===
+    var atv = p.atividades||{};
+    var au=atv.audiencia;
+    var auProx=au&&diasAte(au.data)>=0&&diasAte(au.data)<=7;
+    var temPend=!!state.dados.tem_vencida||auProx;
+    var sh=statusHumano(p);
+
+    h += '<div class="dash">';
+
+    // card 1 — situacao do caso
+    h += '<section class="gcard g-status entra">'+
+      '<div class="rotulo">Situação do seu caso</div>'+
+      '<div class="status-humano" style="color:'+sh.cor+'">'+sh.html+'</div>'+
+      '<div class="fase-sub">Fase: <b>'+esc(p.fase||'Em andamento')+'</b>'+(p.quadro?' · '+esc(p.quadro):'')+'</div>'+
+      (function(){
+        if(!temPend){
+          return '<div class="calma"><span class="mark ok">✓</span>'+
+            '<span><b>Nada pendente do seu lado.</b> Você não precisa fazer nada agora. Se algo precisar de você, a gente avisa.</span></div>';
+        }
+        var msg=state.dados.tem_vencida?'Há um boleto vencido na aba <b>Pagamentos</b>.':'Você tem uma audiência nos próximos dias.';
+        return '<div class="calma aviso"><span class="mark due">!</span>'+
+          '<span><b>Há 1 item para você.</b> '+msg+'</span></div>';
+      })()+
+    '</section>';
+
+    // card 2 — proximo passo + de quem e a vez
+    h += '<section class="gcard g-vez entra">'+
+      '<div class="rotulo">De quem é a vez</div>'+
+      (atv.vez?(atv.vez==='escritorio'
+        ?'<span class="vez escritorio">Com a nossa equipe agora</span>'
+        :'<span class="vez tribunal">Aguardando o tribunal'+(atv.vez_dias>1?' há '+atv.vez_dias+' dias':'')+'</span>'):'')+
+      (p.proximos_passos?'<div class="passo-txt"><b style="color:var(--gold-text);font-size:0.625rem;letter-spacing:.12em;text-transform:uppercase;display:block;margin-bottom:4px">Próximo passo</b>'+esc(p.proximos_passos)+'</div>':'')+
+      (p.prazo_medio?'<div class="prazo">Prazo médio desta fase: <b>'+esc(p.prazo_medio)+'</b></div>':'')+
+      (vezMicrocopy(p)?'<div class="vez-micro">'+esc(vezMicrocopy(p))+'</div>':'')+
+      '<button class="ouvir" id="ouvir-resumo" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ouvir resumo</button>'+
+    '</section>';
+
+    // card 3 — nossa equipe em acao (contadores) — coluna inteira
+    if(atv.tarefas_concluidas || atv.movimentos){
+      var extras=[];
+      if(atv.horas>=1) extras.push('~'+String(atv.horas).replace('.',',')+' h de trabalho dedicadas');
+      if(atv.publicacoes) extras.push(atv.publicacoes+' '+plural(atv.publicacoes,'publicação analisada','publicações analisadas'));
+      h += '<section class="gcard g-equipe col-2 entra">'+
+        '<div class="rotulo">Nossa equipe em ação</div>'+
+        '<div class="mini-grid">'+
+          '<div class="mini-kpi"><div class="v" data-count="'+(atv.tarefas_concluidas||0)+'">'+(atv.tarefas_concluidas||0)+'</div><div class="l">tarefas concluídas</div></div>'+
+          '<div class="mini-kpi"><div class="v" data-count="'+(atv.movimentos||0)+'">'+(atv.movimentos||0)+'</div><div class="l">movimentações acompanhadas</div></div>'+
+          (atv.publicacoes?'<div class="mini-kpi"><div class="v" data-count="'+atv.publicacoes+'">'+atv.publicacoes+'</div><div class="l">publicações oficiais analisadas</div></div>':'')+
+          (atv.horas>=1?'<div class="mini-kpi"><div class="v">'+String(atv.horas).replace('.',',')+'</div><div class="l">horas dedicadas ao seu caso</div></div>':'')+
+        '</div>'+
+        (atv.ultima&&atv.ultima.titulo?'<div class="ultima"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>'+
+          '<span><b>'+esc(titulo(atv.ultima.titulo))+'</b>'+
+          (atv.ultima.por?' — '+esc(titulo(String(atv.ultima.por).trim().split(/\s+/)[0])):'')+
+          (atv.ultima.em?' <span style="color:var(--ink-faint)">('+dataBR(atv.ultima.em)+')</span>':'')+'</span></div>':'')+
+      '</section>';
+    }
+
+    // card 4 — snapshot de pagamentos — coluna inteira
+    var pg=state.dados.pagamentos||{}, r=pg.resumo||{};
+    h += '<section class="gcard g-pag col-2 entra">'+
+      '<div class="rotulo">Seus pagamentos</div>'+
+      '<div class="pag-grid">'+
+        '<div class="pag-num"><span class="v ok">'+BRL.format(r.total_pago||0)+'</span><span class="l">já pago · '+(r.qtd_pagos||0)+' '+plural(r.qtd_pagos,'parcela','parcelas')+'</span></div>'+
+        '<div class="pag-num"><span class="v pend">'+BRL.format(r.total_pendente||0)+'</span><span class="l">em aberto · '+(r.qtd_pendentes||0)+' '+plural(r.qtd_pendentes,'parcela','parcelas')+'</span></div>'+
+      '</div>'+
+      (state.dados.tem_vencida?'<div class="alerta-venc"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--due)" stroke-width="2" style="flex:0 0 auto"><circle cx="12" cy="12" r="9.5"/><path stroke-linecap="round" d="M12 8v4.5m0 3.2v.05"/></svg><span><b>Há um boleto vencido.</b> Toque abaixo para ver o PIX e o boleto.</span></div>':'')+
+      '<button class="ir-pag" id="ir-pag" type="button">Ver parcelas e pagar →</button>'+
+    '</section>';
+
+    h += '</div>'; // .dash
+
+    // evento critico (sentenca favoravel — processo 2)
+    h += cardEvento(p);
+
+    // === linha do tempo completa (por ultimo) ===
+    var evs = p.andamentos||[];
+    h += '<hr class="divisor entra" />';
+    h += '<div class="tl-titulo entra"><h2>Linha do tempo</h2><span>'+evs.length+' '+plural(evs.length,'movimentação','movimentações')+'</span></div>';
+    h += '<p class="tl-intro entra">A maior parte das movimentações são registros normais do tribunal e <b>não exigem nenhuma ação</b> — nem sua, nem nossa. Quando algo depende do escritório, nossa equipe cria a tarefa e conclui antes do prazo judicial.</p>';
+    if(!evs.length){
+      h += '<div class="card estado"><p>Ainda não há movimentações registradas pelos tribunais.<br/>Verificamos seu processo todos os dias e este espaço se atualiza sozinho.</p></div>';
+    } else {
+      var vis = state.expand ? evs : evs.slice(0,5);
+      h += '<div class="timeline entra">'+vis.map(function(e){
+        return '<div class="evento"><div class="data">'+dataBR(e.data)+'</div><div class="txt">'+marcaTermos(esc(e.texto))+'</div>'+(e.fonte?'<div class="fonte">Fonte: '+esc(e.fonte)+'</div>':'')+'</div>';
+      }).join('')+'</div>';
+      if(evs.length>5) h += '<button class="ver-mais" id="ver-mais">'+(state.expand?'Mostrar menos':'Ver histórico completo ('+evs.length+')')+'</button>';
+    }
+    var of = state.dados.escritorio;
+    if(of && of.tarefas_mes >= 50){
+      h += '<div class="entra" style="margin-top:14px;text-align:center;font-size:0.75rem;color:var(--ink-faint);line-height:1.5">Em '+esc(of.mes)+', nossa equipe já concluiu <b style="color:var(--gold-text)">'+Number(of.tarefas_mes).toLocaleString('pt-BR')+'</b> tarefas processuais para clientes como você.</div>';
+    }
+    var bw=btnWhats(p);
+    if(bw) h += '<div class="entra" style="margin-top:18px">'+bw+'<div style="font-size:0.71875rem;color:var(--ink-faint);margin-top:7px;text-align:center">Atendemos '+esc(((state.dados.contato||{}).horario)||'em horário comercial')+' e respondemos cada dúvida com calma.</div></div>';
+    return h;
+  }
+
+  // ---------- render: PAGAMENTOS ----------
+  function vPagamentos(){
+    var pg = state.dados.pagamentos||{resumo:{},pendentes:[],pagos:[]};
+    var r = pg.resumo||{};
+    var h = '', hContrato = '';
+    var ct = state.dados.contrato;
+    if(ct){
+      var tot = numBR(ct.honorarios_total), vparc = numBR(ct.valor_parcela), pago = r.total_pago||0;
+      var pct = tot ? Math.min(100, Math.round(pago/tot*100)) : 0;
+      hContrato = '<section class="card fase-card entra" style="margin-top:13px">'+
+        '<div class="rotulo">Seu contrato</div>'+
+        '<div class="fase-nome">'+esc(ct.tipo||'Honorários contratados')+'</div>'+
+        (ct.resort?'<span class="quadro-tag">'+esc(ct.resort)+'</span>':'')+
+        '<div style="margin-top:12px">'+
+          (tot!=null?'<div class="ac-linha"><span>Honorários iniciais'+(ct.parcelas>1&&vparc?'<br><small style="color:var(--ink-faint)">em '+ct.parcelas+' parcelas de '+BRL.format(vparc)+'</small>':'')+'</span><b>'+BRL.format(tot)+'</b></div>':'')+
+          (ct.exito_pct?'<div class="ac-linha"><span>Honorários de êxito<br><small style="color:var(--ink-faint)">somente sobre o que você receber no final</small></span><b>'+esc(ct.exito_pct)+'%</b></div>':'')+
+        '</div>'+
+        (tot?'<div style="margin-top:10px"><div class="barra"><i style="width:'+pct+'%"></i></div>'+
+          '<div class="nota-card" style="margin-top:5px">'+pct+'% dos honorários iniciais quitados — '+BRL.format(pago)+' pagos</div></div>':'')+
+      '</section>';
+    }
+    var pr=state.dados.pagamento_recente;
+    if(pr){ h += '<div class="card pag-ok entra"><span style="font-size:1.5rem;flex:0 0 auto" aria-hidden="true">🤝</span>'+
+      '<div><b>Recebemos o seu pagamento de '+BRL.format(pr.valor)+' — muito obrigado!</b><br>'+
+      '<span style="color:var(--ink-soft)">Já está tudo registrado aqui no seu portal. A confirmação é automática.</span></div></div>'; }
+    h += '<div class="resumo entra">'+
+      '<div class="card"><div class="rotulo">Já pago</div><div class="valor ok">'+BRL.format(r.total_pago||0)+'</div><div class="nota-card">'+(r.qtd_pagos||0)+' '+plural(r.qtd_pagos,'pagamento','pagamentos')+'</div></div>'+
+      '<div class="card"><div class="rotulo">Em aberto</div><div class="valor pend">'+BRL.format(r.total_pendente||0)+'</div><div class="nota-card">'+(r.qtd_pendentes||0)+' '+plural(r.qtd_pendentes,'parcela','parcelas')+'</div></div>'+
+    '</div>';
+    if((pg.pendentes||[]).length){
+      h += '<div class="tl-titulo entra"><h2>Próximas parcelas</h2></div>';
+      h += pg.pendentes.map(function(b,i){
+        return '<section class="card bol entra">'+
+          '<div class="bol-head"><div class="venc">Vencimento<b>'+dataBR(b.vencimento)+'</b></div>'+
+          '<div><div class="valor">'+BRL.format(b.valor)+'</div>'+
+          '<span class="pill '+(b.vencido?'vencido':'pendente')+'">'+(b.vencido?'Vencido':'Em aberto')+'</span></div></div>'+
+          '<div class="desc">'+esc(b.descricao)+(b.parcela?' · parcela '+esc(b.parcela):'')+'</div>'+
+          '<div class="bol-acoes">'+
+            (b.pix?'<button class="btn btn-ouro" data-pix="'+i+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar PIX</button>':'')+
+            (b.boleto_url?'<a class="btn btn-claro" href="'+esc(b.boleto_url)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 5v14M8 5v14M12 5v10m4-10v14m4-14v10"/></svg>Ver boleto</a>':'')+
+          '</div>'+
+          '<button class="link-cal" data-cal="'+i+'" type="button">+ Adicionar lembrete no calendário do celular</button>'+
+          '</section>';
+      }).join('');
+    } else if(state.dados.so_exito){
+      h += '<div class="card estado entra"><h2>Você só paga se ganhar</h2><p>Seu contrato é exclusivamente por êxito: <b>não há honorários iniciais nem parcelas</b>. Você só paga quando — e se — receber o resultado do seu caso.</p></div>';
+    } else {
+      h += '<div class="card estado entra"><h2>Tudo em dia</h2><p>Você não tem parcelas em aberto no momento.<br/>Se houver novas parcelas, elas aparecem aqui automaticamente.</p></div>';
+    }
+    h += hContrato;
+    if((pg.pagos||[]).length){
+      h += '<hr class="divisor entra" />';
+      h += '<div class="secao-pagos"><div class="tl-titulo entra"><h2>Histórico de pagamentos</h2>'+
+        '<button id="btn-extrato" type="button" style="background:none;border:none;font-size:0.78125rem;font-weight:700;color:var(--gold-text);cursor:pointer;font-family:Lato;min-height:44px;padding:10px 0 10px 14px">Baixar extrato em PDF</button></div>'+
+        pg.pagos.map(function(b){
+          return '<section class="card bol pago-card entra"><div><div class="venc">Pago em <b>'+dataBR(b.pago_em||b.vencimento)+'</b></div>'+
+          '<div class="desc" style="margin-top:3px">'+esc(b.descricao)+(b.parcela?' · '+esc(b.parcela):'')+'</div></div>'+
+          '<div style="text-align:right"><div class="valor">'+BRL.format(b.valor)+'</div><span class="pill pago">✓ Pago</span></div></section>';
+        }).join('')+'</div>';
+    }
+    return h;
+  }
+
+  // ---------- render: ACORDO (oculta se null) ----------
+  function vAcordo(){
+    var a = state.dados.acordo;
+    if(!a) return '<div class="card estado entra"><h2>Nenhum acordo ativo</h2><p>Quando houver um acordo em prestação de contas, ele aparece aqui.</p></div>';
+    return '';
+  }
+
+  // ---------- render: DUVIDAS (FAQ + glossario + pergunte) ----------
+  function vFaq(){
+    var h = '<section class="card fase-card entra" style="margin-top:13px">'+
+      '<div class="rotulo">Canal direto com a equipe</div>'+
+      '<div class="fase-nome">Toda dúvida merece resposta</div>'+
+      '<p class="fase-texto">Reunimos abaixo o que os clientes mais perguntam. Se a sua dúvida não estiver aqui, escreva para a gente — respondemos em até 1 dia útil.</p>'+
+      (function(){var b=btnWhats(null);return b?'<div style="margin-top:13px">'+b+'</div>':'';})()+
+    '</section>';
+    h += '<div class="tl-titulo entra"><h2>Dúvidas frequentes</h2></div>';
+    var faq = state.dados.faq||[];
+    if(faq.length){
+      h += '<div class="edu entra" style="margin-top:0">'+faq.map(function(f){
+        return '<details><summary>'+esc(f.pergunta)+'</summary><div class="corpo-edu">'+esc(f.resposta)+'</div></details>';
+      }).join('')+'</div>';
+    }
+    // glossario clicavel (lista de termos explicados)
+    var gl = state.dados.glossario||[];
+    if(gl.length){
+      h += '<div class="tl-titulo entra"><h2>Palavras do mundo jurídico</h2></div>';
+      h += '<div class="edu entra" style="margin-top:0">'+gl.map(function(g){
+        return '<details><summary>'+esc(g.t)+'</summary><div class="corpo-edu">'+esc(g.d.charAt(0).toUpperCase()+g.d.slice(1))+'</div></details>';
+      }).join('')+'</div>';
+    }
+    // pergunte aqui
+    h += '<div class="tl-titulo entra"><h2>Não encontrou? Pergunte aqui</h2></div>';
+    h += '<section class="card fase-card entra" style="margin-top:0;padding:16px 17px">'+
+      '<p style="font-size:0.84375rem;color:var(--ink-soft)">Sua pergunta vai direto para a nossa equipe — <b>respondemos em até 1 dia útil</b> e a resposta aparece aqui no portal.</p>'+
+      '<textarea id="pq-texto" rows="3" class="nps-area" style="margin-top:10px" autocapitalize="sentences" autocorrect="on" spellcheck="true" enterkeyhint="send" placeholder="Escreva sua pergunta…"></textarea>'+
+      '<button class="btn btn-ouro" id="pq-envia" style="margin-top:9px;width:100%">Enviar pergunta</button>'+
+    '</section>';
+    var mp = state.dados.minhas_perguntas||[];
+    if(mp.length){
+      h += '<div class="tl-titulo entra"><h2>Suas perguntas</h2></div>';
+      h += mp.map(function(q){
+        return '<section class="card entra" style="padding:14px 17px;margin-top:10px">'+
+          '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">'+
+            '<div style="font-size:0.875rem;font-weight:700;flex:1">'+esc(q.pergunta)+'</div>'+
+            '<span class="pq-status '+(q.status==='respondida'?'respondida':'pendente')+'">'+(q.status==='respondida'?'Respondida':'Aguardando')+'</span>'+
+          '</div>'+
+          '<div style="font-size:0.6875rem;color:var(--ink-faint);margin-top:3px">enviada em '+dataBR(q.criado_em)+'</div>'+
+          (q.resposta?'<div class="pq-resposta">'+esc(q.resposta)+'</div>':'')+
+        '</section>';
+      }).join('');
+    }
+    return h;
+  }
+
+  // ---------- lembrete de parcela no calendario ----------
+  function agendaCalendario(b){
+    var d = String(b.vencimento||'').slice(0,10); if(!d) return;
+    var dt = d.replace(/-/g,'');
+    var tit = 'Parcela CBC Advogados — R$ '+(typeof b.valor==='number'?b.valor.toFixed(2).replace('.',','):b.valor);
+    var det = 'Pagamento de honorários CBC Advogados.';
+    if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){
+      var ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//CBC Advogados//Portal//PT\r\nBEGIN:VEVENT\r\n'+
+        'UID:cbc-'+dt+'-'+Math.random().toString(36).slice(2)+'\r\nDTSTART;VALUE=DATE:'+dt+'\r\n'+
+        'SUMMARY:'+tit.replace(/,/g,'\\,')+'\r\nDESCRIPTION:'+det.replace(/,/g,'\\,')+'\r\n'+
+        'BEGIN:VALARM\r\nTRIGGER:-PT15H\r\nACTION:DISPLAY\r\nDESCRIPTION:'+tit.replace(/,/g,'\\,')+'\r\nEND:VALARM\r\n'+
+        'END:VEVENT\r\nEND:VCALENDAR';
+      var blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+      var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='parcela-cbc-'+d+'.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast('Abra o arquivo para salvar no seu Calendário');
+    } else {
+      window.open('https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(tit)+'&dates='+dt+'/'+dt+'&details='+encodeURIComponent(det),'_blank');
+    }
+  }
+
+  // ---------- extrato PDF (gerado no aparelho, jsPDF via CDN sob demanda) ----------
+  function geraExtratoPDF(){
+    var btn=$('btn-extrato'); if(btn){btn.disabled=true;btn.textContent='Gerando…';}
+    new Promise(function(res,rej){
+      if(window.jspdf) return res();
+      var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload=res; s.onerror=function(){rej(new Error('sem conexão'));}; document.head.appendChild(s);
+    }).then(function(){
+      var doc=new window.jspdf.jsPDF(); var W=doc.internal.pageSize.getWidth(); var y=20;
+      doc.setFont('times','bold'); doc.setFontSize(16); doc.setTextColor('#142A43');
+      doc.text('CBC Advogados',W/2,y,{align:'center'}); y+=6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor('#7A8CA0');
+      doc.text('Conforto, Bergonsi & Cavalari · OAB/SP 55227 · Americana-SP',W/2,y,{align:'center'}); y+=10;
+      doc.setDrawColor('#B99249'); doc.line(20,y,W-20,y); y+=10;
+      doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor('#142A43');
+      doc.text('Extrato de honorários',20,y); y+=6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor('#3D5570');
+      var c=state.dados.cliente||{};
+      doc.text('Cliente: '+(c.nome||''),20,y); y+=5;
+      doc.text('Emitido em '+new Date().toLocaleString('pt-BR')+' pelo Portal do Cliente',20,y); y+=10;
+      var pg=state.dados.pagamentos||{}; var r=pg.resumo||{};
+      doc.setFont('helvetica','bold'); doc.setTextColor('#5C7A4E');
+      doc.text('Total pago: '+BRL.format(r.total_pago||0)+'  ('+(r.qtd_pagos||0)+' pagamento'+((r.qtd_pagos||0)===1?'':'s')+')',20,y); y+=6;
+      doc.setTextColor('#A66A1F');
+      doc.text('Em aberto: '+BRL.format(r.total_pendente||0)+'  ('+(r.qtd_pendentes||0)+' parcela'+((r.qtd_pendentes||0)===1?'':'s')+')',20,y); y+=10;
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor('#142A43');
+      doc.text('Pago em',20,y); doc.text('Descrição',55,y); doc.text('Valor',W-20,y,{align:'right'});
+      doc.setDrawColor('#E4DCCB'); doc.line(20,y+1.5,W-20,y+1.5); y+=7;
+      doc.setFont('helvetica','normal'); doc.setTextColor('#3D5570');
+      (pg.pagos||[]).forEach(function(b){
+        if(y>270){doc.addPage();y=20;}
+        doc.text(dataBR(b.pago_em||b.vencimento),20,y);
+        doc.text(String(b.descricao||'Parcela de honorários').slice(0,52),55,y);
+        doc.text(BRL.format(b.valor||0),W-20,y,{align:'right'}); y+=6;
+      });
+      y+=6; doc.setFontSize(7.5); doc.setTextColor('#7A8CA0');
+      doc.text('Documento informativo gerado automaticamente.',20,y);
+      doc.save('extrato-honorarios-cbc.pdf');
+      if(btn){btn.disabled=false;btn.textContent='Baixar extrato em PDF';}
+    }).catch(function(){
+      toast('Não foi possível gerar agora — verifique sua conexão');
+      if(btn){btn.disabled=false;btn.textContent='Baixar extrato em PDF';}
+    });
+  }
+
+  // ---------- ouvir resumo (voz nativa) ----------
+  var falando=false;
+  function ouvirResumo(){
+    if(!('speechSynthesis' in window)){ toast('Seu aparelho não suporta leitura em voz'); return; }
+    var btn=$('ouvir-resumo');
+    if(falando){ speechSynthesis.cancel(); falando=false; if(btn)btn.classList.remove('tocando'); return; }
+    var ps=state.dados.processos||[]; var p=ps[Math.min(state.proc,ps.length-1)]; if(!p) return;
+    var partes=['Situação do seu caso: tudo caminhando bem.','Fase atual: '+(p.fase||'em andamento')+'.'];
+    if(p.atividades&&p.atividades.vez==='tribunal') partes.push('Neste momento aguardamos o tribunal — você não precisa fazer nada.');
+    if(p.atividades&&p.atividades.vez==='escritorio') partes.push('Nossa equipe está trabalhando no seu caso agora.');
+    if((p.andamentos||[])[0]) partes.push('Última movimentação, em '+dataBR(p.andamentos[0].data)+': '+p.andamentos[0].texto);
+    if(p.proximos_passos) partes.push('Próximos passos: '+p.proximos_passos);
+    partes.push('Qualquer novidade, este portal e a nossa equipe avisam você.');
+    var u=new SpeechSynthesisUtterance(partes.join(' ')); u.lang='pt-BR'; u.rate=0.96;
+    u.onend=function(){ falando=false; if(btn)btn.classList.remove('tocando'); };
+    falando=true; if(btn)btn.classList.add('tocando');
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+
+  // ---------- render orquestracao ----------
+  function render(){
+    var alvo = $('conteudo');
+    var mudouAba = alvo._aba !== state.aba; alvo._aba = state.aba;
+    var prm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(!prm && !state.semEntra && alvo.innerHTML && !alvo._primeira){
+      alvo.style.opacity='0'; clearTimeout(alvo._fade);
+      alvo._fade=setTimeout(function(){ pinta(); alvo.style.opacity='1'; }, 170);
+      return;
+    }
+    alvo._primeira=false; pinta();
+
+    function pinta(){
+      alvo.classList.toggle('sem-anim', !!state.semEntra);
+      alvo.innerHTML = state.aba==='proc' ? vProcesso() : state.aba==='pag' ? vPagamentos() : state.aba==='faq' ? vFaq() : vAcordo();
+      if(!state.semEntra){
+        alvo.querySelectorAll(':scope > .entra, .dash > .entra').forEach(function(el,i){
+          el.style.animationDelay = Math.min(i*55, 440) + 'ms';
+        });
+      }
+      $('nav-proc').setAttribute('aria-pressed', state.aba==='proc');
+      $('nav-pag').setAttribute('aria-pressed', state.aba==='pag');
+      $('nav-acordo').setAttribute('aria-pressed', state.aba==='acordo');
+      $('nav-faq').setAttribute('aria-pressed', state.aba==='faq');
+
+      var ouvirBtn=$('ouvir-resumo'); if(ouvirBtn) ouvirBtn.addEventListener('click', ouvirResumo);
+      var irPag=$('ir-pag'); if(irPag) irPag.addEventListener('click', function(){ state.aba='pag'; render(); });
+      var extBtn=$('btn-extrato'); if(extBtn) extBtn.addEventListener('click', geraExtratoPDF);
+
+      alvo.querySelectorAll('[data-cal]').forEach(function(el){
+        el.addEventListener('click', function(){ var b=state.dados.pagamentos.pendentes[+el.dataset.cal]; if(b) agendaCalendario(b); });
+      });
+      var pqBtn=$('pq-envia');
+      if(pqBtn) pqBtn.addEventListener('click', function(){
+        var txt=($('pq-texto').value||'').trim();
+        if(txt.length<5){ toast('Escreva sua pergunta com um pouco mais de detalhe'); return; }
+        (state.dados.minhas_perguntas=state.dados.minhas_perguntas||[]).unshift({pergunta:txt,status:'pendente',criado_em:new Date().toISOString()});
+        toast('Pergunta enviada — respondemos em até 1 dia útil');
+        render();
+      });
+      // glossario no toque
+      alvo.querySelectorAll('.termo').forEach(function(el){
+        function abreDef(){ var g=(state.dados.glossario||[])[+el.dataset.gi]; if(g) toast('“'+g.t+'”: '+g.d, 7000); }
+        el.addEventListener('click', abreDef);
+        el.addEventListener('keydown', function(ev){ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); abreDef(); } });
+      });
+      countUp(alvo);
+      // seletor de casos
+      alvo.querySelectorAll('[data-proc]').forEach(function(el){
+        el.addEventListener('click', function(){
+          state.proc=+el.dataset.proc; state.expand=false; state.semEntra=true;
+          try{ localStorage.setItem('cbc_caso', String(state.proc)); }catch(e){}
+          atualizaBadge(); render();
+        });
+      });
+      var vm=$('ver-mais'); if(vm) vm.addEventListener('click', function(){ state.expand=!state.expand; state.semEntra=true; state.keepScroll=window.scrollY; render(); });
+      // copiar PIX
+      alvo.querySelectorAll('[data-pix]').forEach(function(el){
+        el.addEventListener('click', function(){
+          var b=state.dados.pagamentos.pendentes[+el.dataset.pix];
+          var ok=function(){ el.classList.add('copiado'); el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/></svg>PIX copiado!';
+            toast('Código PIX copiado — cole no app do seu banco');
+            setTimeout(function(){ el.classList.remove('copiado'); el.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar PIX'; }, 3200);
+          };
+          if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(b.pix).then(ok).catch(function(){ toast('Não foi possível copiar — segure para selecionar'); }); }
+          else { try{ var ta=document.createElement('textarea'); ta.value=b.pix; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); ok(); }catch(e){ toast('Não foi possível copiar'); } }
+        });
+      });
+      if(state.keepScroll!=null){ window.scrollTo({top:state.keepScroll,behavior:'instant'}); }
+      else if(mudouAba){ window.scrollTo({top:0,behavior:'instant'}); }
+      state.semEntra=false; state.keepScroll=null;
+    }
+  }
+
+  $('nav-proc').addEventListener('click', function(){ state.aba='proc'; render(); });
+  $('nav-pag').addEventListener('click', function(){ state.aba='pag'; render(); });
+  $('nav-acordo').addEventListener('click', function(){ state.aba='acordo'; render(); });
+  $('nav-faq').addEventListener('click', function(){ state.aba='faq'; render(); });
+
+  function atualizaBadge(){
+    var pend=(state.dados.pagamentos&&state.dados.pagamentos.resumo&&state.dados.pagamentos.resumo.qtd_pendentes)||0;
+    var bd=$('badge-pend'); if(pend){ bd.textContent=pend; bd.hidden=false; } else { bd.hidden=true; }
+  }
+
+  // ---------- bootstrap (dados embutidos, sem fetch) ----------
+  (function init(){
+    var j=state.dados, c=j.cliente||{};
+    var temAcordo=!!j.acordo;
+    state.proc=0; // teste: sempre inicia no Caso 1 para comparacao limpa entre prototipos
+
+    var hora=new Date().getHours();
+    var sauda=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
+    $('saudacao').innerHTML='<h1>'+sauda+', <em>'+esc(c.primeiro_nome||'cliente')+'</em></h1>';
+
+    // vigilancia (verificado hoje)
+    var vg=j.vigilancia||{}, vhtml='';
+    if(vg.ultima_verificacao){
+      var dv=new Date(vg.ultima_verificacao); var opts={timeZone:'America/Sao_Paulo'};
+      var ehHoje=dv.toLocaleDateString('pt-BR',opts)===new Date().toLocaleDateString('pt-BR',opts);
+      var hhmm=dv.toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'});
+      vhtml+='<div class="vigia entra"><span class="dot"></span>'+
+        (ehHoje?'Verificado hoje às '+hhmm:'Última verificação: '+dv.toLocaleDateString('pt-BR',opts)+' '+hhmm)+
+        ' · monitoramento automático há '+(vg.dias_monitoramento||1)+' dias</div>';
+      if(vg.proxima_verificacao) vhtml+='<div class="vigia-prox entra">Próxima verificação automática no próximo dia útil — você não precisa voltar todos os dias, a gente te avisa quando houver novidade.</div>';
+    }
+    $('vigia-box').innerHTML=vhtml;
+
+    // autoridade (rodape)
+    var inst=j.instituicao;
+    if(inst){
+      $('autoridade').innerHTML='Acompanhamos <b>'+Number(inst.processos_ativos||0).toLocaleString('pt-BR')+'</b> processos ativos · '+
+        '<b>'+Number(inst.tarefas_ano||0).toLocaleString('pt-BR')+'</b> tarefas concluídas em '+(new Date().getFullYear())+' · '+
+        '<b>'+Number(inst.casos_exito||0).toLocaleString('pt-BR')+'</b> casos conduzidos até a fase de êxito';
+    }
+
+    atualizaBadge();
+    if(temAcordo){
+      $('nav-acordo').hidden=false;
+      document.querySelector('.nav-inner').classList.add('quatro');
+      $('nav-proc').lastChild.textContent=' Caso';
+    }
+    $('nav').hidden=false;
+
+    // frase de fe rotativa
+    var FRASES=[
+      'Seu caso tem nome, rosto e responsável — não é um número.',
+      'Verificamos cada processo todos os dias, automaticamente.',
+      'Você não precisa entender de Direito: explicar é a nossa parte.',
+      'Cada prazo do seu caso é monitorado pela nossa equipe.',
+      'Transparência não é cortesia — é compromisso.'
+    ];
+    try{
+      var doy=Math.floor((Date.now()-Date.UTC(new Date().getFullYear(),0,0))/86400000);
+      $('frase-fe').textContent='“'+FRASES[doy%FRASES.length]+'”';
+    }catch(e){}
+
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

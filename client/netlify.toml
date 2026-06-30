@@ -2,7 +2,62 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+
+# (#126) Edge Functions — versoes migradas das funcoes leves (proxies e health).
+# Rodam em Deno no edge mais proximo do usuario (<50ms). Endpoints antigos em
+# /.netlify/functions/* permanecem ativos durante a transicao.
+[[edge_functions]]
+  path = "/api/health"
+  function = "health"
+
+[[edge_functions]]
+  path = "/api/zapsign"
+  function = "zapsign-proxy"
+
+# Cache headers como fallback (o arquivo public/_headers tem precedencia)
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.woff2"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Portal do cliente (pagina publica com token) — precisa vir ANTES do SPA fallback
+[[redirects]]
+  from = "/portal"
+  to = "/portal.html"
+  status = 200
+
+# SPA fallback.
+# (#126) Observacao: Edge Functions com `path` definido rodam ANTES destes
+# redirects, entao /api/* cai primeiro na edge function. Se a edge function
+# falhar de carregar, o request CAIRIA no SPA fallback abaixo — nao e ideal,
+# mas e comportamento padrao do Netlify e nao bloqueia a SPA.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Build processing: minify extra on CSS/JS (Netlify side)
+[build.processing]
+  skip_processing = false
+[build.processing.css]
+  bundle = true
+  minify = true
+[build.processing.js]
+  bundle = false
+  minify = true
+[build.processing.html]
+  pretty_urls = true
+[build.processing.images]
+  compress = true

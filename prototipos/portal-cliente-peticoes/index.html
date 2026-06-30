@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Portal do Cliente — opções para teste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #163d5b;
+    --navy-light: #173047;
+    --navy-deep: #0f2233;
+    --gold: #163d5b;
+    --gold-soft: #c1d9f1;
+    --creme: #f9fafb;
+    --creme-card: #ffffff;
+    --ink: #161b20;
+    --ink-soft: #3b4046;
+    --ink-faint: #575b60;
+    --line: #e2e5e7;
+    --tint: #eff6fd;
+    --shadow: 0 18px 50px -22px rgba(22, 61, 91, 0.30);
+    --shadow-hover: 0 26px 64px -22px rgba(22, 61, 91, 0.40);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(22, 61, 91, 0.035), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(22, 61, 91, 0.04), transparent 55%),
+      var(--creme);
+    min-height: 100vh;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 56px 24px 72px;
+  }
+
+  /* ---------- Cabecalho ---------- */
+  header.hero {
+    text-align: center;
+    margin-bottom: 52px;
+  }
+
+  .brandmark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+  }
+
+  .brandmark .crest {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 1.5px solid var(--gold-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.06);
+  }
+
+  .brandmark .brandname {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 23px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.3px;
+  }
+  .brandmark .brandname span {
+    color: var(--navy);
+  }
+
+  header.hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(34px, 5vw, 50px);
+    font-weight: 600;
+    color: var(--navy);
+    line-height: 1.08;
+    letter-spacing: 0.2px;
+  }
+
+  .hero .rule {
+    width: 64px;
+    height: 2px;
+    background: var(--navy);
+    margin: 22px auto 22px;
+    border-radius: 2px;
+  }
+
+  header.hero p.lede {
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  header.hero p.lede strong {
+    color: var(--navy);
+    font-weight: 700;
+  }
+
+  /* ---------- Grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+  @media (min-width: 680px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ---------- Cartao ---------- */
+  .card {
+    position: relative;
+    background: var(--creme-card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gold-soft);
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--navy), var(--navy-light));
+  }
+
+  .card .body {
+    padding: 26px 24px 22px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .card .toprow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .opt-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-family: 'Lato', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--navy);
+  }
+  .opt-label .letter {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0;
+  }
+
+  .badge-novo {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--navy);
+    background: var(--tint);
+    border: 1px solid var(--gold-soft);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+
+  .card h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 29px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  .card p.desc {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 18px;
+  }
+
+  /* ---------- Mini-mockup ---------- */
+  .mock {
+    height: 132px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid var(--line);
+    margin-bottom: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .mock svg { display: block; width: 100%; height: 100%; }
+
+  /* ---------- Botao ---------- */
+  .card .btn {
+    margin-top: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 18px;
+    background: var(--navy);
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Lato', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-radius: 11px;
+    border: 1px solid var(--navy);
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  }
+  .card .btn:hover {
+    background: var(--navy-light);
+    border-color: var(--navy-light);
+    color: #fff;
+  }
+  .card .btn .arrow { font-size: 16px; line-height: 1; }
+
+  /* ---------- Rodape ---------- */
+  footer.foot {
+    margin-top: 60px;
+    padding-top: 26px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 12.5px;
+    letter-spacing: 0.3px;
+  }
+  footer.foot .ft-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    color: var(--navy);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+  }
+  footer.foot .ft-dot { color: var(--navy); margin: 0 8px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="hero">
+      <div class="brandmark">
+        <span class="crest">CBC</span>
+        <span class="brandname">CBC <span>Advogados</span></span>
+      </div>
+      <h1>Portal do Cliente — opções para teste</h1>
+      <div class="rule"></div>
+      <p class="lede">São <strong>6 direções visuais</strong> do mesmo conteúdo (com dados de exemplo), na <strong>paleta CBC Petições</strong>, para você abrir, comparar lado a lado e escolher a que melhor representa o escritório.</p>
+    </header>
+
+    <main class="grid">
+
+      <!-- A · Trilha -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">A</span> Opção A</span>
+          </div>
+          <h2>Trilha</h2>
+          <p class="desc">Jornada como linha do tempo vertical narrativa; ler a história do caso de cima para baixo.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <line x1="44" y1="22" x2="44" y2="110" stroke="#c1d9f1" stroke-width="3"/>
+              <circle cx="44" cy="30" r="7" fill="#163d5b"/>
+              <circle cx="44" cy="66" r="7" fill="#163d5b"/>
+              <circle cx="44" cy="102" r="7" fill="#163d5b" opacity="0.32"/>
+              <rect x="68" y="24" width="150" height="9" rx="4.5" fill="#163d5b" opacity="0.85"/>
+              <rect x="68" y="38" width="104" height="7" rx="3.5" fill="#163d5b" opacity="0.22"/>
+              <rect x="68" y="60" width="150" height="9" rx="4.5" fill="#163d5b"/>
+              <rect x="68" y="74" width="120" height="7" rx="3.5" fill="#163d5b" opacity="0.22"/>
+              <rect x="68" y="96" width="134" height="9" rx="4.5" fill="#163d5b" opacity="0.4"/>
+              <rect x="68" y="110" width="92" height="7" rx="3.5" fill="#163d5b" opacity="0.16"/>
+            </svg>
+          </div>
+          <a class="btn" href="a-trilha.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+      <!-- B · Anel -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">B</span> Opção B</span>
+          </div>
+          <h2>Anel</h2>
+          <p class="desc">Anel de progresso como herói, mostrando quanto da jornada já foi percorrido; app premium leve.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="130" cy="66" r="42" fill="none" stroke="#163d5b" stroke-width="10" opacity="0.12"/>
+              <circle cx="130" cy="66" r="42" fill="none" stroke="#163d5b" stroke-width="10"
+                stroke-linecap="round" stroke-dasharray="264" stroke-dashoffset="92"
+                transform="rotate(-90 130 66)"/>
+              <text x="130" y="64" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="30" font-weight="700" fill="#163d5b">65%</text>
+              <text x="130" y="84" text-anchor="middle" font-family="Lato, sans-serif" font-size="9" letter-spacing="1.5" fill="#575b60">JORNADA</text>
+            </svg>
+          </div>
+          <a class="btn" href="b-anel.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+      <!-- C · Sereno -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">C</span> Opção C</span>
+          </div>
+          <h2>Sereno</h2>
+          <p class="desc">Painel de visão geral com barra de jornada horizontal e cards glanceáveis; tudo numa tela.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <rect x="26" y="22" width="208" height="8" rx="4" fill="#163d5b" opacity="0.12"/>
+              <rect x="26" y="22" width="132" height="8" rx="4" fill="#163d5b"/>
+              <circle cx="26" cy="26" r="6" fill="#163d5b"/>
+              <circle cx="92" cy="26" r="6" fill="#163d5b"/>
+              <circle cx="158" cy="26" r="6" fill="#163d5b"/>
+              <circle cx="234" cy="26" r="6" fill="#163d5b" opacity="0.25"/>
+              <rect x="26" y="52" width="62" height="64" rx="8" fill="#163d5b" opacity="0.06" stroke="#e2e5e7"/>
+              <rect x="99" y="52" width="62" height="64" rx="8" fill="#163d5b" opacity="0.06" stroke="#e2e5e7"/>
+              <rect x="172" y="52" width="62" height="64" rx="8" fill="#163d5b" opacity="0.06" stroke="#e2e5e7"/>
+              <rect x="36" y="62" width="30" height="7" rx="3.5" fill="#163d5b"/>
+              <rect x="36" y="76" width="42" height="6" rx="3" fill="#163d5b" opacity="0.3"/>
+              <rect x="109" y="62" width="30" height="7" rx="3.5" fill="#163d5b"/>
+              <rect x="109" y="76" width="42" height="6" rx="3" fill="#163d5b" opacity="0.3"/>
+              <rect x="182" y="62" width="30" height="7" rx="3.5" fill="#163d5b"/>
+              <rect x="182" y="76" width="42" height="6" rx="3" fill="#163d5b" opacity="0.3"/>
+            </svg>
+          </div>
+          <a class="btn" href="c-sereno.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+      <!-- D · Conversa -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">D</span> Opção D</span>
+            <span class="badge-novo">novo</span>
+          </div>
+          <h2>Conversa</h2>
+          <p class="desc">O caso como uma conversa: a equipe fala com você em mensagens humanas.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <rect x="22" y="20" width="150" height="30" rx="14" fill="#163d5b" opacity="0.07" stroke="#e2e5e7"/>
+              <rect x="34" y="29" width="92" height="6" rx="3" fill="#163d5b" opacity="0.55"/>
+              <rect x="34" y="40" width="118" height="6" rx="3" fill="#163d5b" opacity="0.28"/>
+              <rect x="88" y="58" width="150" height="30" rx="14" fill="#eff6fd" stroke="#c1d9f1"/>
+              <rect x="100" y="67" width="110" height="6" rx="3" fill="#163d5b"/>
+              <rect x="100" y="78" width="84" height="6" rx="3" fill="#163d5b" opacity="0.35"/>
+              <rect x="22" y="96" width="120" height="26" rx="13" fill="#163d5b" opacity="0.07" stroke="#e2e5e7"/>
+              <rect x="34" y="105" width="78" height="6" rx="3" fill="#163d5b" opacity="0.55"/>
+              <rect x="34" y="114" width="56" height="5" rx="2.5" fill="#163d5b" opacity="0.28"/>
+            </svg>
+          </div>
+          <a class="btn" href="d-conversa.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+      <!-- E · Carteira -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">E</span> Opção E</span>
+            <span class="badge-novo">novo</span>
+          </div>
+          <h2>Carteira</h2>
+          <p class="desc">O caso como um cartão premium (carteirinha), folheável quando há vários casos.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <rect x="48" y="34" width="170" height="78" rx="12" fill="#163d5b" opacity="0.12"/>
+              <rect x="40" y="26" width="170" height="78" rx="12" fill="#ffffff" stroke="#e2e5e7"/>
+              <rect x="40" y="26" width="6" height="78" rx="3" fill="#163d5b"/>
+              <rect x="62" y="40" width="78" height="8" rx="4" fill="#163d5b"/>
+              <rect x="62" y="56" width="120" height="6" rx="3" fill="#3b4046" opacity="0.55"/>
+              <rect x="62" y="68" width="96" height="6" rx="3" fill="#575b60" opacity="0.4"/>
+              <rect x="62" y="86" width="44" height="9" rx="4.5" fill="#163d5b"/>
+              <circle cx="186" cy="90" r="9" fill="none" stroke="#163d5b" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <a class="btn" href="e-carteira.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+      <!-- F · Foco -->
+      <article class="card">
+        <div class="body">
+          <div class="toprow">
+            <span class="opt-label"><span class="letter">F</span> Opção F</span>
+            <span class="badge-novo">novo</span>
+          </div>
+          <h2>Foco</h2>
+          <p class="desc">Minimalismo anti-ansiedade: uma tela, uma resposta tranquilizadora; resto em divulgação progressiva.</p>
+          <div class="mock" aria-hidden="true">
+            <svg viewBox="0 0 260 132" xmlns="http://www.w3.org/2000/svg">
+              <text x="130" y="56" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="22" font-weight="600" fill="#163d5b">Está tudo</text>
+              <text x="130" y="80" text-anchor="middle" font-family="Cormorant Garamond, serif" font-size="22" font-weight="600" fill="#163d5b">em ordem</text>
+              <line x1="106" y1="96" x2="154" y2="96" stroke="#163d5b" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <a class="btn" href="f-foco.html">Abrir protótipo <span class="arrow">→</span></a>
+        </div>
+      </article>
+
+    </main>
+
+    <footer class="foot">
+      <div class="ft-brand">CBC Advogados</div>
+      <p style="margin-top:6px;">Portal do Cliente <span class="ft-dot">•</span> protótipos para avaliação interna <span class="ft-dot">•</span> dados de exemplo</p>
+    </footer>
+
+  </div>
+</body>
+</html>

@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Color scheme — respects :root.dark override via useDarkMode hook */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+html, body {
+  background-color: var(--cbc-bg, #F0F4F8);
+  color: var(--cbc-text-primary, #1a1a1a);
+}
+
 @theme {
   --color-navy: #1B3A5C;
   --color-navy-light: #264a72;
@@ -14,8 +26,11 @@
   --color-card-border: #C0D0E8;
   --color-label: #5A6070;
   --color-value: #333;
-  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* (xplatform 26/06) Lato (webfont ja carregado no index.html) PRIMEIRO no stack para
+     renderizar IGUAL no Windows e no Mac. Sem isso o Mac usava SF Pro e o Windows Segoe UI,
+     com metricas/quebras diferentes. System fonts ficam so como fallback ate o Lato carregar. */
+  --font-heading: 'Lato', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Lato', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer base {
@@ -28,11 +43,17 @@
   }
   body {
     font-family: var(--font-body);
-    background-color: var(--color-cream);
-    color: #1A1A1A;
+    background-color: var(--cbc-bg, var(--color-cream));
+    color: var(--cbc-text-primary, #1A1A1A);
     margin: 0;
     font-size: 15px;
     line-height: 1.5;
+    /* (xplatform 26/06) suaviza o Lato igual no Mac (grayscale) e mantem ClearType no Win;
+       font-synthesis:none evita o Windows "fabricar" um bold falso quando o peso nao carregou. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-heading);
@@ -83,10 +104,24 @@
   }
   .input-error {
     @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+    background-color: #FEF2F2 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
   }
+
+  /* Shake animation for validation errors */
+  .shake-error {
+    animation: shakeError 0.5s ease-in-out;
+  }
+  @keyframes shakeError {
+    0%, 100% { transform: translateX(0); }
+    15%, 45%, 75% { transform: translateX(-4px); }
+    30%, 60%, 90% { transform: translateX(4px); }
+  }
+  /* (typeset 26/06) sentence case em vez de UPPERCASE — labels gritadas aumentavam o tempo
+     de leitura (~30-50ms) e cansavam quem preenche formulario o dia todo. Mantem peso/cor. */
   .label-field {
-    @apply block text-xs font-bold text-navy mb-1 uppercase tracking-wide;
-    letter-spacing: 0.5px;
+    @apply block text-xs font-bold text-navy mb-1 normal-case;
+    letter-spacing: 0.2px;
   }
 
   /* OCR highlight: blue pulse on auto-filled fields */
@@ -147,4 +182,1545 @@
   .pull-indicator {
     transition: transform 0.2s ease;
   }
+
+  /* ─── Dark mode smooth transition ─── */
+  .dark body, body, .dark *, * {
+    transition: background-color 0.3s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  /* Dark mode PDF iframe border */
+  .dark iframe {
+    border: 2px solid #374151;
+    border-radius: 8px;
+  }
+
+  /* ─── Global animations ─── */
+  @keyframes fadeIn {
+    from { opacity: 0; } to { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideDown {
+    from { opacity: 0; max-height: 0; }
+    to { opacity: 1; max-height: 500px; }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .animate-fade-in { animation: fadeIn 0.3s ease; }
+  .animate-fade-in-up { animation: fadeInUp 0.3s ease; }
+  .animate-shake { animation: shake 0.3s ease; }
+
+  /* ─── Skeleton loading ─── */
+  .skeleton {
+    background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+  .dark .skeleton {
+    background: linear-gradient(90deg, #374151 25%, #4B5563 50%, #374151 75%);
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ─── Focus ring accessibility ─── */
+  *:focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 1px;
+  }
+
+  /* ─── Minimum touch targets (44x44px) ─── */
+  @media (max-width: 768px) {
+    button, a, [role="button"], select {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .input-field, select.input-field {
+      min-height: 44px;
+      font-size: 16px; /* Prevents iOS zoom */
+    }
+  }
+
+  /* ─── Contrast improvements ─── */
+  /* (legibilidade) era #6B7280 (4.37 sobre a pagina #F0F4F8 = reprova AA); #5E6675 da ~5.2 */
+  .text-gray-400 { color: #5E6675 !important; }
+  .dark .text-gray-400 { color: #9CA3AF !important; }
+
+  /* ─── Highlight search matches ─── */
+  .search-highlight {
+    background: #FEF08A;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: bold;
+  }
+  .dark .search-highlight {
+    background: #854D0E;
+    color: #FEF3C7;
+  }
+}
+
+/* ─── (#1) Design tokens — LIGHT ─── */
+:root {
+  --cbc-navy: #1B3A5C;
+  --cbc-navy-light: #264a72;
+  --cbc-navy-dark: #0F2035;
+  --cbc-gold: #C9A84C;
+  --cbc-gold-dark: #B8860B;
+  --cbc-cream: #F0F4F8;
+  /* (a11y 26/06) escurecidos p/ texto/icone passar WCAG AA (>=4.5:1) sobre o tint de 10%
+     no light (ressalva aberta da auditoria 20/06). As superficies bg/border continuam com o
+     rgba proprio abaixo; isto so afeta usos como COR de texto/numero (pills, deltas, valores). */
+  --cbc-success: #15803D;
+  --cbc-danger: #B91C1C;
+  --cbc-warning: #B45309;
+  --cbc-info: #1D4ED8;
+  --cbc-radius: 12px;
+  --cbc-radius-lg: 18px;
+  --cbc-radius-xl: 24px;
+  --cbc-shadow: 0 1px 6px rgba(0,0,0,.09);
+  --cbc-shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+  --cbc-shadow-xl: 0 16px 50px -10px rgba(15,32,53,.25), 0 4px 16px -4px rgba(15,32,53,.12);
+  --cbc-shadow-glass: 0 8px 32px 0 rgba(27,58,92,.18), inset 0 1px 0 0 rgba(255,255,255,.6);
+  --cbc-transition: 200ms ease;
+  --cbc-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --cbc-ease-out: cubic-bezier(.16, 1, .3, 1);
+
+  /* (iPad 2026-06) Safe-area insets — Dynamic Island / notch / home indicator */
+  --safe-top: env(safe-area-inset-top, 0);
+  --safe-right: env(safe-area-inset-right, 0);
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+  --safe-left: env(safe-area-inset-left, 0);
+
+  /* (iPad 2026-06) Touch target sizes — Apple HIG minimum 44pt */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+
+  /* (iPad 2026-06) Layout tokens responsivos — overridden por @media abaixo */
+  --layout-gap: 12px;
+  --layout-padding: 16px;
+  --header-height: 56px;
+  --bottom-dock-height: 64px;
+  --sidebar-width: 0px;
+
+  /* (iPad 2026-06) Glass surface — usado em headers/docks/modais */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-blur: saturate(180%) blur(20px);
+  --glass-blur-strong: saturate(200%) blur(30px);
+
+  /* Contextual background / surface / text tokens — used by dark mode overrides */
+  --cbc-bg: #F0F4F8;
+  --cbc-bg-card: #FFFFFF;
+  --cbc-bg-elevated: #FFFFFF;
+  --cbc-bg-subtle: #F7FAFC;
+  --cbc-text-primary: #1B3A5C;
+  --cbc-text-secondary: #4A5568;
+  /* (legibilidade) era #6B7280 = 4.37 sobre a pagina #F0F4F8 -> reprovava WCAG AA.
+     #5E6675 da ~5.2 mantendo o aspecto secundario (datas/legendas pequenas). */
+  --cbc-text-muted: #5E6675;
+  --cbc-border: #E2E8F0;
+  --cbc-border-strong: #CBD5E0;
+  --cbc-accent: #1B3A5C;
+  --cbc-accent-hover: #264A72;
+  --cbc-header-bg: #1B3A5C;
+  --cbc-header-text: #FFFFFF;
+
+  /* ─── (#extract-base 20/06/2026) Superficies de status — base transversal ───
+     Light = identico ao TONES atual do Dashboard (paridade exata). Consumido por
+     StatusPill/StatusDot/HealthCard e pelo widgets.jsx (fonte unica). */
+  --cbc-success-bg: rgba(22,163,74,0.10);
+  --cbc-success-border: rgba(22,163,74,0.28);
+  --cbc-danger-bg: rgba(220,38,38,0.10);
+  --cbc-danger-border: rgba(220,38,38,0.28);
+  --cbc-warning-bg: rgba(217,119,6,0.12);
+  --cbc-warning-border: rgba(217,119,6,0.30);
+  --cbc-info-bg: rgba(37,99,235,0.10);
+  --cbc-info-border: rgba(37,99,235,0.28);
+  /* neutral ≡ muted (byte-identico ao TONES.muted atual) */
+  --cbc-neutral: var(--cbc-text-muted);
+  --cbc-neutral-bg: rgba(107,114,128,0.10);
+  --cbc-neutral-border: rgba(107,114,128,0.25);
+  /* alias semantico p/ "agendado/sincronizando/processando" = info */
+  --cbc-pending-process: var(--cbc-info);
+}
+
+/* ─── Design tokens — DARK (navy-black + gold accent) ─── */
+:root.dark {
+  /* Cores de status mais claras para contraste sobre fundos escuros
+     (usadas pelo Dashboard redesenhado e demais componentes tokenizados) */
+  --cbc-success: #4ADE80;
+  --cbc-danger: #F87171;
+  --cbc-warning: #FBBF24;
+  --cbc-info: #60A5FA;
+  --cbc-bg: #0A0F1A;
+  --cbc-bg-card: #111827;
+  --cbc-bg-elevated: #1F2937;
+  --cbc-bg-subtle: #111827;
+  --cbc-text-primary: #E5E7EB;
+  --cbc-text-secondary: #9CA3AF;
+  /* (legibilidade) era #6B7280 = 3.0-3.7 sobre fundos escuros -> reprovava WCAG AA.
+     #8A93A3 da >=4.7 (inclusive sobre o card elevado #1F2937), seguindo legivel. */
+  --cbc-text-muted: #8A93A3;
+  --cbc-border: #374151;
+  --cbc-border-strong: #4B5563;
+  --cbc-accent: #D4AF37;
+  --cbc-accent-hover: #E6C757;
+  --cbc-gold: #F4CE46;
+  --cbc-gold-dark: #D4AF37;
+  --cbc-header-bg: #0A0F1A;
+  --cbc-header-text: #F4CE46;
+  --cbc-shadow: 0 1px 6px rgba(0,0,0,.45);
+  --cbc-shadow-lg: 0 8px 30px rgba(0,0,0,.6);
+
+  /* (#extract-base) Superficies de status no dark — sobem para acompanhar os
+     fg dark ja existentes (success/danger/warning/info acima). neutral/pending
+     herdam de --cbc-text-muted / --cbc-info (ja overridados no dark). */
+  --cbc-success-bg: rgba(74,222,128,0.14);
+  --cbc-success-border: rgba(74,222,128,0.30);
+  --cbc-danger-bg: rgba(248,113,113,0.16);
+  --cbc-danger-border: rgba(248,113,113,0.32);
+  --cbc-warning-bg: rgba(251,191,36,0.16);
+  --cbc-warning-border: rgba(251,191,36,0.32);
+  --cbc-info-bg: rgba(96,165,250,0.16);
+  --cbc-info-border: rgba(96,165,250,0.32);
+  --cbc-neutral-bg: rgba(138,147,163,0.14);
+  --cbc-neutral-border: rgba(138,147,163,0.28);
+}
+
+/* ─── Density tokens (comfortable default) ─── */
+:root {
+  --cbc-pad-card: 1rem;
+  --cbc-pad-row: 0.75rem;
+  --cbc-gap: 0.75rem;
+  --cbc-text-size: 0.875rem;
+}
+:root.density-compact {
+  --cbc-pad-card: 0.75rem;
+  --cbc-pad-row: 0.5rem;
+  --cbc-gap: 0.5rem;
+  --cbc-text-size: 0.8rem;
+}
+:root.density-comfortable {
+  --cbc-pad-card: 1rem;
+  --cbc-pad-row: 0.75rem;
+  --cbc-gap: 0.75rem;
+  --cbc-text-size: 0.875rem;
+}
+:root.density-spacious {
+  --cbc-pad-card: 1.5rem;
+  --cbc-pad-row: 1rem;
+  --cbc-gap: 1rem;
+  --cbc-text-size: 1rem;
+}
+
+/* ─── Utilitário para listas e cards com densidade variável ─── */
+.dense-card {
+  padding: var(--cbc-pad-card);
+  gap: var(--cbc-gap);
+}
+.dense-row {
+  padding: var(--cbc-pad-row) var(--cbc-pad-card);
+  gap: var(--cbc-gap);
+}
+/* (iPad 2026-06) Em tablet, rows tem mais respiro vertical para touch */
+@media (min-width: 641px) and (max-width: 1366px) {
+  .dense-row { padding: 16px 18px; min-height: 60px; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .dense-row { min-height: 56px; }
+}
+.dense-text {
+  font-size: var(--cbc-text-size);
+}
+
+/* ─── Dark mode — base overrides for Tailwind utility classes that don't use vars ─── */
+:root.dark body {
+  background-color: var(--cbc-bg);
+  color: var(--cbc-text-primary);
+}
+/* Logo adjustment in dark mode — slight filter for better contrast */
+:root.dark img[alt="CBC"],
+:root.dark img[src*="logo-white"],
+:root.dark img[src*="logo-navy"] {
+  filter: brightness(1.15) saturate(1.1);
+}
+/* Iframes (PDF preview) in dark mode — soft border */
+:root.dark iframe {
+  background: var(--cbc-bg-card);
+}
+/* (xplatform 26/06) Scrollbar fina e consistente — sem isto o Windows mostra a barra
+   cinza grossa nativa e o Mac usa overlay, deixando o layout diferente entre os dois. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cbc-border-strong, #CBD5E0); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--cbc-text-muted, #94A3B8); background-clip: padding-box; }
+html { scrollbar-width: thin; scrollbar-color: var(--cbc-border-strong, #CBD5E0) transparent; }
+
+/* Scrollbars in dark mode */
+:root.dark ::-webkit-scrollbar-track { background: var(--cbc-bg); }
+:root.dark ::-webkit-scrollbar-thumb { background: var(--cbc-border-strong); border-radius: 4px; }
+:root.dark ::-webkit-scrollbar-thumb:hover { background: var(--cbc-text-muted); }
+
+/* ─── (#2) Micro-animações de feedback ─── */
+.btn-press {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.btn-press:active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 2px rgba(0,0,0,.15) !important;
+}
+
+/* ─── (#3 / #9) Transição de aba + page transition unificada ─── */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tab-fade-enter,
+.page-enter {
+  animation: pageEnter 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Alias antigo mantido para retrocompatibilidade */
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── (#6) Glassmorphism para cards ─── */
+.glass-card {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* ─── (#10) Glassmorphism consistente para modais ─── */
+.modal-backdrop-glass {
+  background: rgba(15, 32, 53, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: modalBackdropFade 200ms ease-out;
+}
+@keyframes modalBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 20px 60px rgba(15, 32, 53, 0.25);
+  animation: modalGlassEnter 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes modalGlassEnter {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+:root.dark .modal-backdrop-glass {
+  background: rgba(0, 0, 0, 0.6);
+}
+:root.dark .modal-glass {
+  background: rgba(17, 24, 39, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ─── (#11) Neumorfismo opcional em cards de destaque ─── */
+.card-neu {
+  background: #F0F4F8;
+  border-radius: 1rem;
+  box-shadow:
+    8px 8px 16px rgba(180, 195, 210, 0.5),
+    -8px -8px 16px rgba(255, 255, 255, 0.8);
+  transition: box-shadow 250ms ease;
+}
+.card-neu:hover {
+  box-shadow:
+    4px 4px 8px rgba(180, 195, 210, 0.4),
+    -4px -4px 8px rgba(255, 255, 255, 0.6);
+}
+.card-neu-pressed {
+  box-shadow:
+    inset 4px 4px 8px rgba(180, 195, 210, 0.4),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.6);
+}
+:root.dark .card-neu {
+  background: #111827;
+  box-shadow:
+    8px 8px 16px rgba(0, 0, 0, 0.6),
+    -8px -8px 16px rgba(31, 41, 55, 0.6);
+}
+:root.dark .card-neu:hover {
+  box-shadow:
+    4px 4px 8px rgba(0, 0, 0, 0.5),
+    -4px -4px 8px rgba(31, 41, 55, 0.5);
+}
+
+/* ─── (#9) Tooltip global ─── */
+.cbc-tooltip {
+  position: relative;
+}
+.cbc-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: #1f2937;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 50;
+}
+.cbc-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #1f2937;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+.cbc-tooltip:hover::after,
+.cbc-tooltip:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ─── (#17) UndoToast — slide-in from bottom-right ─── */
+.animate-undo-slide-in {
+  animation: undoSlideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes undoSlideIn {
+  from { opacity: 0; transform: translateX(24px) translateY(12px); }
+  to   { opacity: 1; transform: translateX(0) translateY(0); }
+}
+
+/* ─── (#10) Scroll indicator vertical ─── */
+.scroll-indicator {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  background: rgba(27,58,92,0.1);
+  border-radius: 3px;
+  z-index: 5;
+}
+.scroll-indicator-thumb {
+  width: 3px;
+  background: var(--cbc-navy);
+  border-radius: 3px;
+  opacity: 0.3;
+  transition: opacity 0.2s ease, height 0.1s ease;
+}
+.scroll-indicator:hover .scroll-indicator-thumb {
+  opacity: 0.6;
+}
+
+/* ─── (#12 / #22) Ripple effect radial ─── */
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease-out;
+  z-index: 0;
+}
+.btn-ripple:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+/* Garante que conteúdo interno fica acima do ripple */
+.btn-ripple > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Global ripple para botões principais (fallback sem hook — ripple do centro) */
+.btn-primary,
+.btn-outline,
+.btn-gold {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-primary::after,
+.btn-outline::after,
+.btn-gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease-out;
+  z-index: 0;
+}
+.btn-outline::after {
+  background: radial-gradient(
+    circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+    rgba(27, 58, 92, 0.25) 0%,
+    transparent 60%
+  );
+}
+.btn-primary:active::after,
+.btn-outline:active::after,
+.btn-gold:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+.btn-primary > *,
+.btn-outline > *,
+.btn-gold > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── (#16) Banner de celebração ─── */
+@keyframes celebrationSlide {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  90% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+.celebration-banner {
+  animation: celebrationSlide 4s ease forwards;
+  background: linear-gradient(135deg, #C9A84C, #B8860B, #C9A84C);
+  background-size: 200% 200%;
+}
+
+/* ─── (#17) Shimmer direcional melhorado ─── */
+@keyframes shimmerWave {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(100deg, #E5E7EB 30%, #F3F4F6 50%, #E5E7EB 70%) !important;
+  background-size: 200% 100% !important;
+  animation: shimmerWave 1.8s ease-in-out infinite !important;
+}
+
+/* ─── (#19) Contraste melhorado global ─── */
+.text-gray-400 { color: #5E6675 !important; } /* (legibilidade) #6B7280 reprovava AA sobre a pagina */
+.text-gray-500 { color: #4B5563 !important; }
+
+/* ─── (#20) Modal backdrop blur ─── */
+.modal-backdrop {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.45);
+}
+
+/* ─── (#38) Pulse para campos obrigatórios vazios ─── */
+@keyframes requiredPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.15); }
+}
+.required-empty {
+  animation: requiredPulse 1.5s ease-in-out 3;
+  border-color: #FCA5A5 !important;
+}
+
+/* ─── (#41) Sticky section header ─── */
+.sticky-section {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+}
+
+/* ─── (#229) Error boundary ─── */
+.error-boundary-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  gap: 1rem;
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* DARK MODE — comprehensive Tailwind utility overrides            */
+/* Applies when :root.dark — maps common classes to CBC tokens     */
+/* ═══════════════════════════════════════════════════════════════ */
+:root.dark .bg-white { background-color: var(--cbc-bg-card) !important; }
+:root.dark .bg-gray-50 { background-color: var(--cbc-bg-subtle) !important; }
+:root.dark .bg-gray-100 { background-color: var(--cbc-bg-elevated) !important; }
+:root.dark .bg-gray-200 { background-color: var(--cbc-border) !important; }
+:root.dark .bg-gray-300 { background-color: var(--cbc-border-strong) !important; }
+:root.dark .bg-slate-50 { background-color: var(--cbc-bg-subtle) !important; }
+:root.dark .bg-slate-100 { background-color: var(--cbc-bg-elevated) !important; }
+:root.dark .bg-blue-50 { background-color: rgba(37, 99, 235, 0.12) !important; }
+:root.dark .bg-green-50 { background-color: rgba(22, 163, 74, 0.12) !important; }
+:root.dark .bg-red-50 { background-color: rgba(220, 38, 38, 0.12) !important; }
+:root.dark .bg-yellow-50 { background-color: rgba(217, 119, 6, 0.15) !important; }
+:root.dark .bg-amber-50 { background-color: rgba(217, 119, 6, 0.15) !important; }
+:root.dark .bg-orange-50 { background-color: rgba(234, 88, 12, 0.15) !important; }
+:root.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12) !important; }
+
+/* Translucent white overlays */
+:root.dark .bg-white\/85 { background-color: rgba(17, 24, 39, 0.85) !important; }
+:root.dark .bg-white\/90 { background-color: rgba(17, 24, 39, 0.9) !important; }
+:root.dark .bg-white\/50 { background-color: rgba(17, 24, 39, 0.5) !important; }
+
+/* Text colors */
+:root.dark .text-gray-900 { color: var(--cbc-text-primary) !important; }
+:root.dark .text-gray-800 { color: var(--cbc-text-primary) !important; }
+:root.dark .text-gray-700 { color: #D1D5DB !important; }
+:root.dark .text-gray-600 { color: var(--cbc-text-secondary) !important; }
+:root.dark .text-gray-500 { color: var(--cbc-text-secondary) !important; }
+:root.dark .text-gray-400 { color: var(--cbc-text-muted) !important; }
+:root.dark .text-slate-900 { color: var(--cbc-text-primary) !important; }
+:root.dark .text-slate-800 { color: var(--cbc-text-primary) !important; }
+:root.dark .text-slate-700 { color: #D1D5DB !important; }
+:root.dark .text-slate-600 { color: var(--cbc-text-secondary) !important; }
+:root.dark .text-slate-500 { color: var(--cbc-text-secondary) !important; }
+:root.dark .text-black { color: var(--cbc-text-primary) !important; }
+
+/* Navy text → gold in dark mode (accent swap) */
+:root.dark .text-navy { color: var(--cbc-accent) !important; }
+:root.dark .text-\[\#1B3A5C\] { color: var(--cbc-accent) !important; }
+
+/* Borders */
+:root.dark .border-gray-200 { border-color: var(--cbc-border) !important; }
+:root.dark .border-gray-300 { border-color: var(--cbc-border-strong) !important; }
+:root.dark .border-gray-100 { border-color: var(--cbc-border) !important; }
+:root.dark .border-slate-200 { border-color: var(--cbc-border) !important; }
+:root.dark .border-slate-300 { border-color: var(--cbc-border-strong) !important; }
+:root.dark .border-gray-200\/60 { border-color: rgba(55, 65, 81, 0.6) !important; }
+:root.dark .divide-gray-200 > * + * { border-color: var(--cbc-border) !important; }
+:root.dark .divide-gray-100 > * + * { border-color: var(--cbc-border) !important; }
+
+/* Dark input fields */
+:root.dark input,
+:root.dark textarea,
+:root.dark select {
+  background-color: var(--cbc-bg-elevated);
+  color: var(--cbc-text-primary);
+  border-color: var(--cbc-border);
+}
+:root.dark input::placeholder,
+:root.dark textarea::placeholder {
+  color: var(--cbc-text-muted);
+}
+
+/* Hover on white bg keeps reasonable contrast */
+:root.dark .hover\:bg-gray-50:hover { background-color: var(--cbc-bg-elevated) !important; }
+:root.dark .hover\:bg-gray-100:hover { background-color: var(--cbc-bg-elevated) !important; }
+:root.dark .hover\:bg-white:hover { background-color: var(--cbc-bg-card) !important; }
+
+/* Gradient helpers adjusted */
+:root.dark .bg-gradient-to-br.from-white { --tw-gradient-from: var(--cbc-bg-card) !important; }
+:root.dark .bg-gradient-to-r.from-white { --tw-gradient-from: var(--cbc-bg-card) !important; }
+
+/* Cards */
+:root.dark .card {
+  background-color: var(--cbc-bg-card);
+  border: 1px solid var(--cbc-border);
+}
+:root.dark .glass-card {
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid rgba(55, 65, 81, 0.6);
+}
+
+/* Search highlight */
+:root.dark .search-highlight {
+  background: #854D0E;
+  color: #FEF3C7;
+}
+
+/* Skeletons */
+:root.dark .skeleton {
+  background: linear-gradient(100deg, #1F2937 30%, #374151 50%, #1F2937 70%) !important;
+}
+
+/* Login screen background fallback */
+:root.dark .bg-cream { background-color: var(--cbc-bg) !important; }
+:root.dark .bg-\[\#F0F4F8\] { background-color: var(--cbc-bg) !important; }
+
+/* Shadow adjustments for dark mode */
+:root.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.4) !important; }
+:root.dark .shadow,
+:root.dark .shadow-md { box-shadow: 0 2px 6px rgba(0,0,0,0.45) !important; }
+:root.dark .shadow-lg { box-shadow: 0 8px 16px rgba(0,0,0,0.55) !important; }
+:root.dark .shadow-xl { box-shadow: 0 12px 28px rgba(0,0,0,0.6) !important; }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* SPLASH SCREEN — first-load animated splash                      */
+/* ═══════════════════════════════════════════════════════════════ */
+#cbc-splash {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #1B3A5C 0%, #0F2035 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+#cbc-splash.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+.splash-inner {
+  text-align: center;
+  color: white;
+}
+.splash-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 5rem;
+  font-weight: 700;
+  letter-spacing: 0.5rem;
+  opacity: 0;
+  animation: splashFadeIn 0.8s 0.2s ease forwards;
+  line-height: 1;
+}
+.splash-tagline {
+  font-family: 'Lato', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.3rem;
+  text-transform: uppercase;
+  color: #C9A84C;
+  opacity: 0;
+  animation: splashFadeIn 0.8s 0.5s ease forwards;
+  margin-top: 0.5rem;
+}
+.splash-loader {
+  width: 40px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 2rem auto 0;
+  overflow: hidden;
+  position: relative;
+}
+.splash-loader::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #C9A84C;
+  animation: splashLoad 1.2s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+@keyframes splashFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes splashLoad {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ─── Sistema universal de toasts (#138) ─── */
+@keyframes cbcToastEnterRight {
+  from { opacity: 0; transform: translateX(20px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes cbcToastLeaveRight {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateX(24px) scale(0.94); }
+}
+.cbc-toast-enter { animation: cbcToastEnterRight 220ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.cbc-toast-leave { animation: cbcToastLeaveRight 200ms ease-in both; }
+@media (prefers-reduced-motion: reduce) {
+  .cbc-toast-enter, .cbc-toast-leave { animation: none !important; transition: opacity 120ms linear; }
+}
+
+/* ─── Validacao cruzada de data de nascimento (#36) ─── */
+.cbc-date-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  animation: cbcDateWarnIn 220ms ease;
+}
+.cbc-date-warning.is-error  { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.cbc-date-warning.is-warning { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+.cbc-date-warning.is-info    { background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; }
+.cbc-date-warning.is-senior  { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+@keyframes cbcDateWarnIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cbc-date-warning { animation: none; }
+}
+
+/* ─── Copia rapida 2o contratante — botoes expandidos (#34) ─── */
+.cbc-copy-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (min-width: 640px) {
+  .cbc-copy-row { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.cbc-copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border: 2px dashed #1B3A5C;
+  border-radius: 8px;
+  background: transparent;
+  color: #1B3A5C;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, transform 100ms ease;
+  text-align: center;
+}
+.cbc-copy-btn:hover { background: #EFF6FF; }
+.cbc-copy-btn:active { transform: scale(0.97); }
+.cbc-copy-btn[data-mode="all"] {
+  border-style: solid;
+  background: #1B3A5C;
+  color: #fff;
+}
+.cbc-copy-btn[data-mode="all"]:hover { background: #264A72; }
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * iPad / Tablet OPTIMIZATION SYSTEM (2026-06 — iPad Air M3 13")
+ * ═════════════════════════════════════════════════════════════════════════
+ * 4 device tiers:
+ *   - phone (≤640px): bottom dock + dense
+ *   - tablet-portrait (641-1024px): top tabs + comfortable
+ *   - tablet-landscape (1025-1366px): top tabs + sidebar-condensed
+ *   - desktop (1367px+): top tabs + comfortable
+ *
+ * Native dvh for iOS Safari address bar collapse, safe-area for Dynamic Island,
+ * touch targets ≥44px, glassmorphism in floating chrome, spring animations.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Native dvh — Safari iOS recalcula em scroll, evita 100vh glitches ─── */
+.h-screen-dvh { height: 100dvh; }
+.min-h-screen-dvh { min-height: 100dvh; }
+.max-h-screen-dvh { max-height: 100dvh; }
+
+/* ─── Reset touch behaviors universais ─── */
+button, [role="button"], a, input[type="checkbox"], input[type="radio"], select {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iOS Safari double-tap zoom prevention em buttons inline */
+.no-zoom { touch-action: manipulation; }
+
+/* (iOS) Disable text-size adjust em rotation */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* (iOS) Ensure inputs >=16px font-size para nao triggar zoom ao focar.
+   (mobile 06/2026) Seletor trocado para cobrir tambem inputs SEM atributo
+   type (ClientFormQR, GlobalSearch, AdminPanel, Portal) — antes o zoom do
+   Safari disparava exatamente no formulario publico do cliente. */
+@media (max-width: 1366px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  textarea, select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* ─── Safe-area utilities ─── */
+.safe-top { padding-top: var(--safe-top); }
+.safe-bottom { padding-bottom: var(--safe-bottom); }
+.safe-left { padding-left: var(--safe-left); }
+.safe-right { padding-right: var(--safe-right); }
+.safe-x { padding-left: var(--safe-left); padding-right: var(--safe-right); }
+.safe-y { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
+.safe-inset {
+  padding-top: var(--safe-top); padding-right: var(--safe-right);
+  padding-bottom: var(--safe-bottom); padding-left: var(--safe-left);
+}
+.m-safe-top { margin-top: var(--safe-top); }
+.m-safe-bottom { margin-bottom: var(--safe-bottom); }
+
+/* ─── Touch target enforcement utility ─── */
+.touch-target {
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.touch-target-comfortable {
+  min-width: var(--touch-target-comfortable);
+  min-height: var(--touch-target-comfortable);
+}
+
+/* ─── Glass surface (liquid glass / iOS 18 / macOS Tahoe vibe) ─── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--cbc-shadow-glass);
+}
+.glass-strong {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border: 1px solid var(--glass-border);
+}
+.glass-navy {
+  background: linear-gradient(180deg, rgba(27,58,92,.92) 0%, rgba(15,32,53,.96) 100%);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 8px 32px 0 rgba(15,32,53,.4), inset 0 1px 0 0 rgba(255,255,255,.08);
+}
+:root.dark .glass {
+  background: rgba(17, 24, 39, 0.72);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+:root.dark .glass-strong {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Tablet portrait (iPad Air 13" portrait = 1024×1366) ─── */
+@media (min-width: 641px) and (max-width: 1024px) {
+  :root {
+    --layout-gap: 16px;
+    --layout-padding: 20px;
+    --header-height: 60px;
+    --bottom-dock-height: 72px;
+    --sidebar-width: 0px;
+  }
+}
+
+/* ─── Tablet landscape (iPad Air 13" landscape = 1366×1024) ─── */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  :root {
+    --layout-gap: 20px;
+    --layout-padding: 24px;
+    --header-height: 64px;
+    --bottom-dock-height: 0px;
+    --sidebar-width: 240px;
+  }
+}
+
+/* ─── Desktop (>=1367px) ─── */
+@media (min-width: 1367px) {
+  :root {
+    --layout-gap: 24px;
+    --layout-padding: 32px;
+    --header-height: 68px;
+    --bottom-dock-height: 0px;
+    --sidebar-width: 260px;
+  }
+}
+
+/* ─── iPad-specific UI tuning ─── */
+@media (min-width: 641px) and (max-width: 1366px) {
+  /* Touch targets enforcement — buttons inline em tablet ficam maiores */
+  button:not(.btn-mini):not(.no-touch-min), [role="button"]:not(.no-touch-min) {
+    min-height: 36px;
+  }
+  /* Form inputs com mais respiro em tablet */
+  .input-field {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+  /* Modal sizing — em iPad, modais nao precisam fullscreen */
+  .modal-tablet-floating {
+    inset: auto;
+    max-width: min(640px, 90vw);
+    max-height: 85dvh;
+    margin: auto;
+  }
+}
+
+/* ─── Spring animations para iPad (sensacao tatil iOS) ─── */
+@keyframes spring-in {
+  0% { opacity: 0; transform: scale(.96); }
+  60% { opacity: 1; transform: scale(1.01); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.anim-spring-in { animation: spring-in 360ms var(--cbc-spring) both; }
+
+@keyframes slide-up-spring {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.anim-slide-up { animation: slide-up-spring 380ms var(--cbc-ease-out) both; }
+
+/* ─── Tap feedback global — substitui hover em touch devices ─── */
+@media (hover: none) and (pointer: coarse) {
+  /* Dispositivos puramente touch — disable hover, ativa active */
+  button:active, [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 80ms ease;
+  }
+  /* Ripple/highlight on active */
+  .btn-primary:active, .btn-outline:active, .btn-gold:active {
+    filter: brightness(0.92);
+  }
+  /* Hover-only effects são desativados */
+  *:hover { transition: none; }
+}
+
+/* ─── Dock flutuante (bottom nav) - mobile/portrait ─── */
+.dock-floating {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  /* (mobile 06/2026) z-45: acima do conteudo/FAB (40), ABAIXO dos modais (50+).
+     Antes era 60 e o dock cobria o rodape do PreSendChecklist/ZapSignModal. */
+  z-index: 45;
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 999px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  box-shadow: var(--cbc-shadow-xl);
+  border: 1px solid var(--glass-border);
+}
+.dock-floating-item {
+  min-width: 56px;
+  min-height: 52px;
+  border-radius: 999px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--cbc-text-muted);
+  transition: all 240ms var(--cbc-ease-out);
+  cursor: pointer;
+}
+.dock-floating-item.is-active {
+  background: var(--cbc-navy);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(27,58,92,.35);
+}
+.dock-floating-item:active { transform: scale(.92); }
+:root.dark .dock-floating {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+:root.dark .dock-floating-item {
+  color: var(--cbc-text-secondary);
+}
+
+/* ─── Sidebar (iPad landscape) ─── */
+.sidebar-rail {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--cbc-border);
+  padding-top: calc(var(--safe-top) + 16px);
+  padding-bottom: calc(var(--safe-bottom) + 16px);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cbc-text-secondary);
+  cursor: pointer;
+  transition: all 200ms var(--cbc-ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.sidebar-rail-item:hover { background: rgba(27, 58, 92, 0.06); color: var(--cbc-navy); }
+.sidebar-rail-item:active { transform: scale(.98); }
+.sidebar-rail-item.is-active {
+  background: var(--cbc-navy);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(27,58,92,.25);
+}
+.sidebar-rail-item.is-active:hover { background: var(--cbc-navy); color: #fff; }
+:root.dark .sidebar-rail { background: rgba(17, 24, 39, 0.88); border-right-color: rgba(255, 255, 255, 0.06); }
+:root.dark .sidebar-rail-item:hover { background: rgba(201, 168, 76, 0.08); color: var(--cbc-gold); }
+
+/* ─── Cards com depth (iPad showcase) ─── */
+.card-elevated {
+  background: var(--cbc-bg-card);
+  border: 1px solid var(--cbc-border);
+  border-radius: var(--cbc-radius-lg);
+  box-shadow: var(--cbc-shadow-lg);
+  overflow: hidden;
+  transition: all 320ms var(--cbc-ease-out);
+}
+.card-elevated-tap:active {
+  transform: scale(.99);
+  box-shadow: var(--cbc-shadow);
+}
+
+/* ─── Smooth scrolling, momentum em iOS ─── */
+.scroll-smooth-touch {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* ─── Sticky header com glass ─── */
+.sticky-header-glass {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding-top: var(--safe-top);
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--cbc-border);
+}
+:root.dark .sticky-header-glass {
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Focus ring acessivel (iPad com Magic Keyboard) ─── */
+button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+  outline: 2px solid var(--cbc-gold);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--cbc-navy);
+  outline-offset: 2px;
+}
+
+/* ─── Pull-to-refresh visual upgrade ─── */
+.ptr-spinner {
+  width: 24px; height: 24px;
+  border: 2.5px solid var(--cbc-border);
+  border-top-color: var(--cbc-gold);
+  border-radius: 50%;
+  animation: spin 720ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Esconde scrollbar mas mantem scroll (mobile minimal) ─── */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ─── Reduce-motion respect ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── PDF preview optimizations ─── */
+.pdf-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: white;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* ─── Liquid Glass Modal (iPad floating) ─── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 32, 53, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--layout-padding);
+  animation: backdrop-in 240ms ease forwards;
+}
+@keyframes backdrop-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to { opacity: 1; backdrop-filter: blur(8px); }
+}
+.modal-sheet {
+  background: var(--cbc-bg-card);
+  border-radius: var(--cbc-radius-xl);
+  box-shadow: var(--cbc-shadow-xl);
+  max-width: 100%;
+  max-height: calc(100dvh - 2 * var(--layout-padding) - var(--safe-top) - var(--safe-bottom));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* (motion 26/06) modais sao fluxo serio (pagamento/contrato/confirmacao) — ease-out sobrio
+     em vez do spring com overshoot, que fica reservado a celebracoes (.anim-spring-in). */
+  animation: modal-in 240ms var(--cbc-ease-out) both;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(20px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (min-width: 641px) {
+  .modal-sheet { width: 100%; max-width: 640px; }
+}
+@media (min-width: 1025px) {
+  .modal-sheet { max-width: 720px; }
+}
+
+/* ─── Tablet-specific 2-col form layout ─── */
+@media (min-width: 1025px) {
+  .form-grid-tablet {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .form-grid-tablet > .form-span-2 { grid-column: span 2; }
+}
+
+/* ─── Spring transitions globais para botões — sensação iOS ─── */
+.btn-primary, .btn-outline, .btn-gold, .input-field, .card, .glass {
+  transition: transform 240ms var(--cbc-ease-out), box-shadow 240ms var(--cbc-ease-out), background-color 240ms ease, color 240ms ease, border-color 240ms ease, opacity 200ms ease;
+}
+
+/* ─── Cards de KPI Dashboard — depth iPad ─── */
+.kpi-card-glass {
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--cbc-radius);
+  padding: 11px 13px;
+  position: relative;
+  overflow: hidden;
+  transition: all 320ms var(--cbc-ease-out);
+}
+.kpi-card-glass::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
+}
+.kpi-card-glass:active {
+  transform: scale(.98);
+  background: var(--glass-bg);
+}
+:root.dark .kpi-card-glass {
+  background: rgba(31, 41, 55, 0.7);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Long-press / haptic-feel ─── */
+.haptic-medium:active {
+  animation: haptic-pulse 240ms ease;
+}
+@keyframes haptic-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
+
+/* ─── Ripple universal (#141) — garante CSS vars padrao em todos os botoes ─── */
+.btn-primary, .btn-outline, .btn-gold {
+  --ripple-x: 50%;
+  --ripple-y: 50%;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after, .btn-outline::after, .btn-gold::after {
+  content: '';
+  position: absolute;
+  left: var(--ripple-x);
+  top: var(--ripple-y);
+  width: 0; height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+}
+.btn-outline::after { background: rgba(27, 58, 92, 0.18); }
+.btn-primary:active::after, .btn-outline:active::after, .btn-gold:active::after {
+  animation: cbcRipple 460ms ease-out;
+}
+@keyframes cbcRipple {
+  0%   { width: 0; height: 0; opacity: 0.55; }
+  100% { width: 220%; height: 220%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary::after, .btn-outline::after, .btn-gold::after { display: none; }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+ * MOBILE REDESIGN (12/06/2026) — iPhone + iPad Air M3
+ * ═════════════════════════════════════════════════════════════════════════
+ * TODAS as regras abaixo são escopadas a phone/tablet/touch via media query
+ * ou data-attributes — desktop (≥1367px, ponteiro fino) permanece intocado.
+ * ═════════════════════════════════════════════════════════════════════════ */
+
+/* ─── dvh nos tiers touch: iOS Safari recalcula com a barra dinâmica.
+       Em desktop 100dvh == 100vh, mas restringimos por segurança. ─── */
+@media (max-width: 1366px) {
+  .h-screen { height: 100dvh; }
+  .max-h-\[90vh\] { max-height: 90dvh; }
+  .h-\[90vh\] { height: 90dvh; }
+  /* (mobile-1) demais tamanhos de modal tambem usam dvh: a barra dinamica do
+     Safari iOS encolhia a altura visivel e empurrava o rodape (botoes) atras dela */
+  .max-h-\[85vh\] { max-height: 85dvh; }
+  .max-h-\[80vh\] { max-height: 80dvh; }
+  .max-h-\[75vh\] { max-height: 75dvh; }
+  .max-h-\[60vh\] { max-height: 60dvh; }
+}
+
+/* ─── Touch targets no iPad físico (pointer coarse): 36px → 44px (Apple HIG).
+       Janelas desktop redimensionadas (pointer fine) mantêm os 36px atuais. ─── */
+@media (min-width: 641px) and (max-width: 1366px) and (pointer: coarse) {
+  button:not(.btn-mini):not(.no-touch-min), [role="button"]:not(.no-touch-min) {
+    min-height: 44px;
+  }
+}
+/* Checkboxes/radios maiores em qualquer dispositivo touch */
+@media (pointer: coarse) and (max-width: 1366px) {
+  input[type="checkbox"], input[type="radio"] { min-width: 18px; min-height: 18px; }
+}
+
+/* ─── Ações hover-only visíveis em touch (lixeiras, remover notificação…) ─── */
+@media (hover: none) {
+  [class*="group-hover:opacity-100"],
+  [class*="opacity-40"][class*="hover:opacity-100"] {
+    opacity: 0.85 !important;
+  }
+  /* Tooltips de preview que ficariam presos após o tap */
+  [class*="group-hover/name:block"] { display: none !important; }
+  /* Tooltip global: tap segurado / foco também abre */
+  .cbc-tooltip:active::after, .cbc-tooltip:active::before,
+  .cbc-tooltip:focus-visible::after, .cbc-tooltip:focus-visible::before {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* ─── Piso tipográfico no phone: 7-9px viram 9-10px (legibilidade) ─── */
+@media (max-width: 640px) {
+  .text-\[7px\] { font-size: 9px !important; }
+  .text-\[8px\] { font-size: 9.5px !important; }
+  .text-\[9px\] { font-size: 10px !important; }
+}
+
+/* ─── Espaço do dock devolvido ao layout (spacer renderizado pelo App
+       apenas quando o dock está visível — zero efeito em desktop) ─── */
+.dock-spacer {
+  height: calc(var(--bottom-dock-height, 64px) + var(--safe-bottom) + 4px);
+  flex-shrink: 0;
+}
+
+/* ─── Toasts responsivos (posição saiu do inline-style p/ estas classes;
+       valores desktop idênticos aos antigos) ─── */
+.cbc-toast-stack {
+  position: fixed;
+  top: 76px;
+  right: 20px;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 380px;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .cbc-toast-stack {
+    left: 12px;
+    right: 12px;
+    top: calc(var(--safe-top) + 60px);
+    max-width: none;
+  }
+}
+.cbc-undo-toast {
+  position: fixed;
+  z-index: 90;
+  bottom: 1rem;
+  right: 1rem;
+  max-width: 24rem;
+}
+@media (max-width: 640px) {
+  .cbc-undo-toast {
+    left: 12px;
+    right: 12px;
+    max-width: none;
+    bottom: calc(var(--bottom-dock-height, 64px) + var(--safe-bottom) + 24px);
+  }
+}
+@media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
+  .cbc-undo-toast { bottom: calc(var(--bottom-dock-height, 72px) + var(--safe-bottom) + 24px); }
+}
+/* Utilitária para toasts locais fixos (ContratosTab, VendasPanel, PDF progress) */
+@media (max-width: 640px) {
+  .toast-above-dock {
+    bottom: calc(var(--bottom-dock-height, 64px) + var(--safe-bottom) + 24px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+}
+@media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
+  .toast-above-dock { bottom: calc(var(--bottom-dock-height, 72px) + var(--safe-bottom) + 24px) !important; }
+}
+
+/* ─── FAB com safe-area na faixa touch (no phone/tablet-portrait nem renderiza) ─── */
+@media (max-width: 1366px) {
+  .cbc-fab { bottom: calc(1.5rem + var(--safe-bottom)); }
+}
+
+/* ─── Sheet de navegação mobile ("Mais" no dock) ─── */
+.cbc-navsheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(15, 32, 53, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: backdrop-in 200ms ease;
+}
+.cbc-navsheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 75;
+  border-radius: 20px 20px 0 0;
+  background: var(--glass-bg-strong);
+  backdrop-filter: var(--glass-blur-strong);
+  -webkit-backdrop-filter: var(--glass-blur-strong);
+  border-top: 1px solid var(--glass-border);
+  box-shadow: 0 -12px 40px rgba(15, 32, 53, 0.35);
+  padding: 12px 16px calc(var(--safe-bottom) + 16px);
+  max-height: 85dvh;
+  overflow-y: auto;
+  animation: navsheet-up 280ms var(--cbc-ease-out);
+}
+:root.dark .cbc-navsheet {
+  background: rgba(17, 24, 39, 0.94);
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+@keyframes navsheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.cbc-navsheet-grab {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--cbc-border-strong);
+  margin: 0 auto 12px;
+}
+.cbc-navsheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 72px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--cbc-text-secondary);
+  background: var(--cbc-bg-subtle);
+  border: 1px solid var(--cbc-border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cbc-navsheet-item:active { transform: scale(0.96); }
+.cbc-navsheet-item.is-active {
+  background: var(--cbc-navy);
+  color: #fff;
+  border-color: transparent;
+}
+:root.dark .cbc-navsheet-item.is-active {
+  background: var(--cbc-accent);
+  color: #0A0F1A;
+}
+
+/* ─── Top tabs mais compactas na faixa tablet (iPad Air 13" landscape = 1366px) ─── */
+@media (max-width: 1366px) {
+  .cbc-toptabs button { min-width: 88px; font-size: 11px; letter-spacing: 0.5px; }
+}
+
+/* ─── Timeline de automações (ContratosTab) no phone: só bolinhas ─── */
+@media (max-width: 640px) {
+  .cbc-step-label { display: none; }
+}
+
+/* ─── Busca global como sheet superior no phone ─── */
+@media (max-width: 640px) {
+  .cbc-search-wrap {
+    padding-top: max(var(--safe-top), 12px) !important;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+
+/* ─── Coluna de dias sticky no heatmap temporal (inerte sem overflow) ─── */
+.cbc-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--cbc-bg-card);
+}
+
+/* ─── Botões ↑/↓ de reordenação de cláusulas — só em touch (sem hover) ─── */
+.cbc-touch-reorder { display: none; }
+@media (hover: none) {
+  .cbc-touch-reorder { display: inline-flex; }
+}
+
+/* ─── Utility genérica: elemento visível APENAS em dispositivos touch ─── */
+.cbc-touch-only { display: none !important; }
+@media (hover: none) {
+  .cbc-touch-only { display: flex !important; }
 }

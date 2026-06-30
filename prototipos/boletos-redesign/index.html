@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CBC · Redesenho aba Boletos — 10 mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B3A5C; --navy-d:#0F2035; --navy-l:#264A72; --gold:#C9A84C; --gold-d:#A8863A;
+  --cream:#EEF2F7; --surface:#FFFFFF; --line:#E2E8F0; --line-d:#CBD5E1;
+  --ink:#15233A; --muted:#5B6B82; --faint:#8A98AC;
+  --danger:#DC2626; --danger-bg:#FEF2F2; --warn:#B45309; --warn-bg:#FFF7ED; --orange:#E0662B;
+  --ok:#15803D; --ok-bg:#F0FDF4; --info:#1D4ED8;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Lato",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--cream);-webkit-font-smoothing:antialiased}
+.cap{font-family:"Cormorant Garamond",Georgia,serif}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+a{color:inherit}
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+/* sidebar nav */
+.nav{background:var(--navy);color:#fff;padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{font-family:"Cormorant Garamond",serif;font-weight:700;font-size:21px;letter-spacing:.4px;padding:4px 8px 2px}
+.brand b{color:var(--gold)}
+.brand-sub{font-size:11px;color:#A9BBD2;padding:0 8px 14px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px}
+.nav h4{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:#7D93AE;margin:14px 8px 6px}
+.nlink{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:9px;cursor:pointer;color:#D9E4F1;font-size:13px;line-height:1.25;transition:background .15s}
+.nlink .nn{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:11px;font-weight:900;flex:0 0 auto;margin-top:1px}
+.nlink small{display:block;color:#8FA4BD;font-size:10.5px;margin-top:1px}
+.nlink:hover{background:rgba(255,255,255,.07)}
+.nlink.on{background:#fff;color:var(--navy)}
+.nlink.on .nn{background:var(--gold);color:var(--navy-d)}
+.nlink.on small{color:var(--navy-l)}
+/* main */
+.main{min-width:0}
+.topbar{display:flex;align-items:center;gap:14px;padding:11px 22px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.topbar .crumb{font-size:12px;color:var(--muted)}
+.topbar .crumb b{color:var(--ink)}
+.topbar .sp{flex:1}
+.uchip{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.uava{width:26px;height:26px;border-radius:50%;background:var(--gold);color:var(--navy-d);display:grid;place-items:center;font-weight:900;font-size:11px}
+.wrap{padding:22px;max-width:1180px;margin:0 auto}
+.vhead{margin-bottom:16px}
+.vhead h1{font-size:21px;margin:0;font-weight:900}
+.vhead .why{font-size:13px;color:var(--muted);margin-top:4px;max-width:75ch}
+.vhead .funcs{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.tag{font-size:10.5px;font-weight:700;color:var(--navy);background:#fff;border:1px solid var(--line-d);border-radius:20px;padding:3px 9px}
+/* atoms */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px}
+.btn{border:1px solid var(--navy);background:var(--navy);color:#fff;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.btn.ghost{background:#fff;color:var(--navy);border-color:var(--line-d)}
+.btn.gold{background:var(--gold);border-color:var(--gold-d);color:var(--navy-d)}
+.btn.sm{padding:5px 10px;font-size:11px;border-radius:7px}
+.btn:disabled{opacity:.45}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px}
+.pill.dg{background:var(--danger-bg);color:var(--danger)} .pill.wn{background:var(--warn-bg);color:var(--warn)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.nt{background:var(--cream);color:var(--muted)} .pill.info{background:#EFF4FF;color:var(--info)}
+.pill.dot::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.money{font-variant-numeric:tabular-nums;font-weight:800}
+.ava{width:30px;height:30px;border-radius:8px;background:var(--navy-l);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;flex:0 0 auto}
+.chk{width:16px;height:16px;border:1.5px solid var(--line-d);border-radius:4px;flex:0 0 auto;display:inline-block}
+.chk.on{background:var(--navy);border-color:var(--navy);position:relative}
+.chk.on::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.bar{height:7px;border-radius:6px;background:var(--line);overflow:hidden}.bar>i{display:block;height:100%;border-radius:6px}
+.kpis{display:grid;gap:12px}.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.kpi .l{font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--faint)}
+.kpi .v{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:3px}.kpi .d{font-size:11px;margin-top:2px}
+.up{color:var(--danger)}.dn{color:var(--ok)}
+.seg{display:inline-flex;border:1px solid var(--line-d);border-radius:8px;overflow:hidden;font-size:11.5px;font-weight:800}
+.seg span{padding:6px 11px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg span.on{background:var(--navy);color:#fff}
+.rowsep>div+div{border-top:1px solid var(--line)}
+.inp{border:1px solid var(--line-d);border-radius:8px;padding:8px 11px;font-size:13px;font-family:inherit;color:var(--ink);background:#fff;width:100%}
+.foot{font-size:11.5px;color:var(--faint);margin-top:18px;padding-top:12px;border-top:1px dashed var(--line)}
+.grid2{display:grid;gap:14px}
+@media(max-width:760px){.app{grid-template-columns:1fr}.nav{position:static;height:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" id="nav" aria-label="Mockups">
+    <div class="brand">CBC <b>Contratos</b></div>
+    <div class="brand-sub">Redesenho · aba Boletos · 10 direções</div>
+    <h4>Direções de UI</h4>
+    <div id="navlist"></div>
+  </nav>
+  <main class="main">
+    <div class="topbar">
+      <span class="crumb">Boletos · <b id="vtitle">—</b></span>
+      <span class="sp"></span>
+      <span class="uchip">sincronizado há 4 min</span>
+      <span class="uchip"><span class="uava">PC</span> Paulo Conforto</span>
+    </div>
+    <div class="wrap">
+      <div class="vhead">
+        <h1 id="h1">—</h1>
+        <p class="why" id="why"></p>
+        <div class="funcs" id="funcs"></div>
+      </div>
+      <div id="stage"></div>
+      <div class="foot">Dados reais: 77 inadimplentes · R$ 70.734 em aberto · 234 parcelas · 25 acionáveis (18 por CPF + 7 por telefone) · marca CBC navy/dourado. Mockup estático para escolher a direção — a implementação real mantém todas as funções atuais.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ---------- DADOS REAIS ---------- */
+var D={
+  kpi:{aberto:"R$ 70.734",inad:77,parc:234,maior:525,acion:25,semlead:52,recup:"R$ 18,9 mil",taxa:"42%"},
+  status:[
+    {k:"pendente",l:"Pendentes",n:"2.907",v:"R$ 822.665",cls:"info"},
+    {k:"vencido",l:"Vencidos",n:"225",v:"R$ 67.054",cls:"dg"},
+    {k:"negativacao",l:"Em negativação",n:"9",v:"R$ 3.680",cls:"wn"},
+    {k:"pago",l:"Pagos",n:"8.873",v:"R$ 2,86 mi",cls:"ok"}
+  ],
+  dev:[ /* devedores agregados (acionáveis no topo) */
+    {nome:"MAURO CESAR DE SA",ini:"MC",total:"R$ 3.300",parc:11,atraso:312,vinc:"Telefone",vk:"ok",est:"30+"},
+    {nome:"WALTER CORDEIRO PAREDE",ini:"WC",total:"R$ 2.700",parc:9,atraso:270,vinc:"Telefone",vk:"ok",est:"30+"},
+    {nome:"SINCLAIR AZZONI MARTINS",ini:"SA",total:"R$ 2.400",parc:8,atraso:219,vinc:"CPF",vk:"ok",est:"neg"},
+    {nome:"FRANCISCO MOREIRA JUNIOR",ini:"FM",total:"R$ 1.320",parc:3,atraso:525,vinc:"CPF",vk:"ok",est:"neg"},
+    {nome:"GILCELIA MARILIA DA SILVA",ini:"GS",total:"R$ 900",parc:3,atraso:26,vinc:"Telefone",vk:"ok",est:"8-30"},
+    {nome:"RAPHAEL FERRARI DA SILVA",ini:"RF",total:"R$ 600",parc:2,atraso:22,vinc:"CPF",vk:"ok",est:"8-30"},
+    {nome:"ERICA APARECIDA PIRES",ini:"EP",total:"R$ 550",parc:2,atraso:9,vinc:"Sem lead",vk:"nt",est:"1-7"},
+    {nome:"BRUNO CAVALLARO VITORINO",ini:"BV",total:"R$ 300",parc:1,atraso:9,vinc:"Tel. ambíguo",vk:"wn",est:"1-7"},
+    {nome:"ELISABETE A. NOVAES MAXIMO",ini:"EN",total:"R$ 300",parc:1,atraso:8,vinc:"CPF",vk:"ok",est:"1-7"},
+    {nome:"Jefferson Machado Pirilo",ini:"JP",total:"R$ 300",parc:1,atraso:9,vinc:"CPF",vk:"ok",est:"1-7"}
+  ],
+  tpl:[
+    {name:"Cobrança 1",label:"Lembrete amigável",cat:"UTILITY",taxa:48,corpo:"Olá, {nome}! Identificamos que a última parcela dos honorários mensais ainda consta em aberto. Para regularizar, acesse o boleto em nome do escritório."},
+    {name:"Cobrança 2",label:"Empático / negociação",cat:"UTILITY",taxa:39,corpo:"Olá, {nome}. Sabemos que imprevistos acontecem. Gostaríamos de ajudar a resolver da melhor forma — se precisar conversar sobre prazos, estamos abertos."},
+    {name:"Cobrança 4",label:"Última chamada",cat:"UTILITY",taxa:31,corpo:"Prezado(a), ainda constam pendências. Antes de adotarmos as providências previstas em contrato, gostaríamos de resolver de forma amigável."}
+  ],
+  aging:[
+    {f:"1–7 dias",c:6,v:"R$ 5.100",pct:14,cor:"var(--gold)"},
+    {f:"8–30 dias",c:19,v:"R$ 16.400",pct:33,cor:"var(--warn)"},
+    {f:"30–90 dias",c:28,v:"R$ 24.500",pct:48,cor:"var(--orange)"},
+    {f:"90+ / negativação",c:24,v:"R$ 24.734",pct:49,cor:"var(--danger)"}
+  ],
+  hist:[
+    {dia:"29/06",tpl:"Cobrança 1",n:23,pagos:9},
+    {dia:"22/06",tpl:"Cobrança 1",n:18,pagos:8},
+    {dia:"15/06",tpl:"Cobrança 2",n:12,pagos:4}
+  ]
+};
+function vp(v){ /* vinculo pill */
+  return '<span class="pill '+v.vk+' dot">'+v.vinc+'</span>';
+}
+function statPill(est){
+  if(est=="neg")return '<span class="pill wn dot">Negativação</span>';
+  return '<span class="pill dg dot">Vencido</span>';
+}
+
+/* ---------- VARIANTES ---------- */
+var V=[
+{id:"cockpit",t:"Cockpit",sub:"tudo numa tela",
+ why:"KPIs no topo, lista de vencidos à esquerda e um card de “cobrança rápida” à direita. Densa mas com um foco claro — o dia a dia inteiro sem trocar de tela.",
+ funcs:["KPIs","Lista + filtros","Cobrança rápida","Sync","Relatório"],
+ render:vCockpit},
+{id:"cobranca",t:"Cobrança em foco",sub:"o disparo é o herói",
+ why:"O fluxo de cobrar vira o centro: escolher público → template → confirmar, em 3 passos. A lista de boletos fica numa aba secundária. Para quem cobra todo dia.",
+ funcs:["Público + filtros","Template + prévia","Preview/Confirmar","Eficácia"],
+ render:vCobranca},
+{id:"razao",t:"Razão (tabela densa)",sub:"planilha estilo Stripe",
+ why:"Tabela densa com colunas claras (cliente, valor, vencimento, atraso, vínculo, ações), filtros fortes e ações inline. Clique abre painel lateral com parcelas e histórico. Para operar em volume.",
+ funcs:["Tabela densa","Filtro por status","Ações inline (Cobrar/PIX)","Painel lateral"],
+ render:vRazao},
+{id:"saude",t:"Saúde da carteira",sub:"visão de sócio",
+ why:"Dashboard de decisão: inadimplência por faixa de atraso (aging), recuperação e eficácia por template. A lista e o disparo ficam a um clique. Para enxergar a carteira em segundos.",
+ funcs:["Aging por faixa","Recuperação","Eficácia por template","Cobrar faixa"],
+ render:vSaude},
+{id:"estagios",t:"Estágios (régua)",sub:"kanban por atraso",
+ why:"Colunas por estágio de atraso (vencido recente → 8–30 → 30+ → negativação). Cada coluna sugere o template certo. Mostra a régua de cobrança como um pipeline visual.",
+ funcs:["Kanban por estágio","Template por coluna","Cobrar em massa","Régua"],
+ render:vEstagios},
+{id:"detail",t:"Lista + detalhe",sub:"master-detail",
+ why:"Lista enxuta à esquerda; ao selecionar um cliente, um painel rico à direita mostra parcelas, histórico de cobrança, link do boleto e ações. Estilo Linear/Notion — fácil de entender.",
+ funcs:["Lista","Detalhe do devedor","Parcelas","Histórico + ações"],
+ render:vDetail},
+{id:"cliente",t:"Por cliente (sanfona)",sub:"agrupado por devedor",
+ why:"Um item por devedor; expande para ver as parcelas e cobrar. Agrupa a dívida da pessoa (não parcela a parcela) — é como a maioria pensa em “quem deve”.",
+ funcs:["Agrupado por CPF","Expandir parcelas","Cobrar cliente","Total por pessoa"],
+ render:vCliente},
+{id:"fila",t:"Fila de cobrança",sub:"triagem “cobrar hoje”",
+ why:"Uma fila priorizada de quem cobrar hoje (maior valor/risco primeiro), com ação rápida um a um ou em lote. Some quem já foi cobrado. Zera a “lista do dia”.",
+ funcs:["Fila priorizada","Ação rápida","Cobrar em lote","Progresso do dia"],
+ render:vFila},
+{id:"agenda",t:"Agenda de vencimentos",sub:"calendário/timeline",
+ why:"Vencimentos e cobranças numa linha do tempo: o que venceu, o que vence esta semana e quando cobrar. Bom para antecipar (a vencer) e não só correr atrás (vencido).",
+ funcs:["Timeline","A vencer / vencido","Agendar cobrança","Resumo semana"],
+ render:vAgenda},
+{id:"minimal",t:"Minimal / foco",sub:"clareza acima de tudo",
+ why:"Ultra-limpo, uma ação primária por vez, divulgação progressiva. Menos é mais: o operador entende a tela em 2 segundos. Esconde o avançado até precisar.",
+ funcs:["1 ação primária","Progressive disclosure","Busca","Cobrança simples"],
+ render:vMinimal}
+];
+
+/* helper: KPI band */
+function kpiBand(cols){
+  return '<div class="kpis" style="grid-template-columns:repeat('+(cols||4)+',1fr);margin-bottom:14px">'+
+   '<div class="kpi"><div class="l">Em aberto</div><div class="v" style="color:var(--danger)">'+D.kpi.aberto+'</div><div class="d up">▲ 4% vs mês passado</div></div>'+
+   '<div class="kpi"><div class="l">Inadimplentes</div><div class="v">'+D.kpi.inad+'</div><div class="d" style="color:var(--muted)">'+D.kpi.parc+' parcelas</div></div>'+
+   '<div class="kpi"><div class="l">Maior atraso</div><div class="v">'+D.kpi.maior+'<span style="font-size:12px"> d</span></div><div class="d" style="color:var(--muted)">negativação ativa</div></div>'+
+   '<div class="kpi"><div class="l">Recuperado 90d</div><div class="v" style="color:var(--ok)">'+D.kpi.recup+'</div><div class="d dn">taxa '+D.kpi.taxa+'</div></div></div>';
+}
+function statusSeg(active){
+  return '<div class="seg">'+D.status.map(function(s){return '<span class="'+(s.k==active?'on':'')+'">'+s.l+' '+s.n+'</span>'}).join('')+'</div>';
+}
+function devRow(d,opts){
+  opts=opts||{};
+  return '<div style="display:flex;align-items:center;gap:11px;padding:10px 13px">'+
+   (opts.chk?'<span class="chk '+(opts.chk=='on'?'on':'')+'"></span>':'')+
+   '<span class="ava">'+d.ini+'</span>'+
+   '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+d.nome+'</div>'+
+   '<div style="font-size:11px;color:var(--faint)">'+d.parc+' parc. · maior atraso '+d.atraso+'d</div></div>'+
+   (opts.vinc?vp(d):'')+
+   '<span class="money" style="color:var(--danger);min-width:74px;text-align:right">'+d.total+'</span>'+
+   (opts.act?'<button class="btn sm '+(d.vk=='nt'?'ghost':'')+'">Cobrar</button>':'')+'</div>';
+}
+
+/* ===== V1 COCKPIT ===== */
+function vCockpit(){
+  var rows=D.dev.slice(0,6).map(function(d){return devRow(d,{vinc:false})}).join('');
+  return kpiBand(4)+
+  '<div style="display:grid;grid-template-columns:1.55fr 1fr;gap:14px">'+
+   '<div class="card"><div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)"><strong style="font-size:13px">Vencidos</strong><span class="pill nt">225</span><div style="flex:1"></div><input class="inp" style="max-width:160px;padding:6px 10px" placeholder="Buscar cliente/CPF"></div>'+
+   '<div style="padding:10px 13px 0">'+statusSeg("vencido")+'</div>'+
+   '<div class="rowsep">'+rows+'</div></div>'+
+   '<div class="card" style="padding:15px;align-self:start">'+
+     '<div style="font-size:13px;font-weight:900;margin-bottom:3px">Cobrança rápida</div>'+
+     '<div style="font-size:11.5px;color:var(--muted);margin-bottom:13px">Dispara template de WhatsApp via Kommo aos selecionados.</div>'+
+     '<label style="font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--faint)">Template</label>'+
+     '<div class="inp" style="margin:5px 0 12px;display:flex;align-items:center;gap:8px"><span class="pill nt">UTILITY</span>Cobrança 1 — Lembrete<span style="margin-left:auto;color:var(--faint)">▾</span></div>'+
+     '<div style="display:flex;gap:8px;margin-bottom:13px">'+
+       '<div style="flex:1;background:var(--cream);border-radius:9px;padding:10px"><div style="font-size:20px;font-weight:900;color:var(--navy)">25</div><div style="font-size:10.5px;color:var(--muted)">acionáveis</div></div>'+
+       '<div style="flex:1;background:var(--cream);border-radius:9px;padding:10px"><div style="font-size:20px;font-weight:900;color:var(--faint)">52</div><div style="font-size:10.5px;color:var(--muted)">sem lead</div></div></div>'+
+     '<button class="btn" style="width:100%">Cobrar 25 selecionados</button>'+
+     '<div style="font-size:10.5px;color:var(--faint);margin-top:8px;text-align:center">Ao tocar “Boleto atualizado”, o Anderson é avisado.</div></div></div>';
+}
+
+/* ===== V2 COBRANÇA EM FOCO ===== */
+function vCobranca(){
+  var sel=D.dev.slice(0,4).map(function(d,i){return '<div style="display:flex;align-items:center;gap:9px;padding:8px 2px;'+(d.vk=='nt'?'opacity:.5':'')+'"><span class="chk '+(d.vk=='nt'?'':'on')+'"></span><div style="flex:1"><b style="font-size:12px">'+d.nome+'</b><div style="font-size:10.5px;color:'+(d.vk=='nt'?'var(--danger)':'var(--faint)')+'">'+(d.vk=='nt'?'sem lead':d.vinc.toLowerCase()+' · '+d.parc+' parc.')+'</div></div><span class="money" style="font-size:12px">'+d.total+'</span></div>'}).join('');
+  var tpls=D.tpl.map(function(t,i){return '<div style="border:1px solid '+(i==0?'var(--navy)':'var(--line)')+';'+(i==0?'background:#F4F8FD;':'')+'border-radius:9px;padding:10px"><div style="font-size:12px;font-weight:800;color:'+(i==0?'var(--ink)':'var(--muted)')+'">'+t.name+' · '+t.label+'</div>'+(i==0?'<div style="font-size:11px;color:var(--muted);margin-top:3px">'+t.corpo+'</div><div style="display:flex;gap:5px;margin-top:7px"><span class="pill nt">Boleto atualizado</span><span class="pill nt">Já paguei</span><span class="pill nt">Financeiro</span></div>':'')+'</div>'}).join('');
+  return '<div style="display:grid;grid-template-columns:1fr 1fr .9fr;gap:13px">'+
+   '<div class="card" style="padding:13px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><span class="ava" style="width:20px;height:20px;border-radius:6px;font-size:11px;background:var(--navy)">1</span><strong style="font-size:12.5px">Público</strong><div style="flex:1"></div><span style="font-size:11px;color:var(--faint)">3 de 25</span></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"><span class="pill nt">Acionáveis</span><span class="pill nt">+30 dias</span><span class="pill nt">≥ R$ 500</span></div><div class="rowsep">'+sel+'</div></div>'+
+   '<div class="card" style="padding:13px"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><span class="ava" style="width:20px;height:20px;border-radius:6px;font-size:11px;background:var(--navy)">2</span><strong style="font-size:12.5px">Template</strong></div><div style="display:flex;flex-direction:column;gap:8px">'+tpls+'</div></div>'+
+   '<div class="card" style="padding:13px;align-self:start"><div style="display:flex;align-items:center;gap:7px;margin-bottom:10px"><span class="ava" style="width:20px;height:20px;border-radius:6px;font-size:11px;background:var(--gold);color:var(--navy-d)">3</span><strong style="font-size:12.5px">Confirmar</strong></div>'+
+   '<div style="background:var(--cream);border-radius:9px;padding:11px;font-size:12px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--muted)">Vão receber</span><b style="color:var(--ok)">23</b></div><div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--muted)">Sem lead</span><b style="color:var(--faint)">2</b></div><div style="display:flex;justify-content:space-between;padding:3px 0"><span style="color:var(--muted)">Cobrado &lt; 5d</span><b style="color:var(--faint)">0</b></div></div>'+
+   '<button class="btn" style="width:100%">Disparar 23 cobranças</button><button class="btn ghost sm" style="width:100%;margin-top:7px">Pré-visualizar</button></div></div>'+
+   '<div class="card" style="margin-top:13px;padding:12px 15px;display:flex;align-items:center;gap:18px;flex-wrap:wrap"><strong style="font-size:12px">Eficácia (90d)</strong>'+D.tpl.map(function(t){return '<span style="font-size:12px">'+t.name+' · <b style="color:'+(t.taxa>=40?'var(--ok)':'var(--warn)')+'">'+t.taxa+'%</b> pago</span>'}).join('')+'<span style="margin-left:auto;font-size:11px;color:var(--faint)">R$ 18,9 mil recuperados</span></div>';
+}
+
+/* ===== V3 RAZÃO ===== */
+function vRazao(){
+  var cols="30px 1.7fr .8fr .9fr .7fr 1fr 1.1fr";
+  var head='<div style="display:grid;grid-template-columns:'+cols+';gap:8px;padding:9px 13px;background:#F8FAFC;border-bottom:1px solid var(--line);font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--faint)"><span></span><span>Cliente</span><span style="text-align:right">Valor</span><span>Vencimento</span><span style="text-align:center">Atraso</span><span>Vínculo</span><span style="text-align:right">Ações</span></div>';
+  var venc=["20/06","20/06","10/06","20/05","20/06","20/06"];
+  var rows=D.dev.slice(0,6).map(function(d,i){
+    var on=i<3?'on':'';var ap=d.vk=='nt'||d.vk=='wn';
+    return '<div style="display:grid;grid-template-columns:'+cols+';gap:8px;padding:9px 13px;align-items:center;'+(i%2?'':'background:#FCFDFE')+'"><span class="chk '+on+'"></span><b style="font-size:12.5px">'+d.nome+'</b><span class="money" style="text-align:right;color:var(--danger)">'+d.total+'</span><span style="color:var(--muted);font-size:12px">'+venc[i]+'/2026</span><span style="text-align:center"><span class="pill '+(d.atraso>180?'wn':'dg')+'">'+d.atraso+'d</span></span>'+vp(d)+'<span style="text-align:right"><button class="btn sm '+(ap?'ghost':'')+'">Cobrar</button> <a style="color:var(--navy);font-size:11px;font-weight:700">PIX</a></span></div>';
+  }).join('');
+  return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+statusSeg("vencido")+'<div style="flex:1"></div><input class="inp" style="max-width:200px" placeholder="Buscar cliente ou CPF"><button class="btn sm">Cobrar selecionados (3)</button></div>'+
+   '<div class="card" style="overflow:hidden">'+head+'<div class="rowsep">'+rows+'</div></div>'+
+   '<div style="font-size:11.5px;color:var(--faint);margin-top:9px">Clique numa linha → painel lateral com as parcelas, o histórico de cobrança e o contrato. Densidade de planilha, ações sem sair da tela.</div>';
+}
+
+/* ===== V4 SAÚDE ===== */
+function vSaude(){
+  var ag=D.aging.map(function(a){return '<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>'+a.f+' <span style="color:var(--faint)">· '+a.c+' clientes</span></span><b class="money">'+a.v+'</b></div><div class="bar"><i style="width:'+a.pct+'%;background:'+a.cor+'"></i></div></div>'}).join('');
+  var ef=D.tpl.map(function(t){return '<div style="display:flex;align-items:center;gap:9px"><span style="width:118px;font-size:12px">'+t.name+'</span><div class="bar" style="flex:1"><i style="width:'+t.taxa+'%;background:'+(t.taxa>=40?'var(--ok)':'var(--warn)')+'"></i></div><b style="width:36px;text-align:right;font-size:12px">'+t.taxa+'%</b></div>'}).join('');
+  return '<div style="display:grid;grid-template-columns:1.3fr 1fr;gap:14px">'+
+   '<div class="card" style="padding:15px"><div style="display:flex;align-items:center;margin-bottom:13px"><strong style="font-size:13px">Inadimplência por faixa de atraso</strong><div style="flex:1"></div><button class="btn ghost sm">Cobrar faixa ▾</button></div><div style="display:flex;flex-direction:column;gap:12px">'+ag+'</div></div>'+
+   '<div style="display:flex;flex-direction:column;gap:14px">'+
+     '<div class="kpis" style="grid-template-columns:1fr 1fr"><div class="kpi"><div class="l">Em aberto</div><div class="v" style="font-size:19px;color:var(--danger)">'+D.kpi.aberto+'</div></div><div class="kpi"><div class="l">Recuperado 90d</div><div class="v" style="font-size:19px;color:var(--ok)">'+D.kpi.recup+'</div></div><div class="kpi"><div class="l">Taxa pagamento</div><div class="v" style="font-size:19px">'+D.kpi.taxa+'</div><div class="d" style="color:var(--muted)">após cobrança · 7d</div></div><div class="kpi"><div class="l">% da receita</div><div class="v" style="font-size:19px">2,4%</div><div class="d" style="color:var(--muted)">vs R$ 2,86 mi</div></div></div>'+
+     '<div class="card" style="padding:14px"><strong style="font-size:12.5px">Eficácia por template <span style="color:var(--faint);font-weight:600">(enviados → pagos)</span></strong><div style="display:flex;flex-direction:column;gap:9px;margin-top:11px">'+ef+'</div></div></div></div>';
+}
+
+/* ===== V5 ESTÁGIOS ===== */
+function vEstagios(){
+  var cols=[
+    {t:"Vencido recente",cor:"var(--gold)",n:6,tpl:"Cobrança 1",cls:"gold",keys:["1-7"]},
+    {t:"8–30 dias",cor:"var(--warn)",n:19,tpl:"Cobrança 2",cls:"",bg:"var(--warn)",keys:["8-30"]},
+    {t:"30+ dias",cor:"var(--orange)",n:28,tpl:"Cobrança 4",cls:"",bg:"var(--orange)",keys:["30+"]},
+    {t:"Em negativação",cor:"var(--danger)",n:9,tpl:null,keys:["neg"]}
+  ];
+  var html='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px">';
+  cols.forEach(function(c){
+    var cards=D.dev.filter(function(d){return c.keys.indexOf(d.est)>=0}).slice(0,3).map(function(d){
+      var btn=c.tpl?'<button class="btn sm '+(c.cls||'')+'" style="width:100%;margin-top:7px;'+(c.bg?'background:'+c.bg+';border-color:'+c.bg:'')+'">'+c.tpl+'</button>':'<div class="pill dg" style="margin-top:7px">Serasa ativo</div>';
+      return '<div class="card" style="padding:9px"><div style="font-size:12px;font-weight:700">'+d.nome+'</div><div style="font-size:10.5px;color:var(--faint)">'+d.atraso+' dias · '+d.total+'</div>'+btn+'</div>';
+    }).join('') || '<div style="font-size:11px;color:var(--faint);padding:10px;text-align:center">—</div>';
+    html+='<div><div style="display:flex;align-items:center;gap:7px;padding:8px 10px;background:#fff;border:1px solid var(--line);border-radius:9px 9px 0 0"><span style="width:9px;height:9px;border-radius:50%;background:'+c.cor+';flex:0 0 auto"></span><b style="font-size:12px">'+c.t+'</b><span class="pill nt">'+c.n+'</span></div><div style="background:#F8FAFC;border:1px solid var(--line);border-top:0;border-radius:0 0 9px 9px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:240px">'+cards+'</div></div>';
+  });
+  html+='</div><div style="font-size:11.5px;color:var(--faint);margin-top:12px">Cada coluna sugere o template certo (lembrete → negociação → última chamada). Negativação não dispara (já está no Serasa). Mostra a régua como pipeline.</div>';
+  return html;
+}
+
+/* ===== V6 MASTER-DETAIL ===== */
+function vDetail(){
+  var list=D.dev.slice(0,7).map(function(d,i){return '<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;'+(i==0?'background:#EEF3FA':'')+';cursor:pointer"><span class="ava" style="width:26px;height:26px;font-size:11px">'+d.ini+'</span><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+d.nome+'</div><div style="font-size:10.5px;color:var(--faint)">'+d.parc+' parc.</div></div><span class="money" style="font-size:12px;color:var(--danger)">'+d.total+'</span></div>'}).join('');
+  var d=D.dev[0];
+  return '<div style="display:grid;grid-template-columns:.85fr 1.15fr;gap:14px">'+
+   '<div class="card" style="overflow:hidden"><div style="padding:10px 12px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center"><input class="inp" style="padding:6px 10px" placeholder="Buscar inadimplente"></div><div class="rowsep" style="max-height:420px;overflow:auto">'+list+'</div></div>'+
+   '<div class="card" style="padding:16px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><span class="ava" style="width:42px;height:42px;font-size:15px">'+d.ini+'</span><div style="flex:1"><div style="font-size:16px;font-weight:900">'+d.nome+'</div><div style="font-size:11.5px;color:var(--muted)">CPF 265.***.***-84 · '+vp(d).replace(/<[^>]+>/g,function(m){return m}) +'</div></div><div style="text-align:right"><div class="money" style="font-size:20px;color:var(--danger)">'+d.total+'</div><div style="font-size:10.5px;color:var(--faint)">em aberto</div></div></div>'+
+   '<div style="display:flex;gap:8px;margin-bottom:16px"><button class="btn sm">Cobrar (Cobrança 1)</button><button class="btn ghost sm">Copiar PIX</button><button class="btn ghost sm">2ª via</button><button class="btn ghost sm">Ver contrato</button></div>'+
+   '<div style="font-size:11px;font-weight:800;color:var(--faint);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">Parcelas em aberto (11)</div>'+
+   '<div class="rowsep" style="border:1px solid var(--line);border-radius:9px;overflow:hidden;font-size:12px">'+
+     ['20/06/2026','20/05/2026','20/04/2026','20/03/2026'].map(function(dt,i){return '<div style="display:flex;align-items:center;gap:10px;padding:8px 11px"><span class="pill '+(i==0?'dg':'wn')+'">'+(312-i*30)+'d</span><span style="flex:1">Parcela · venc. '+dt+'</span><span class="money">R$ 300</span></div>'}).join('')+'</div>'+
+   '<div style="font-size:11px;font-weight:800;color:var(--faint);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px">Histórico de cobrança</div>'+
+   '<div style="font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px"><div>22/06 · Cobrança 1 enviada · <b style="color:var(--faint)">sem pagamento</b></div><div>15/06 · Cobrança 1 enviada · <b style="color:var(--faint)">sem pagamento</b></div></div></div></div>';
+}
+
+/* ===== V7 POR CLIENTE ===== */
+function vCliente(){
+  function block(d,open){
+    var rows=open?'<div class="rowsep" style="background:#F8FAFC;border-top:1px solid var(--line)">'+['20/06/2026','20/05/2026','20/04/2026'].map(function(dt,i){return '<div style="display:flex;align-items:center;gap:10px;padding:8px 16px 8px 52px;font-size:12px"><span class="pill dg">'+(312-i*30)+'d</span><span style="flex:1">Parcela honorários · venc. '+dt+'</span><span class="money">R$ 300</span><a style="color:var(--navy);font-size:11px;font-weight:700">PIX</a></div>'}).join('')+'</div>':'';
+    return '<div>'+
+      '<div style="display:flex;align-items:center;gap:11px;padding:11px 14px;cursor:pointer">'+
+       '<span style="color:var(--faint);font-size:12px;width:12px">'+(open?'▾':'▸')+'</span>'+
+       '<span class="ava">'+d.ini+'</span>'+
+       '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">'+d.nome+'</div><div style="font-size:11px;color:var(--faint)">'+d.parc+' parcelas em aberto · maior atraso '+d.atraso+' dias</div></div>'+
+       vp(d)+
+       '<span class="money" style="color:var(--danger);min-width:74px;text-align:right">'+d.total+'</span>'+
+       '<button class="btn sm '+(d.vk=='nt'?'ghost':'')+'">Cobrar</button></div>'+rows+'</div>';
+  }
+  return '<div style="display:flex;gap:10px;margin-bottom:12px;align-items:center">'+statusSeg("vencido")+'<div style="flex:1"></div><input class="inp" style="max-width:200px" placeholder="Buscar cliente"><button class="btn sm">Cobrar todos elegíveis (25)</button></div>'+
+   '<div class="card rowsep">'+block(D.dev[0],true)+block(D.dev[1],false)+block(D.dev[2],false)+block(D.dev[4],false)+block(D.dev[6],false)+'</div>';
+}
+
+/* ===== V8 FILA ===== */
+function vFila(){
+  var d=D.dev[0];
+  var queue=D.dev.slice(1,6).map(function(x,i){return '<div style="display:flex;align-items:center;gap:11px;padding:9px 13px"><span style="width:20px;color:var(--faint);font-weight:800;text-align:center">'+(i+2)+'</span><span class="ava" style="width:26px;height:26px;font-size:11px">'+x.ini+'</span><div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">'+x.nome+'</div><div style="font-size:10.5px;color:var(--faint)">'+x.atraso+'d · '+x.parc+' parc.</div></div><span class="money" style="font-size:12px;color:var(--danger)">'+x.total+'</span></div>'}).join('');
+  return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="flex:1"><div style="font-size:13px;font-weight:800">Cobrar hoje</div><div style="font-size:11.5px;color:var(--muted)">25 na fila · priorizados por valor e risco · 3 já cobrados</div></div><div style="background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:800">3 / 25 hoje</div><button class="btn sm">Cobrar todos (22)</button></div>'+
+   '<div style="display:grid;grid-template-columns:1.1fr .9fr;gap:14px">'+
+   '<div class="card" style="padding:16px;align-self:start;border:1px solid var(--navy);background:#F4F8FD"><div style="font-size:11px;font-weight:800;color:var(--gold-d);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Próximo da fila · #1</div><div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><span class="ava" style="width:42px;height:42px;font-size:15px">'+d.ini+'</span><div style="flex:1"><div style="font-size:16px;font-weight:900">'+d.nome+'</div><div style="font-size:11.5px;color:var(--muted)">'+d.parc+' parcelas · maior atraso '+d.atraso+' dias · vínculo por telefone</div></div></div>'+
+   '<div style="display:flex;gap:10px;margin-bottom:14px"><div style="flex:1;background:var(--cream);border-radius:9px;padding:10px"><div class="money" style="font-size:18px;color:var(--danger)">'+d.total+'</div><div style="font-size:10.5px;color:var(--muted)">em aberto</div></div><div style="flex:1;background:var(--cream);border-radius:9px;padding:10px"><div style="font-size:18px;font-weight:900">Cobrança 4</div><div style="font-size:10.5px;color:var(--muted)">template sugerido</div></div></div>'+
+   '<div style="display:flex;gap:8px"><button class="btn" style="flex:1">Cobrar agora</button><button class="btn ghost">Copiar PIX</button><button class="btn ghost">Pular</button></div></div>'+
+   '<div class="card"><div style="padding:10px 13px;border-bottom:1px solid var(--line);font-size:12px;font-weight:800;color:var(--muted)">Na fila</div><div class="rowsep">'+queue+'</div></div></div>';
+}
+
+/* ===== V9 AGENDA ===== */
+function vAgenda(){
+  var days=[["Hoje · 29/06",[["MAURO C. DE SA","R$ 3.300","vencido 312d","dg"],["WALTER PAREDE","R$ 2.700","vencido 270d","dg"]]],
+            ["Amanhã · 30/06",[["8 parcelas a vencer","R$ 2.250","a vencer","info"]]],
+            ["Esta semana",[["LUIZ F. DA ROCHA","R$ 300","vence 02/07","info"],["GILCELIA SILVA","R$ 900","vencido 26d","wn"]]],
+            ["Próx. semana",[["20 parcelas","R$ 5.900","a vencer","info"]]]];
+  var cols=days.map(function(dy){
+    var items=dy[1].map(function(it){return '<div class="card" style="padding:9px 11px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:12px">'+it[0]+'</b><span class="money" style="font-size:12px">'+it[1]+'</span></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px"><span class="pill '+it[3]+'">'+it[2]+'</span><button class="btn sm '+(it[3]=='info'?'ghost':'')+'">'+(it[3]=='info'?'Agendar':'Cobrar')+'</button></div></div>'}).join('');
+    return '<div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:9px;padding-bottom:6px;border-bottom:2px solid var(--line)">'+dy[0]+'</div><div style="display:flex;flex-direction:column;gap:9px">'+items+'</div></div>';
+  }).join('');
+  return '<div style="display:flex;gap:10px;margin-bottom:14px"><div class="kpi" style="flex:1;padding:11px 14px"><div class="l">Vence esta semana</div><div class="v" style="font-size:18px">R$ 8.150 <span style="font-size:12px;color:var(--muted)">· 11 boletos</span></div></div><div class="kpi" style="flex:1;padding:11px 14px"><div class="l">Vencido (cobrar)</div><div class="v" style="font-size:18px;color:var(--danger)">R$ 67.054 <span style="font-size:12px;color:var(--muted)">· 225</span></div></div></div>'+
+   '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px">'+cols+'</div>'+
+   '<div style="font-size:11.5px;color:var(--faint);margin-top:12px">Antecipa o “a vencer” (lembrete antes) e organiza o “vencido” por urgência. Cobrança vira parte da agenda, não só corrida atrás.</div>';
+}
+
+/* ===== V10 MINIMAL ===== */
+function vMinimal(){
+  var rows=D.dev.slice(0,5).map(function(d){return '<div style="display:flex;align-items:center;gap:14px;padding:14px 4px"><div style="flex:1"><div style="font-size:14px;font-weight:700">'+d.nome+'</div><div style="font-size:12px;color:var(--faint)">'+d.parc+' parcelas · '+d.atraso+' dias em atraso</div></div><span class="money" style="font-size:15px;color:var(--danger)">'+d.total+'</span><button class="btn ghost sm">Cobrar</button></div>'}).join('');
+  return '<div style="max-width:720px;margin:0 auto">'+
+   '<div style="text-align:center;padding:8px 0 22px"><div style="font-size:13px;color:var(--muted)">Em aberto agora</div><div style="font-size:42px;font-weight:900;color:var(--danger);letter-spacing:-1px">R$ 70.734</div><div style="font-size:13px;color:var(--muted)">77 inadimplentes · 25 podem ser cobrados por WhatsApp</div><button class="btn" style="margin-top:14px;padding:11px 22px">Cobrar os 25 acionáveis</button></div>'+
+   '<div style="display:flex;align-items:center;gap:10px;margin:10px 0 4px"><input class="inp" placeholder="Buscar quem você procura…"><span style="font-size:12px;color:var(--faint);white-space:nowrap">Vencidos ▾</span></div>'+
+   '<div class="rowsep" style="border-top:1px solid var(--line)">'+rows+'</div>'+
+   '<div style="text-align:center;margin-top:14px"><a style="font-size:12.5px;color:var(--navy);font-weight:700">Ver todos os 77 · filtros avançados</a></div></div>';
+}
+
+/* ---------- ROUTER ---------- */
+var nl=document.getElementById('navlist');
+V.forEach(function(v,i){
+  var el=document.createElement('div');el.className='nlink';el.dataset.i=i;
+  el.innerHTML='<span class="nn">'+(i+1)+'</span><span>'+v.t+'<small>'+v.sub+'</small></span>';
+  el.addEventListener('click',function(){go(i)});nl.appendChild(el);
+});
+function go(i){
+  V.forEach(function(v,j){nl.children[j].classList.toggle('on',j==i)});
+  var v=V[i];
+  document.getElementById('vtitle').textContent=v.t;
+  document.getElementById('h1').textContent=(i+1)+'. '+v.t;
+  document.getElementById('why').textContent=v.why;
+  document.getElementById('funcs').innerHTML=v.funcs.map(function(f){return '<span class="tag">'+f+'</span>'}).join('');
+  document.getElementById('stage').innerHTML=v.render();
+  if(history.replaceState)history.replaceState(null,'','#'+v.id);
+  window.scrollTo(0,0);
+}
+var start=0;var h=location.hash.replace('#','');V.forEach(function(v,i){if(v.id==h)start=i});
+go(start);
+</script>
+</body>
+</html>

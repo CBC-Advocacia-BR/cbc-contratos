@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messenger interno do Portal do Cliente — Viabilidade e Plano Técnico</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Lato:wght@300;400;700&display=swap');
+
+:root{
+  --navy:#1B3A5C; --navy-d:#142A43; --gold:#B99249; --gold-b:#C9A84C;
+  --paper:#F7F3EB; --card:#FFFFFF; --ink:#23303d; --muted:#5d6b78;
+  --hair:#E4DCCB; --danger:#9a3535; --ok:#2f6d4f; --warn:#9a6b1a;
+}
+*{box-sizing:border-box;}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body{
+  font-family:'Lato',-apple-system,system-ui,sans-serif;
+  color:var(--ink); font-size:10.5pt; line-height:1.55; margin:0; background:#fff;
+}
+h1,h2,h3,h4{font-family:'Cormorant Garamond',Georgia,serif;color:var(--navy);font-weight:600;line-height:1.15;margin:0 0 .35em;}
+h1{font-size:30pt;font-weight:700;}
+h2{font-size:19pt;border-bottom:2px solid var(--gold);padding-bottom:.18em;margin-top:1.4em;}
+h3{font-size:13.5pt;color:var(--navy-d);margin-top:1.1em;}
+h4{font-size:11.5pt;color:var(--gold);letter-spacing:.02em;margin-top:.9em;}
+p{margin:.4em 0;}
+a{color:var(--navy);}
+strong{color:var(--navy-d);}
+small{color:var(--muted);}
+ul,ol{margin:.4em 0 .6em;padding-left:1.25em;}
+li{margin:.18em 0;}
+code{font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;font-size:9pt;background:var(--paper);padding:.05em .35em;border-radius:3px;color:var(--navy-d);}
+pre{font-family:'SFMono-Regular',Consolas,monospace;font-size:8.1pt;line-height:1.4;background:var(--navy-d);color:#e9eef3;padding:11px 13px;border-radius:8px;overflow-x:auto;white-space:pre;page-break-inside:avoid;margin:.6em 0;}
+pre .c{color:#8aa0b3;}
+pre .k{color:#e0b96a;}
+table{width:100%;border-collapse:collapse;margin:.7em 0;font-size:9.4pt;page-break-inside:avoid;}
+th{background:var(--navy);color:#fff;font-weight:700;text-align:left;padding:7px 9px;font-family:'Lato';}
+td{padding:6px 9px;border-bottom:1px solid var(--hair);vertical-align:top;}
+tr:nth-child(even) td{background:#faf8f2;}
+.cover{background:linear-gradient(150deg,var(--navy) 0%,var(--navy-d) 100%);color:#fff;padding:54px 46px 40px;border-radius:0;margin:-1px -1px 0;page-break-after:always;min-height:0;}
+.cover h1{color:#fff;margin-bottom:.1em;}
+.cover .sub{font-family:'Cormorant Garamond',serif;font-size:16pt;color:var(--gold-b);font-weight:500;margin-bottom:30px;}
+.cover .rule{height:3px;width:80px;background:var(--gold-b);margin:18px 0 26px;}
+.cover .meta{font-size:10pt;color:#cfd8e0;line-height:1.9;}
+.cover .meta b{color:#fff;}
+.cover .brand{font-family:'Cormorant Garamond',serif;font-size:13pt;letter-spacing:.28em;color:var(--gold-b);text-transform:uppercase;margin-bottom:40px;}
+.wrap{padding:6px 40px 40px;max-width:980px;margin:0 auto;}
+.lead{font-size:11.5pt;color:var(--navy-d);background:var(--paper);border-left:4px solid var(--gold);padding:12px 16px;border-radius:0 8px 8px 0;margin:.8em 0;}
+.kpis{display:flex;gap:12px;margin:14px 0;}
+.kpi{flex:1;background:var(--paper);border:1px solid var(--hair);border-radius:10px;padding:13px 14px;text-align:center;}
+.kpi .n{font-family:'Cormorant Garamond',serif;font-size:23pt;font-weight:700;color:var(--navy);line-height:1;}
+.kpi .l{font-size:8.6pt;color:var(--muted);margin-top:5px;display:block;}
+.badge{display:inline-block;border-radius:999px;padding:3px 13px;font-size:9.5pt;font-weight:700;}
+.b-warn{background:#f6ecd6;color:var(--warn);}
+.b-ok{background:#e3efe8;color:var(--ok);}
+.b-no{background:#f4e2e2;color:var(--danger);}
+.callout{border:1px solid var(--hair);border-radius:10px;padding:12px 15px;margin:.7em 0;page-break-inside:avoid;}
+.c-warn{background:#fcf6e9;border-color:#ecd9a8;}
+.c-danger{background:#fbf0f0;border-color:#e6c2c2;}
+.c-ok{background:#f0f6f2;border-color:#bfd9c9;}
+.c-info{background:#eef3f8;border-color:#c4d6e6;}
+.callout .t{font-weight:700;color:var(--navy-d);display:block;margin-bottom:3px;}
+.flow{display:flex;align-items:stretch;gap:8px;margin:12px 0;}
+.flow .box{flex:1;background:var(--paper);border:1px solid var(--hair);border-radius:10px;padding:11px;}
+.flow .box.mid{flex:.8;background:#eef3f8;border-color:#c4d6e6;}
+.flow .box .h{font-weight:700;color:var(--navy);font-size:10pt;margin-bottom:3px;}
+.flow .box small{font-size:8.4pt;}
+.flow .arr{display:flex;align-items:center;color:var(--gold);font-weight:700;font-size:14pt;}
+.tag{display:inline-block;background:var(--navy);color:#fff;border-radius:6px;padding:2px 8px;font-size:8.4pt;margin:2px 3px 2px 0;}
+.tag.mvp{background:var(--gold);color:var(--navy-d);}
+.phase{border-left:3px solid var(--gold);padding:2px 0 2px 14px;margin:.5em 0;}
+.phase .ttl{font-weight:700;color:var(--navy-d);}
+.footer-note{font-size:8.5pt;color:var(--muted);border-top:1px solid var(--hair);margin-top:30px;padding-top:10px;}
+.toc{columns:2;column-gap:34px;font-size:10pt;}
+.toc a{text-decoration:none;color:var(--ink);display:block;padding:2px 0;}
+.toc .n{color:var(--gold);font-weight:700;margin-right:6px;}
+.sec{page-break-before:always;}
+@page{size:A4;margin:16mm 0;}
+.green{color:var(--ok);font-weight:700;}
+.red{color:var(--danger);font-weight:700;}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">CBC Advogados</div>
+  <h1>Messenger interno do Portal do Cliente</h1>
+  <div class="sub">Estudo de viabilidade &amp; plano técnico de implementação</div>
+  <div class="rule"></div>
+  <div class="meta">
+    <b>Objetivo:</b> central de atendimento própria (estilo WhatsApp para o cliente) para o pós-venda,<br>
+    reduzindo a dependência de WhatsApp API + Kommo.<br><br>
+    <b>Data:</b> 14 de junho de 2026 &nbsp;·&nbsp; <b>Projeto:</b> cbc-contratos (gerador de contratos + portal)<br>
+    <b>Veredito:</b> Viável — com ressalvas &nbsp;·&nbsp; <b>Esforço:</b> 7 a 11 semanas<br>
+    <b>Análise:</b> mapeamento do código + arquitetura + modelagem de custo (Supabase Pro / Netlify)
+  </div>
+</div>
+
+<div class="wrap">
+
+<h2 style="margin-top:.2em">Sumário</h2>
+<div class="toc">
+  <a href="#se"><span class="n">0</span>Sumário executivo</a>
+  <a href="#s1"><span class="n">1</span>Objetivo e escopo</a>
+  <a href="#s2"><span class="n">2</span>O que já existe (reaproveitamento)</a>
+  <a href="#s3"><span class="n">3</span>Arquitetura proposta</a>
+  <a href="#s4"><span class="n">4</span>Segurança e LGPD</a>
+  <a href="#s5"><span class="n">5</span>O que se perde tirando o Kommo</a>
+  <a href="#s6"><span class="n">6</span>Custo (3 cenários)</a>
+  <a href="#s7"><span class="n">7</span>Pré-requisitos (Fase 0)</a>
+  <a href="#s8"><span class="n">8</span>Plano de construção em fases</a>
+  <a href="#s9"><span class="n">9</span>Riscos e mitigações</a>
+  <a href="#s10"><span class="n">10</span>Recomendação final</a>
+  <a href="#anx"><span class="n">A</span>Anexos técnicos</a>
+</div>
+
+<h2 id="se">0 · Sumário executivo</h2>
+<p><span class="badge b-warn">Viável — com ressalvas</span></p>
+<p class="lead">Dá para construir um messenger próprio excelente, e o terreno já está mais pronto do que parece: cerca de <strong>60% da fundação</strong> (login do cliente por link, app instalável, notificação push, banco de dados e design) já existe e está em produção. O que falta é o chat em si — mensagens ao vivo, central de atendimento e mídia. <strong>Mas trocar 100% do WhatsApp não é seguro no curto prazo</strong>, por uma limitação real do iPhone com notificações (seção 3.5).</p>
+
+<div class="kpis">
+  <div class="kpi"><span class="n">~60%</span><span class="l">da base já pronta<br>(login, app, push, banco)</span></div>
+  <div class="kpi"><span class="n">7–11<br>sem.</span><span class="l">para substituir o<br>pós-venda com confiança</span></div>
+  <div class="kpi"><span class="n">~R$ 0</span><span class="l">custo extra/mês no<br>início (100 atend./dia)</span></div>
+  <div class="kpi"><span class="n">12</span><span class="l">clientes ativos hoje —<br>janela ideal para começar</span></div>
+</div>
+
+<h4>As três verdades que sustentam este estudo</h4>
+<ol>
+  <li><strong>Não é um fim de semana — são ~2 meses de trabalho focado</strong> para fazer direito (com segurança e testes).</li>
+  <li><strong>O iPhone + notificação push é a barreira real.</strong> Sem uma rede de segurança (SMS/e-mail), uma fatia relevante dos clientes (especialmente iOS) não recebe aviso e volta ao WhatsApp.</li>
+  <li><strong>O Kommo não era só chat:</strong> ele roda a régua de cobrança automática e o funil. Tirar sem reescrever isso é risco direto de receita.</li>
+</ol>
+
+<h2 id="s1" class="sec">1 · Objetivo e escopo</h2>
+<p>Criar um <strong>messenger próprio embutido no portal do cliente</strong>, com duas faces:</p>
+<ul>
+  <li><strong>Para o cliente:</strong> interface estilo WhatsApp, instalável como app no celular (PWA). Texto, áudio, foto, vídeo e documentos.</li>
+  <li><strong>Para o escritório:</strong> central de atendimento robusta e 100% customizada (caixa de entrada multi-atendente).</li>
+</ul>
+<p><strong>Meta de negócio:</strong> após o cliente fechar contrato, concentrar a comunicação do pós-venda nesse canal próprio, reduzindo a dependência de WhatsApp API + Kommo.</p>
+
+<h4>Features obrigatórias</h4>
+<ul>
+  <li>Envio e recebimento de <strong>documentos</strong>.</li>
+  <li><strong>Gravação de áudio</strong> e <strong>ouvir áudios em até 2x</strong>.</li>
+  <li>Envio e recebimento de <strong>fotos e vídeos</strong>.</li>
+</ul>
+<h4>Fora de escopo</h4>
+<p>Chamadas e videochamadas — permanecem no Google Meet agendado.</p>
+<h4>Princípios permanentes (do escritório)</h4>
+<p>Reduzir a ansiedade do cliente · liberar tempo do escritório · zero trabalho manual recorrente · design elegante · sem modo escuro · sem barra dourada fixa no topo.</p>
+
+<h2 id="s2" class="sec">2 · O que já existe (reaproveitamento)</h2>
+<p>O ponto de partida é favorável: você não começa do zero. O portal foi lançado em 11/06/2026 e ainda tem só <strong>12 clientes ativos</strong> — a janela perfeita para introduzir o chat sem precisar migrar volume legado.</p>
+<table>
+  <tr><th style="width:38%">Já existe e está em produção</th><th>Como o messenger reaproveita</th></tr>
+  <tr><td><strong>Login do cliente por link</strong> (tabela <code>cliente_portal_tokens</code>, 1.011 links ativos)</td><td>É o login do messenger. Zero trabalho novo de autenticação; 1 link ativo por cliente.</td></tr>
+  <tr><td><strong>App instalável (PWA)</strong> — manifesto dinâmico + service worker + cache offline</td><td>O chat herda. Pequenos ajustes (atalho, ícones, badge).</td></tr>
+  <tr><td><strong>Notificação push</strong> (web-push/VAPID já configurado, tabela <code>portal_push_subs</code>)</td><td>Avisa "nova mensagem" reaproveitando 100% da tubulação. Hoje com 0 assinaturas (nunca exercitado).</td></tr>
+  <tr><td><strong>Supabase Pro</strong> (banco usando só 2,5% — 202 MB de 8 GB)</td><td>Mensagens de texto cabem folgadíssimo. Storage e tempo real no mesmo projeto.</td></tr>
+  <tr><td><strong>Tempo real (Supabase Realtime)</strong> já usado no painel admin (<code>App.jsx</code>)</td><td>Mesmo padrão (<code>postgres_changes</code>) entrega o inbox e o chat ao vivo.</td></tr>
+  <tr><td><strong>Feature "Dúvidas"</strong> do portal (<code>portal_perguntas</code>)</td><td>É o esqueleto/predecessor do chat — cada dúvida vira a 1ª mensagem de uma conversa.</td></tr>
+  <tr><td><strong>Espelhos ADVBOX/Asaas</strong> (processo, fase, financeiro)</td><td>Alimentam a coluna de contexto do atendente, sem nova integração.</td></tr>
+  <tr><td><strong>Design do portal</strong> (creme/navy/dourado, mobile-first, sem dark mode)</td><td>O chat herda o visual elegante já exigido no brief.</td></tr>
+  <tr><td><strong>Motor de respostas do bot</strong> (<code>buildLawsuitAnswer</code>, traduz "juridiquês")</td><td>Vira a resposta rápida "colar status do processo" na central.</td></tr>
+</table>
+
+<h2 id="s3" class="sec">3 · Arquitetura proposta</h2>
+<p>Princípio central de custo e desempenho: <strong>o que trafega pesado (mídia e mensagens ao vivo) não passa pelo servidor da Netlify</strong> — vai direto entre o navegador e o Supabase. A Netlify só processa o "control-plane" (validar token, gravar metadados, assinar URLs, disparar push).</p>
+
+<div class="flow">
+  <div class="box"><div class="h">Cliente</div><small>App estilo WhatsApp (PWA). Texto, áudio, foto, vídeo, documento.</small></div>
+  <div class="arr">⇄</div>
+  <div class="box mid"><div class="h">Supabase</div><small>Tempo real (mensagens) + Storage (mídia). Banco único de verdade.</small></div>
+  <div class="arr">⇄</div>
+  <div class="box"><div class="h">Escritório</div><small>Central de atendimento: inbox, multi-atendente, contexto do cliente.</small></div>
+</div>
+
+<h3>3.1 Modelo de dados</h3>
+<p>4 tabelas principais (conversas, mensagens, participantes/leitura) + 1 bucket privado de mídia. <strong>1 conversa por cliente</strong> (estilo WhatsApp), amarrada ao <code>advbox_customer_id</code> que já vem do token. Apenas a tabela de mensagens e a de conversas entram no tempo real. <strong>Mídia nunca no banco</strong> — só a referência (caminho, tipo, tamanho, duração).</p>
+<pre><span class="c">-- conversa = 1 por cliente (estilo WhatsApp), não por processo</span>
+create table msg_conversas (
+  id            bigint generated always as identity primary key,
+  advbox_customer_id bigint not null,
+  token         text references cliente_portal_tokens(token),
+  status        text not null default 'aberta',        <span class="c">-- aberta|resolvida|arquivada</span>
+  atribuido_a   uuid references auth.users(id),         <span class="c">-- atendente dono (multi-atendente)</span>
+  etiquetas     text[] default '{}',
+  ultima_msg_em timestamptz,
+  ultima_previa text,                                   <span class="c">-- preview p/ inbox</span>
+  nao_lidas_escritorio int default 0,
+  nao_lidas_cliente    int default 0,
+  unique (advbox_customer_id)                           <span class="c">-- 1 conversa por cliente</span>
+);
+
+create table msg_mensagens (
+  id           bigint generated always as identity primary key,
+  conversa_id  bigint not null references msg_conversas(id) on delete cascade,
+  direcao      text not null,        <span class="c">-- in (cliente) | out (escritório)</span>
+  autor_id     uuid references auth.users(id),  <span class="c">-- "quem respondeu" (multi-atendente)</span>
+  tipo         text not null default 'texto',   <span class="c">-- texto|audio|foto|video|doc</span>
+  texto        text,
+  midia_path   text, midia_mime text, midia_bytes bigint, midia_dur_s int, thumb_path text,
+  client_msg_id uuid,               <span class="c">-- idempotência (evita duplicar no retry)</span>
+  lido_em      timestamptz,
+  criado_em    timestamptz default now()
+);
+create unique index on msg_mensagens (conversa_id, client_msg_id) where client_msg_id is not null;
+
+<span class="k">alter publication supabase_realtime add table msg_mensagens, msg_conversas;</span></pre>
+
+<h3>3.2 Entrega em tempo real</h3>
+<p>Decisão: <strong>Supabase Realtime</strong> (modo <code>postgres_changes</code>, que lê o próprio registro gravado) como canal primário, com <strong>polling leve (20–30s) só como reserva</strong> quando a conexão cair. Nunca usar polling pela Netlify como mecanismo primário — estouraria o número de chamadas.</p>
+<ul>
+  <li><strong>Cliente:</strong> assina só a própria conversa. O conteúdo sai por função protegida por token; pelo tempo real trafega apenas o "sinal" de que há algo novo.</li>
+  <li><strong>Atendente:</strong> assina o inbox inteiro (atualiza lista e contadores ao vivo) e a conversa aberta.</li>
+  <li><strong>Efêmeros</strong> ("digitando", "online") via canais que não gravam no banco.</li>
+</ul>
+
+<h3>3.3 Mídia (documentos, áudio em 2x, foto, vídeo)</h3>
+<p>Armazenamento no <strong>Supabase Storage</strong> (bucket privado), com upload e download <strong>direto navegador↔armazenamento</strong> via URL assinada (a Netlify só emite a URL). Todas as 4 features são viáveis:</p>
+<table>
+  <tr><th style="width:20%">Feature</th><th style="width:12%">Status</th><th>Como</th></tr>
+  <tr><td>Documentos</td><td><span class="green">Viável</span></td><td>Anexo vai direto ao bucket; no banco fica só a referência. Abre por link assinado (expira em 1h).</td></tr>
+  <tr><td>Áudio + ouvir em 2x</td><td><span class="green">Viável</span></td><td>Gravação nativa do navegador (<code>MediaRecorder</code>); player com 1x / 1,5x / 2x preservando o tom da voz. iPhone grava em mp4/aac e Android em webm/opus — detectado automaticamente.</td></tr>
+  <tr><td>Fotos</td><td><span class="green">Viável</span></td><td>Miniatura gerada na hora (transformação de imagem nativa do Supabase). Foto comprimida no navegador antes de subir (corta custo).</td></tr>
+  <tr><td>Vídeos</td><td><span class="green">Viável</span></td><td>1º quadro vira a capa; limite de tamanho/duração imposto (ex.: 50 MB / 120s).</td></tr>
+</table>
+<div class="callout c-danger"><span class="t">Bloqueador a corrigir antes (pré-requisito)</span>
+Hoje o site <strong>bloqueia microfone e câmera globalmente</strong> (arquivo <code>client/public/_headers</code>: <code>Permissions-Policy: microphone=(), camera=()</code>). Sem liberar isso para a página do portal, a gravação de áudio/foto/vídeo <strong>falha em silêncio</strong>. Correção simples, porém obrigatória.</div>
+
+<h3>3.4 Fluxo de envio de mídia (bytes nunca passam pelo servidor)</h3>
+<ol>
+  <li>Navegador pede uma <strong>URL de upload assinada</strong> (função valida o token, o tipo e o tamanho).</li>
+  <li>Navegador <strong>envia o arquivo direto</strong> para o armazenamento.</li>
+  <li>Navegador <strong>confirma a mensagem</strong> (a função grava só a referência no banco).</li>
+  <li>Tempo real + push avisam o outro lado. No download, uma URL assinada curta valida a posse.</li>
+</ol>
+
+<h3 id="notif">3.5 Identidade, app instalável e o ponto crítico: notificações</h3>
+<p>A identidade reaproveita o token já existente (sem senha, sem cadastro), com endurecimento: dar validade ao token, tirá-lo da URL (guardar no aparelho) e adicionar campo de e-mail para o fallback.</p>
+<p>O ponto que decide se "o cliente só fala por aqui" se sustenta é a <strong>notificação</strong>. A verdade, sem maquiagem:</p>
+<table>
+  <tr><th style="width:24%">Plataforma</th><th>Realidade do aviso (push)</th></tr>
+  <tr><td><strong>Android</strong> (~62% da base)</td><td><span class="green">Fácil.</span> Funciona com o app aberto ou fechado, sem nem precisar instalar. Único senão: economia de bateria pode atrasar.</td></tr>
+  <tr><td><strong>iPhone</strong> (~33% da base)</td><td><span class="red">Limitação real e intransponível.</span> O aviso só funciona se o cliente <strong>adicionar o app à Tela de Início</strong> (iOS 16.4+). No Safari normal não existe push. Taxa realista de instalação no iPhone: ~25% — ou seja, a maioria dos clientes de iPhone não receberia aviso nenhum.</td></tr>
+</table>
+<div class="callout c-warn"><span class="t">Solução obrigatória: escada de notificação</span>
+Como sempre haverá clientes sem push, o aviso precisa ter camadas que se cobrem:
+<ol style="margin-bottom:0">
+  <li><strong>Push imediato</strong> quando há assinatura válida (cobre Android).</li>
+  <li><strong>Ao vivo dentro do app</strong> + número vermelho no ícone, se estiver aberto.</li>
+  <li><strong>Rede de segurança: SMS e/ou e-mail</strong> com link direto de volta, disparado automaticamente se o cliente não ler em ~15 minutos.</li>
+</ol></div>
+<p><strong>Dependência nova:</strong> o SMS/e-mail é um serviço externo que <em>o projeto não tem hoje</em> (ex.: Zenvia/Twilio/AWS, ~R$ 0,05–0,15 por SMS) e não há coluna de e-mail no cadastro (o celular já existe no espelho de clientes). Volume estimado: <strong>30 a 80 mensagens de fallback por dia</strong>. O texto sempre puxa o cliente de volta ao messenger, nunca pede para responder no WhatsApp.</p>
+
+<h3>3.6 Central de atendimento (lado escritório)</h3>
+<p>Nova seção <strong>"Atendimento"</strong> dentro do painel admin já existente, com layout clássico de central de mensagens em 3 painéis:</p>
+<table>
+  <tr><th style="width:22%">Painel</th><th>Conteúdo</th></tr>
+  <tr><td><strong>A · Caixa de entrada</strong></td><td>Filtros (Minhas / Não atribuídas / Todas / Resolvidas), busca por nome/CPF/processo/texto, contador de não-lidas, faixa dourada nas "minhas conversas".</td></tr>
+  <tr><td><strong>B · Conversa</strong></td><td>Balões (cliente à esquerda, escritório à direita em navy), <strong>quem respondeu</strong> em cada balão, respostas rápidas, anexar/gravar áudio, atribuir/transferir/resolver.</td></tr>
+  <tr><td><strong>C · Contexto do cliente</strong></td><td>Processo + fase, próxima parcela, PIX/boleto, status do link — tudo do que já é espelhado. Botões: renovar link, copiar PIX, abrir no ADVBOX.</td></tr>
+</table>
+<ul>
+  <li><strong>Multi-atendente de verdade:</strong> cada atendente entra com a própria conta (já existem 12). "Pegar para mim", "transferir", "resolver".</li>
+  <li><strong>Identidade real do atendente:</strong> migrar do segredo compartilhado atual para login individual — sem isso não dá para saber quem respondeu.</li>
+  <li><strong>Visual:</strong> respeita 100% o design atual (navy + dourado só em acentos, Cormorant + Lato, sem dark mode, sem barra dourada fixa).</li>
+</ul>
+
+<h2 id="s4" class="sec">4 · Segurança e LGPD</h2>
+<p>Como o chat vai carregar conteúdo sensível (documentos, áudios, fotos do cliente), a segurança precisa ser fechada <strong>desde o dia 1</strong> — o oposto do que as tabelas de portal usam hoje.</p>
+<table>
+  <tr><th style="width:30%">Risco</th><th>Mitigação</th></tr>
+  <tr><td>Política de acesso permissiva (<code>bot_allow_all</code>) replicada nas tabelas de mensagem</td><td>Tabelas novas nascem com acesso <strong>negado por padrão</strong>; cliente acessa só via função protegida por token; atendente via login.</td></tr>
+  <tr><td>Chave de serviço (<code>SUPABASE_SERVICE_ROLE_KEY</code>) não está configurada no Netlify</td><td>Configurar <strong>antes</strong> de fechar a segurança — senão toda escrita do chat para de funcionar.</td></tr>
+  <tr><td>Token perene na URL (vaza por print/histórico/link encaminhado)</td><td>Dar validade ao token, tirar da URL (guardar no aparelho), URLs de mídia curtas (1h) validando a posse.</td></tr>
+  <tr><td>Mídia gravada por engano no banco</td><td>Só referência no banco; binário sempre no bucket privado.</td></tr>
+  <tr><td>Crescimento infinito do armazenamento</td><td>Limpeza automática (retenção) desde o dia 1 — ver custo.</td></tr>
+</table>
+
+<h2 id="s5" class="sec">5 · O que se perde tirando o Kommo (e como cobrir)</h2>
+<p>Atenção: o Kommo <strong>não era só um chat</strong>. Ele roda automações de receita silenciosamente. Aposentá-lo sem reescrever isso faz o escritório perder dinheiro e voltar a ter trabalho manual.</p>
+<table>
+  <tr><th style="width:34%">O que o Kommo faz hoje</th><th style="width:30%">Risco se sumir</th><th>Como cobrir no messenger</th></tr>
+  <tr><td><strong>Régua de cobrança automática</strong> (D+1 / D+7 / D+15)</td><td><span class="red">Cobrança automática para</span> → risco direto de receita</td><td>Reescrever para enviar a cobrança como mensagem interna, mantendo a trava anti-duplicação.</td></tr>
+  <tr><td>Funil de vendas / etapa "ADVBOX"</td><td>Perde o acompanhamento do funil</td><td>Virar um campo de status na conversa/processo.</td></tr>
+  <tr><td>NPS + prazo (SLA) das dúvidas</td><td>Some o controle de prazo</td><td>Migrar para o inbox (cada pergunta vira conversa com prazo).</td></tr>
+  <tr><td>Notas automáticas no CRM</td><td>Perde rastro</td><td>Reescrever para gravar evento/nota interna.</td></tr>
+</table>
+<div class="callout c-info"><span class="t">Observação</span>O Kommo já está quebrado hoje (token recusado pela conta), então parte disso já não está rodando. Mas a <strong>régua de cobrança</strong> é a peça mais valiosa — precisa ter destino novo <strong>antes</strong> de aposentar o Kommo de vez.</div>
+
+<h2 id="s6" class="sec">6 · Custo real (3 cenários)</h2>
+<p>As <strong>bases fixas você já paga hoje</strong>: Supabase Pro (~US$ 25 ≈ R$ 138/mês) e Netlify (~US$ 20 ≈ R$ 110/mês). Os valores abaixo são o que <strong>soma a mais</strong> por causa do messenger (USD 1 ≈ R$ 5,50).</p>
+<table>
+  <tr><th>Volume</th><th>Supabase (extra/mês)</th><th>Netlify (extra/mês)</th><th>Total extra/mês</th><th>O que estoura primeiro</th></tr>
+  <tr><td><strong>100/dia</strong> (hoje/meta)</td><td>R$ 0 → ~R$ 33</td><td>R$ 0</td><td><strong>R$ 0 → ~R$ 33</strong></td><td>Armazenamento de mídia, só após ~4 meses</td></tr>
+  <tr><td><strong>500/dia</strong> (crescimento)</td><td>~R$ 5 → ~R$ 250</td><td>R$ 0 (modelo de créditos)</td><td><strong>~R$ 5 → ~R$ 250</strong></td><td>Mídia (1º mês) + download começa a contar</td></tr>
+  <tr><td><strong>1000/dia</strong> (escala alta)</td><td>~R$ 140 → ~R$ 520</td><td>R$ 0 → ~R$ 55</td><td><strong>~R$ 140 → ~R$ 575</strong></td><td>Armazenamento + download recorrente</td></tr>
+</table>
+<h4>Pontos-chave</h4>
+<ul>
+  <li><strong>No começo é praticamente de graça.</strong> A 100/dia, o messenger roda dentro do que você já paga por meses.</li>
+  <li><strong>O que cresce sem parar é o armazenamento de mídia.</strong> Cada conversa deposita ~10 MB que não somem sozinhos (~30 GB/mês a 100/dia). Estoura os 100 GB inclusos em ~4 meses; a 500/dia, já no 1º mês.</li>
+  <li><strong>Solução obrigatória desde o dia 1:</strong> retenção (limpeza automática de mídia antiga, ex.: &gt; 6–12 meses) + comprimir foto/áudio antes de subir. Sem isso a conta sobe para sempre.</li>
+  <li><strong>Mídia não passa pela Netlify</strong> (vai direto navegador↔Supabase) — é o que mantém a Netlify barata em qualquer escala.</li>
+  <li><strong>Atenção na Netlify:</strong> a conta pode estar no modelo antigo (teto de 125 mil chamadas/mês por site), que aperta perto de 250–300/dia. Vale migrar para o <strong>modelo de créditos</strong> (cobre ~1.800/dia) antes de crescer.</li>
+  <li>O número de pessoas conectadas ao vivo só chega perto do teto do plano (500) lá pelos 1000/dia — folga, mas é o 3º item a monitorar.</li>
+</ul>
+
+<h2 id="s7" class="sec">7 · Pré-requisitos (Fase 0 — sem isso nada do resto é seguro)</h2>
+<ol>
+  <li><strong>Configurar <code>SUPABASE_SERVICE_ROLE_KEY</code> no Netlify.</strong> Sem ela, ao fechar a segurança das tabelas de mensagem (obrigatório por LGPD), toda escrita do chat para de funcionar.</li>
+  <li><strong>Liberar microfone/câmera</strong> no arquivo <code>_headers</code>, só para a origem do portal.</li>
+  <li><strong>Criar as tabelas de mensagem com segurança fechada</strong> desde o início (nunca repetir o <code>bot_allow_all</code> atual).</li>
+  <li><strong>Endurecer o token:</strong> dar validade, tirar da URL e validar posse em toda leitura de mídia.</li>
+  <li><strong>Ligar a limpeza automática de mídia</strong> (retenção) — senão o armazenamento cresce sem teto.</li>
+</ol>
+
+<h2 id="s8" class="sec">8 · Plano de construção em fases</h2>
+<div class="phase"><span class="ttl">Fase 0 — Pré-requisitos</span> &nbsp;<small>(~dias)</small><br>Chave de serviço + liberar microfone/câmera + criar tabelas seguras + entrar no tempo real. Sem isso nada do resto é seguro.</div>
+<div class="phase"><span class="ttl">Fase 1 — MVP só texto</span> &nbsp;<span class="tag mvp">maior alavanca</span> <small>(~2–3 semanas)</small><br>Chat de texto ao vivo nos dois lados + central de atendimento (inbox 3 painéis, atribuição, respostas rápidas) + push de nova mensagem. <strong>Roda em paralelo ao WhatsApp</strong>, sem aposentar nada. Testar com os 12 clientes ativos.</div>
+<div class="phase"><span class="ttl">Fase 2 — Notificação confiável</span> &nbsp;<small>(~1–2 semanas)</small><br>Escada push → ao vivo → SMS/e-mail. Onboarding "instale na tela inicial" (obrigatório no iPhone) + "ative os avisos". Só aqui dá para confiar que o cliente vê a mensagem.</div>
+<div class="phase"><span class="ttl">Fase 3 — Mídia</span> &nbsp;<small>(~2–3 semanas)</small><br>Áudio (gravar + ouvir em 2x), foto, vídeo, documento, miniaturas e limpeza automática.</div>
+<div class="phase"><span class="ttl">Fase 4 — Desacoplar o Kommo</span> &nbsp;<small>(~1–2 semanas)</small><br>Migrar régua de cobrança, NPS, dúvidas e notas para o messenger, mantendo as travas anti-duplicação.</div>
+<div class="phase"><span class="ttl">Fase 5 — Aposentar o WhatsApp</span> &nbsp;<small>(gradual)</small><br>Virada por grupos (clientes novos primeiro), com WhatsApp como rede de segurança por mais alguns meses. Nunca corte abrupto.</div>
+<p style="margin-top:.8em"><strong>Total realista: 7 a 11 semanas</strong> (inclui 1–2 semanas embutidas de segurança e testes automatizados, obrigatórios porque o deploy vai direto para produção).</p>
+
+<h2 id="s9" class="sec">9 · Riscos e mitigações</h2>
+<table>
+  <tr><th style="width:42%">Risco</th><th>Mitigação</th></tr>
+  <tr><td>iPhone não recebe push sem app instalado → cliente não vê a mensagem</td><td>Escada de notificação com fallback SMS/e-mail; onboarding de instalação no iPhone.</td></tr>
+  <tr><td>Aposentar o Kommo sem reescrever a régua de cobrança</td><td>Migrar a cobrança automática para o messenger <strong>antes</strong> de desligar o Kommo.</td></tr>
+  <tr><td>Infra (tempo real, storage, push) nunca testada sob carga (12 clientes hoje)</td><td>Teste de carga + virada por grupos, nunca migrar 100/dia de uma vez.</td></tr>
+  <tr><td>Deploy direto em produção, sem ambiente de teste</td><td>Cobertura de testes automatizados obrigatória em toda função/tela nova (único portão atual).</td></tr>
+  <tr><td>Armazenamento de mídia cresce para sempre</td><td>Política de retenção via tarefa agendada desde o dia 1.</td></tr>
+  <tr><td>Manter duas tecnologias (portal puro + painel React)</td><td>Reaproveitar helpers e padrões existentes; aceitar implementar o chat duas vezes (cliente e escritório).</td></tr>
+</table>
+
+<h2 id="s10" class="sec">10 · Recomendação final</h2>
+<p class="lead"><strong>Vale a pena — com cabeça fria sobre o cronograma e sobre o WhatsApp.</strong> O messenger é a evolução natural do que você já construiu; a fundação está pronta e ociosa, o portal mal foi usado (janela ideal), e o custo é baixíssimo no início e controlável em escala (desde que a limpeza de mídia entre no dia 1).</p>
+<h4>Por onde começar</h4>
+<ol>
+  <li><strong>Fase 0 + Fase 1</strong> (chat só-texto ao vivo, rodando ao lado do WhatsApp). Em ~3 semanas você já tem um chat real, com central multi-atendente, testável com clientes de verdade — e nada quebra se der errado.</li>
+  <li><strong>Decidir cedo sobre o SMS/e-mail.</strong> Sem essa rede de segurança, o objetivo "só por aqui" não se sustenta no iPhone.</li>
+  <li><strong>Não desligar o WhatsApp nem o Kommo</strong> até a régua de cobrança estar reescrita e a escada de notificação provada. Virar por grupos, não de uma vez.</li>
+</ol>
+
+<h2 id="anx" class="sec">Anexo A · Referências técnicas</h2>
+<h4>Endpoints novos (Netlify Functions)</h4>
+<p><code>messenger-abrir</code> · <code>messenger-listar</code> · <code>messenger-send</code> · <code>messenger-marcar-lido</code> · <code>messenger-upload-url</code> · <code>messenger-midia-url</code> · <code>messenger-notify</code> · <code>messenger-fallback</code> (SMS/e-mail, via tarefa agendada).</p>
+<h4>Arquivos-chave para a construção</h4>
+<table>
+  <tr><th style="width:46%">Arquivo</th><th>Papel no messenger</th></tr>
+  <tr><td><code>client/portal.html</code></td><td>Onde entra a aba "Mensagens" (cliente). Carregar o cliente de tempo real só nessa aba.</td></tr>
+  <tr><td><code>client/src/components/PortalClientePanel.jsx</code> (+ novo <code>CentralAtendimento.jsx</code>)</td><td>Central de atendimento (escritório).</td></tr>
+  <tr><td><code>client/public/_headers</code></td><td>Bloqueador de microfone/câmera a corrigir.</td></tr>
+  <tr><td><code>client/netlify/functions/_lib/botDb.mjs</code></td><td>Acesso ao banco / assinatura de URLs (precisa da chave de serviço).</td></tr>
+  <tr><td><code>client/netlify/functions/portal-push.mjs</code> · <code>client/public/portal-sw.js</code></td><td>Notificação push já pronta — reaproveitar.</td></tr>
+  <tr><td><code>client/netlify/functions/cobranca-regua.mjs</code></td><td>Régua de cobrança a migrar do Kommo.</td></tr>
+</table>
+<h4>Premissas de volume (cenário 100 atendimentos/dia)</h4>
+<p>~12 mensagens por conversa · ~35% das mensagens com mídia · ~10 MB de mídia por conversa · ~30 GB/mês de mídia acumulando · pico de 30–60 conexões ao vivo simultâneas · &lt; 5 mensagens/segundo no tempo real (folga enorme no plano Pro).</p>
+
+<div class="footer-note">
+  Documento gerado em 14/06/2026 a partir de análise multiagente do código-fonte do projeto cbc-contratos, da arquitetura proposta e da modelagem de custo (preços oficiais Supabase Pro e Netlify, junho/2026). Valores em R$ são estimativas com USD 1 ≈ R$ 5,50 e podem variar com câmbio e uso real. Documento interno — CBC Advogados.
+</div>
+
+</div>
+</body>
+</html>
