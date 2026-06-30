@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "lato",
+        "reason": "Lato e fonte de marca obrigatoria do CBC (par com Cormorant Garamond), exigida pela spec do portal e em producao",
+        "createdAt": "2026-06-22T17:52:17.442Z"
+      }
+    ]
+  }
+}

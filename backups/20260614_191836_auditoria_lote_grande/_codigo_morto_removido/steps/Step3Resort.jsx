@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useContract } from '../ContractContext';
-import { RESORTS } from '../data/clausulas';
+import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 
 export default function Step3Resort() {
   const { data, updateData, setCurrentStep } = useContract();
+  const { list: resorts, addEmpreendimento } = useEmpreendimentos();
   const [error, setError] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [newResort, setNewResort] = useState('');
 
   const handleNext = () => {
     const resort = data.resort === 'outro' ? data.resortCustom : data.resort;
@@ -14,6 +17,14 @@ export default function Step3Resort() {
     }
     setError('');
     setCurrentStep(3);
+  };
+
+  const handleAddNew = async () => {
+    if (!newResort.trim()) return;
+    await addEmpreendimento(newResort.trim());
+    updateData({ resort: newResort.trim(), resortCustom: '' });
+    setNewResort('');
+    setShowAdd(false);
   };
 
   return (
@@ -26,7 +37,7 @@ export default function Step3Resort() {
       </p>
 
       <div className="space-y-3">
-        {RESORTS.map((r) => (
+        {resorts.map((r) => (
           <label key={r}
             className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
               data.resort === r ? 'border-gold bg-gold/5' : 'border-gray-200 hover:border-gold/30'
@@ -53,6 +64,28 @@ export default function Step3Resort() {
             onChange={(e) => updateData({ resortCustom: e.target.value })} />
         )}
       </div>
+
+      {/* Add new to permanent list */}
+      {showAdd ? (
+        <div className="mt-4 flex gap-2">
+          <input
+            className="input-field flex-1"
+            placeholder="Nome do novo empreendimento..."
+            value={newResort}
+            onChange={(e) => setNewResort(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddNew()}
+          />
+          <button className="btn-primary !px-3 !py-2 text-sm" onClick={handleAddNew}>Salvar</button>
+          <button className="btn-outline !px-3 !py-2 text-sm" onClick={() => { setShowAdd(false); setNewResort(''); }}>Cancelar</button>
+        </div>
+      ) : (
+        <button
+          className="mt-4 w-full py-2 rounded-lg border border-dashed border-gold/40 text-gold hover:bg-gold/5 text-sm font-semibold transition-colors cursor-pointer"
+          onClick={() => setShowAdd(true)}
+        >
+          + Adicionar novo empreendimento à lista
+        </button>
+      )}
 
       {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
 

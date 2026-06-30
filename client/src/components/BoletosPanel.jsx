@@ -5,6 +5,7 @@ import ErrorState from './ErrorState';
 import RelatorioBoletosModal from './RelatorioBoletosModal';
 import InadimplenciaStrip from './InadimplenciaStrip';
 import CobrancaPanel from './CobrancaPanel';
+import CobrancaHistorico from './CobrancaHistorico';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
 import { isPaidStatus, isNeutralStatus, isRemovedStatus } from '../lib/statusTokens';
 import StatusPill from './ui/StatusPill';
@@ -783,6 +784,7 @@ export default function BoletosPanel({ userEmail = '' }) {
   const [kommoSyncing, setKommoSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(null); // { phase, current, total, label }
   const [lastSync, setLastSync] = useState(null);
+  const [syncErr, setSyncErr] = useState(null); // ultimo erro de sync recente (#25)
   // (R16) incrementa a cada carga concluida -> os cards de InadimplenciaStrip
   // re-consultam o Asaas em vez de ficarem presos no 1o fetch.
   const [refreshTick, setRefreshTick] = useState(0);
@@ -795,7 +797,9 @@ export default function BoletosPanel({ userEmail = '' }) {
   const [nowTick, setNowTick] = useState(Date.now());
   const [previewBoleto, setPreviewBoleto] = useState(null);
   const [notesCustomer, setNotesCustomer] = useState(null);
-  const [view, setView] = useState('cobranca'); // 'cobranca' = combinado (padrão) · 'lista' = legado detalhado
+  // sub-aba ativa; lembra a ultima usada (localStorage). 'cobranca' = combinado · 'historico' · 'lista'
+  const [view, setView] = useState(() => { try { const v = localStorage.getItem('cbc_boletos_subtab'); return ['cobranca', 'historico', 'lista'].includes(v) ? v : 'cobranca'; } catch { return 'cobranca'; } });
+  useEffect(() => { try { localStorage.setItem('cbc_boletos_subtab', view); } catch { /* ignore */ } }, [view]);
   const [Toast, showToast] = useToast();
 
   useEffect(() => { localStorage.setItem('boletos_compact', compact ? '1' : '0'); }, [compact]);
@@ -1090,6 +1094,27 @@ export default function BoletosPanel({ userEmail = '' }) {
     return `há ${Math.floor(h / 24)}d`;
   }, [lastSync, nowTick]);
 
+  // (#23) saude do sync por cor: ate 12h verde, ate 24h ambar, senao vermelho (ou nunca)
+  const syncHealth = useMemo(() => {
+    if (!lastSync) return { cor: 'var(--cbc-danger)' };
+    const min = Math.floor((nowTick - new Date(lastSync).getTime()) / 60000);
+    if (min <= 720) return { cor: 'var(--cbc-success)' };
+    if (min <= 1440) return { cor: 'var(--cbc-warning)' };
+    return { cor: 'var(--cbc-danger)' };
+  }, [lastSync, nowTick]);
+
+  // (#25) alerta de falha do sync: ultimo erro do asaas_error_log nas ultimas 24h
+  useEffect(() => {
+    let live = true;
+    supabase.from('asaas_error_log').select('message, created_at').order('created_at', { ascending: false }).limit(1)
+      .then(({ data }) => {
+        if (!live) return;
+        const e = (data || [])[0];
+        setSyncErr(e && (new Date() - new Date(e.created_at)) < 86400000 ? e : null);
+      }, () => {});
+    return () => { live = false; };
+  }, []);
+
   const copyPix = useCallback(async (code) => {
     const ok = await copyText(code);
     showToast(ok ? '📱 Código PIX copiado!' : '⚠️ Erro ao copiar');
@@ -1124,7 +1149,7 @@ export default function BoletosPanel({ userEmail = '' }) {
 
       {/* Sub-abas: Boletos | Cobranca de inadimplentes */}
       <div className="flex gap-1 px-4 pt-3 bg-white border-b" role="tablist" aria-label="Visão de boletos">
-        {[['cobranca', 'Cobrança & boletos'], ['lista', 'Lista detalhada']].map(([k, l]) => (
+        {[['cobranca', 'Cobrança'], ['historico', 'Histórico de Cobrança'], ['lista', 'Todos boletos']].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
             className="px-4 py-2 text-[12px] font-bold uppercase tracking-wide rounded-t-lg cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cbc-navy)]/40"
             style={{
@@ -1134,17 +1159,35 @@ export default function BoletosPanel({ userEmail = '' }) {
         ))}
       </div>
 
+      {/* legenda da sub-aba ativa — diz "pra que serve cada aba" (#2) */}
+      <div className="px-4 py-1.5 bg-white border-b text-[11.5px]" style={{ color: 'var(--cbc-text-secondary)' }}>
+        {view === 'cobranca' ? 'Cobrar inadimplentes pelo WhatsApp (Kommo) e acompanhar os boletos em aberto.'
+          : view === 'historico' ? 'O que já foi disparado: quem enviou, para quais clientes e o que o Kommo entregou e converteu.'
+          : 'Toda a carteira de boletos — pendentes, vencidos e pagos — com detalhe por cliente.'}
+      </div>
+
       {view === 'cobranca' ? (
         <CobrancaPanel userEmail={userEmail} />
+      ) : view === 'historico' ? (
+        <CobrancaHistorico userEmail={userEmail} />
       ) : (
       <>
+      {/* Cabecalho + lista rolam JUNTOS num unico container (fix: antes so a lista rolava
+          e o topo ficava travado). Footer fica de fora -> continua fixo embaixo. */}
+      <div className="flex-1 overflow-y-auto min-h-0">
       {/* Header */}
       <div className="p-4 border-b bg-white">
+        {syncErr && (
+          <div className="mb-3 rounded-lg px-3 py-2 text-[12px] flex items-start gap-2" style={{ background: 'var(--cbc-warning-bg,#fdf3e6)', border: '1px solid var(--cbc-warning)', color: 'var(--cbc-warning)' }}>
+            <span aria-hidden="true">⚠</span>
+            <span><b>A última sincronização do Asaas registrou um erro</b> ({new Date(syncErr.created_at).toLocaleString('pt-BR')}): {String(syncErr.message || '').slice(0, 180)}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
           <div className="min-w-0">
             <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--cbc-text-primary)' }}><DocumentIcon className="w-5 h-5" aria-hidden="true" /> Boletos Asaas</h2>
             <p className="text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-              Busque cliente por nome ou CPF · atualizado {relativeSync}
+              Busque cliente por nome ou CPF · atualizado <span style={{ color: syncHealth.cor, fontWeight: 700 }}>{relativeSync}</span>
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -1309,8 +1352,8 @@ export default function BoletosPanel({ userEmail = '' }) {
         </div>
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto">
+      {/* List (sem scroll proprio — rola junto no container acima) */}
+      <div>
         {/* Barra-resumo sticky: gruda no topo da rolagem da lista (navy fino) */}
         <div
           className="sticky top-0 z-20 flex items-center gap-4 px-4 py-2 text-white flex-wrap"
@@ -1336,9 +1379,9 @@ export default function BoletosPanel({ userEmail = '' }) {
           <time
             dateTime={lastSync || undefined}
             title={lastSync ? new Date(lastSync).toLocaleString('pt-BR') : undefined}
-            className="ml-auto text-xs font-medium text-white/75 whitespace-nowrap"
+            className="ml-auto text-xs font-medium text-white/75 whitespace-nowrap inline-flex items-center gap-1.5"
           >
-            sync {relativeSync}
+            <span className="w-2 h-2 rounded-full" style={{ background: syncHealth.cor }} aria-hidden="true" />sync {relativeSync}
           </time>
         </div>
         <div className="p-4">
@@ -1379,6 +1422,7 @@ export default function BoletosPanel({ userEmail = '' }) {
         )}
         </div>
       </div>
+      </div>{/* fim do container rolavel (cabecalho + lista) */}
 
       {/* Footer */}
       <div className="p-2 border-t bg-white text-center">

@@ -2,14 +2,101 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- (perf-fe 9) favicon WebP (menor) com fallback PNG p/ navegadores sem suporte -->
+    <link rel="icon" type="image/webp" href="/favicon.webp" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CBC" />
+    <meta name="theme-color" content="#1B3A5C" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0F2035" media="(prefers-color-scheme: dark)" />
+    <meta name="format-detection" content="telephone=no" />
     <title>CBC Advogados — Gerador de Contratos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://vygczeepvoyaehfchxko.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://api.zapsign.com.br">
+    <link rel="dns-prefetch" href="https://api.asaas.com">
+    <link rel="dns-prefetch" href="https://advocaciacbc.kommo.com">
+    <!-- (perf-fe 8) fontes carregadas SEM bloquear a primeira pintura (media=print -> all no onload) -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Lato:wght@300;400;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"></noscript>
+    <style>
+      /* Splash screen — inline to render before JS/CSS bundle loads */
+      #cbc-splash {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(135deg, #1B3A5C 0%, #0F2035 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      #cbc-splash.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #cbc-splash .splash-inner {
+        text-align: center;
+        color: white;
+      }
+      #cbc-splash .splash-logo {
+        font-family: 'Cormorant Garamond', 'Times New Roman', serif;
+        font-size: 5rem;
+        font-weight: 700;
+        letter-spacing: 0.5rem;
+        opacity: 0;
+        animation: splashFadeIn 0.8s 0.2s ease forwards;
+        line-height: 1;
+      }
+      #cbc-splash .splash-tagline {
+        font-family: 'Lato', -apple-system, sans-serif;
+        font-size: 1rem;
+        letter-spacing: 0.3rem;
+        text-transform: uppercase;
+        color: #C9A84C;
+        opacity: 0;
+        animation: splashFadeIn 0.8s 0.5s ease forwards;
+        margin-top: 0.5rem;
+      }
+      #cbc-splash .splash-loader {
+        width: 40px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 2rem auto 0;
+        overflow: hidden;
+        position: relative;
+      }
+      #cbc-splash .splash-loader::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: #C9A84C;
+        animation: splashLoad 1.2s ease-in-out infinite;
+        transform: translateX(-100%);
+      }
+      @keyframes splashFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes splashLoad {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+    </style>
   </head>
   <body>
+    <div id="cbc-splash">
+      <div class="splash-inner">
+        <div class="splash-logo">CBC</div>
+        <div class="splash-tagline">Advogados</div>
+        <div class="splash-loader"></div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -1,4 +1,5 @@
 import { useContract } from '../ContractContext';
+import { UserIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 export default function Step1NumContratantes() {
   const { data, updateData, setCurrentStep } = useContract();
@@ -27,7 +28,11 @@ export default function Step1NumContratantes() {
                 : 'border-gray-200 hover:border-gold/50'
             }`}
           >
-            <div className="text-5xl mb-3">{n === 1 ? '👤' : '👥'}</div>
+            <div className="mb-3 flex justify-center">
+              {n === 1
+                ? <UserIcon className="w-12 h-12 text-navy" aria-hidden="true" />
+                : <UsersIcon className="w-12 h-12 text-navy" aria-hidden="true" />}
+            </div>
             <div className="font-heading text-xl font-bold text-navy">
               {n} Contratante{n > 1 ? 's' : ''}
             </div>

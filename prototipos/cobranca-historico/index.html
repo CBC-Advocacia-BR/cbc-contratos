@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Histórico de Disparos · Cobrança — 5 direções</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+  --gold:#C9A84C; --gold-dark:#B8860B;
+  --cream:#F0F4F8; --cream-dark:#E4EAF0;
+  --ink:#15293f; --muted:#5b6b7d; --line:#dde5ee; --line-strong:#c3d0de;
+  --card:#ffffff; --bg:#eef2f7;
+  --ok:#15803d; --ok-bg:#e7f4ec; --bad:#b91c1c; --bad-bg:#fbe9e9;
+  --warn:#b45309; --warn-bg:#fdf3e6; --info:#1d4ed8;
+  --rec:#9a7b18; --rec-bg:#f7efd6;
+  --z-rail:10; --z-sticky:20; --z-pop:60;
+  --r:12px; --r-sm:8px;
+  font-synthesis:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:Lato,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0}
+.serif{font-family:'Cormorant Garamond',Georgia,serif}
+button{font-family:inherit;cursor:pointer}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---- shell ---- */
+.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+.rail{background:var(--navy-dark);color:#dCE6F2;position:sticky;top:0;height:100vh;
+  padding:18px 14px;display:flex;flex-direction:column;gap:6px;z-index:var(--z-rail)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 14px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:10px}
+.brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(160deg,var(--navy-light),var(--navy));
+  display:grid;place-items:center;color:var(--gold);font-family:'Cormorant Garamond',serif;font-weight:700;font-size:19px;border:1px solid rgba(201,168,76,.4)}
+.brand b{font-size:13px;font-weight:900;letter-spacing:.02em;color:#fff;line-height:1.15}
+.brand span{font-size:10.5px;color:#9fb3c9}
+.navlbl{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#7d93ab;padding:8px 8px 4px}
+.navitem{display:flex;gap:11px;align-items:flex-start;text-align:left;width:100%;border:0;background:transparent;
+  color:#c4d3e3;padding:9px 10px;border-radius:9px;transition:background .18s,color .18s}
+.navitem .n{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.07);display:grid;place-items:center;
+  font-size:11px;font-weight:800;flex:none;margin-top:1px}
+.navitem .t{font-size:12.5px;font-weight:700;line-height:1.2}
+.navitem .d{font-size:10.5px;color:#8ba3bb;font-weight:400;margin-top:2px}
+.navitem:hover{background:rgba(255,255,255,.06);color:#fff}
+.navitem.active{background:var(--navy);color:#fff}
+.navitem.active .n{background:var(--gold);color:var(--navy-dark)}
+.rail .foot{margin-top:auto;font-size:10.5px;color:#7d93ab;padding:10px 8px;border-top:1px solid rgba(255,255,255,.1);line-height:1.5}
+
+.main{min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:var(--z-sticky)}
+.topbar .crumbs{font-size:11.5px;color:var(--muted)}
+.topbar .crumbs b{color:var(--navy)}
+.topbar h1{font-size:21px;font-weight:900;letter-spacing:-.01em}
+.viewcap{font-size:12.5px;color:var(--muted);margin-left:auto;max-width:46ch;text-align:right}
+.stage{padding:22px 26px 56px}
+
+/* ---- shared atoms ---- */
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.chip.bad{background:var(--bad-bg);color:var(--bad)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.rec{background:var(--rec-bg);color:var(--rec)}
+.chip.mut{background:#eef2f7;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;
+  background:linear-gradient(150deg,var(--navy-light),var(--navy));flex:none}
+.av.sm{width:24px;height:24px;font-size:9.5px}
+.money{font-weight:800;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.tmpl{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;color:var(--navy);
+  background:#eaf0f7;border:1px solid #d6e1ee;padding:2px 9px;border-radius:7px}
+.tmpl .k{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+.view{display:none;animation:fade .35s ease-out}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.view{animation:none}*{transition:none!important}}
+
+/* legenda de status compartilhada */
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-bottom:16px;align-items:center}
+.legend b{color:var(--ink)}
+.legend .it{display:inline-flex;align-items:center;gap:6px}
+
+/* ============ M1 — LINHA DO TEMPO ============ */
+.tl{position:relative;margin-left:8px;padding-left:30px}
+.tl:before{content:"";position:absolute;left:7px;top:6px;bottom:10px;width:2px;background:linear-gradient(var(--line-strong),var(--line))}
+.tl-day{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:6px 0 14px -30px;padding-left:30px}
+.tl-node{position:relative;margin-bottom:18px}
+.tl-node:before{content:"";position:absolute;left:-30px;top:18px;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--navy);transform:translateX(0)}
+.tl-node.has-rec:before{border-color:var(--gold)}
+.tl-card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;
+  box-shadow:0 1px 3px rgba(15,32,53,.05)}
+.tl-head{display:flex;align-items:center;gap:13px;padding:14px 16px;width:100%;border:0;background:transparent;text-align:left}
+.tl-head:hover{background:#f7fafd}
+.tl-head .when{font-size:12px;color:var(--muted);width:54px;flex:none;font-weight:700}
+.tl-head .who b{font-size:14px;font-weight:800}
+.tl-head .who .sub{font-size:11.5px;color:var(--muted)}
+.tl-bars{display:flex;gap:4px;align-items:center;margin-left:auto;flex:none}
+.fbar{height:8px;border-radius:4px;background:var(--cream-dark);width:120px;overflow:hidden;display:flex}
+.fbar i{height:100%;display:block}
+.tl-counts{display:flex;gap:14px;font-size:11.5px;font-weight:700;flex:none;width:230px;justify-content:flex-end}
+.tl-counts .c b{font-size:14px}
+.tl-counts .c span{color:var(--muted);font-weight:600;font-size:10.5px;display:block;text-align:right}
+.caret{width:18px;color:var(--muted);transition:transform .2s;flex:none}
+.tl-node.open .caret{transform:rotate(90deg)}
+.tl-body{display:none;border-top:1px solid var(--line);background:#fbfdff}
+.tl-node.open .tl-body{display:block}
+.tl-row{display:grid;grid-template-columns:1fr 92px 150px;gap:10px;align-items:center;padding:9px 16px 9px 54px;border-top:1px solid #eef3f8;font-size:12.5px}
+.tl-row:first-child{border-top:0}
+.tl-row .nm{font-weight:700}
+.tl-row .meta{font-size:10.5px;color:var(--muted)}
+
+/* ============ M2 — RAZÃO / LEDGER ============ */
+.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:9px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:7px 13px;font-size:11.5px;font-weight:800;color:var(--muted);border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--navy);color:#fff}
+.search{flex:1;min-width:180px;max-width:320px;display:flex;align-items:center;gap:8px;border:1px solid var(--line-strong);border-radius:9px;padding:7px 11px;background:#fff}
+.search input{border:0;outline:0;font-size:12.5px;width:100%;background:transparent}
+.ledger{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+table.lg{width:100%;border-collapse:collapse}
+table.lg thead th{position:sticky;top:54px;background:#f5f8fb;text-align:left;font-size:10px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line-strong);z-index:1}
+table.lg th.r,table.lg td.r{text-align:right}
+table.lg tbody td{padding:10px 14px;border-top:1px solid #eef3f8;font-size:12.5px;vertical-align:middle}
+table.lg tbody tr:hover{background:#f7fafd}
+table.lg .nm{font-weight:700}
+table.lg .who{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:11.5px;font-weight:700}
+.batchsep td{background:#eef3f9;font-size:11px;font-weight:800;color:var(--navy);letter-spacing:.03em;padding:7px 14px;text-transform:uppercase}
+
+/* ============ M3 — LOTES (FUNIL) ============ */
+.lotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:16px;align-items:start}
+.lote{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.lote-h{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+.lote-h .who b{font-size:13.5px;font-weight:800}
+.lote-h .who .sub{font-size:11px;color:var(--muted)}
+.lote-h .stamp{margin-left:auto;text-align:right}
+.lote-h .stamp b{font-size:13px}
+.lote-h .stamp span{display:block;font-size:10.5px;color:var(--muted)}
+.funnel{padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.fstep{display:grid;grid-template-columns:96px 1fr 64px;gap:12px;align-items:center}
+.fstep .lab{font-size:11.5px;font-weight:800;color:var(--muted)}
+.fstep .track{height:26px;border-radius:7px;background:var(--cream-dark);overflow:hidden;position:relative}
+.fstep .track i{position:absolute;inset:0 auto 0 0;border-radius:7px;display:block}
+.fstep .val{font-size:14px;font-weight:800;text-align:right}
+.fstep .val small{color:var(--muted);font-weight:700;font-size:10.5px}
+.lote-f{padding:11px 18px;background:#fbfdff;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.peo{display:flex;align-items:center}
+.peo .av{margin-left:-7px;border:2px solid #fff;width:26px;height:26px;font-size:9px}
+.peo .av:first-child{margin-left:0}
+.peo .more{margin-left:-7px;width:26px;height:26px;border-radius:50%;background:#eef2f7;border:2px solid #fff;display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--muted)}
+
+/* ============ M4 — POR OPERADOR ============ */
+.op{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+.opcard{background:var(--navy-dark);color:#dCE6F2;border-radius:var(--r);padding:20px;position:sticky;top:78px}
+.opcard .big{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.opcard .av{width:48px;height:48px;font-size:17px;background:linear-gradient(150deg,var(--gold),var(--gold-dark));color:var(--navy-dark)}
+.opcard .big b{font-size:16px;color:#fff;display:block}
+.opcard .big span{font-size:11.5px;color:#9fb3c9}
+.opstat{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-top:1px solid rgba(255,255,255,.1)}
+.opstat .l{font-size:12px;color:#a9bdd2}
+.opstat .v{font-size:18px;font-weight:800;color:#fff}
+.opstat .v.gold{color:var(--gold)}
+.opring{display:flex;gap:14px;align-items:center;margin:6px 0 14px}
+.ring{--p:97;width:78px;height:78px;border-radius:50%;flex:none;
+  background:conic-gradient(var(--gold) calc(var(--p)*1%), rgba(255,255,255,.12) 0);
+  display:grid;place-items:center}
+.ring i{width:60px;height:60px;border-radius:50%;background:var(--navy-dark);display:grid;place-items:center;
+  font-size:18px;font-weight:800;color:#fff;flex-direction:column;line-height:1}
+.ring i small{font-size:9px;color:#9fb3c9;font-weight:700;margin-top:2px}
+.oplist{display:flex;flex-direction:column;gap:12px}
+.oplot{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.oplot-h{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.oplot-h .when{font-size:12.5px;font-weight:800}
+.oplot-h .pill{margin-left:auto}
+.barline{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--cream-dark)}
+.barline i{display:block;height:100%}
+.oplegend{display:flex;gap:14px;margin-top:9px;font-size:11px;font-weight:700;flex-wrap:wrap}
+.oplegend span{display:inline-flex;align-items:center;gap:5px}
+
+/* ============ M5 — QUADRO DE ENTREGA ============ */
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:start}
+.col{background:#f4f7fb;border:1px solid var(--line);border-radius:var(--r);min-height:200px}
+.col-h{display:flex;align-items:center;gap:8px;padding:12px 14px;position:sticky;top:78px;background:#f4f7fb;border-bottom:1px solid var(--line);border-radius:var(--r) var(--r) 0 0;z-index:1}
+.col-h b{font-size:12.5px;font-weight:800}
+.col-h .cnt{margin-left:auto;font-size:11px;font-weight:800;background:#fff;border:1px solid var(--line);border-radius:999px;padding:1px 9px;color:var(--muted)}
+.col-body{padding:10px;display:flex;flex-direction:column;gap:9px}
+.tk{background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 12px;box-shadow:0 1px 2px rgba(15,32,53,.04)}
+.tk .nm{font-weight:700;font-size:12.5px;line-height:1.2}
+.tk .row2{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:11px;color:var(--muted)}
+.tk .row2 .money{color:var(--ink)}
+.tk.err{border-color:#f0c9c9;background:#fffafa}
+.tk .err-note{margin-top:8px;font-size:10.5px;color:var(--bad);background:var(--bad-bg);border-radius:6px;padding:5px 8px;line-height:1.35}
+.col.reccol{background:#faf5e6;border-color:#ecdcae}
+.col.reccol .col-h{background:#faf5e6}
+
+.note{margin-top:24px;font-size:11.5px;color:var(--muted);max-width:70ch;line-height:1.6;border-top:1px solid var(--line);padding-top:14px}
+.note b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><div class="mark">CB</div><div><b>CBC Advogados</b><span>Cobrança &amp; Boletos</span></div></div>
+    <div class="navlbl">Histórico de disparos — 5 direções</div>
+    <button class="navitem active" data-v="m1"><span class="n">1</span><span><span class="t">Linha do tempo</span><span class="d">Lotes em ordem, com mini-funil</span></span></button>
+    <button class="navitem" data-v="m2"><span class="n">2</span><span><span class="t">Razão (ledger)</span><span class="d">Tabela densa · auditoria</span></span></button>
+    <button class="navitem" data-v="m3"><span class="n">3</span><span><span class="t">Lotes &amp; funil</span><span class="d">Card por disparo · enviado→pago</span></span></button>
+    <button class="navitem" data-v="m4"><span class="n">4</span><span><span class="t">Por operador</span><span class="d">Quem disparou + placar</span></span></button>
+    <button class="navitem" data-v="m5"><span class="n">5</span><span><span class="t">Quadro de entrega</span><span class="d">Kanban Kommo: fila→entregue→pago</span></span></button>
+    <div class="foot">Dados reais · 2 lotes de hoje<br>Disparado por Anderson · WhatsApp via Kommo</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">Boletos › <b>Cobrança &amp; Boletos</b> › Histórico</div>
+      <h1 class="serif" style="font-weight:700" id="vtitle">Linha do tempo de disparos</h1>
+      <div class="viewcap" id="vcap">Cada disparo é um marco: quem mandou, para quantos, e quantos o Kommo entregou e converteu. Clique para abrir a lista.</div>
+    </div>
+    <div class="stage" id="stage"></div>
+  </main>
+</div>
+
+<script>
+/* ---------- dados reais (2 lotes de hoje) ---------- */
+const BRL = n => 'R$ ' + Number(n).toLocaleString('pt-BR',{minimumFractionDigits:0});
+const ANDERSON = {nome:'Anderson R. C. de Barros', email:'anderson@advocaciacbc.com', ini:'AB'};
+
+const loteB = { // manha
+  id:'B', quando:'08:23', data:'Hoje, 30 jun', tmpl:'Cobrança 1', op:ANDERSON,
+  enviados:30, entregues:29, falhas:1, recuperados:3, valorRec:1375, valorTotal:33890,
+  clientes:[
+    {n:'Camila da Cunha Alves Teixeira', v:825, d:41, s:'done', pago:true},
+    {n:'João Paulo dos Santos', v:250, d:10, s:'done', pago:true},
+    {n:'Márcia Pereira dos Santos Pinto', v:300, d:102, s:'done', pago:true},
+    {n:'Jefferson Machado Pirilo', v:300, d:10, s:'failed', pago:false, err:'Kommo: lead 6947534 não encontrado (HTTP 400) · 6 tentativas'},
+    {n:'Mauro Cesar de Sá', v:3300, d:314, s:'done', pago:false},
+    {n:'Carlos Eduardo Buabssi Reina', v:1500, d:130, s:'done', pago:false},
+    {n:'André de Moura Biela', v:1800, d:161, s:'done', pago:false},
+    {n:'Elizabeth Guimarães F. de Oliveira', v:2100, d:192, s:'done', pago:false},
+    {n:'Joselita Conceição de Andrade', v:2100, d:283, s:'done', pago:false},
+    {n:'Júlio Cesar Castro', v:900, d:71, s:'done', pago:false},
+    {n:'Márcio André Lopes de Sousa', v:1200, d:130, s:'done', pago:false},
+    {n:'Quésia Ferreira da Silva', v:250, d:10, s:'done', pago:false},
+  ]
+};
+const loteA = { // tarde
+  id:'A', quando:'13:47', data:'Hoje, 30 jun', tmpl:'Cobrança 1', op:ANDERSON,
+  enviados:30, entregues:30, falhas:0, recuperados:1, valorRec:300, valorTotal:36819,
+  clientes:[
+    {n:'Juliana Fegies Ianni', v:300, d:10, s:'done', pago:true},
+    {n:'Luiz Fernando da Rocha', v:2400, d:222, s:'done', pago:false},
+    {n:'Gilney Ramos', v:2100, d:345, s:'done', pago:false},
+    {n:'Kleyton Alves Lima', v:2100, d:192, s:'done', pago:false},
+    {n:'Sillas Henrique de Carvalho', v:2100, d:253, s:'done', pago:false},
+    {n:'Rodrigo Langhinrichs Louzada', v:2100, d:192, s:'done', pago:false},
+    {n:'Mileny Elaine Teixeira', v:1800, d:314, s:'done', pago:false},
+    {n:'Janaína Guedes Coqueiro Saito', v:1800, d:161, s:'done', pago:false},
+    {n:'Wellison Gustavo Lopes', v:1320, d:495, s:'done', pago:false},
+    {n:'Maurício Alves Pinto Junior', v:1200, d:192, s:'done', pago:false},
+    {n:'Vinícius Neves Prado', v:1200, d:102, s:'done', pago:false},
+    {n:'Gilcélia Marília da Silva', v:900, d:102, s:'done', pago:false},
+  ]
+};
+const LOTES = [loteA, loteB]; // mais recente primeiro
+
+const sChip = (c)=> c.pago ? '<span class="chip rec">★ Recuperado</span>'
+  : c.s==='failed' ? '<span class="chip bad">✕ Falhou</span>'
+  : '<span class="chip ok">✓ Entregue</span>';
+const sDot = (c)=> c.pago ? 'var(--rec)' : c.s==='failed' ? 'var(--bad)' : 'var(--ok)';
+const ini = (nm)=> nm.split(/\s+/).filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+/* ---------- M1 — linha do tempo ---------- */
+function m1(){
+  let h = `<div class="legend"><span class="it"><span class="dot" style="background:var(--ok)"></span> Entregue pelo Kommo</span>
+    <span class="it"><span class="dot" style="background:var(--bad)"></span> Falha de entrega</span>
+    <span class="it"><span class="dot" style="background:var(--rec)"></span> Recuperado (pagou)</span>
+    <span class="it" style="margin-left:auto"><b>60</b> disparos · <b>59</b> entregues · <b>4</b> recuperados · <b>${BRL(1675)}</b></span></div>`;
+  h += `<div class="tl"><div class="tl-day">Terça, 30 de junho</div>`;
+  LOTES.forEach((l,idx)=>{
+    const ent = Math.round(l.entregues/l.enviados*100);
+    const rec = Math.round(l.recuperados/l.enviados*100);
+    h += `<div class="tl-node ${l.recuperados?'has-rec':''} ${idx===0?'open':''}">
+      <div class="tl-card">
+        <button class="tl-head" onclick="this.closest('.tl-node').classList.toggle('open')">
+          <span class="when">${l.quando}</span>
+          <span class="av">${l.op.ini}</span>
+          <span class="who"><b>${l.op.nome.split(' ')[0]}</b> disparou <span class="tmpl"><span class="k"></span>${l.tmpl}</span>
+            <span class="sub">para ${l.enviados} clientes</span></span>
+          <span class="tl-bars">
+            <span class="fbar" title="${l.entregues} entregues / ${l.falhas} falhas">
+              <i style="width:${ent}%;background:var(--ok)"></i><i style="width:${100-ent}%;background:var(--bad)"></i></span>
+          </span>
+          <span class="tl-counts">
+            <span class="c"><b class="tnum">${l.entregues}</b><span>entregues</span></span>
+            <span class="c"><b class="tnum" style="color:${l.falhas?'var(--bad)':'var(--muted)'}">${l.falhas}</b><span>falhas</span></span>
+            <span class="c"><b class="tnum" style="color:var(--rec)">${l.recuperados}</b><span>${BRL(l.valorRec)}</span></span>
+          </span>
+          <span class="caret">▸</span>
+        </button>
+        <div class="tl-body">
+          ${l.clientes.map(c=>`<div class="tl-row">
+            <span><span class="nm">${c.n}</span><div class="meta">${c.d}d em atraso</div></span>
+            <span class="r money">${BRL(c.v)}</span>
+            <span style="text-align:right">${sChip(c)}</span>
+          </div>`).join('')}
+          <div class="tl-row" style="background:#f3f7fb;font-weight:800;color:var(--muted)">
+            <span>+ ${l.enviados-l.clientes.length} clientes neste lote…</span><span></span><span></span></div>
+        </div>
+      </div></div>`;
+  });
+  h += `</div>`;
+  return h;
+}
+
+/* ---------- M2 — razão / ledger ---------- */
+function m2(){
+  let rows='';
+  LOTES.forEach(l=>{
+    rows += `<tr class="batchsep"><td colspan="6">${l.data} · ${l.quando} — ${l.tmpl} · ${l.op.nome} · ${l.enviados} disparos</td></tr>`;
+    rows += l.clientes.map(c=>`<tr>
+      <td class="muted tnum" style="white-space:nowrap">${l.quando}</td>
+      <td><div class="nm">${c.n}</div><div class="muted" style="font-size:10.5px">${c.d}d em atraso</div></td>
+      <td><span class="tmpl"><span class="k"></span>${l.tmpl}</span></td>
+      <td><div class="who"><span class="av sm">${l.op.ini}</span>${l.op.nome.split(' ')[0]}</div></td>
+      <td class="r money">${BRL(c.v)}</td>
+      <td class="r">${sChip(c)}</td>
+    </tr>`).join('');
+  });
+  return `<div class="filters">
+      <div class="seg"><button class="on">Todos</button><button>Entregues</button><button>Falhas</button><button>Recuperados</button></div>
+      <div class="seg"><button class="on">Todos operadores</button><button>Anderson</button></div>
+      <div class="search">🔎<input placeholder="Buscar cliente, CPF ou template…"></div>
+      <span class="muted" style="font-size:11.5px;margin-left:auto">60 registros · 2 lotes</span>
+    </div>
+    <div class="ledger"><table class="lg">
+      <thead><tr><th>Hora</th><th>Cliente</th><th>Template</th><th>Disparado por</th><th class="r">Em aberto</th><th class="r">Entrega Kommo</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+/* ---------- M3 — lotes & funil ---------- */
+function m3(){
+  return `<div class="lotes">` + LOTES.map(l=>{
+    const ent=Math.round(l.entregues/l.enviados*100), rec=Math.round(l.recuperados/l.enviados*100);
+    return `<div class="lote">
+      <div class="lote-h"><span class="av">${l.op.ini}</span>
+        <span class="who"><b>${l.op.nome.split(' ')[0]} disparou</b> <span class="tmpl"><span class="k"></span>${l.tmpl}</span><div class="sub">${l.op.email}</div></span>
+        <span class="stamp"><b>${l.quando}</b><span>${l.data}</span></span></div>
+      <div class="funnel">
+        <div class="fstep"><span class="lab">Enviados</span><span class="track"><i style="width:100%;background:var(--navy)"></i></span><span class="val tnum">${l.enviados}</span></div>
+        <div class="fstep"><span class="lab">Entregues</span><span class="track"><i style="width:${ent}%;background:var(--ok)"></i></span><span class="val tnum">${l.entregues} <small>${ent}%</small></span></div>
+        <div class="fstep"><span class="lab">Falhas</span><span class="track"><i style="width:${Math.max(l.falhas/l.enviados*100,l.falhas?3:0)}%;background:var(--bad)"></i></span><span class="val tnum" style="color:${l.falhas?'var(--bad)':'var(--muted)'}">${l.falhas}</span></div>
+        <div class="fstep"><span class="lab">Recuperados</span><span class="track"><i style="width:${Math.max(rec,l.recuperados?4:0)}%;background:var(--gold)"></i></span><span class="val tnum" style="color:var(--rec)">${l.recuperados} <small>${BRL(l.valorRec)}</small></span></div>
+      </div>
+      <div class="lote-f">
+        <span class="peo">${l.clientes.slice(0,6).map(c=>`<span class="av" title="${c.n}" style="background:linear-gradient(150deg,var(--navy-light),var(--navy))">${ini(c.n)}</span>`).join('')}<span class="more">+${l.enviados-6}</span></span>
+        <span class="muted" style="font-size:11.5px;margin-left:auto">${BRL(l.valorTotal)} cobrados neste lote</span>
+        <button style="border:1px solid var(--line-strong);background:#fff;border-radius:8px;padding:6px 12px;font-size:11.5px;font-weight:800;color:var(--navy)">Ver clientes</button>
+      </div></div>`;
+  }).join('') + `</div>`;
+}
+
+/* ---------- M4 — por operador ---------- */
+function m4(){
+  const env=60, ent=59, rec=4, val=1675;
+  return `<div class="op">
+    <div class="opcard">
+      <div class="big"><span class="av">AB</span><span><b>Anderson</b><span>anderson@advocaciacbc.com</span></span></div>
+      <div class="opring">
+        <div class="ring" style="--p:98"><i>98%<small>ENTREGA</small></i></div>
+        <div style="flex:1">
+          <div class="opstat" style="border-top:0"><span class="l">Disparos hoje</span><span class="v tnum">60</span></div>
+          <div class="opstat"><span class="l">Entregues (Kommo)</span><span class="v tnum">59</span></div>
+          <div class="opstat"><span class="l">Falhas</span><span class="v tnum" style="color:#ff9b9b">1</span></div>
+        </div>
+      </div>
+      <div class="opstat"><span class="l">Recuperados</span><span class="v gold tnum">4 · ${BRL(val)}</span></div>
+      <div class="opstat"><span class="l">Taxa de conversão</span><span class="v gold tnum">6,7%</span></div>
+      <div style="margin-top:14px;font-size:11px;color:#9fb3c9;line-height:1.5">Único operador disparando até agora. Quando mais pessoas usarem, cada uma ganha sua faixa e placar aqui.</div>
+    </div>
+    <div class="oplist">
+      <div style="font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Disparos do Anderson · hoje</div>
+      ${LOTES.map(l=>{
+        const ent=l.entregues/l.enviados*100, fal=l.falhas/l.enviados*100, recp=l.recuperados/l.enviados*100;
+        return `<div class="oplot">
+          <div class="oplot-h"><span class="when">${l.quando}</span><span class="tmpl"><span class="k"></span>${l.tmpl}</span>
+            <span class="muted" style="font-size:11.5px">· ${l.enviados} clientes</span>
+            <span class="pill chip rec">${BRL(l.valorRec)} recuperado</span></div>
+          <div class="barline"><i style="width:${recp}%;background:var(--gold)"></i><i style="width:${ent-recp}%;background:var(--ok)"></i><i style="width:${fal}%;background:var(--bad)"></i></div>
+          <div class="oplegend">
+            <span><span class="dot" style="background:var(--gold)"></span> ${l.recuperados} recuperados</span>
+            <span><span class="dot" style="background:var(--ok)"></span> ${l.entregues-l.recuperados} entregues</span>
+            <span><span class="dot" style="background:var(--bad)"></span> ${l.falhas} falha${l.falhas!==1?'s':''}</span>
+            <span style="margin-left:auto;color:var(--ink)">${BRL(l.valorTotal)} cobrados</span>
+          </div></div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+/* ---------- M5 — quadro de entrega ---------- */
+function m5(){
+  const all = LOTES.flatMap(l=>l.clientes.map(c=>({...c, lote:l})));
+  const fila = []; // exemplo: nada na fila agora (tudo processado)
+  const entregue = all.filter(c=>c.s==='done' && !c.pago);
+  const falhou = all.filter(c=>c.s==='failed');
+  const pago = all.filter(c=>c.pago);
+  const card = (c,err)=>`<div class="tk ${err?'err':''}">
+    <div class="nm">${c.n}</div>
+    <div class="row2"><span class="av sm" title="${c.lote.op.nome}">${c.lote.op.ini}</span>
+      <span class="tmpl" style="padding:1px 7px;font-size:10.5px"><span class="k"></span>${c.lote.tmpl}</span>
+      <span class="money" style="margin-left:auto">${BRL(c.v)}</span></div>
+    ${c.err?`<div class="err-note">${c.err}</div>`:''}</div>`;
+  const col=(title,dotc,arr,extra='',rec=false)=>`<div class="col ${rec?'reccol':''}">
+    <div class="col-h"><span class="dot" style="background:${dotc}"></span><b>${title}</b><span class="cnt">${arr.length}</span></div>
+    <div class="col-body">${arr.length?arr.map(c=>card(c,c.s==='failed')).join(''):`<div class="muted" style="text-align:center;padding:24px 8px;font-size:11.5px">${extra||'Vazio'}</div>`}</div></div>`;
+  return `<div class="legend"><span class="muted">O ciclo de cada cobrança no Kommo, da fila ao pagamento. Cartões com falha mostram o erro retornado pelo Kommo.</span></div>
+    <div class="board">
+      ${col('Na fila','var(--warn)',fila,'Tudo processado 🎉')}
+      ${col('Entregue','var(--ok)',entregue.slice(0,7))}
+      ${col('Falhou','var(--bad)',falhou)}
+      ${col('Recuperado','var(--rec)',pago,'',true)}
+    </div>
+    <div class="note"><b>Por que importa:</b> a coluna “Falhou” é o que normalmente fica invisível — aqui o Jefferson aparece com o motivo exato (lead inexistente no Kommo), virando uma tarefa clara: corrigir o vínculo e reenviar.</div>`;
+}
+
+const VIEWS = {
+  m1:{t:'Linha do tempo de disparos', c:'Cada disparo é um marco: quem mandou, para quantos, e quantos o Kommo entregou e converteu. Clique para abrir a lista de clientes.', r:m1},
+  m2:{t:'Razão de disparos', c:'Tabela densa, estilo auditoria: uma linha por cliente cobrado, com quem disparou e o status de entrega do Kommo. Filtra e busca.', r:m2},
+  m3:{t:'Lotes & funil de entrega', c:'Um card por disparo com o funil Enviados → Entregues → Recuperados, e os clientes do lote em avatares.', r:m3},
+  m4:{t:'Por operador', c:'Agrupa pelo responsável: o placar de quem disparou (entrega, falhas, conversão) e a régua de cada lote dele.', r:m4},
+  m5:{t:'Quadro de entrega (Kommo)', c:'Kanban do ciclo de vida no Kommo: Na fila → Entregue → Falhou → Recuperado. Ótimo para caçar falhas de entrega.', r:m5},
+};
+function show(v){
+  document.querySelectorAll('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+  const V=VIEWS[v];
+  document.getElementById('vtitle').textContent=V.t;
+  document.getElementById('vcap').textContent=V.c;
+  const wrap=document.createElement('div'); wrap.className='view active'; wrap.innerHTML=V.r();
+  const stage=document.getElementById('stage'); stage.innerHTML=''; stage.appendChild(wrap);
+}
+document.querySelectorAll('.navitem').forEach(b=>b.addEventListener('click',()=>show(b.dataset.v)));
+show('m1');
+</script>
+</body>
+</html>

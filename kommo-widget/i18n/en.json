@@ -1,0 +1,11 @@
+{
+  "widget": {
+    "name": "CBC Bot ADVBOX",
+    "description": "Mostra a fase do processo no ADVBOX, novidades nao comunicadas e gera resposta pronta para o cliente.",
+    "short_description": "Processo ADVBOX no cartao do lead"
+  },
+  "settings": {
+    "api_url": "URL da API (advbox-bot-reply)",
+    "api_key": "Chave (BOT_PANEL_KEY)"
+  }
+}

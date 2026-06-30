@@ -1,3 +1,5 @@
+import { CheckIcon } from '@heroicons/react/24/outline';
+
 const STEPS = [
   { label: 'Contratantes', icon: '1' },
   { label: 'Dados Pessoais', icon: '2' },
@@ -10,7 +12,8 @@ const STEPS = [
 
 export default function Stepper({ current, onStepClick }) {
   return (
-    <div className="w-full overflow-x-auto py-4">
+    <div className="w-full overflow-x-auto py-4" role="group"
+      aria-label={`Progresso da criação do contrato: passo ${current + 1} de ${STEPS.length} — ${STEPS[current]?.label || ''}`}>
       <div className="flex items-center justify-center min-w-[700px] px-4">
         {STEPS.map((step, i) => {
           const isActive = i === current;
@@ -19,6 +22,8 @@ export default function Stepper({ current, onStepClick }) {
             <div key={i} className="flex items-center">
               <button
                 onClick={() => onStepClick?.(i)}
+                aria-current={isActive ? 'step' : undefined}
+                aria-label={`Passo ${i + 1} de ${STEPS.length}: ${step.label}${isDone ? ', concluído' : isActive ? ', atual' : ''}`}
                 className={`flex flex-col items-center gap-1 cursor-pointer transition-all duration-200 group min-w-[80px] ${
                   i <= current ? '' : 'opacity-50'
                 }`}
@@ -30,7 +35,7 @@ export default function Stepper({ current, onStepClick }) {
                     ? 'bg-navy text-white'
                     : 'bg-gray-200 text-gray-500'
                 }`}>
-                  {isDone ? '✓' : step.icon}
+                  {isDone ? <CheckIcon className="w-4 h-4" aria-hidden="true" /> : step.icon}
                 </div>
                 <span className={`text-xs font-semibold text-center leading-tight ${
                   isActive ? 'text-gold' : isDone ? 'text-navy' : 'text-gray-400'

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useContract } from '../ContractContext';
 import { generateContractHTML } from '../utils/contractHtml';
+// pdfGenerator importado dinamicamente (lazy) (#112)
+import { sendToZapSign } from '../utils/zapsignService';
 
 const ZAPSIGN_TOKEN_KEY = 'cbc_zapsign_token';
 
@@ -42,28 +44,31 @@ export default function Step7ZapSign() {
 
     try {
       const html = generateContractHTML(data, true);
-      const resp = await fetch('/api/zapsign/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiToken: apiToken.trim(),
-          html,
-          name: `Contrato Honorários - ${nomes} - ${resort}`,
-          resort,
-          signers: signatarios.map(s => ({
-            name: s.name,
-            email: s.email,
-            lock_name: true,
-            lock_email: true,
-            auth_mode: 'assinaturaTela',
-            qualification: s.qualification,
-          })),
-        }),
+      const docName = `Contrato Honorarios - ${nomes} - ${resort}`;
+
+      // Generate PDF in browser
+      const { generatePdfBase64 } = await import('../utils/pdfGenerator');
+      const base64Pdf = await generatePdfBase64(html);
+
+      // Send directly to ZapSign API
+      const zapResult = await sendToZapSign({
+        base64Pdf,
+        name: docName,
+        signers: signatarios,
+        folderPath: `/CBC Contratos/${resort || 'Geral'}/`,
       });
 
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.error || 'Erro ao enviar para ZapSign');
-      setResult(json);
+      // Map to expected result format
+      setResult({
+        token: zapResult.docToken,
+        signers: zapResult.signers.map(s => ({
+          name: s.name,
+          email: s.email,
+          token: s.token,
+          sign_url: s.signUrl,
+          status: s.status,
+        })),
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -99,12 +104,12 @@ export default function Step7ZapSign() {
         <label className="label-field">API Token do ZapSign *</label>
         <input type="password" className="input-field" placeholder="Cole aqui seu API Token..."
           value={apiToken} onChange={(e) => setApiToken(e.target.value)} />
-        <p className="text-xs text-gray-400 mt-1">O token será salvo localmente para uso futuro.</p>
+        <p className="text-xs text-gray-400 mt-1">O token sera salvo localmente para uso futuro.</p>
       </div>
 
-      {/* Signatários */}
+      {/* Signatarios */}
       <div className="card mb-6">
-        <h3 className="font-heading text-lg font-bold text-navy mb-4">Signatários do Documento</h3>
+        <h3 className="font-heading text-lg font-bold text-navy mb-4">Signatarios do Documento</h3>
         <div className="space-y-2">
           {signatarios.map((s, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-cream rounded-lg">
@@ -121,7 +126,7 @@ export default function Step7ZapSign() {
       {/* Send button */}
       {!result && (
         <button className="btn-gold w-full text-lg py-4" onClick={handleSend} disabled={loading}>
-          {loading ? 'Enviando para ZapSign...' : 'Enviar Contrato para Assinatura Digital'}
+          {loading ? 'Gerando PDF e enviando...' : 'Enviar Contrato para Assinatura Digital'}
         </button>
       )}
 

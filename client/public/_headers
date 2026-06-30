@@ -1,0 +1,43 @@
+# Cache agressivo para assets com hash (immutable = nunca muda)
+# Vite gera hashes unicos por arquivo, entao assets sao seguros cachear "forever"
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fontes e imagens estaticas
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+/*.png
+  Cache-Control: public, max-age=2592000
+/*.webp
+  Cache-Control: public, max-age=2592000
+/*.jpg
+  Cache-Control: public, max-age=2592000
+/*.jpeg
+  Cache-Control: public, max-age=2592000
+/*.svg
+  Cache-Control: public, max-age=2592000
+/*.ico
+  Cache-Control: public, max-age=2592000
+
+# Favicon
+/favicon.png
+  Cache-Control: public, max-age=604800
+
+# HTML nunca cachear (precisa pegar novo hash dos assets sempre)
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Security headers (bonus)
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  # (seg 31/05) HSTS — forca HTTPS no navegador. Seguro: o site e sempre HTTPS.
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

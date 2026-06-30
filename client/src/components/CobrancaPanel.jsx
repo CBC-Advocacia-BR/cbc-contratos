@@ -14,7 +14,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { supabase } from '../lib/supabase';
 import MoneyValue from './ui/MoneyValue';
-import { waNumber } from '../utils/phone';
+
+const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
 
 const BOT_KEY = import.meta.env.VITE_BOT_PANEL_KEY || 'cbc-bot-2026';
 const digits = (s) => String(s || '').replace(/\D/g, '');
@@ -55,11 +56,13 @@ export default function CobrancaPanel({ userEmail = '' }) {
   const [metrics, setMetrics] = useState([]);
   const [view, setView] = useState('cliente');     // cliente | boletos | estagio
   const [filtro, setFiltro] = useState(0);         // faixa de atraso (0 = todas)
+  const [fCob, setFCob] = useState('todos');       // cobrança: todos|nunca|cobrado|7|15|30 (cobrado há +Nd)
   const [sel, setSel] = useState(() => new Set()); // cpfs selecionados (digits)
   const [template, setTemplate] = useState('');
   const [expand, setExpand] = useState(() => new Set());
   const [preview, setPreview] = useState(null);
   const [sending, setSending] = useState(false);
+  const [checando, setChecando] = useState(false);
   const [toast, setToast] = useState('');
   const toastT = useRef(null);
 
@@ -105,6 +108,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
   // cfg/templates/janela memoizados (estáveis enquanto `data` não muda) — base p/ os demais memos
   const cfg = useMemo(() => data?.cfg || {}, [data]);
   const janela = useMemo(() => cfg.janela_pagamento_dias ?? 7, [cfg]);
+  const cooldown = useMemo(() => cfg.cooldown_dias ?? 5, [cfg]);
   const templates = useMemo(() => cfg.templates || [], [cfg]);
   const semSalesbot = templates.length === 0 || !templates.some((t) => t.bot_id);
   const tplSel = useMemo(() => templates.find((t) => t.name === template) || null, [templates, template]);
@@ -153,7 +157,17 @@ export default function CobrancaPanel({ userEmail = '' }) {
   const efDe = (name) => ranking.find((x) => x.template === name)?.taxa;
 
   // devedores filtrados pela faixa (lista COMPLETA, sem paginação)
-  const devsFiltrados = useMemo(() => filtro ? devs.filter((d) => faixaDe(Number(d.maior_atraso_dias) || 0) === filtro) : devs, [devs, filtro]);
+  const devsFiltrados = useMemo(() => {
+    const hoje = new Date();
+    return devs.filter((d) => {
+      if (filtro && faixaDe(Number(d.maior_atraso_dias) || 0) !== filtro) return false;
+      if (fCob === 'todos') return true;
+      const ult = d.ultimo_disparo_em ? Math.floor((hoje - new Date(d.ultimo_disparo_em)) / 86400000) : null;
+      if (fCob === 'nunca') return ult == null;
+      if (fCob === 'cobrado') return ult != null;
+      return ult != null && ult >= Number(fCob); // cobrado há +N dias (passou do cooldown)
+    });
+  }, [devs, filtro, fCob]);
   // boletos filtrados + ordenados por vencimento (mais atrasado primeiro)
   const boletosFiltrados = useMemo(() => {
     const hoje = new Date();
@@ -198,10 +212,9 @@ export default function CobrancaPanel({ userEmail = '' }) {
     try { await navigator.clipboard.writeText(txt); flash(msg); } catch { flash('Copie manualmente: ' + txt.slice(0, 40) + '…'); }
   }, [flash]);
   const abrir = useCallback((b) => { const u = b.invoice_url || b.bank_slip_url; if (u) window.open(u, '_blank', 'noopener'); else flash('Boleto sem link.'); }, [flash]);
-  const whats = useCallback((tel) => {
-    const num = waNumber(tel);
-    if (!num) { flash('Cliente sem telefone cadastrado.'); return; }
-    window.open(`https://wa.me/${num}`, '_blank', 'noopener');
+  const kommo = useCallback((leadId) => {
+    if (!leadId) { flash('Cliente sem lead vinculado no Kommo.'); return; }
+    window.open(`${KOMMO_BASE}${leadId}`, '_blank', 'noopener');
   }, [flash]);
   const optout = useCallback(async (cpf, on, nome) => {
     try {
@@ -210,6 +223,15 @@ export default function CobrancaPanel({ userEmail = '' }) {
       await load();
     } catch (e) { flash('Erro: ' + e.message); }
   }, [flash, load]);
+  const checarPagamentos = useCallback(async () => {
+    setChecando(true);
+    try {
+      const j = await callFn('cobranca-conciliar-now', {});
+      flash(j.recuperados ? `✓ ${j.recuperados} pagamento(s) reconhecido(s) como recuperação` : 'Nenhum pagamento novo encontrado.');
+      if (j.recuperados) { await load(); await loadMetrics(); }
+    } catch (e) { flash('Erro: ' + e.message); }
+    setChecando(false);
+  }, [flash, load, loadMetrics]);
 
   const abrirPreview = async () => {
     if (!template) { flash('Escolha um template.'); return; }
@@ -282,23 +304,38 @@ export default function CobrancaPanel({ userEmail = '' }) {
           {/* toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
             <div className="inline-flex rounded-lg p-0.5 gap-0.5" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)' }}>
-              {[['cliente', 'Por cliente'], ['boletos', 'Todos os boletos'], ['estagio', 'Estágios']].map(([k, l]) => (
+              {[['cliente', 'Por cliente'], ['boletos', 'Boletos em aberto'], ['estagio', 'Estágios']].map(([k, l]) => (
                 <button key={k} onClick={() => changeView(k)} aria-pressed={view === k}
                   className="px-3 py-1.5 text-[12px] font-bold rounded-md cursor-pointer transition-colors"
                   style={{ background: view === k ? 'var(--cbc-navy)' : 'transparent', color: view === k ? '#fff' : 'var(--cbc-text-muted)' }}>{l}</button>
               ))}
             </div>
+            {view !== 'estagio' && (
+              <select value={fCob} onChange={(e) => setFCob(e.target.value)} title="Filtrar por situação de cobrança"
+                className="rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold cursor-pointer" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)', color: 'var(--cbc-text-secondary)' }}>
+                <option value="todos">Cobrança: todos</option>
+                <option value="nunca">Nunca cobrado</option>
+                <option value="cobrado">Já cobrado</option>
+                <option value="7">Cobrado há +7d</option>
+                <option value="15">Cobrado há +15d</option>
+                <option value="30">Cobrado há +30d</option>
+              </select>
+            )}
             <span className="text-[12px] ml-auto" style={{ color: 'var(--cbc-text-muted)' }}>
-              {filtro ? <>Faixa <b style={{ color: 'var(--cbc-navy)' }}>{FAIXAS[filtro - 1].label}</b></> : 'Todos os inadimplentes'}
+              {filtro ? <>Faixa <b style={{ color: 'var(--cbc-navy)' }}>{FAIXAS[filtro - 1].label}</b></> : 'Todos os inadimplentes'}{fCob !== 'todos' ? <> · <b style={{ color: 'var(--cbc-navy)' }}>{fCob === 'nunca' ? 'nunca cobrado' : fCob === 'cobrado' ? 'já cobrado' : `cobrado há +${fCob}d`}</b></> : ''}
             </span>
             {view !== 'estagio' && (
               <button onClick={selecionarAcionaveisVisiveis} className="px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg cursor-pointer border" style={{ borderColor: 'var(--cbc-border)', color: 'var(--cbc-text-secondary)' }}>
                 {allState === true ? 'Limpar seleção' : 'Selecionar acionáveis'}
               </button>
             )}
+            <button onClick={checarPagamentos} disabled={checando} title="Reconcilia agora os boletos pagos com as cobranças, sem esperar o cron de 12h."
+              className="px-3 py-1.5 text-[11px] font-bold uppercase rounded-lg cursor-pointer border disabled:opacity-50" style={{ borderColor: 'var(--cbc-border)', color: 'var(--cbc-text-secondary)' }}>
+              {checando ? 'Checando…' : '↺ Checar pagamentos'}
+            </button>
           </div>
 
-          {view === 'cliente' && <PorCliente {...{ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, whats, optout }} />}
+          {view === 'cliente' && <PorCliente {...{ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown }} />}
           {view === 'boletos' && <TodosBoletos {...{ boletosFiltrados, sel, toggle, elegivelCpf, allState, selecionarAcionaveisVisiveis, copy, abrir }} />}
           {view === 'estagio' && <Estagios {...{ devs, templates, setSel, flash, changeView }} />}
 
@@ -425,11 +462,13 @@ function CopyActions({ b, copy, abrir }) {
 }
 
 /* Linha de cliente memoizada — só re-renderiza quando muda seleção/expansão dela. */
-const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, onToggle, onToggleExpand, copy, abrir, whats, optout }) {
+const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, onToggle, onToggleExpand, copy, abrir, kommo, optout, cooldown = 5 }) {
   const cpf = digits(d.cpf);
   const optedOut = d.motivo === 'opt_out';
   const entTxt = d.ultimo_entrega === 'done' ? '✓ entregue' : d.ultimo_entrega === 'failed' ? '✗ falhou' : '⏳ na fila';
   const entCor = d.ultimo_entrega === 'done' ? 'var(--cbc-success)' : d.ultimo_entrega === 'failed' ? 'var(--cbc-danger)' : 'var(--cbc-text-muted)';
+  const cobDias = d.ultimo_disparo_em ? Math.floor((new Date() - new Date(d.ultimo_disparo_em)) / 86400000) : null;
+  const cobRecente = cobDias != null && cobDias < cooldown; // dentro do cooldown -> aguarde
   const parcs = useMemo(() => (parcels || []).slice().sort((a, b) => (a.due_date || '').localeCompare(b.due_date || '')), [parcels]);
   return (
     <div className="border-t" style={{ borderColor: 'var(--cbc-border)' }}>
@@ -440,14 +479,17 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
           <div className="font-bold text-[13px] truncate" style={{ color: 'var(--cbc-text-primary)' }}>{d.customer_name || cpf}</div>
           <div className="text-[10.5px] flex items-center gap-1 flex-wrap" style={{ color: 'var(--cbc-text-muted)' }}>
             <span>{d.parcelas} parc. · maior atraso {d.maior_atraso_dias}d</span>
-            {d.ultimo_disparo_em && <span>· cobrado {fmtData(d.ultimo_disparo_em)}</span>}
+            {cobDias != null && <span style={{ color: cobRecente ? 'var(--cbc-warning)' : 'var(--cbc-text-muted)', fontWeight: cobRecente ? 700 : 400 }}>· cobrado há {cobDias}d{cobRecente ? ' · aguarde' : ''}</span>}
             {d.ultimo_disparo_em && <span style={{ color: entCor, fontWeight: 700 }}>· {entTxt}</span>}
             {!d.elegivel && d.motivo && <span>· {MOTIVO[d.motivo] || d.motivo}</span>}
           </div>
         </div>
         <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => whats(d.telefone, d.customer_name)} disabled={!d.telefone} title={d.telefone ? `WhatsApp: ${d.telefone}` : 'Cliente sem telefone'}
-            className="text-[11px] font-bold px-1.5 py-1 rounded cursor-pointer disabled:opacity-30" style={{ color: '#1FA855' }}>WhatsApp</button>
+          <button onClick={() => kommo(d.lead_id)} disabled={!d.lead_id} title={d.lead_id ? 'Abrir conversa no Kommo' : 'Cliente sem lead vinculado no Kommo'}
+            className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded cursor-pointer text-white disabled:opacity-30" style={{ background: '#2E7CF6' }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 5.92 2 10.76c0 2.74 1.46 5.18 3.74 6.78-.13.97-.5 2.2-1.2 3.46 1.6-.3 3.1-.9 4.3-1.74.97.26 2 .4 3.16.4 5.52 0 10-3.92 10-8.9C22 5.92 17.52 2 12 2z"/></svg>
+            Kommo
+          </button>
           <button onClick={() => optout(cpf, !optedOut, d.customer_name)} aria-pressed={optedOut}
             title={optedOut ? 'Voltar a cobrar este cliente' : 'Marcar “não perturbe” (não recebe cobrança)'}
             className="text-[14px] leading-none px-1.5 py-1 rounded cursor-pointer">{optedOut ? '🔕' : '🔔'}</button>
@@ -472,7 +514,7 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
   );
 });
 
-function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, whats, optout }) {
+function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--cbc-border)' }}>
       <div className="flex items-center gap-3 px-3 py-2 text-[10.5px] font-bold uppercase tracking-wide" style={{ background: 'var(--cbc-bg-subtle,#f8fafc)', color: 'var(--cbc-text-muted)' }}>
@@ -482,7 +524,7 @@ function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand
       {devsFiltrados.length === 0 && <div className="p-6 text-center text-[12px]" style={{ color: 'var(--cbc-text-muted)' }}>Nenhum devedor neste filtro.</div>}
       {devsFiltrados.map((d) => {
         const cpf = digits(d.cpf);
-        return <ClienteRow key={cpf} d={d} selected={sel.has(cpf)} expanded={expand.has(cpf)} parcels={bolByCpf[cpf]} onToggle={toggle} onToggleExpand={toggleExpand} copy={copy} abrir={abrir} whats={whats} optout={optout} />;
+        return <ClienteRow key={cpf} d={d} selected={sel.has(cpf)} expanded={expand.has(cpf)} parcels={bolByCpf[cpf]} onToggle={toggle} onToggleExpand={toggleExpand} copy={copy} abrir={abrir} kommo={kommo} optout={optout} cooldown={cooldown} />;
       })}
     </div>
   );
