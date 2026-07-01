@@ -63,6 +63,8 @@ export default function CobrancaPanel({ userEmail = '' }) {
   const [preview, setPreview] = useState(null);
   const [sending, setSending] = useState(false);
   const [checando, setChecando] = useState(false);
+  const [promById, setPromById] = useState(() => new Map()); // cpf -> promessa de pagamento (#34)
+  const [tendencia, setTendencia] = useState([]); // inadimplencia_historico p/ o sparkline (#31)
   const [toast, setToast] = useState('');
   const toastT = useRef(null);
 
@@ -102,8 +104,24 @@ export default function CobrancaPanel({ userEmail = '' }) {
     } catch { setMetrics([]); }
   }, []);
 
+  const loadProm = useCallback(async () => {
+    try {
+      const j = await callFn('cobranca-promessa', { action: 'list' });
+      const m = new Map();
+      for (const p of j.promessas || []) m.set(digits(p.customer_cpf), p);
+      setPromById(m);
+    } catch { /* silencioso */ }
+  }, []);
+
+  const loadTendencia = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('inadimplencia_historico').select('dia, total').order('dia', { ascending: true }).limit(180);
+      setTendencia((data || []).slice(-30));
+    } catch { setTendencia([]); }
+  }, []);
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(); loadBoletos(); loadMetrics(); }, [load, loadBoletos, loadMetrics]);
+  useEffect(() => { load(); loadBoletos(); loadMetrics(); loadProm(); loadTendencia(); }, [load, loadBoletos, loadMetrics, loadProm, loadTendencia]);
 
   // cfg/templates/janela memoizados (estáveis enquanto `data` não muda) — base p/ os demais memos
   const cfg = useMemo(() => data?.cfg || {}, [data]);
@@ -141,6 +159,10 @@ export default function CobrancaPanel({ userEmail = '' }) {
     return { ...f, clientes: ds.length, valor: ds.reduce((s, d) => s + (Number(d.total_em_aberto) || 0), 0) };
   }), [devs]);
   const agMax = Math.max(1, ...aging.map((a) => a.valor));
+  // (#35) clientes que entraram em atraso nos ultimos 7 dias
+  const novosAtrasos = useMemo(() => devs.filter((d) => { const x = Number(d.maior_atraso_dias) || 0; return x > 0 && x <= 7; }).length, [devs]);
+  // (#36) negativados (boleto em DUNNING) — nao disparam (Serasa)
+  const negativadosCpfs = useMemo(() => { const s = new Set(); for (const b of boletos) if (b.status === 'DUNNING_REQUESTED') s.add(digits(b.customer_cpf)); return s; }, [boletos]);
 
   // ranking de eficácia por template (memoizado)
   const ranking = useMemo(() => {
@@ -232,6 +254,13 @@ export default function CobrancaPanel({ userEmail = '' }) {
     } catch (e) { flash('Erro: ' + e.message); }
     setChecando(false);
   }, [flash, load, loadMetrics]);
+  const setPromessa = useCallback(async (cpf, data, nome) => {
+    try {
+      await callFn('cobranca-promessa', { action: 'set', cpf, data: data || null, userEmail });
+      flash(data ? `📅 Promessa de ${(nome || '').split(' ')[0] || 'pagamento'} salva` : 'Promessa removida');
+      await loadProm();
+    } catch (e) { flash('Erro: ' + e.message); }
+  }, [flash, loadProm, userEmail]);
 
   const abrirPreview = async () => {
     if (!template) { flash('Escolha um template.'); return; }
@@ -265,6 +294,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
   );
 
   const r = data?.resumo || {};
+  const tendDelta = tendencia.length >= 2 ? Number(tendencia[tendencia.length - 1].total || 0) - Number(tendencia[0].total || 0) : 0;
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
@@ -297,6 +327,25 @@ export default function CobrancaPanel({ userEmail = '' }) {
           </button>
         ))}
       </div>
+
+      {/* (#35/#36) alertas: novos atrasos da semana + negativados */}
+      {(novosAtrasos > 0 || negativadosCpfs.size > 0) && (
+        <div className="flex items-center gap-2 flex-wrap text-[12px]">
+          {novosAtrasos > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-warning-bg,#fdf3e6)', color: 'var(--cbc-warning)' }}>⚠ {novosAtrasos} entraram em atraso esta semana</span>}
+          {negativadosCpfs.size > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-danger-bg,#fef2f2)', color: 'var(--cbc-danger)' }}>⛔ {negativadosCpfs.size} negativado(s) · não dispara (Serasa)</span>}
+        </div>
+      )}
+
+      {/* (#31) tendência da inadimplência (inadimplencia_historico) */}
+      {tendencia.length >= 2 && (
+        <div className="rounded-xl px-4 py-3" style={{ background: 'var(--cbc-bg-card,#fff)', border: '1px solid var(--cbc-border)' }}>
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'var(--cbc-text-muted)' }}>Tendência da inadimplência · {tendencia.length} dias</span>
+            <span className="text-[11.5px] font-bold tabular-nums inline-flex items-center gap-1" style={{ color: tendDelta > 0 ? 'var(--cbc-danger)' : tendDelta < 0 ? 'var(--cbc-success)' : 'var(--cbc-text-muted)' }}>{tendDelta > 0 ? '▲' : tendDelta < 0 ? '▼' : '•'} <MoneyValue value={Math.abs(tendDelta)} /></span>
+          </div>
+          <Sparkline pts={tendencia} />
+        </div>
+      )}
 
       {/* corpo: trabalho + trilho */}
       <div className="flex flex-col min-[1024px]:flex-row gap-3.5 items-start">
@@ -335,7 +384,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
             </button>
           </div>
 
-          {view === 'cliente' && <PorCliente {...{ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown }} />}
+          {view === 'cliente' && <PorCliente {...{ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown, promById, setPromessa }} />}
           {view === 'boletos' && <TodosBoletos {...{ boletosFiltrados, sel, toggle, elegivelCpf, allState, selecionarAcionaveisVisiveis, copy, abrir }} />}
           {view === 'estagio' && <Estagios {...{ devs, templates, setSel, flash, changeView }} />}
 
@@ -433,6 +482,22 @@ function Kpi({ titulo, v, d, cor, lead }) {
   );
 }
 
+function Sparkline({ pts }) {
+  if (!pts || pts.length < 2) return null;
+  const vals = pts.map((p) => Number(p.total) || 0);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const W = 600, H = 44, range = (max - min) || 1;
+  const px = (i) => (i / (pts.length - 1)) * W;
+  const py = (v) => H - 2 - ((v - min) / range) * (H - 4);
+  const line = vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="none" aria-hidden="true">
+      <path d={`${line} L${W},${H} L0,${H} Z`} fill="var(--cbc-danger)" opacity="0.07" />
+      <path d={line} fill="none" stroke="var(--cbc-danger)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
 function Chk({ state, disabled, onClick, label }) {
   const on = state === true, mixed = state === 'mixed';
   return (
@@ -462,7 +527,7 @@ function CopyActions({ b, copy, abrir }) {
 }
 
 /* Linha de cliente memoizada — só re-renderiza quando muda seleção/expansão dela. */
-const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, onToggle, onToggleExpand, copy, abrir, kommo, optout, cooldown = 5 }) {
+const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, onToggle, onToggleExpand, copy, abrir, kommo, optout, cooldown = 5, promessa, onPromessa }) {
   const cpf = digits(d.cpf);
   const optedOut = d.motivo === 'opt_out';
   const entTxt = d.ultimo_entrega === 'done' ? '✓ entregue' : d.ultimo_entrega === 'failed' ? '✗ falhou' : '⏳ na fila';
@@ -482,6 +547,7 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
             {cobDias != null && <span style={{ color: cobRecente ? 'var(--cbc-warning)' : 'var(--cbc-text-muted)', fontWeight: cobRecente ? 700 : 400 }}>· cobrado há {cobDias}d{cobRecente ? ' · aguarde' : ''}</span>}
             {d.ultimo_disparo_em && <span style={{ color: entCor, fontWeight: 700 }}>· {entTxt}</span>}
             {!d.elegivel && d.motivo && <span>· {MOTIVO[d.motivo] || d.motivo}</span>}
+            {promessa && <span style={{ color: '#1d4ed8', fontWeight: 700 }}>· 📅 promessa {fmtData(promessa.data_promessa)}</span>}
           </div>
         </div>
         <span className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -499,6 +565,12 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
       </div>
       {expanded && (
         <div style={{ background: 'var(--cbc-bg-subtle,#f8fafc)', borderTop: '1px solid var(--cbc-border)' }}>
+          <div className="flex items-center gap-2 py-2 text-[11.5px] border-b" style={{ paddingLeft: 52, paddingRight: 12, borderColor: 'var(--cbc-border)' }}>
+            <span className="font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>📅 Promessa de pagamento:</span>
+            <input type="date" defaultValue={promessa ? String(promessa.data_promessa).slice(0, 10) : ''} onChange={(e) => onPromessa(cpf, e.target.value, d.customer_name)}
+              className="rounded border px-2 py-0.5 text-[11.5px]" style={{ borderColor: 'var(--cbc-border)', background: '#fff' }} />
+            {promessa && <button onClick={() => onPromessa(cpf, '', d.customer_name)} className="text-[11px] font-bold underline cursor-pointer" style={{ color: 'var(--cbc-text-muted)' }}>limpar</button>}
+          </div>
           {parcs.length === 0 && <div className="px-12 py-2.5 text-[11.5px]" style={{ color: 'var(--cbc-text-muted)' }}>Parcelas carregam do Asaas…</div>}
           {parcs.map((b) => (
             <div key={b.id} className="flex items-center gap-3 py-2 text-[12px] border-t first:border-0" style={{ paddingLeft: 52, paddingRight: 12, borderColor: 'var(--cbc-border)' }}>
@@ -514,7 +586,7 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
   );
 });
 
-function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown }) {
+function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand, allState, selecionarAcionaveisVisiveis, copy, abrir, kommo, optout, cooldown, promById, setPromessa }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--cbc-border)' }}>
       <div className="flex items-center gap-3 px-3 py-2 text-[10.5px] font-bold uppercase tracking-wide" style={{ background: 'var(--cbc-bg-subtle,#f8fafc)', color: 'var(--cbc-text-muted)' }}>
@@ -524,7 +596,7 @@ function PorCliente({ devsFiltrados, bolByCpf, sel, toggle, expand, toggleExpand
       {devsFiltrados.length === 0 && <div className="p-6 text-center text-[12px]" style={{ color: 'var(--cbc-text-muted)' }}>Nenhum devedor neste filtro.</div>}
       {devsFiltrados.map((d) => {
         const cpf = digits(d.cpf);
-        return <ClienteRow key={cpf} d={d} selected={sel.has(cpf)} expanded={expand.has(cpf)} parcels={bolByCpf[cpf]} onToggle={toggle} onToggleExpand={toggleExpand} copy={copy} abrir={abrir} kommo={kommo} optout={optout} cooldown={cooldown} />;
+        return <ClienteRow key={cpf} d={d} selected={sel.has(cpf)} expanded={expand.has(cpf)} parcels={bolByCpf[cpf]} onToggle={toggle} onToggleExpand={toggleExpand} copy={copy} abrir={abrir} kommo={kommo} optout={optout} cooldown={cooldown} promessa={promById.get(cpf)} onPromessa={setPromessa} />;
       })}
     </div>
   );

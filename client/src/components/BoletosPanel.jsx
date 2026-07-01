@@ -549,7 +549,7 @@ function BoletoRow({ boleto, isClosest, onCopyPix, onOpenNF, onPreview, onToast,
 // ─── Client Card colapsável ───
 // (perf 31/05) memoizado — so re-renderiza quando as props desta linha mudam, em vez
 // de re-renderizar todos os cards a cada render do painel. Exige handlers estaveis (useCallback).
-const ClientCard = memo(function ClientCard({ customer, statusFilter, compact, custStat, isFav, onToggleFav, onCopyPix, onOpenNF, onPreview, onPrintAllNFs, onToast, onOpenNotes }) {
+const ClientCard = memo(function ClientCard({ customer, statusFilter, compact, custStat, isFav, onToggleFav, onCopyPix, onOpenNF, onPreview, onPrintAllNFs, onToast, onOpenNotes, leadId, isSel, onSel }) {
   const [open, setOpen] = useState(false);
   const [boletos, setBoletos] = useState(null);
   const [loadingB, setLoadingB] = useState(false);
@@ -604,6 +604,8 @@ const ClientCard = memo(function ClientCard({ customer, statusFilter, compact, c
   return (
     <div className="bg-white rounded-xl border border-gray-200 mb-2 overflow-hidden shadow-sm dense-text">
       <div className="w-full dense-row flex items-center justify-between hover:bg-gray-50 text-left">
+        <input type="checkbox" checked={!!isSel} onChange={() => onSel(customer.id)} onClick={(e) => e.stopPropagation()}
+          aria-label={`Selecionar ${clientName}`} className="ml-2 cursor-pointer shrink-0" />
         <button onClick={toggle} aria-expanded={open}
           className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer text-left rounded-lg max-[1366px]:min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cbc-navy)]/40">
           <span className="text-xs w-4 inline-flex justify-center max-[1366px]:min-w-[44px]" style={{ color: 'var(--cbc-text-muted)' }} aria-hidden="true">{open ? '▼' : '▶'}</span>
@@ -623,6 +625,12 @@ const ClientCard = memo(function ClientCard({ customer, statusFilter, compact, c
           )}
           {custStat?.total > 0 && (
             <span className="text-[10px] text-gray-500">{fmt(custStat.total)}</span>
+          )}
+          {leadId && (
+            <button onClick={() => window.open(`https://advocaciacbc.kommo.com/leads/detail/${leadId}`, '_blank', 'noopener')}
+              className="cursor-pointer inline-flex items-center hover:opacity-80" style={{ color: '#2E7CF6' }} title="Abrir conversa no Kommo" aria-label="Abrir no Kommo">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 5.92 2 10.76c0 2.74 1.46 5.18 3.74 6.78-.13.97-.5 2.2-1.2 3.46 1.6-.3 3.1-.9 4.3-1.74.97.26 2 .4 3.16.4 5.52 0 10-3.92 10-8.9C22 5.92 17.52 2 12 2z"/></svg>
+            </button>
           )}
           <button onClick={() => onOpenNotes(customer)} className="cursor-pointer text-gray-500 hover:text-blue-600 inline-flex items-center" title="Notas" aria-label="Notas">
             <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
@@ -785,6 +793,8 @@ export default function BoletosPanel({ userEmail = '' }) {
   const [syncProgress, setSyncProgress] = useState(null); // { phase, current, total, label }
   const [lastSync, setLastSync] = useState(null);
   const [syncErr, setSyncErr] = useState(null); // ultimo erro de sync recente (#25)
+  const [leadByCpf, setLeadByCpf] = useState(() => new Map()); // CPF -> kommo_lead_id (#21)
+  const [selCust, setSelCust] = useState(() => new Set());      // clientes selecionados (#22)
   // (R16) incrementa a cada carga concluida -> os cards de InadimplenciaStrip
   // re-consultam o Asaas em vez de ficarem presos no 1o fetch.
   const [refreshTick, setRefreshTick] = useState(0);
@@ -1115,6 +1125,22 @@ export default function BoletosPanel({ userEmail = '' }) {
     return () => { live = false; };
   }, []);
 
+  // (#21) mapa CPF -> kommo_lead_id (do cadastro unico) p/ o botao "Kommo" nos cards
+  useEffect(() => {
+    let live = true;
+    supabase.from('clientes').select('cpf_cnpj, kommo_lead_id').not('kommo_lead_id', 'is', null).limit(6000)
+      .then(({ data }) => {
+        if (!live) return;
+        const m = new Map();
+        for (const r of data || []) {
+          const c = onlyDigits(r.cpf_cnpj || ''); const l = String(r.kommo_lead_id || '');
+          if (c.length === 11 && /^[0-9]+$/.test(l)) m.set(c, l);
+        }
+        setLeadByCpf(m);
+      }, () => {});
+    return () => { live = false; };
+  }, []);
+
   const copyPix = useCallback(async (code) => {
     const ok = await copyText(code);
     showToast(ok ? '📱 Código PIX copiado!' : '⚠️ Erro ao copiar');
@@ -1122,6 +1148,21 @@ export default function BoletosPanel({ userEmail = '' }) {
   const openNF = useCallback((b) => {
     if (b.nf_pdf_url) window.open(b.nf_pdf_url, '_blank');
   }, []);
+  // (#22) selecao em massa + exportar selecionados (CSV)
+  const toggleSelCust = useCallback((id) => setSelCust((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }), []);
+  const exportSel = useCallback(() => {
+    const byId = new Map(customers.map((c) => [c.id, c]));
+    const lin = [['Nome', 'CPF', 'Email', 'Em aberto', 'Vencido', 'Dias atraso']];
+    for (const id of selCust) {
+      const c = byId.get(id); if (!c) continue;
+      const s = customerStats[id] || {};
+      lin.push([c.name || '', c.cpf_cnpj || '', c.email || '', String(s.total || 0).replace('.', ','), String(s.overdueTotal || 0).replace('.', ','), s.maxOverdueDays || 0]);
+    }
+    const csv = '﻿' + lin.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = `clientes-selecionados-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }, [selCust, customers, customerStats]);
 
   // (#96) Skeleton ao carregar pela primeira vez
   if (loading && customers.length === 0 && !loadError) {
@@ -1352,6 +1393,15 @@ export default function BoletosPanel({ userEmail = '' }) {
         </div>
       </div>
 
+      {/* (#22) barra de selecao em massa */}
+      {selCust.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2 border-b" style={{ background: 'var(--cbc-navy)', color: '#fff' }}>
+          <b className="text-[12px]">{selCust.size} cliente(s) selecionado(s)</b>
+          <button onClick={exportSel} className="ml-auto px-3 py-1 rounded-md text-[11px] font-bold cursor-pointer" style={{ background: '#fff', color: 'var(--cbc-navy)' }}>⬇ Exportar CSV</button>
+          <button onClick={() => setSelCust(new Set())} className="px-3 py-1 rounded-md text-[11px] font-bold cursor-pointer text-white" style={{ border: '1px solid rgba(255,255,255,.4)' }}>Limpar</button>
+        </div>
+      )}
+
       {/* List (sem scroll proprio — rola junto no container acima) */}
       <div>
         {/* Barra-resumo sticky: gruda no topo da rolagem da lista (navy fino) */}
@@ -1417,7 +1467,8 @@ export default function BoletosPanel({ userEmail = '' }) {
             <ClientCard key={c.id} customer={c} statusFilter={statusFilter} compact={compact}
               custStat={customerStats[c.id]} isFav={favorites.includes(c.id)} onToggleFav={toggleFav}
               onCopyPix={copyPix} onOpenNF={openNF} onPreview={setPreviewBoleto} onOpenNotes={setNotesCustomer}
-              onPrintAllNFs={showToast} onToast={showToast} />
+              onPrintAllNFs={showToast} onToast={showToast} leadId={leadByCpf.get(onlyDigits(c.cpf_cnpj || ''))}
+              isSel={selCust.has(c.id)} onSel={toggleSelCust} />
           ))
         )}
         </div>

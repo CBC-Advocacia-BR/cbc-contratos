@@ -21,12 +21,12 @@ function mapRow(r) {
     relacao: r.relacao, eh_pj: r.eh_pj,
     em_advbox: r.em_advbox, em_asaas: r.em_asaas, em_kommo: r.em_kommo, em_contrato: r.em_contrato,
     advbox: r.advbox_customer_id, asaas: r.asaas_customer_id, kommo: r.kommo_lead_id,
-    nome_conflito: r.nome_conflito, atualizado_em: r.atualizado_em,
+    nome_conflito: r.nome_conflito, atualizado_em: r.atualizado_em, pasta: r.pasta || null,
   };
 }
 
 export async function buscarClientes() {
-  const cols = 'cliente_uid,cpf,cpf_fmt,nome,email,telefone,nascimento,cidade,uf,relacao,eh_pj,em_advbox,em_asaas,em_kommo,em_contrato,advbox_customer_id,asaas_customer_id,kommo_lead_id,nome_conflito,atualizado_em';
+  const cols = 'cliente_uid,cpf,cpf_fmt,nome,email,telefone,nascimento,cidade,uf,relacao,eh_pj,em_advbox,em_asaas,em_kommo,em_contrato,advbox_customer_id,asaas_customer_id,kommo_lead_id,nome_conflito,atualizado_em,pasta';
   // PostgREST corta em 1000 linhas/requisicao -> pagina com .range() ate trazer todos
   const PAGE = 1000;
   let all = [];

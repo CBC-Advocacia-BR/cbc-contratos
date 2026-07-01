@@ -13,7 +13,9 @@
 import { checkRateLimit, rateLimitResponse } from './rate-limit.mjs';
 
 const CPF_API_TOKEN = process.env.CPF_API_TOKEN; // configurar na Netlify
-const CPF_PACOTE = '7'; // Pacote 7 = CPF B (nome + nascimento) — R$0.25/consulta
+// Pacote 1 = CPF A (só nome; sem nascimento). Trocado do 7 (CPF B) em 01/07/2026:
+// os créditos recarregados são do pacote CPF A — saldo na cpfcnpj.com.br é POR PACOTE.
+const CPF_PACOTE = '1';
 
 const H = {
   'Content-Type': 'application/json',
@@ -42,7 +44,9 @@ export default async (req) => {
     const resp = await fetch(`https://api.cpfcnpj.com.br/${CPF_API_TOKEN}/${CPF_PACOTE}/${cpf}`);
     const data = await resp.json().catch(() => null);
 
-    if (data?.['cod-erro'] === 1001 || data?.erro === 1001) {
+    // A API devolve o codigo em "erroCodigo" (com "erro" = texto); os outros dois
+    // formatos ficam por compatibilidade.
+    if (data?.erroCodigo === 1001 || data?.['cod-erro'] === 1001 || data?.erro === 1001) {
       return json({ valid: true, nome: '', error: 'SEM_CREDITOS' });
     }
     if (!data || data.status === 0 || !data.nome) {

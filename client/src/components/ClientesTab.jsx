@@ -217,6 +217,7 @@ export default function ClientesTab({ isAdmin = false }) {
               <th>Nome</th><th>CPF / CNPJ</th><th>Tipo</th><th>Telefone</th>
               <th className="sortable" onClick={() => onSort('idade')}>Idade{seta('idade')}</th>
               <th className="sortable" onClick={() => onSort('cidade')}>Cidade/UF{seta('cidade')}</th>
+              <th>Pasta</th>
               <th>Presença</th>
               <th className="sortable" onClick={() => onSort('atualizado')}>Atualizado{seta('atualizado')}</th>
               <th>Ações</th>
@@ -231,6 +232,7 @@ export default function ClientesTab({ isAdmin = false }) {
                   <td className="tnum">{telFmt(r.telefone)}</td>
                   <td className="tnum">{idade(r.nascimento) ? idade(r.nascimento) + ' anos' : '—'}{extra === 'aniversario' && aniversarioData(r.nascimento) ? <span style={{ marginLeft: 6, color: 'var(--c-gold-dark)', fontWeight: 700, whiteSpace: 'nowrap' }}>🎂 {aniversarioData(r.nascimento)}</span> : (aniversarioMes(r) && ' 🎂')}</td>
                   <td className="muted">{r.cidade ? `${r.cidade}/${r.uf || ''}` : '—'}</td>
+                  <td>{r.pasta ? <span className="badge" style={{ background: '#eef2f6', color: 'var(--c-navy)', fontWeight: 600 }}>{r.pasta}</span> : '—'}</td>
                   <td>{r.em_advbox && <span className="sys">AdvBox</span>}{r.em_asaas && <span className="sys">Asaas</span>}{r.em_kommo && <span className="sys">Kommo</span>}{r.em_contrato && <span className="sys">Contrato</span>}</td>
                   <td className="tnum">{(() => { const dd = diasDesde(r.atualizado_em); if (dd == null) return '—'; const cor = dd <= 7 ? '#16A34A' : dd <= 30 ? '#D97706' : '#DC2626'; return <span title={dataBR(r.atualizado_em) || ''}><span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: cor, marginRight: 5, verticalAlign: 'middle' }} />{dd}d</span>; })()}</td>
                   <td onClick={(e) => e.stopPropagation()}>
@@ -239,7 +241,7 @@ export default function ClientesTab({ isAdmin = false }) {
                   </td>
                 </tr>
               ))}
-              {!loading && visiveis.length === 0 && <tr><td colSpan={isAdmin ? 10 : 9} className="empty">Nenhum cliente para este filtro/busca.</td></tr>}
+              {!loading && visiveis.length === 0 && <tr><td colSpan={isAdmin ? 11 : 10} className="empty">Nenhum cliente para este filtro/busca.</td></tr>}
             </tbody>
           </table>
         </div>

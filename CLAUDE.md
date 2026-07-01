@@ -1,0 +1,707 @@
+# CBC Contratos — Guia do Projeto
+
+> **Documento de referência** para Claude Code navegar e desenvolver neste repositório.
+> Seções 1–10 reescritas em **14/06/2026** para refletir a **v6.6.0 em produção**. O bloco "Estado atual" logo abaixo é o changelog detalhado e tem precedência sobre descrições genéricas. **Sempre valide telas/fluxo no app real antes de implementar** — UI muda rápido.
+
+---
+
+## ⚡ Estado atual — LEIA ANTES
+
+**Versão em produção: v6.6.x** (última sessão 25/06/2026). Changelog detalhado das últimas sessões abaixo.
+
+### Auditoria de bugs + melhorias (25/06/2026) — EM PRODUÇÃO
+
+Sessão de auditoria multi-agente (50 bugs achados, **48 corrigidos** em 3 deploys) + leva de melhorias + nova aba. Backups: `backups/20260625_*`. Rollbacks: `./rollback.sh 6a3d4c1f0f77326b570f409f` (e anteriores nos backups).
+
+- **Bug do "Revisão de Distrato"**: tipo de ação que ia ao ADVBOX como **OUTROS** (2187483) porque faltava no formulário e no mapa. Corrigido — agora é opção do dropdown (`TIPOS_ACAO`) e mapeia para o ID real **REVISÃO DE DISTRATO = 2392340** (grupo MULTIPROPRIEDADE). Os 9 IDs antigos do mapa foram conferidos contra o catálogo `/settings` ao vivo (todos certos). Lawsuit `16064935` corrigido via `PUT /lawsuits/{id}` (merge parcial). `15050313` deixado como AÇÃO DE COBRANÇA de propósito (são tipos distintos).
+- **`USER_MAP` (advbox-sync.mjs)**: `grazie@` apontava p/ 242675 (ISABELA); corrigido p/ **242673** (Grazie real).
+- **FONTE ÚNICA dos mapas ADVBOX**: `getOrigemId`/`getTipoAcaoId` + os mapas saíram p/ **`netlify/functions/_lib/advboxMaps.mjs`** (módulo PURO, testado em `utils/__tests__/advboxMaps.test.js`). O antigo **`client/src/utils/advboxService.js` foi REMOVIDO** (era código morto, só o teste usava) — junto saiu o **`VITE_ADVBOX_TOKEN` do bundle do frontend**. (A divergência entre as 2 cópias causou o bug do Edmar.)
+- **#23 NF duplicada (race) RESOLVIDO**: migração `asaas_nf_lock` — coluna `asaas_boletos.nf_lock_at` + RPCs `asaas_nf_claim`/`asaas_nf_release` (SECURITY DEFINER, `BOT_RPC_SECRET`, auto-recupera trava órfã >10min). `asaas-webhook` reivindica a trava antes do POST `/invoices` e libera se falhar (best-effort — degrada ao check de invoice). Helpers em `_lib/asaasMirror.mjs`.
+- **Nota Kommo #18 "abriu e não assinou" → SERVIDOR**: nova function agendada **`kommo-view-check.mjs`** (cron `*/30`) substitui o polling no navegador (App.jsx). Agora roda 24h sem o app aberto. Idempotente via `kommo_view_noted`.
+- **`vw_powerbi_contratos`** (view nova, aditiva): Power BI pode ler os contratos direto do banco (com campos calculados: jornada, tempo até assinatura, mês/ano, tipo de honorário) em vez da function `api-powerbi`. A function segue existindo até o Power BI ser reapontado.
+- **NOVA ABA "Saúde do Funil"** (`components/FunnelHealthPanel.jsx` + `funnel/funnelCompute.js`): visível **só p/ Paulo e Bruno** (gating por email = `SOCIOS_EMAILS`, igual à aba Sócios; tab key `funil`). Mostra o funil Criados→Enviados→Assinados, conversões, **tempos medianos** por etapa, gargalos (enviados há >7 dias sem assinar) e tendência mensal. Lógica pura testada (`utils/__tests__/funnelCompute.test.js`). Token-driven (`--cbc-*`, dark-mode safe).
+- **Outros fixes notáveis**: `validateCPF` agora valida **checksum** (não só formato); Dashboard busca por `created_at` OU `signed_at`/`advbox_date` (não subconta assinaturas do mês); detecção de login anômalo religada (era código morto); `is_admin` sempre mantém a aba Admin (anti-lockout); DOCX baixado tinha cláusulas 1/2 faltando + título/razão-social errados (corrigidos); `detectGender` melhorado; `birthday`→`birthdate` no ADVBOX. Lista completa nas memórias da sessão (`auditoria-bugs-25-06`).
+
+**AINDA ABERTO (exigem Paulo / coordenação):**
+- **RLS allow-all em `user_permissions`** — descoberto que a tabela é **COMPARTILHADA com o app `produtividade`** (tem policies `produtividade.has_permission`). Fechar a RLS exige coordenação cross-app (risco de quebrar o outro sistema). NÃO mexido. Só foi feito o anti-lockout (L19).
+- **`SUPABASE_SERVICE_ROLE_KEY`** ainda não configurada (pendência antiga). **Rotacionar** `VITE_ADVBOX_TOKEN`/`VITE_CPF_API_TOKEN` (ADVBOX já saiu do bundle, mas o token antigo segue válido até rotacionar) e `KOMMO_TOKEN`. **Configurar** `ZAPSIGN_WEBHOOK_SECRET` (hoje o webhook é fail-open, mitigado por re-verificação na API).
+
+### Mobile 2.0 + comparador de meses (v6.6.0) — 12-13/06/2026 — EM PRODUÇÃO
+
+Redesign mobile completo (iPhone + iPad Air M3) com regra de ouro: **desktop intocado** (tudo atrás de `max-sm:`/media queries/`pointer:coarse`/`isMobile`). Deployado 12/06 (mobile) + 13/06 (fix do pdfGenerator). Rollback do último: `./rollback.sh 6a2cbde0ad7cb2530d3310a7`. Backups: `backups/20260612_161431_mobile_redesign/` (src completo pré-mudança) + backups por área dos agentes (20260612_2011xx-2013xx).
+
+- **Navegação**: dock ganhou 4º item **"Mais"** → `components/MobileNavSheet.jsx` (sheet com TODAS as abas permitidas via `tabAllowed`, mesma regra das top tabs). Lupa de busca no header quando `pointer:coarse`. Header phone enxuto (densidade/versão/atalhos só desktop). FAB oculto quando dock visível.
+- **Estrutura**: `.dock-spacer` global no App devolve a altura do dock ao layout (token `--bottom-dock-height` enfim consumido — nada mais termina sob o dock); dock z-60→**45** (abaixo dos modais z-50); `h-screen`→`100dvh` só ≤1366px; iPad portrait usa o branch mobile da aba novo (segmented control, FormPanel fica montado ao alternar preview).
+- **index.css** seção "MOBILE REDESIGN (12/06/2026)": anti-zoom corrigido p/ inputs sem `type`; touch targets 44px em `pointer:coarse` 641-1366; hover-reveal visível em `hover:none`; piso tipográfico phone (7-9px→9-10px); `.cbc-toast-stack`/`.cbc-undo-toast`/`.toast-above-dock`; `.cbc-navsheet*`; `.cbc-toptabs` (88px ≤1366 — 11 abas cabem no iPad 13" landscape); `.cbc-step-label` (timeline só bolinhas no phone); `.cbc-touch-only`/`.cbc-touch-reorder`; `.cbc-sticky-col` (dias do heatmap).
+- **Touch substituindo drag/hover**: cláusulas com ↑/↓ (FormPanel), kanban Vendas com botão "Mover" (cbc-touch-only → handleMoveColuna), preview do contrato em touch = **HTML rolável (iframe srcDoc) com zoom** em vez de PDF (Safari iOS só renderiza a 1ª página; e não gera mais PDF a cada tecla no celular). inputMode/autoComplete nos campos mascarados + login.
+- **Fix real**: pull-to-refresh do ContratosTab disparava com qualquer arrasto (media o container errado) — corrigido.
+- **Retrofits por área** (5 agentes, gating estrito; detalhes no resultado do workflow): Asaas pan horizontal alinhado, BoletoRow 2 linhas, modais com `max-h-[85dvh]` e larguras `w-full max-w-*`, NotificationCenter/ActivityFeed viram bottom-sheet no phone, matriz do Admin com scroll-x, ClientFormQR (formulário público!) com teclados/autofill corretos.
+- **Dashboard (pedido do Paulo)**: `MonthComparator` (widgets.jsx) — mês A × mês B com criados/assinaturas/receita/ticket/conversão de cohort e deltas; **KPIs sensíveis ao período**: com filtro ativo, assinaturas/receita/ticket/cancelados/top resort refletem a JANELA selecionada (data efetiva de assinatura) com delta vs janela anterior equivalente (`compute.js`: `janela`/`janelaAnterior`/`comparador`); sem filtro, comportamento anterior (mês corrente). Celebração de meta segue o mês corrente real (`assinadosMes`).
+- **Validação**: harness 133 asserções vs produção (10+3 cenários, incluindo janela de período e integridade do comparador); E2E em 375×812 (dock/Mais/Boletos/dashboard/preview/busca), iPad 1024×1366 (dock+segmented) e 1366×1024 (top tabs sem overflow); regressão desktop 1440 por fingerprint de 11 abas vs baseline pré-mudança (boletos/bot/portal/admin/param byte-idênticos; deltas restantes = dados ao vivo ou intencionais) + review adversarial de diff em 3 lentes.
+- ~~**Achado colateral** (pré-existente, chip de task criado): `pdfGenerator.js` vaza um div oculto (~8KB) no body a cada geração de preview de PDF.~~ **RESOLVIDO 13/06/2026 (deploy `6a2cd5ddd79a628d1148ceec`, rollback `./rollback.sh 6a2cbde0ad7cb2530d3310a7`)**: o `container` próprio do `generatePdfFromHtml` já era removido em `finally`; o vazamento real era o `<iframe class="html2canvas-container">` do html2canvas 1.4.1, que só é removido no caminho de SUCESSO (sem try/finally) — fica órfão quando a renderização lança. Fix: `container.remove()` idempotente + contador `_activeGenerations` que varre os iframes órfãos só quando não há geração em andamento (seguro com gerações concorrentes do LivePreview: debounce 700ms + troca de aba). Backup: `backups/20260613_005349_pdfgen_leak_fix/`. Validado com o módulo real (happy path + varredura de órfão + concorrência), build + lint limpos.
+- Limitação conhecida: `useDeviceType` atualiza via rAF — em testes headless o resize não re-tiera (em device real funciona; rotação dispara com página visível).
+
+### Dashboard 2.0 (v6.5.0) — 12/06/2026 — EM PRODUÇÃO
+
+Redesign completo do Dashboard (deploy 12/06, rollback: `./rollback.sh 6a2b5a490d54f1f3ddaa6ea7`). Backup dos arquivos antigos em `backups/20260612_152405_dashboard_redesign/`.
+
+- **Arquitetura**: `Dashboard.jsx` (orquestração) + `dashboard/compute.js` (lógica pura, testável) + `dashboard/widgets.jsx` (visual com tokens `--cbc-*`) + `dashboard/format.js` (formatadores). A MV `dashboard_stats` **não alimenta mais a tela** (segue no banco p/ api-powerbi etc.) — fonte única: linhas slim de `contratos` + realtime.
+- **Regras de dados**: arquivados fora de tudo por padrão (toggle "incluir arquivados"); data de assinatura efetiva = `signed_at → advbox_date → updated_at` (31 assinados antigos não têm signed_at); funil cumulativo (criados ⊇ enviados ⊇ assinados); métricas "do mês" = mês corrente sempre, rotuladas; pendências operacionais ignoram filtros.
+- **Bugs corrigidos**: números divergentes na mesma tela (MV sem arquivados × cálculo local com), KPIs Pendente ADVBOX/Drive contavam TODOS os assinados (colunas faltavam no select), anomalias mortas (liam campos inexistentes), jornada inflada por `updated_at`, "mediana" que era média ponderada de médias, top do mês por created_at, opções de filtro que encolhiam ao filtrar, dark mode quebrado (hex inline), GeoHeatmap baixava `dados` JSONB inteiro (agora só `dados->contratantes`).
+- **KPIs**: `useKpiPreferences` ganhou `assinados_mes` e `pipeline_aberto`; removidos `pendente_boletos`/`leads_ativos` (mortos desde a remoção da aba Leads). Export Excel respeita filtros ativos e ganhou colunas "Assinado em"/"Arquivado em".
+- **Tokens novos** em `index.css`: `--cbc-success/danger/warning/info` com override mais claro no dark mode (`:root.dark`).
+- **Validação 12/06**: harness Node com 108 asserções vs produção (10 cenários de filtro) + E2E logado local (dev e bundle minificado), light/dark, desktop/mobile, drill-downs, 0 erros de console. Usuário de teste temporário criado e removido do Supabase Auth.
+- O **"wizard de 7 passos"** descrito mais abaixo **não existe mais**. O formulário de criação (`FormPanel.jsx`, ~1750 linhas) hoje é um **formulário de seções numa página só**, com indicadores de progresso (bolinhas verde/vermelho) por seção.
+- **`components/Stepper.jsx` é CÓDIGO MORTO** — não é importado em lugar nenhum. Candidato a remoção (não usar como referência do wizard).
+- Sempre que este guia descrever telas/fluxo, **valide no app real** (ou via extensão Claude-in-Chrome logado) antes de implementar — a documentação atrás está atrasada.
+
+### Integração Kommo (CRM) — 02/06/2026
+
+O Kommo (`advocaciacbc.kommo.com`, API v4) deixou de ser só um link manual e passou a ter **integração de API real**. Tudo abaixo está **em produção e validado**.
+
+**Config / credenciais**
+- Env var **`KOMMO_TOKEN`** (long-lived token) configurada no Netlify (contexto `all`). Auth: `Authorization: Bearer`. Base: `https://advocaciacbc.kommo.com/api/v4`.
+- IDs fixos (cravados como constantes): funil **"Venda"** `pipeline_id = 13760367`; etapa **"ADVBOX"** `status_id = 106388919`.
+- ⚠️ **PENDÊNCIA DE SEGURANÇA**: o token foi exposto em chat em 02/06 — **rotacionar no Kommo e re-setar a env var** (`netlify env:set KOMMO_TOKEN ... --site d7b38821-...`). Não exige novo deploy.
+
+**Mover lead ao assinar** (`netlify/functions/advbox-sync.mjs`)
+- Depois de criar cliente + processo no ADVBOX, faz `PATCH /leads/{id}` movendo o lead para a etapa **ADVBOX/Venda**. Helpers `extrairLeadIdKommo()` + `moverLeadKommo()`.
+- Idempotente (PATCH para a mesma etapa é no-op). Falha **não derruba** o ADVBOX (vira `warning`); retry via botão "retry ADVBOX" no Monitor.
+- Lead extraído de `dados.contratantes[].linkKommo` (formato `.../leads/detail/{id}`).
+
+**Bolinha "Kommo" na timeline de automações** (`components/ContratosTab.jsx`)
+- 7º passo em `PROGRESS_STEPS` (`FunnelIcon`), acende quando `advbox_data.kommo.moved` tem itens. `getCompletedSteps` lê `contract.kommo_j?.moved || contract.advbox_data?.kommo?.moved`.
+- Select da lista usa o alias leve **`kommo_j:advbox_data->kommo`** (não puxa `advbox_data` inteiro).
+- **Backfill 02/06**: 12 contratos retroativos cujo lead já estava na etapa ADVBOX foram marcados via `advbox_data.kommo` com `source:'backfill'` (UPDATE manual).
+
+**Função `kommo-note.mjs` (nova) — notas idempotentes**
+- Posta nota (`note_type=common`) num lead **sem duplicar**: antes de postar faz `GET /leads/{id}/notes` e procura o `marker`. Body: `{ leadId | linkKommo, marker, text }`.
+- ⚠️ A API v4 do Kommo **não permite apagar nota** (DELETE→405). Há notas de teste no lead `5663306` (marcadas "ignorar").
+- Notas automáticas em produção (cada uma com seu marcador):
+  - **#14 `CBC.resumo`** — resumo do negócio (resort, ação, honorários, custas, contratante, Drive) ao assinar. Gancho: `advbox-sync.mjs`.
+  - **#16 `CBC.processo`** — número do processo + distribuição, **assim que o ADVBOX traz o `process_number`** (mais rápido que o DataJud). Gancho: `datajud-refresh.mjs`.
+  - **#18 `CBC.abriu`** — "abriu o contrato e não assinou" (usa `times_viewed` do ZapSign). Gancho: polling do `App.jsx`. ⚠️ roda **no navegador** (só com o app aberto). Idempotência: coluna `kommo_view_noted`.
+  - **#1 `CBC.fase:<fase>`** — mudança de fase (`stage/step`) do processo no ADVBOX. Gancho: `datajud-refresh.mjs`. Idempotência/anti-flood: coluna `advbox_fase_notificada` com **seed silencioso** (1ª leitura só registra a fase, não posta; nota só em mudanças).
+- Callers server-side (`advbox-sync`, `datajud-refresh`) chamam via `${process.env.URL}/.netlify/functions/kommo-note`; o frontend chama o caminho relativo.
+
+**Colunas novas em `contratos`** (migrations 02/06)
+- `kommo_view_noted boolean` (idempotência #18) · `advbox_fase_notificada text` (estado da fase #1).
+
+**Pendente**: migrar #18 para um gatilho server-side (webhook ZapSign) se quiser que funcione 24/7 sem app aberto. Demais ideias de integração Kommo↔sistema↔ADVBOX levantadas mas não implementadas (dezenas) — pedir a Paulo se quiser retomar.
+
+### Bot ADVBOX (autoatendimento Kommo×ADVBOX) — 09-10/06/2026 — VERSÃO DE TESTE **EM PRODUÇÃO**
+
+**Deploy feito em 10/06** (rollback: `./rollback.sh 6a2085d97131157b388bb672`). Automatizado via API: env `BOT_PANEL_KEY`/`VITE_BOT_PANEL_KEY` (chave forte no Netlify), campo Kommo `BOT_RESPOSTA` no lead (**field_id 2433130**), webhook `add_message` → `kommo-advbox-webhook`, field_id salvo em `bot_config.kommo`, 1ª rodada do monitor OK (26 notas postadas). **Falta (manual)**: criar Salesbot de 1 bloco exibindo `{{lead.cf.2433130}}` (POST /api/v4/bots = 405, não dá via API), colocar o bot_id no painel Config e marcar "ativo"; cadastrar testadores; opcional `ANTHROPIC_API_KEY`.
+
+Módulo novo completo (aba "Bot ADVBOX", permissão via `user_permissions.tabs.bot`). Guia completo: **`docs/BOT_ADVBOX_SETUP.md`**.
+
+- **Painel** `components/BotAdvboxPanel.jsx` + `components/bot/*` (8 abas: Simulador, Novidades, Etapas, Tarefas, Glossário, Intenções, Testadores, Config).
+- **Functions**: `advbox-bot-reply` (API painel/widget), `kommo-advbox-webhook` (+`advbox-bot-worker-background`), `advbox-monitor` (cron 12h/21h UTC, +`advbox-monitor-worker-background`). Libs compartilhadas em `netlify/functions/_lib/` (advbox, kommo, botDb, botEngine).
+- **Banco**: `supabase_bot_advbox.sql` — tabelas `bot_*` **JÁ APLICADAS** no Supabase (migration `bot_advbox_v1`) com seeds (43 termos de glossário, 6 intenções, configs).
+- **Segurança do teste**: no WhatsApp o worker só responde a telefones em `bot_testers`. Envio proativo = grava campo custom + `POST /api/v4/bots/run` (Salesbot exibe `{{lead.cf.#id#}}`).
+- **Pendências para ativar**: deploy (não feito — aguardando OK do Paulo), env `BOT_PANEL_KEY`/`VITE_BOT_PANEL_KEY` (default fraco `cbc-bot-2026`), config Kommo (campo BOT_RESPOSTA + Salesbot + webhook add_message), opcional `ANTHROPIC_API_KEY` p/ tradutor IA. Widget `kommo-widget/` é beta (zip manual).
+- **Validado por testes reais (09/06)**: settings (149 stages/216 tasks), busca por nome/CPF/CNJ, andamento com timeline traduzida, multi-processo com seleção numerada, escalonamento, comandos `#processo`/`#cliente`/`#reset`.
+- **10/06 — Central ADVBOX no Monitor (`MonitorAdvbox.jsx`)**: 1ª seção da aba Monitor — painel navy escuro com farol geral, grid das 5 integrações (Sincronização/Cadastros BI/Backfill/Catálogo/Bot WhatsApp, status por idade da última execução), botão "Testar API agora" (action `advbox_health` no advbox-bot-reply, ping cronometrado) e **console de eventos persistente**: tabela `advbox_api_log` (origem/nivel/mensagem/contexto/visto) alimentada por TODOS os workers via `logAdvbox()` (botDb) — erros expandem mostrando contexto JSON, com "marcar como visto" e filtros por nível/origem. MonitorPanel.jsx tocado minimamente (import + 1 seção; os 12 lint errors dele são pré-existentes).
+- **10/06 — otimização Supabase (com rollback)**: aplicado — 6 views vw_bi_* com `security_invoker=true` (zera os ERRORs do advisor), 3 índices de FK criados, 1 search_path fixado, 11 policies auth.*() com initplan cacheado, 8 policies redundantes removidas/consolidadas, **187 índices nunca usados dropados** (estatísticas desde mar/26; bot_*/bi_* excluídos). Validado: baseline anon de 15 tabelas 100% idêntico antes/depois + bot ok. **Rollback**: `backups/20260610_130001_supabase_otimizacao/rollback_completo.sql` (tb na tabela `_rollback_otimizacao_20260610` do banco). NÃO aplicado (exige aprovação por sistema): consolidação OR das policies não-true restantes, MVs na API, bucket teses-assets, extensões em public, e o estrutural RLS allow-all (101 tabelas).
+- **10/06 — espelho de cadastros p/ BI (`advbox-snapshot-worker-background`)**: disparado em sequência ao fim do monitor (6h30/17h30, nunca em paralelo — conjunto ≤15 req/min). Alimenta `bi_processos` (carteira, upsert) + `bi_processos_log` (diário de mudanças: etapa/quadro/responsável/fees_money/encerramentos → análise tempo-por-etapa), `bi_clientes`, `bi_financeiro`. Views p/ Power BI: `vw_bi_processos`, `vw_bi_funil`, `vw_bi_clientes`, `vw_bi_financeiro` (+ `vw_bi_andamentos`/`vw_bi_tarefas` já existentes). Status em `bot_config.snapshot_status`. Aniversários = derivar de `bi_clientes.nascimento` (sem GET extra). Agenda do monitor mudou p/ `30 9,20 * * 1-5` (6h30/17h30 BRT, seg–sex — janela de expediente); watchdog `*/30`. Backfill ganhou trava de instância única (body `{chain:true}` para hops; religadas manuais bloqueadas se checkpoint <3min).
+- **10/06 — visibilidade por tarefa/etapa ("ocultar do cliente")**: a antiga lista de "tarefas ignoradas" virou sistema de VISIBILIDADE — **tudo entra no banco/BI**, mas itens ocultos não aparecem p/ cliente (bot/notas Kommo/novidades). Duas camadas: flag `ocultar_cliente` em `bot_task_templates` e `bot_stage_templates` (checkbox no painel, salvo na hora; etapa oculta = bot mostra "Em andamento com nossa equipe" no lugar do nome técnico) + termos automáticos em `bot_config.monitor.tarefas_ignoradas` (cobre tarefas de sistema fora do catálogo: COMENTÁRIO, ALERTA DE TAREFA EXCLUÍDA, VERIFICAR INTERNO). Helper central: `getVisibilityConfig`/`isHiddenFromClient` em botDb. Monitor grava ocultas com communicated=true + payload.oculto; backfill idem. `vw_bi_tarefas` ganhou coluna `oculta_do_cliente`. Seed: 3 tipos "PUBLICAÇÃO TRATADA *" flagados. Motivo: planilha PRODUTIVIDADE mostrou que comentários+publicações tratadas = ~25% da produção da equipe (precisam estar no BI).
+- **10/06 — catálogo auto-sincronizado**: monitor sincroniza etapas/tarefas do `GET /settings` em `bot_config.catalogo` (diff de incluídas/excluídas guardado 30 dias; templates de itens excluídos são **desativados automaticamente** via `syncCatalog` em botDb). Painel `bot/BotPendencias.jsx` (topo da aba) mostra X/Y etapas e tarefas sem texto + novidades, com link p/ a sub-aba; Etapas/Tarefas ganharam filtro "só pendentes" e badges NOVA/ignorada. `advGet` agora tem retry de 429 (2x, espera 12s/24s).
+- **10/06 — escala + backfill**: throttle global ADVBOX baixado para **15 req/min** (metade do limite, zero atrito com outras integrações); monitor **paginado** (volume real: ~5,3k tarefas concluídas/mês); lista de **tarefas ignoradas** em `bot_config.monitor.tarefas_ignoradas` (alerta de tarefa excluída, publicação tratada, comentário, verificar interno — vale p/ monitor, backfill e respostas do bot, editável na Config); **backfill** (`advbox-backfill-background`, lotes encadeados de 12 min com cursor em `bot_config.backfill_status`, fase andamentos→tarefas, itens como communicated=true sem nota Kommo) com **barra de progresso em tempo real** (`bot/BackfillBar.jsx`, poll 5s, pausar/retomar); Etapas agrupadas por quadro (Marketing→…→Arquivamento via campo `step`); Novidades com busca (processo/cliente) e ordenação por coluna. Supabase org está no **plano Pro** (8 GB; banco ~144 MB; backfill ≈ +150 MB — folga enorme).
+
+### Otimizações aplicadas em 31/05/2026 (sessão de performance/escala)
+Frontend (deployados e verificados em produção logado):
+- **Dashboard**: select usa JSON-path (`dados->dataPrimeiraMensagem`, `dados->origemCliente`) em vez do JSONB `dados` inteiro.
+- **ContratosTab**: idem — lista puxa `dados->contratantes` em vez de `dados` completo (reconstrói `{contratantes}` no map).
+- **AuthContext / ContractContext**: `value` memoizado (`useMemo`).
+- **BoletosPanel**: `ClientCard` em `React.memo` + handlers `useCallback`; sessionStorage não serializa mais arrays grandes (>3000 linhas).
+- **ClientFormQR**: realtime + poll de fallback (60s).
+- **App.jsx**: select enxuto de `user_permissions`; health-check pausa quando aba oculta.
+- **keep-warm**: só aquece `health` e `zapsign-proxy`.
+
+Banco (Supabase, via migration):
+- Índices em FKs: `contrato_comentarios.user_id`, `notifications.user_id`.
+- RLS `initplan`: `auth.*()` envolvido em `(select auth.*())` em `contratos_audit`, `notifications`, `contrato_comentarios`.
+- **Gatilho `audit_contratos_trigger`**: passou a ignorar campos de sistema/automação (zapsign_links, advbox_*, drive_*, asaas_*, pdf_page_split) → ~95% menos linhas em `contratos_audit` (48MB→~3MB/mês). Continua auditando campos com valor jurídico.
+- ~~**Policies temporárias `temp_anon_all_asaas_boletos` e `temp_anon_all_asaas_sync_state`**~~ **(SUPERADO — atualizado 16/06/2026):** o remendo de liberar o `anon` foi **descartado**. Essas policies **não existem mais** no banco. A gravação do espelho Asaas agora passa por **RPCs `SECURITY DEFINER`** (`asaas_mirror_upsert/_update/_state/_cache/_stale_open`, `asaas_customers_upsert`) protegidas pelo segredo **`BOT_RPC_SECRET`** (helper `_bot_chave_ok`) — ver `client/netlify/functions/_lib/asaasMirror.mjs`. As tabelas `asaas_boletos`/`asaas_sync_state` continuam **fechadas** para o `anon`. Não há `temp_anon_*` para remover. ⚠️ Garantir que `BOT_RPC_SECRET` siga configurada no Netlify (sem ela as RPCs lançam "acesso negado" e o sync congela).
+
+Funções/infra:
+- `reminder-cron`: `*/5` → `*/15`.
+- `asaas-sync-boletos` (cron): agora grava erros no `asaas_error_log` (fim das falhas silenciosas).
+- `asaas-webhook` já fazia sync incremental de boletos (destravado pelo fix de RLS acima).
+- Novo: `.github/workflows/ci.yml` (build + lint no GitHub Actions). **Precisa de `git push` para ativar.**
+
+Correções de negócio:
+- **Inadimplência**: `DUNNING_RECEIVED` agora conta como **pago** (era contado como vencido, inflando o número). Sync completo de boletos refeito (estavam ~1 mês defasados por RLS).
+
+### ⚠️ Pendências de SEGURANÇA (prioridade máxima — exigem Paulo)
+1. **RLS aberta** em `contratos` e `user_permissions` (policy `Allow all`/`allow all` para role público/anon) → a chave anônima pública lê/escreve todos os contratos e a tabela de permissões. **Buraco grave.**
+2. **`SUPABASE_SERVICE_ROLE_KEY` não configurada no Netlify** → funções gravam como anon. (O caso do Asaas já foi resolvido via RPC `SECURITY DEFINER` + `BOT_RPC_SECRET` — ver acima; mas configurar a service role segue sendo o caminho definitivo para as demais gravações server-side.)
+3. Tokens ADVBOX/CPF-API ainda no bundle frontend (rotacionar + mover para proxies).
+
+### Documento completo de melhorias
+Ver **`SUGESTOES_MELHORIAS.md`** na raiz do projeto (356 sugestões em 12 dimensões). Obs: parte das sugestões de UX foi gerada a partir deste guia defasado e precisa ser re-validada contra o app v6.4.0 real.
+
+---
+
+## 1. Visão Geral
+
+### Objetivo do sistema
+**CBC Contratos** é um sistema web interno do escritório CBC Advogados que evoluiu de um gerador de contratos para uma **plataforma end-to-end de aquisição → contrato → cobrança → acompanhamento processual → relacionamento com o cliente**. Ciclo completo automatizado:
+
+1. Cadastro de cliente (com OCR de CNH/documentos)
+2. Geração de contrato + procuração em HTML/PDF/DOCX
+3. Envio para assinatura digital (ZapSign)
+4. Arquivamento automático no Google Drive (PDF/DOCX separados)
+5. Lançamento no CRM jurídico (ADVBOX) — cliente + processo + tarefas
+6. Movimentação do lead + notas automáticas no CRM comercial (Kommo)
+7. Emissão e régua de cobranças (Asaas — boletos + PIX + NF)
+8. Monitoramento de distribuição e fases processuais (DataJud CNJ + ADVBOX)
+9. Comissionamento de vendedores e BI da carteira (espelho ADVBOX → Power BI)
+10. Portal do cliente + bot de autoatendimento WhatsApp (Kommo×ADVBOX)
+
+### Público-alvo
+- **Advogados/sócios** — criam contratos, gerenciam processos, KPIs no Dashboard, Dashboard Sócios (gated por email)
+- **Secretárias/assistentes/vendedores** — preenchem formulários, acompanham assinaturas, aba "Minhas Vendas" (comissões, guias, requisitos)
+- **Administradores** (is_admin=true) — Painel Admin (usuários, permissões, audit), Parametrização de Vendas
+- **Clientes finais** — assinam via ZapSign, recebem cobrança Asaas, acessam o **Portal do Cliente** (acompanhamento) e conversam com o **bot WhatsApp**
+
+### Status atual
+- **Em produção ativa** — https://contratos-cbc.netlify.app
+- Versão atual: **v6.6.0** (12-13/06/2026). Histórico recente no bloco "Estado atual" acima; changelog completo em `client/src/components/ChangeLog.jsx`.
+- Conta Netlify: **Pro** ($20/mês, 1TB bandwidth), site `contratos-cbc` (ID `d7b38821-...`)
+- Supabase: org no **plano Pro** (8 GB), projeto `vygczeepvoyaehfchxko` — **compartilhado** com vários apps do escritório (Teses, Calculadora, Penhora, Prestação de Contas, Auditoria de Audiências…); o CBC Contratos usa um subconjunto das tabelas (ver §8)
+- Usuários ativos: advogados + secretárias + vendedores do escritório
+- **12 abas** (RBAC por `user_permissions.tabs`): Novo, Contratos, Minhas Vendas, Dashboard, Sócios, Asaas, Boletos, Bot ADVBOX, Portal Cliente, Monitor, Admin, Param. Vendas
+
+---
+
+## 2. Stack Tecnológica
+
+### Frontend (`client/`) — versões reais do `package.json`
+- **React 19.2** + **Vite 8.0** (Rolldown) + **@vitejs/plugin-react 6** — SPA com roteamento em abas
+- **Tailwind CSS 4.2** (`@tailwindcss/vite`) — design system com tokens `--cbc-*`
+- **@supabase/supabase-js 2.100** — auth + DB + realtime
+- **jsPDF 4.2 + html2canvas 1.4 + pdf-lib 1.17** — geração e split de PDF (preview touch usa HTML, não PDF)
+- **docx 9.6** — contrato/procuração em Word
+- **Tesseract.js 7.0** — OCR client-side (CNH/CPF/RG)
+- **react-window 1.8** — virtualização (lista de boletos)
+- **fuse.js 7.3** — fuzzy search (GlobalSearch)
+- **canvas-confetti 1.9** — celebrações · **qrcode 1.5** — QR do Portal/ClientForm
+- **web-push 3.6** — push notifications do Portal do Cliente
+- **@sentry/react 10.47** — error tracking · **xlsx 0.18** — export Excel
+- **@heroicons/react 2.2** — ícones (emojis substituídos)
+- Dev: **eslint 9** (flat config) + plugins react-hooks/react-refresh, **vitest 3** (testes em `utils/__tests__`), **sharp** (otimização de imagem no build)
+- ⚠️ **Leaflet/react-leaflet e file-saver foram REMOVIDOS** (tree-shaking 04/2026) — GeoHeatmap hoje é lista/barras, não mapa Leaflet.
+
+### Backend (`server/`) — automações pesadas + backup
+- **Node.js + Express 5** · **node-cron 4.2** — backup diário 03:00 BRT
+- **Puppeteer 24.40** — renderização PDF server-side · **Tesseract.js + por.traineddata** (OCR PT)
+- **@aws-sdk/client-s3 3.x** — backup redundante em S3
+- ⚠️ Pouco usado no dia a dia: o grosso das automações migrou para Netlify Functions. `server/index.js` é monolito; existe `server/src/*` modular (cutover nunca feito).
+
+### Serverless (`client/netlify/functions/`)
+- **40 Netlify Functions** em `.mjs` (Node 22) + **5 libs compartilhadas** em `_lib/` (`advbox.mjs`, `kommo.mjs`, `botDb.mjs`, `botEngine.mjs`, `asaasMirror.mjs`)
+- **2 Edge Functions** (`edge-functions/health.ts`, `zapsign-proxy.ts`) — frontend chama `/api/*` com fallback p/ `/.netlify/functions/*` (`utils/apiEndpoints.js`)
+- Famílias: `advbox-*` (sync/bot/monitor/backfill/snapshot/vendas), `asaas-*` (sync/webhook/boleto-code), `kommo-*` (note/advbox-webhook), `portal-*` (data/admin/feedback/pergunta/push/manifest), `zapsign-*` (proxy/webhook), `save-to-drive*`, `datajud-refresh`, `commission-calculator`, `cobranca-regua`, `reminder-cron`, `keep-warm`, `health`, `cpf-lookup`, `api-powerbi`, `api-rest`, `rate-limit`
+- Crons nativos Netlify (ver §8 para schedules reais)
+
+### Integrações externas
+| Serviço | URL | Função |
+|---------|-----|--------|
+| **Supabase** | `vygczeepvoyaehfchxko.supabase.co` | DB + Auth + Realtime (projeto compartilhado) |
+| **ZapSign** | `api.zapsign.com.br/api/v1` | Assinatura eletrônica (+ webhook nativo) |
+| **ADVBOX** | `app.advbox.com.br/api/v1` | CRM jurídico (cliente/processo/tarefas/andamentos) |
+| **Asaas** | `api.asaas.com/v3` | Pagamentos (boleto/PIX/NF) + webhook |
+| **Kommo** | `advocaciacbc.kommo.com/api/v4` | CRM comercial: mover lead + notas + bot WhatsApp |
+| **DataJud CNJ** | `api-publica.datajud.cnj.jus.br` | Distribuição/ajuizamento de processos |
+| **Google Apps Script** | `script.google.com/macros/s/...` | Upload Google Drive |
+| **Anthropic** (opcional) | `api.anthropic.com` | Tradutor IA do bot (`ANTHROPIC_API_KEY`) |
+| **ViaCEP / CPF API** | via `apiLookup.js` / `cpf-lookup.mjs` | CEP e validação de CPF |
+| ~~**ChatGuru**~~ | **REMOVIDO 23/05/2026** | substituído pelo Kommo. Arquivos legados (`supabase_chatguru_automations.sql`, env `CHATGURU_KEY`) ainda no repo mas inertes. |
+
+### Hospedagem
+- **Netlify** (Pro) — SPA + Functions + Edge — site ID `d7b38821-22e9-4308-8fda-a8f124a65b72`
+- **Supabase** (Pro, compartilhado) — PostgreSQL + Auth + Realtime
+- **AWS S3** — backup redundante diário (via `server/`)
+
+---
+
+## 3. Estrutura de Pastas
+
+```
+cbc-contratos/
+├── CLAUDE.md                      ← Este arquivo (guia do projeto)
+├── client/                        ← Frontend React + Vite (SPA)
+│   ├── src/
+│   │   ├── components/            ← 43 componentes (.jsx) + subpastas:
+│   │   │   ├── bot/               ← 11 sub-paineis do Bot ADVBOX + botApi.js
+│   │   │   ├── contratos/         ← CardsView, KanbanView, ViewsManager,
+│   │   │   │                         ContractComments, PresenceIndicator
+│   │   │   └── dashboard/         ← compute.js (lógica), widgets.jsx, format.js
+│   │   ├── hooks/                 ← 13 hooks (useDeviceType, useDensity, useEmpreendimentos,
+│   │   │                             useKpiPreferences, useNotifications, usePresence,
+│   │   │                             useUndo, useScrollRestoration, usePersistedFilters…)
+│   │   ├── utils/                 ← 26 módulos (pdfGenerator, docxGenerator, ocrService,
+│   │   │   │                         zapsignService, advboxService, apiLookup, masks,
+│   │   │   │                         celebrations, importContrato, commissionClient…)
+│   │   │   └── __tests__/         ← testes vitest
+│   │   ├── steps/                 ← Step1..7 — ⚠️ CÓDIGO MORTO (wizard antigo, não importado)
+│   │   ├── data/                  ← clausulas.js (RESORTS ~99 + cláusulas-modelo)
+│   │   ├── lib/                   ← Cliente Supabase
+│   │   ├── App.jsx                ← Raiz da SPA (12 abas, dock mobile, automações globais — ~1560 linhas)
+│   │   ├── AuthContext.jsx        ← Auth Supabase + detecção de login anômalo
+│   │   ├── ContractContext.jsx    ← Estado do contrato (localStorage)
+│   │   └── index.css              ← Design tokens + componentes Tailwind + seção MOBILE REDESIGN
+│   ├── public/                   ← _headers, favicons, logos (webp+png), portal.html, portal-sw.js
+│   ├── netlify/
+│   │   ├── functions/             ← 40 funções (.mjs) + _lib/ (5 libs compartilhadas)
+│   │   └── edge-functions/        ← health.ts, zapsign-proxy.ts
+│   ├── dist/                      ← Build de produção (Vite)
+│   ├── deploy.sh / rollback.sh / check-bandwidth.sh
+│   ├── netlify.toml · vite.config.js · package.json
+├── server/                        ← Backend Node.js (Puppeteer/OCR/backup S3)
+│   ├── index.js (monolito) · src/* (modular, cutover pendente) · por.traineddata
+├── docs/                          ← BOT_ADVBOX_SETUP, PORTAL_CLIENTE, ADVBOX_API_REFERENCIA,
+│   │                                ASAAS_ESPELHO, POWERBI_CONEXAO, RUNBOOK, ROLLBACK_PLAYBOOK,
+│   │                                SMOKE_CHECKLIST, SUGESTOES_*
+├── backups/                       ← Backups timestamped (um por alteração crítica)
+├── supabase_*.sql                 ← Migrations versionadas (setup, v2, upgrade, p1_scale,
+│                                     bot_advbox, vendas_comissoes, drive_retry_columns,
+│                                     boletos_backfill, audit_import; leads/chatguru = legado)
+└── render.yaml                    ← Config de deploy alternativo (Render, não usado)
+```
+> O `client/` é a raiz do app no Netlify (build/deploy partem dele). A pasta `steps/` e `components/Stepper.jsx` são **código morto** do wizard antigo — não usar como referência.
+
+---
+
+## 4. Funcionalidades Implementadas
+
+As 12 abas (gated por `user_permissions.tabs`, exceto **Sócios** que é gated por email). Lazy-loaded com prefetch no hover (`App.jsx`).
+
+### Novo Contrato (`FormPanel.jsx` ~1750 linhas)
+- **Formulário de seções numa página só** (NÃO é mais wizard de 7 steps), com bolinhas de progresso verde/vermelho por seção e Live Preview lado a lado (desktop) / segmented control Formulário-Contrato-Procuração (mobile)
+- **OCR de CNH** via Tesseract (câmera ou upload, 3 fases com progresso) · **busca por CPF** preenche os campos · **busca por nome** sugere clientes do histórico
+- Máscaras (CPF/CEP/telefone/RG), validação em tempo real, **detecção de gênero** ajusta profissão/estado civil, **prioridade idoso** (≥60), autocomplete CEP (ViaCEP)
+- **Detecção de duplicatas** (CPF+Resort) e **conflitos entre cláusulas**; ~99 resorts + criação de novos (`empreendimentos`); cláusulas auto-geradas + avulsas, reordenáveis (drag no desktop, ↑/↓ no touch)
+- Honorários: Apenas Iniciais | Apenas Êxito | Iniciais + Êxito · salvar como rascunho (localStorage, offline-first) · gerar PDF/DOCX · enviar ao ZapSign (com checklist pré-envio)
+
+### Contratos Salvos (`ContratosTab.jsx`)
+- Visões **Lista / Cards / Kanban** (`contratos/*`) + **Views salvas** por usuário (`user_views`)
+- Busca, filtros (status/resort/tipo/data), "Ver arquivados", seleção em massa, **arquivar** contratos
+- Expansão inline com **timeline de automações** (`PROGRESS_STEPS`: Salvo→Aguardando→Assinado→Pasta→Cliente ADVBOX→Processo ADVBOX→Kommo)
+- Envio/retry ZapSign·ADVBOX·Drive individual, comentários (`contrato_comentarios`) + presença em tempo real, importar contrato assinado externo, export Excel
+
+### Minhas Vendas (`VendasPanel.jsx`) + Param. Vendas (`VendasParametrizacaoPanel.jsx`)
+- Painel do vendedor/assistente: carteira, **comissões** (`vendas_comissoes_*`), **guias de custas**, **requisitos de documentos** enviados, leads rápidos, metas, **promoções sazonais**
+- Kanban com mover por toque; Param. Vendas (admin): regras de comissão, tipos/requisitos de documento, metas, expectativa de honorários, matriz resort×tipo
+- Backend: `commission-calculator` (cron mensal), `advbox-vendas-sync`, `commissionClient.js`
+
+### Dashboard (`Dashboard.jsx` + `dashboard/*`) — redesenhado 12/06 (ver topo)
+- Filtros globais (período por chips, resort, tipo, incluir arquivados) que valem para a página inteira; **KPIs sensíveis ao período**; **comparador de meses**; funil cumulativo; produção mensal (criados×assinados / receita); jornada e tempo até distribuição com drill-down; insights automáticos; GeoHeatmap (lista/barras por UF, não Leaflet); HeatmapTemporal; export Excel respeitando filtros
+
+### Dashboard Sócios (`SociosDashboard.jsx`) — gated por email (`SOCIOS_EMAILS`)
+- Financeiro (receita/projeção/inadimplência/top), Operacional (funil/tempo/êxito), Equipe (produtividade/ranking), Estratégico (YoY/top resorts/ação mais rentável)
+
+### Asaas + Boletos (`AsaasPanel.jsx`, `BoletosPanel.jsx`)
+- Boletos+PIX automáticos ao assinar, parcelamento, **NF automática** via `asaas-webhook`, **régua de cobrança** (`cobranca-regua`)
+- Espelho de boletos/clientes (`asaas_boletos`/`asaas_customers`), sync 2x/dia + manual; faixa de **inadimplência** (`InadimplenciaStrip`, `inadimplencia_historico`); relatório PDF; drawer de contrato; conferência de NF
+
+### Bot ADVBOX (`BotAdvboxPanel.jsx` + `bot/*`) — autoatendimento Kommo×ADVBOX
+- 8 sub-abas (Simulador, Novidades, Etapas, Tarefas, Glossário, Intenções, Testadores, Config) + Métricas/Pendências
+- Responde no WhatsApp via Kommo: andamento processual traduzido, busca por nome/CPF/CNJ, multi-processo, escalonamento; visibilidade por etapa/tarefa ("ocultar do cliente"); catálogo auto-sincronizado; backfill. Guia: `docs/BOT_ADVBOX_SETUP.md`
+
+### Portal do Cliente (`PortalClientePanel.jsx`) — gestão dos links
+- Gera/gerencia tokens de acesso (`portal_tokens`/`cliente_portal_tokens`), conteúdo por seções, FAQ, perguntas do cliente, NPS, push notifications. Página pública servida por `portal.html` + functions `portal-*`. Guia: `docs/PORTAL_CLIENTE.md`
+
+### Monitor (`MonitorPanel.jsx` + `MonitorAdvbox.jsx`)
+- Central ADVBOX (farol das 5 integrações + console de eventos `advbox_api_log` + "Testar API agora"), filas de automação, detecção de loops (>5min), histórico, erros 24h, **health check** dos serviços (Supabase, Asaas, ZapSign, Apps Script — sem ChatGuru), SLOs (`HealthSlos`), `SupabaseHealthMonitor`
+
+### Admin (`AdminPanel.jsx`) — apenas is_admin=true
+- Gestão de usuários/permissões (matriz tab×usuário, grava na hora), audit log, backup/export
+
+### Automações globais (`App.jsx`, polling a cada **5 min** = 300000ms)
+1. Contratos `enviado_zapsign` → `/api/zapsign` (status) → se todos assinaram, vira `assinado` (webhook ZapSign também atualiza em tempo real)
+2. Nota Kommo "abriu e não assinou" (#18, idempotente via `kommo_view_noted`)
+3. Assinados sem ADVBOX → `advbox-sync` (lock atômico) · assinados com `linkGoogleDrive` sem `drive_file_id` → `save-to-drive` (retry robusto: max 3 tentativas, auto-recovery de lock órfão >5min, erros determinísticos não retentam)
+
+### Features de UX transversais
+- Dark mode (tokens `--cbc-*`), densidade ajustável, splash inline, glassmorphism, ripple, celebrações com confete (meta mensal/milestones/assinatura rápida/novo resort), favicon dinâmico ao assinar, banner "PRA CIMA CBC!", health indicator, autosave indicator, error boundaries por aba, skeletons, Undo (Cmd+Z, 10s), busca global (Cmd+K / lupa no touch), atalhos (Cmd+N/S/P/D, Cmd+1/2/3), dock flutuante mobile com "Mais" (todas as abas)
+
+---
+
+## 5. Funcionalidades em Andamento
+
+> O histórico detalhado por sessão (abril→junho/2026) está no bloco **"Estado atual"** no topo deste guia e no `ChangeLog.jsx`. Aqui ficam só os fios soltos atuais.
+
+### Pendências ABERTAS que exigem ação manual do Paulo
+1. **`SUPABASE_SERVICE_ROLE_KEY` no Netlify** — sem ela várias functions gravam como anon, esbarrando no RLS allow-all. (O Asaas já contornou isso via RPC `SECURITY DEFINER` + `BOT_RPC_SECRET`; as policies `temp_anon_*` foram removidas.) Configurar a service role segue prioritário para o resto. **Prioridade.**
+2. **RLS allow-all** em `contratos`, `user_permissions` e ~101 tabelas — a anon key pública lê/escreve tudo (ver §Pendências de SEGURANÇA no topo).
+3. **Rotacionar tokens expostos**: `KOMMO_TOKEN` (exposto em chat 02/06), `VITE_ADVBOX_TOKEN`/`VITE_CPF_API_TOKEN` (no bundle) — e movê-los para proxies server-side.
+4. **Bot ADVBOX**: criar Salesbot de 1 bloco no Kommo (exibe `{{lead.cf.2433130}}`), colar bot_id no painel Config e marcar "ativo"; cadastrar testadores; opcional `ANTHROPIC_API_KEY`.
+5. ~~**Remover policies `temp_anon_all_asaas_*`**~~ **FEITO** — já removidas; Asaas grava via RPC `SECURITY DEFINER` + `BOT_RPC_SECRET` (16/06/2026).
+
+### Dívida técnica conhecida (não urgente)
+- `steps/` + `Stepper.jsx` = código morto (wizard antigo) — candidatos a remoção.
+- `server/src/*` modular existe mas o cutover do monolito `index.js` nunca foi feito.
+- `api-powerbi` ainda serve dados via function (migrar para view); arquivos legados ChatGuru/Leads no repo.
+- Sem suíte de testes ampla (só alguns `utils/__tests__` em vitest).
+
+### Ideias levantadas mas não implementadas
+- Migrar a nota Kommo #18 ("abriu e não assinou") para webhook ZapSign server-side (hoje roda no navegador, só com o app aberto).
+- Aniversários automáticos, alertas de prazo, notas internas com contexto processual.
+- Dezenas de sugestões em `SUGESTOES_*.md` e `docs/SUGESTOES_PORTAL_*.md` (revalidar contra o app real).
+
+---
+
+## 6. Regras de Negócio
+
+### REGRAS CRÍTICAS — Nunca podem ser violadas
+
+### REGRA #1: Backup antes de alterar arquivos de produção
+Antes de qualquer edição em arquivos no `client/` ou `netlify/functions/`, copiar para `backups/YYYYMMDD_HHMMSS_motivo/`. **Nunca usar `rm`** em arquivos de projeto.
+
+### REGRA #2: Fluxo de status do contrato (imutável)
+```
+rascunho → enviado_zapsign → assinado
+                                  ↓
+                    [ADVBOX + Drive + Asaas disparam]
+```
+Status `cancelado` existe mas é tratado separadamente (não conta em estatísticas nem duplicatas).
+
+### REGRA #3: Lock atômico em automações
+Toda automação que pode disparar múltiplas vezes (Drive upload, ADVBOX sync) usa **lock atômico via UPDATE condicional no Supabase** para evitar processamento duplicado. Se lock ficar órfão >5min, auto-recovery libera.
+
+### REGRA #4: Campos obrigatórios do contratante (por contratante)
+Nome, nacionalidade, profissão, estado civil, RG, CPF (000.000.000-00), email, data nascimento, telefone, **Link Kommo** (URL), CEP (00000-000), UF (27 estados), endereço, número, bairro, cidade. Definidos em `CONTRATANTE_FIELDS` (FormPanel) → alimentam `isFormComplete` (botões Salvar/PDF/ZapSign ficam desabilitados se faltar qualquer um) + `validateChecklist` (App.jsx, gate de envio) + `PreSendChecklist`. **Link Kommo virou obrigatório em 14/06/2026** (antes o label/checklist diziam "opcional", contradizendo o gate que já o exigia); deve ser uma URL (`https?://...`) — habilita mover lead + notas no CRM.
+
+### REGRA #5: Modos de honorário
+- **Apenas Iniciais**: total + parcelas + data 1ª parcela obrigatórios
+- **Apenas Êxito**: percentual (0-100%) obrigatório
+- **Iniciais + Êxito**: todos os campos obrigatórios
+
+### REGRA #6: Deduplicação
+Ao criar contrato, verifica CPF+Resort em contratos **não cancelados**. Mostra alerta com contratos existentes (não bloqueia).
+
+### REGRA #7: RBAC via `user_permissions`
+Usuário novo recebe tabs `{novo: true, contratos: true, dashboard: true, leads: true, outros: false}` e `is_admin: false`. Apenas admins alteram flags de outros.
+
+### REGRA #8: Paulo Conforto é admin master (`paulo@advocaciacbc.com`)
+Todas as tabs ativas + `is_admin: true`. Nunca remover.
+
+### REGRA #9: ADVBOX — responsável padrão
+Todo processo novo é atribuído a **PAULO CONFORTO (ID 241495)** como responsável. Estágio inicial: **3795429 (ASSINADO AUTOMAÇÃO)** no grupo NEGOCIAÇÃO.
+
+### REGRA #10: Tipo de ação → ID ADVBOX
+Mapeamento fixo em `advboxService.js` (ex: "Ação de cobrança" → ID 2151644). Nunca alterar sem atualizar tabela de mapeamento.
+
+### REGRA #11: Comunicação com cliente é via Kommo (ChatGuru removido)
+O envio automático de WhatsApp foi **desligado** (23/05/2026). O operador envia o link de assinatura manualmente pela conversa do contratante no Kommo. As automações Kommo (mover lead, notas) e o bot WhatsApp consideram fuso America/Sao_Paulo. Datas/horas server-side sempre em BRT.
+
+### REGRA #12: Prioridade Idoso
+Cliente com idade ≥60 anos gera alerta visual automático. Data nascimento é obrigatória para cálculo.
+
+### REGRA #13: Detecção de login anômalo
+Loga em `activity_log` se login ocorrer fora de 6h-23h OU fora do Brasil (geolocalização IP). Exibe warning ao usuário.
+
+### REGRA #14: Deploy sempre `--prod`, nunca preview
+Preview deploys consomem bandwidth desnecessária. O `deploy.sh` já força `--prod`.
+
+### REGRA #15: Netlify bandwidth
+Pro plan = 1TB/mês. Monitorar com `check-bandwidth.sh`. Alerta em 80%.
+
+### REGRA #16: Sempre listar sugestões antes de executar
+**Nunca alterar código sem listar as mudanças propostas e obter aprovação explícita do Paulo.** (Regra da memória do usuário.)
+
+### REGRA #17: Supabase — chave anon é pública
+A anon key está no bundle do frontend — é por design. Segurança deve vir de **RLS policies** no banco.
+
+### REGRA #18: Cláusula 1 (Objeto) — sempre auto-gerada
+Baseada em resort + tipo de ação. Não pode ser editada manualmente no fluxo padrão.
+
+### REGRA #19: Geração de DOCX
+Contrato + procuração geram DOCX separados com templates independentes (`generateContractDocxBlob` e `generateProcuracaoDocxBlob`).
+
+### REGRA #20: Split de PDF assinado
+Após assinatura, `save-to-drive` usa `pdf-lib` para separar contrato (primeiras N páginas) + procuração (N+1 até total) + relatório ZapSign (páginas adicionais no fim).
+
+---
+
+## 7. Identidade Visual
+
+### Paleta Principal
+```
+Navy (primária):     #1B3A5C
+Navy light:          #264A72
+Navy dark:           #0F2035
+Gold (accent):       #C9A84C
+Dark gold:           #B8860B
+Creme (fundo):       #F0F4F8
+Creme dark:          #E4EAF0
+```
+
+### Status
+```
+Success:  #16A34A (verde)
+Error:    #DC2626 (vermelho)
+Warning:  #D97706 (laranja)
+Info:     #2563EB (azul)
+```
+
+### Tipografia
+- **Cormorant Garamond** (400, 600, 700) — títulos de contratos, logo CBC
+- **Lato** (300, 400, 700) — UI geral
+- **Fallback**: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto`
+- **Tamanho base**: 15px
+- **Labels**: uppercase com `tracking-wide`
+
+### Design Tokens (`--cbc-*`)
+Design system custom com variáveis CSS em `index.css`. Tempo de transição padrão: 200ms.
+
+### Componentes-Chave
+
+**Botões**
+- `.btn-primary` — Navy + branco, uppercase, sombra
+- `.btn-outline` — borda Navy 2px, hover inverte
+- `.btn-press` — scale 0.96 ao clicar
+- `.btn-ripple` — onda radial ao pressionar
+
+**Cards**
+- `.card` — branco, `rounded-xl`, shadow `0 1px 6px rgba(0,0,0,.09)`
+- `.card-header` — Navy fundo, texto branco uppercase
+- `.glass-card` — `rgba(255,255,255,0.85) + backdrop-filter blur(10px)`
+
+**Inputs**
+- `.input-field` — border gray-300, focus ring azul 2px
+- `.input-error` / `.input-valid` / `.input-invalid` — estados
+
+**Animações**
+- `fadeIn`, `fadeInUp`, `slideDown` — 300ms
+- `shake`, `shakeError` — validação
+- `ocrPulse` 2s — auto-preenchimento
+- `tabFadeIn` 250ms — troca de abas
+- `celebrationSlide` 4s — banner de assinatura
+- `shimmerWave` 1.8s — skeletons
+- `requiredPulse` — campos obrigatórios vazios
+
+### Padrões de Layout
+- Cards: `p-4` a `p-6`
+- Inputs: `py-2.5 px-3.5 rounded-lg`
+- Labels: `mb-1 text-xs font-bold uppercase tracking-wide`
+- **Mobile/iPad-portrait**: dock flutuante (`.dock-floating`) com 4 itens — Novo, Salvos, Dashboard e **Mais** (abre `MobileNavSheet` com todas as abas permitidas). Desktop e iPad-landscape: top tabs. Tudo que é mobile-only fica atrás de `max-sm:`/`pointer:coarse`/`isMobile`/`dockVisible` (ver §"Mobile 2.0" no topo).
+
+---
+
+## 8. Integrações e Configurações
+
+### Variáveis de Ambiente (Netlify)
+
+**Backend (Netlify Functions)**
+| Variável | Descrição |
+|----------|-----------|
+| `ADVBOX_TOKEN` | Token ADVBOX |
+| `ASAAS_API_KEY` | Key Asaas (prefixo `$aact_prod_*`) |
+| `ZAPSIGN_TOKEN` | Token ZapSign |
+| `KOMMO_TOKEN` | Token long-lived Kommo API v4 (mover lead + notas + bot). ⚠️ exposto em chat 02/06 — **rotacionar** |
+| `BOT_PANEL_KEY` | Auth do painel/widget do Bot ADVBOX (default fraco `cbc-bot-2026`) |
+| `ANTHROPIC_API_KEY` | Opcional — tradutor IA do bot |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role (bypass RLS) — ⚠️ **não configurada** (functions gravam como anon) |
+| `WEBHOOK_SECRET` | Valida webhooks externos |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Push notifications do Portal (`web-push`) |
+| `POWERBI_API_KEY` | Auth da `api-powerbi` (default fraco `cbc-powerbi-2026`) |
+| `REST_API_KEYS` | Auth da `api-rest` (default fraco `cbc-api-2026`) |
+| `CHATGURU_KEY` | **Legado/inerte** (ChatGuru removido) |
+| `URL` | Base do site (Netlify injeta) — callers server-side de `kommo-note` etc. |
+
+**Frontend (Vite)**
+| Variável | Descrição |
+|----------|-----------|
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | Supabase (anon key é pública por design) |
+| `VITE_ADVBOX_TOKEN` | ⚠️ **EXPOSTO** no bundle (rotacionar + mover p/ proxy) |
+| `VITE_CPF_API_TOKEN` | ⚠️ **EXPOSTO** no bundle |
+| `VITE_BOT_PANEL_KEY` | Espelho de `BOT_PANEL_KEY` para o painel do bot |
+| `VITE_API_URL` | `http://localhost:3001` (server local, dev) |
+
+**Backend server (S3)**: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION=us-east-1`, `S3_BACKUP_BUCKET=cbc-contratos-backups`
+
+### Netlify
+- **Site ID**: `d7b38821-22e9-4308-8fda-a8f124a65b72`
+- **Plano**: Pro ($20/mês)
+- **Token de deploy**: `nfp_NCnV8aNCqGMSJNuWjXWZR9Bdubhkvubbe458` (em `deploy.sh`)
+- **URL produção**: https://contratos-cbc.netlify.app
+
+### Supabase
+- **URL**: `https://vygczeepvoyaehfchxko.supabase.co` · **Project ID**: `vygczeepvoyaehfchxko`
+- ⚠️ **Banco COMPARTILHADO** entre vários apps do escritório. Prefixos de OUTROS apps (não tocar): `teses_*`, `calc_*`, `penhora_*`, `aud_*`, `dc_*`, `crm_*`, `cbc_*` (prestação/financeiro), `calculos`, `levantamentos`, `acordos`, `prest_*`. **Use sempre prefixo/nome exato ao mexer no banco.**
+- **Tabelas do CBC Contratos** (por domínio):
+  - Contratos: `contratos` (73 cols, JSONB `dados`), `contratos_audit`, `contrato_comentarios`, `empreendimentos`, `user_views`, `client_mapping`, `import`(audit)
+  - Acesso/sistema: `user_permissions`, `user_reminders`, `user_notification_prefs`, `notifications`, `activity_log`(+archive), `audit_log`, `automation_log`, `error_log`, `integration_logs`, `active_sessions`
+  - Asaas/cobrança: `asaas_boletos`, `asaas_customers`, `asaas_customer_notes`, `asaas_sync_state`, `asaas_error_log`, `asaas_access_log`, `inadimplencia_historico`, `cobranca_regua`
+  - Kommo/ADVBOX: `advbox_api_log`, `contatos_kommo_diario`
+  - Bot ADVBOX: `bot_config`, `bot_glossary`, `bot_intents`, `bot_stage_templates`, `bot_task_templates`, `bot_testers`, `bot_sync_state`, `bot_conversations`, `bot_messages`, `bot_ai_cache`, `bot_secrets`
+  - BI (espelho ADVBOX → Power BI): `bi_processos`(+log), `bi_clientes`, `bi_financeiro`, `bi_funil_historico`, views `vw_bi_*`
+  - Vendas/comissões: `vendas_comissoes_mensais`(+detalhe), `vendas_comissao_regras`, `vendas_metas`, `vendas_documentos_*`, `vendas_guias_custas`, `vendas_expectativa_honorarios`, `vendas_promocoes_sazonais`, `vendas_leads_rapidos`, `vendas_advbox_mapping`
+  - Portal do Cliente: `portal_tokens`, `cliente_portal_tokens`, `portal_faq`, `portal_perguntas`, `portal_comentarios`, `portal_nps`, `portal_push_subs`, `portal_access_log`, `portal_cliente_flags`, `portal_acessos_diario`
+- **RLS**: habilitado mas **allow-all** na maioria (buraco conhecido — ver §SEGURANÇA). Service role ainda não configurada; o Asaas grava via RPC `SECURITY DEFINER` + `BOT_RPC_SECRET` (as antigas `temp_anon_*` foram removidas).
+
+### Webhooks recebidos
+- `asaas-webhook` — pagamento confirmado → emite NF + sync incremental de boletos
+- `zapsign-webhook` — assinatura concluída → atualiza status em tempo real (backup do polling)
+- `kommo-advbox-webhook` — `add_message` do Kommo → dispara o bot (`advbox-bot-worker-background`)
+- `portal-feedback` / `portal-pergunta` / `portal-push` — interações do Portal do Cliente
+
+### Crons agendados (Netlify — `schedule` na própria function, BRT = UTC−3)
+| Função | Schedule (UTC) | Quando (BRT) |
+|--------|----------------|--------------|
+| `advbox-monitor` | `30 9,20 * * 1-5` | 06h30 e 17h30, seg–sex (+ snapshot BI em sequência) |
+| `advbox-backfill-watchdog` | `*/30 * * * *` | a cada 30 min |
+| `advbox-vendas-sync` | `0 9,15,21 * * *` | 06h/12h/18h |
+| `asaas-sync-customers` | `0 9 * * *` | 06h |
+| `asaas-sync-boletos` | `0 9,21 * * *` | 06h e 18h |
+| `cobranca-regua` | `30 13 * * 1-5` | 10h30, seg–sex |
+| `commission-calculator` | `5 3 20 * *` | dia 20, 00h05 |
+| `datajud-refresh` | `0 11 * * *` | 08h |
+| `bot-rotina-semanal` | `0 10 * * 1` | seg 07h |
+| `reminder-cron` | `*/15 * * * *` | a cada 15 min |
+| `keep-warm` | `*/10 * * * *` | a cada 10 min (cold start de `health`/`zapsign-proxy`) |
+
+### Crons Server Node
+- Backup diário completo: **03:00 BRT** (contratos + clausulas + audit_log → local + S3)
+
+### Google Apps Script
+- URL: `https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec`
+- Função: recebe base64 de PDF/DOCX + folderId → upload para Google Drive
+
+---
+
+## 9. Como Rodar o Projeto
+
+### Pré-requisitos
+- Node.js 22+ (testado com 24.14)
+- npm 10+
+
+### Instalação
+```bash
+# Na raiz do projeto
+npm install
+
+# Frontend
+cd client && npm install
+
+# Backend
+cd ../server && npm install
+```
+
+### Desenvolvimento (ambiente local)
+```bash
+# Na raiz — roda client + server em paralelo
+npm run dev
+
+# Ou individualmente:
+cd client && npm run dev              # Vite em http://localhost:5173
+cd server && npm run dev              # Express em http://localhost:3001
+```
+
+### Build de produção
+```bash
+cd client
+npm run build
+# Output em dist/
+```
+
+### Deploy para produção
+```bash
+cd client
+
+# Opção 1: script local (recomendado)
+./deploy.sh
+
+# Opção 2: manual via Netlify CLI
+NETLIFY_AUTH_TOKEN="nfp_..." npx netlify-cli deploy --prod \
+  --dir=dist \
+  --functions=netlify/functions \
+  --site="d7b38821-22e9-4308-8fda-a8f124a65b72"
+```
+
+### Rollback
+```bash
+cd client
+./rollback.sh                        # Usa .last-working-deploy
+./rollback.sh <deploy_id>            # Rollback para deploy específico
+```
+
+### Monitoramento de bandwidth
+```bash
+cd client
+./check-bandwidth.sh                 # Mostra uso atual + alerta se >80%
+```
+
+### Scripts Supabase (migrations versionadas — já aplicadas em produção)
+As `supabase_*.sql` na raiz são o histórico de migrations. As principais já estão no banco: `setup` (contratos), `v2` (audit/versões), `upgrade` (user_permissions), `p1_scale` (índices/RLS initplan), `bot_advbox` (tabelas `bot_*`), `vendas_comissoes`, `drive_retry_columns`, `boletos_backfill`, `audit_import`. **Legado inerte**: `leads`, `chatguru_automations`. Ao criar tabela nova, prefira `apply_migration` via MCP do Supabase e adicione o `.sql` correspondente.
+
+### Lint
+```bash
+cd client
+npm run lint
+```
+
+---
+
+## 10. Próximos Passos
+
+### Prioridade ALTA — Segurança (ver detalhes no topo)
+1. **Configurar `SUPABASE_SERVICE_ROLE_KEY`** no Netlify (as `temp_anon_*` do Asaas já foram removidas; gravação Asaas usa RPC `SECURITY DEFINER` + `BOT_RPC_SECRET`)
+2. **Fechar RLS allow-all** em `contratos`/`user_permissions`/demais (anon key lê/escreve tudo)
+3. **Rotacionar tokens** `KOMMO_TOKEN`, `VITE_ADVBOX_TOKEN`, `VITE_CPF_API_TOKEN` e mover para proxies server-side
+4. **Remover defaults fracos** (`cbc-api-2026`, `cbc-powerbi-2026`, `cbc-bot-2026`)
+
+### Prioridade MÉDIA — Performance/Infra
+5. **Migrar `api-powerbi` → view Supabase** (ainda serve dados via function)
+6. **Nota Kommo #18 → webhook ZapSign server-side** (hoje roda no navegador)
+7. **Cutover do `server/` modular** (`src/*` pronto, monolito ainda ativo)
+8. **Sentry** — confirmar ativo · **UptimeRobot**/custom domain — avaliar
+9. **Suíte de testes** — só há `utils/__tests__` em vitest; ampliar
+
+### Prioridade BAIXA — Limpeza
+10. **Remover código morto**: `steps/`, `Stepper.jsx`, arquivos legados ChatGuru/Leads
+11. **Consolidar funções Asaas** duplicadas (`asaas-sync*`)
+12. **Remover `api-rest`** se não houver integrador externo
+
+### Já resolvido (não repetir)
+- ✅ ZapSign webhook nativo existe (`zapsign-webhook`) · realtime com nomes de canal fixos · `dados` JSONB fora dos selects de lista (Dashboard/ContratosTab) · aba Leads e LeadsTab removidas · vazamento do pdfGenerator corrigido (13/06) · dark mode aplicado · cache headers agressivos
+
+### Documentação existente (consultar antes de reescrever)
+`docs/RUNBOOK.md`, `docs/ROLLBACK_PLAYBOOK.md`, `docs/SMOKE_CHECKLIST.md`, `docs/BOT_ADVBOX_SETUP.md`, `docs/PORTAL_CLIENTE.md`, `docs/ADVBOX_API_REFERENCIA.md`, `docs/ASAAS_ESPELHO.md`, `docs/POWERBI_CONEXAO.md` + `RUNBOOK_RECOVERY.md` na raiz
+
+---
+
+## Referências Rápidas
+
+### Atalhos de Teclado
+- `Cmd+K` / `Ctrl+K` — Busca global
+- `Cmd+N` / `Ctrl+N` — Novo contrato
+- `Esc` — Fullscreen form / fechar modais
+
+### URLs Importantes
+- **Produção**: https://contratos-cbc.netlify.app
+- **Admin Netlify**: https://app.netlify.com/projects/contratos-cbc
+- **Supabase Studio**: https://supabase.com/dashboard/project/vygczeepvoyaehfchxko
+- **Build logs**: https://app.netlify.com/projects/contratos-cbc/deploys
+- **Function logs**: https://app.netlify.com/projects/contratos-cbc/logs/functions
+
+### Contatos
+- **Proprietário**: Paulo Conforto (`paulo@advocaciacbc.com`) — admin master, comunica em PT-BR
+- **Desenvolvimento**: Claude Code (com aprovação explícita do Paulo antes de alterar código)
+
+### Convenções de Código
+- **Comentários**: português (sem acentos em código, com acentos em strings)
+- **Commits**: mensagens em português, formato descritivo
+- **Arquivos de função Netlify**: extensão `.mjs` (ESM nativo)
+- **Imports dinâmicos**: usados para lazy loading (`React.lazy`)
+- **Estados atômicos**: locks via UPDATE conditional no Supabase
+
+### Regras Operacionais Críticas
+- **Deploy sempre direto em produção** (`--prod`), nunca preview
+- **Backup antes de editar** qualquer arquivo em `client/` ou `netlify/functions/`
+- **Aprovação do Paulo** antes de qualquer alteração de código
+- **Monitorar bandwidth** semanalmente via `check-bandwidth.sh`
+- **Rotacionar tokens** se expostos publicamente
