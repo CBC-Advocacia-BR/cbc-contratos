@@ -163,6 +163,25 @@
   .nav-btn svg{width:16px;height:16px}
   .nav-btn[aria-pressed="true"]{background:var(--ink);color:#fff;box-shadow:var(--shadow)}
   .nav-btn[hidden]{display:none}
+  .nav-inner.cinco{grid-template-columns:repeat(5,1fr)}
+  .nav-inner.cinco .nav-btn{font-size:0.625rem;gap:2px;padding:0 1px}
+  .nav-inner.cinco .nav-btn svg{width:14px;height:14px}
+  /* ---- conversas com a equipe (chat) ---- */
+  .chat-lista{max-height:56vh;min-height:200px;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,rgba(185,146,73,.05),transparent 120px)}
+  .chat-vazio{text-align:center;color:var(--ink-faint);font-size:0.84375rem;padding:28px 12px;line-height:1.5}
+  .cmsg{max-width:86%;padding:9px 13px;border-radius:14px;font-size:0.90625rem;line-height:1.45;overflow-wrap:break-word;white-space:pre-line}
+  .cmsg .autor{display:block;font-weight:800;font-size:0.75rem;color:var(--gold-text);margin-bottom:2px}
+  .cmsg .hora{display:block;font-size:0.625rem;color:var(--ink-faint);margin-top:4px;text-align:right}
+  .cmsg.meu{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:4px}
+  .cmsg.meu .hora{color:rgba(255,255,255,.55)}
+  .cmsg.deles{align-self:flex-start;background:var(--paper);border:1px solid var(--gold-soft);border-bottom-left-radius:4px}
+  .chat-compose{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;border-top:1px solid var(--gold-soft);background:var(--paper)}
+  .chat-compose textarea{flex:1;resize:none;border:1.5px solid var(--gold-soft);border-radius:14px;padding:10px 13px;font:inherit;font-size:16px;max-height:120px;background:#fff}
+  .chat-compose textarea:focus{outline:none;border-color:var(--gold)}
+  .chat-send{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:none;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .chat-send:disabled{opacity:.5}
+  .chat-send svg{width:20px;height:20px}
+  .chat-dia{align-self:center;font-size:0.625rem;color:var(--ink-faint);background:var(--paper);border:1px solid var(--gold-soft);border-radius:999px;padding:3px 12px;margin:6px 0 2px}
   /* vez (de quem é a bola) */
   .fase-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
   .vez{display:inline-flex;align-items:center;gap:6px;font-size:0.71875rem;font-weight:700;
@@ -359,7 +378,7 @@
 </div>
 
 <nav id="nav" aria-label="Seções do portal">
-  <div class="nav-inner">
+  <div class="nav-inner quatro">
     <button class="nav-btn" id="nav-proc" aria-pressed="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-9-5 3-9 3 9a3.5 3.5 0 0 1-6 0Zm12 0 3-9 3 9a3.5 3.5 0 0 1-6 0ZM7 7h10"/></svg>
       Meu caso
@@ -371,6 +390,10 @@
     <button class="nav-btn" id="nav-acordo" aria-pressed="false" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
       Acordo
+    </button>
+    <button class="nav-btn" id="nav-chat" aria-pressed="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.2 19 3 20l1.1-3.9A8.4 8.4 0 1 1 7.2 19Z"/><path stroke-linecap="round" d="M8.5 10.5h7M8.5 13.5h4.5"/></svg>
+      Conversas <span class="badge" id="badge-chat" hidden></span>
     </button>
     <button class="nav-btn" id="nav-faq" aria-pressed="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z"/></svg>
@@ -400,6 +423,12 @@
   var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
   var titulo = function(s){ return String(s||'').toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase();}); };
   var state = { dados:null, proc:0, aba:'proc', expand:false, semEntra:false, keepScroll:null };
+  // conversas com a equipe (chat). MVP: polling com a aba aberta.
+  // ATIVAÇÃO FUTURA (não ligar sem ler CHAT-PORTAL.md): Realtime do Supabase
+  // no lugar do polling — flag abaixo fica false até lá.
+  var CHAT_REALTIME = false;
+  var CHAT_POLL_MS = 20000;
+  var chat = { msgs:[], lastId:0, carregado:false, timer:null, enviando:false };
 
   function toast(msg, ms){ var t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');}, ms||2600); }
 
@@ -889,6 +918,112 @@
     return h;
   }
 
+  // ---------- conversas com a equipe (chat) ----------
+  function chatHoraFmt(iso){
+    try{ var d=new Date(iso); return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; }
+  }
+  function chatDiaFmt(iso){
+    var hoje = new Date(); var d = new Date(iso);
+    var mesmo = function(a,b){ return a.toDateString()===b.toDateString(); };
+    if(mesmo(d,hoje)) return 'Hoje';
+    var ontem = new Date(hoje.getTime()-86400000);
+    if(mesmo(d,ontem)) return 'Ontem';
+    return d.toLocaleDateString('pt-BR');
+  }
+  function chatMsgsHtml(){
+    if(!chat.msgs.length){
+      return '<div class="chat-vazio">Nenhuma mensagem ainda.<br/>Escreva abaixo — a nossa equipe responde aqui mesmo, normalmente em até 1 dia útil.</div>';
+    }
+    var h='', diaAnt='';
+    chat.msgs.forEach(function(m){
+      var dia = chatDiaFmt(m.criada_em);
+      if(dia!==diaAnt){ h += '<div class="chat-dia">'+esc(dia)+'</div>'; diaAnt=dia; }
+      var meu = m.autor==='cliente';
+      h += '<div class="cmsg '+(meu?'meu':'deles')+'">'+
+        (!meu && m.autor_nome ? '<span class="autor">'+esc(m.autor_nome)+' · CBC</span>' : '')+
+        esc(m.corpo)+
+        '<span class="hora">'+chatHoraFmt(m.criada_em)+'</span>'+
+      '</div>';
+    });
+    return h;
+  }
+  function chatPintaLista(){
+    var el = $('chat-lista'); if(!el) return;
+    el.innerHTML = chatMsgsHtml();
+    el.scrollTop = el.scrollHeight;
+  }
+  function chatBadge(n){
+    var b = $('badge-chat'); if(!b) return;
+    if(n>0 && state.aba!=='chat'){ b.textContent = n>9?'9+':n; b.hidden=false; } else { b.hidden=true; }
+  }
+  function chatBusca(){
+    if(document.visibilityState==='hidden') return Promise.resolve();
+    return fetch('/.netlify/functions/portal-chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ t: token, op:'listar', apos: chat.lastId })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(!d.ok) return;
+      chat.carregado = true;
+      var novas = d.mensagens||[];
+      if(novas.length){
+        novas.forEach(function(m){ chat.msgs.push(m); if(m.id>chat.lastId) chat.lastId=m.id; });
+        if(state.aba==='chat') chatPintaLista();
+      } else if(state.aba==='chat' && $('chat-lista') && $('chat-lista').querySelector('.chat-vazio')===null && !chat.msgs.length){
+        chatPintaLista();
+      }
+      chatBadge(0); // abrir/pollar a conversa marca como lida no servidor
+    }).catch(function(){ /* silencioso: tenta no próximo ciclo */ });
+  }
+  function chatEntra(){
+    chatBusca().then(function(){ if(state.aba==='chat') chatPintaLista(); });
+    if(chat.timer) clearInterval(chat.timer);
+    chat.timer = setInterval(function(){ if(state.aba==='chat') chatBusca(); }, CHAT_POLL_MS);
+  }
+  function chatSai(){ if(chat.timer){ clearInterval(chat.timer); chat.timer=null; } }
+  function chatEnvia(){
+    var ta = $('chat-texto'), btn = $('chat-envia');
+    var txt = (ta && ta.value || '').trim();
+    if(txt.length < 1) return;
+    if(txt.length > 4000){ toast('Mensagem muito longa — divida em partes'); return; }
+    if(chat.enviando) return;
+    chat.enviando = true; if(btn) btn.disabled = true;
+    fetch('/.netlify/functions/portal-chat', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ t: token, op:'enviar', corpo: txt })
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(d.ok){
+        chat.msgs.push({ id: d.id, autor:'cliente', corpo: txt, criada_em: d.criada_em || new Date().toISOString() });
+        if(d.id > chat.lastId) chat.lastId = d.id;
+        if(ta) ta.value='';
+        chatPintaLista();
+      } else if(d.erro==='token'){
+        toast('Seu acesso expirou — peça um novo link ao escritório');
+      } else {
+        toast(d.msg || 'Não foi possível enviar agora — tente de novo');
+      }
+    }).catch(function(){ toast('Sem conexão — sua mensagem não foi enviada'); })
+    .finally(function(){ chat.enviando=false; if(btn) btn.disabled=false; if(ta) ta.focus(); });
+  }
+  function vChat(){
+    var h = '<section class="card fase-card entra">'+
+      '<div class="rotulo">Canal direto com a equipe</div>'+
+      '<div class="fase-nome menor">Converse com o escritório</div>'+
+      '<p class="fase-texto">Escreva quando quiser, como no WhatsApp — a mensagem chega direto para a nossa equipe e a resposta aparece aqui no portal. Respondemos em horário comercial, normalmente em até 1 dia útil.</p>'+
+    '</section>';
+    h += '<section class="card entra" style="padding:0;overflow:hidden;margin-top:12px">'+
+      '<div id="chat-lista" class="chat-lista" aria-live="polite">'+
+        (chat.carregado ? chatMsgsHtml() : '<div class="chat-vazio">Carregando a sua conversa…</div>')+
+      '</div>'+
+      '<div class="chat-compose">'+
+        '<textarea id="chat-texto" rows="1" placeholder="Escreva sua mensagem…" autocapitalize="sentences" autocorrect="on" spellcheck="true" enterkeyhint="send" aria-label="Sua mensagem"></textarea>'+
+        '<button id="chat-envia" class="chat-send" type="button" aria-label="Enviar mensagem">'+
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.3 4.6c-.2-.6.4-1.2 1-.9l16.2 7.4c.6.3.6 1.1 0 1.4L4.3 19.9c-.6.3-1.2-.3-1-.9L6 12Zm0 0h6"/></svg>'+
+        '</button>'+
+      '</div>'+
+    '</section>';
+    return h;
+  }
+
   // ---------- lembrete de parcela no calendário (iOS .ics / Android Google) ----------
   function agendaCalendario(b){
     var d = String(b.vencimento||'').slice(0,10);
@@ -1008,7 +1143,7 @@
 
     function pinta(){
     alvo.classList.toggle('sem-anim', !!state.semEntra);
-    alvo.innerHTML = state.aba==='proc' ? vProcesso() : state.aba==='pag' ? vPagamentos() : state.aba==='faq' ? vFaq() : vAcordo();
+    alvo.innerHTML = state.aba==='proc' ? vProcesso() : state.aba==='pag' ? vPagamentos() : state.aba==='faq' ? vFaq() : state.aba==='chat' ? vChat() : vAcordo();
     // stagger real: cada bloco entra 55ms depois do anterior (teto 440ms)
     if(!state.semEntra){
       alvo.querySelectorAll(':scope > .entra').forEach(function(el,i){
@@ -1019,6 +1154,16 @@
     $('nav-pag').setAttribute('aria-pressed', state.aba==='pag');
     $('nav-acordo').setAttribute('aria-pressed', state.aba==='acordo');
     $('nav-faq').setAttribute('aria-pressed', state.aba==='faq');
+    $('nav-chat').setAttribute('aria-pressed', state.aba==='chat');
+    // chat: liga/desliga o polling e conecta o compositor
+    if(state.aba==='chat'){
+      chatEntra();
+      var cBtn = $('chat-envia'), cTa = $('chat-texto');
+      if(cBtn) cBtn.addEventListener('click', chatEnvia);
+      if(cTa) cTa.addEventListener('keydown', function(ev){
+        if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); chatEnvia(); }
+      });
+    } else { chatSai(); }
     var soNoCaso = state.aba==='proc';
     ['divisor-servicos','push','familia','nps','indicar'].forEach(function(id){
       var el=$(id); if(el) el.style.display = soNoCaso ? '' : 'none';
@@ -1111,6 +1256,7 @@
   $('nav-pag').addEventListener('click', function(){ state.aba='pag'; render(); });
   $('nav-acordo').addEventListener('click', function(){ state.aba='acordo'; render(); });
   $('nav-faq').addEventListener('click', function(){ state.aba='faq'; render(); });
+  $('nav-chat').addEventListener('click', function(){ state.aba='chat'; render(); });
 
   // ---------- NPS (#11) ----------
   function montaNps(){
@@ -1306,9 +1452,16 @@ var hora = new Date().getHours();
       if(pend){ var bd=$('badge-pend'); bd.textContent=pend; bd.hidden=false; }
       if(temAcordo){
         $('nav-acordo').hidden = false;
-        document.querySelector('.nav-inner').classList.add('quatro');
+        document.querySelector('.nav-inner').classList.add('cinco');
         $('nav-proc').lastChild.textContent = ' Caso';
       }
+      // badge de mensagens do escritório não lidas (sem marcar como lida)
+      fetch('/.netlify/functions/portal-chat', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ t: token, op:'badge' })
+      }).then(function(r){ return r.json(); })
+        .then(function(d){ if(d.ok) chatBadge(d.nao_lidas||0); })
+        .catch(function(){ /* badge é opcional */ });
       $('nav').hidden = false;
       var dvs=$('divisor-servicos'); if(dvs) dvs.hidden=false;
       montaNps();

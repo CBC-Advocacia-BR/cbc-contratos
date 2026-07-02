@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBC Contratos — M3 · Esteira Kanban</title>
+<style>
+:root{
+  --bg:#F0F4F8;
+  --paper:#FFFFFF;
+  --navy:#1B3A5C;
+  --navy-light:#264a72;
+  --navy-dark:#0F2035;
+  --ink:#1A1A1A;
+  --ink-2:#333333;
+  --label:#5A6070;
+  --muted:#6B7280;
+  --muted-2:#9CA3AF;
+  --line:#E4EAF0;
+  --input-line:#D1D5DB;
+  --panel:#EEF4FF;
+  --panel-line:#C0D0E8;
+
+  /* status — tokens do sistema */
+  --st-rascunho:#9CA3AF;   --st-rascunho-bg:#F3F4F6;  --st-rascunho-tx:#6B7280;
+  --st-enviado:#2563EB;    --st-enviado-bg:#EFF6FF;
+  --st-assinado:#16A34A;   --st-assinado-bg:#F0FDF4;
+  --st-cancelado:#DC2626;  --st-cancelado-bg:#FEF2F2;
+
+  --r-card:12px;
+  --r-input:8px;
+  --sh-card:0 1px 6px rgba(0,0,0,.09);
+  --sh-lift:0 2px 6px rgba(15,32,53,.08), 0 10px 24px rgba(15,32,53,.13);
+  --ease:cubic-bezier(.33,1,.4,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);
+  color:var(--ink-2);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;font-size:inherit}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+svg{flex:none}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ---------- reveal escalonado ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.rise{opacity:0;animation:rise .5s var(--ease) forwards}
+
+/* =========================================================
+   HEADER (padrão do sistema: barra navy + barra de abas escura)
+========================================================= */
+header{position:sticky;top:0;z-index:40}
+.brand{background:var(--navy)}
+.brand-in{
+  max-width:1440px;margin:0 auto;padding:12px 28px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.firm{
+  color:#fff;font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+}
+.firm-oab{color:rgba(255,255,255,.65);font-size:11.5px;margin-top:1px;letter-spacing:.03em}
+.hd-right{display:flex;align-items:center;gap:12px}
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:12px;color:#fff;letter-spacing:.02em;
+}
+.av-mariana{background:var(--navy-light)}
+.av-maria{background:#15803D}
+.av-ana{background:#B45309}
+.av-beatriz{background:#6D28D9}
+.avatar.me{width:36px;height:36px;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);transition:transform .18s var(--ease)}
+.avatar.me:hover{transform:scale(1.06)}
+
+.tabbar{background:var(--navy-dark)}
+.tabbar-in{
+  max-width:1440px;margin:0 auto;padding:0 28px;
+  display:flex;align-items:center;gap:4px;
+}
+.tab{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;margin:5px 0;border-radius:6px;
+  font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:rgba(255,255,255,.5);
+  transition:color .2s,background .2s;
+}
+.tab:hover{color:rgba(255,255,255,.85)}
+.tab[aria-selected="true"]{background:rgba(255,255,255,.1);color:#fff}
+.tab .n{
+  font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;
+  background:rgba(255,255,255,.12);color:rgba(255,255,255,.75);
+}
+.tab[aria-selected="true"] .n{background:rgba(255,255,255,.2);color:#fff}
+
+/* =========================================================
+   VIEWS
+========================================================= */
+.view{display:none;max-width:1440px;margin:0 auto;padding:24px 28px 90px}
+.view.on{display:block}
+
+/* =========================================================
+   SALVOS — toolbar
+========================================================= */
+.toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:20px;flex-wrap:wrap}
+.tb-left h1{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--navy);line-height:1.2}
+.tb-left p{color:var(--label);font-size:13.5px;margin-top:3px}
+.tb-left p strong{color:var(--ink-2);font-weight:600}
+.tb-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+.search{position:relative;display:flex;align-items:center}
+.search svg{position:absolute;left:12px;color:var(--muted-2);pointer-events:none}
+.search input{
+  width:300px;height:40px;
+  padding:0 14px 0 38px;
+  border:1px solid var(--input-line);border-radius:var(--r-input);
+  background:var(--paper);
+  font-size:13.5px;
+  transition:border-color .2s,box-shadow .2s;
+}
+.search input::placeholder{color:var(--muted-2)}
+.search input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+
+.seg{
+  display:flex;background:var(--paper);border:1px solid var(--input-line);border-radius:var(--r-input);padding:3px;gap:2px;
+}
+.seg button{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:6px;font-weight:700;font-size:12px;letter-spacing:.03em;text-transform:uppercase;
+  color:var(--muted);
+  transition:all .2s var(--ease);
+}
+.seg button:hover{color:var(--navy)}
+.seg button.on{background:var(--navy);color:#fff}
+
+/* =========================================================
+   KANBAN
+========================================================= */
+.board{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  align-items:start;
+}
+.col{
+  border-radius:var(--r-card);
+  padding:12px 11px 14px;
+  border:1px solid var(--line);
+}
+.col-rascunho{background:var(--st-rascunho-bg)}
+.col-aguardando{background:var(--st-enviado-bg)}
+.col-assinado{background:var(--st-assinado-bg)}
+
+.col-hd{display:flex;align-items:center;gap:9px;padding:4px 6px 11px}
+.col-hd .cico{
+  width:26px;height:26px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+}
+.col-rascunho .cico{background:var(--st-rascunho)}
+.col-aguardando .cico{background:var(--st-enviado)}
+.col-assinado .cico{background:var(--st-assinado)}
+.col-hd h2{font-size:14.5px;font-weight:700;color:var(--ink)}
+.col-hd .cnt{
+  margin-left:auto;
+  font-weight:700;font-size:13px;
+  padding:2.5px 10px;border-radius:999px;background:var(--paper);
+  box-shadow:var(--sh-card);
+}
+.col-rascunho .cnt{color:var(--st-rascunho-tx)}
+.col-aguardando .cnt{color:var(--st-enviado)}
+.col-assinado .cnt{color:var(--st-assinado)}
+
+.cards{display:flex;flex-direction:column;gap:10px;min-height:60px}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--paper);
+  border-radius:var(--r-card);
+  border:1px solid var(--line);
+  box-shadow:var(--sh-card);
+  padding:13px 14px 12px;
+  cursor:grab;
+  transition:transform .22s var(--ease),box-shadow .22s var(--ease);
+  opacity:0;animation:rise .5s var(--ease) forwards;
+}
+.card:active{cursor:grabbing}
+.card:hover{transform:translateY(-3px) rotate(-.4deg);box-shadow:var(--sh-lift)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.card h3{font-size:14.5px;font-weight:700;line-height:1.35;color:var(--ink)}
+.card h3 .c2{display:block;font-weight:500;color:var(--label);font-size:13px}
+.grip{color:#D5DBE3;margin-top:2px}
+.card:hover .grip{color:var(--muted-2)}
+
+.chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:600;color:var(--navy);
+  background:var(--panel);border:1px solid var(--panel-line);
+  padding:3px 10px;border-radius:999px;
+}
+.chip .dot{width:7px;height:7px;border-radius:50%}
+
+.card-val{display:flex;align-items:baseline;gap:8px;margin-top:10px}
+.card-val .v{font-size:16px;font-weight:700;color:var(--navy)}
+.card-val .d{font-size:12.5px;color:var(--label);font-weight:500}
+
+.card-ft{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);
+}
+.byline{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--label)}
+.byline .avatar{width:23px;height:23px;font-size:9.5px}
+.age{font-size:12px;color:var(--muted-2);font-weight:500}
+
+/* signatários (aguardando) */
+.signers{
+  margin-top:10px;background:var(--st-enviado-bg);
+  border:1px solid var(--panel-line);border-radius:var(--r-input);padding:8px 10px 9px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.signer{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.signer .st-ic{width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.signer.ok .st-ic{background:var(--st-assinado);color:#fff}
+.signer.pend .st-ic{border:1.6px dashed var(--st-enviado);color:transparent}
+.signer .nm{font-weight:600;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.signer .lbl{margin-left:auto;font-weight:600;font-size:11.5px;flex:none}
+.signer.ok .lbl{color:var(--st-assinado)}
+.signer.pend .lbl{color:var(--st-enviado)}
+.chk{stroke-dasharray:14;stroke-dashoffset:14;animation:draw .5s .45s var(--ease) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+.copybtn{
+  margin-top:8px;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  font-size:12px;font-weight:700;letter-spacing:.02em;color:var(--navy);
+  border:1px solid var(--panel-line);background:var(--panel);border-radius:var(--r-input);padding:7px 10px;
+  transition:all .18s var(--ease);
+}
+.copybtn:hover{background:#E2ECFB;border-color:#A9BEDD}
+.copybtn.done{background:var(--st-assinado-bg);border-color:#BBE5C8;color:var(--st-assinado)}
+
+/* status pill — sempre cor + ícone + rótulo */
+.status{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+}
+.status.s-assinado{background:var(--st-assinado-bg);color:var(--st-assinado)}
+.status.s-enviado{background:var(--st-enviado-bg);color:var(--st-enviado)}
+.status.s-rascunho{background:var(--st-rascunho-bg);color:var(--st-rascunho-tx)}
+
+/* ghost card */
+.ghost{
+  border:1.6px dashed #C4CDD8;border-radius:var(--r-card);
+  padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;
+  color:var(--muted);font-weight:600;font-size:13px;
+  cursor:pointer;background:transparent;
+  transition:all .2s var(--ease);
+  opacity:0;animation:rise .5s var(--ease) forwards;
+}
+.ghost:hover{border-color:var(--navy);color:var(--navy);background:rgba(255,255,255,.6)}
+
+/* =========================================================
+   LISTA
+========================================================= */
+.listwrap{display:none}
+.listwrap.on{display:block}
+.boardwrap.off{display:none}
+table.lista{
+  width:100%;border-collapse:separate;border-spacing:0;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);
+  overflow:hidden;box-shadow:var(--sh-card);
+}
+.lista th{
+  text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:#fff;padding:11px 16px;background:var(--navy);
+}
+.lista td{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+.lista tr:last-child td{border-bottom:none}
+.lista tbody tr{transition:background .15s}
+.lista tbody tr:hover{background:#F7FAFD}
+.lista .nm-cell{font-weight:600;color:var(--ink)}
+.lista .nm-cell span{display:block;font-weight:500;color:var(--label);font-size:12.5px}
+.lista .val-cell{font-weight:700;color:var(--navy)}
+
+/* =========================================================
+   NOVO CONTRATO — trilha
+========================================================= */
+.novo-grid{
+  display:grid;grid-template-columns:250px minmax(0,1fr) 320px;gap:22px;align-items:start;
+}
+.novo-head{margin-bottom:18px}
+.novo-head h1{font-size:24px;font-weight:700;letter-spacing:-.01em;color:var(--navy)}
+.novo-head p{color:var(--label);font-size:13.5px;margin-top:3px}
+.novo-head p strong{color:var(--ink-2)}
+
+/* trilha vertical */
+.trail{position:sticky;top:118px;display:flex;flex-direction:column}
+.step{
+  position:relative;display:flex;gap:13px;align-items:flex-start;
+  padding:0 0 24px 0;text-align:left;
+}
+.step::before{
+  content:"";position:absolute;left:15px;top:34px;bottom:2px;width:2px;
+  background:#D6DEE7;border-radius:2px;
+}
+.step:last-child::before{display:none}
+.step.done::before{background:var(--st-assinado)}
+.step .bub{
+  width:32px;height:32px;border-radius:50%;flex:none;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13.5px;
+  background:var(--paper);border:2px solid var(--input-line);color:var(--muted-2);
+  transition:all .25s var(--ease);
+}
+.step.done .bub{background:var(--st-assinado);border-color:var(--st-assinado);color:#fff}
+.step.cur .bub{
+  background:var(--navy);border-color:var(--navy);color:#fff;
+  box-shadow:0 0 0 4px rgba(27,58,92,.3);
+}
+.step .stx{padding-top:4px}
+.step .stx b{display:block;font-size:14px;font-weight:700;color:var(--muted-2);transition:color .2s}
+.step .stx small{font-size:12px;color:var(--muted-2);display:block;margin-top:1px}
+.step.done .stx b,.step.cur .stx b{color:var(--ink)}
+.step.done .stx small{color:var(--st-assinado);font-weight:600}
+.step.cur .stx small{color:var(--navy);font-weight:600}
+.step:hover .bub{transform:scale(1.08)}
+
+/* painel central */
+.stage{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--sh-card);
+  padding:26px 28px 26px;min-height:520px;
+}
+.pane{display:none}
+.pane.on{display:block;animation:rise .4s var(--ease)}
+.pane-kicker{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2)}
+.pane h2{font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--navy);margin:4px 0 4px}
+.pane .sub{color:var(--label);font-size:13.5px;margin-bottom:20px}
+
+/* campos preenchidos (etapas 1-2) */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px 13px}
+.field label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);margin-bottom:5px}
+.field .fv{
+  border:1px solid var(--input-line);border-radius:var(--r-input);
+  padding:9px 12px;font-size:13.5px;background:#FAFBFC;color:var(--ink-2);font-weight:500;
+  display:flex;align-items:center;gap:8px;min-height:39px;
+}
+.field .fv .okv{color:var(--st-assinado);margin-left:auto;display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:700}
+.person{
+  border:1px solid var(--line);border-radius:var(--r-card);padding:16px 17px 17px;margin-bottom:14px;background:var(--paper);
+}
+.person-hd{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.person-hd .pnum{
+  width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+}
+.person-hd b{font-size:14.5px;color:var(--ink)}
+
+/* seleção resort/ação */
+.selgrid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.bigsel{
+  border:1px solid var(--panel-line);border-radius:var(--r-card);padding:15px 16px;background:var(--panel);
+}
+.bigsel label{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);margin-bottom:8px}
+.bigsel .val{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink)}
+.bigsel .val svg{color:var(--navy)}
+
+/* MODOS de honorários */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.mode{
+  border:1.6px solid var(--line);border-radius:var(--r-card);
+  padding:15px 14px 14px;text-align:left;background:var(--paper);
+  transition:all .2s var(--ease);position:relative;
+}
+.mode:hover{transform:translateY(-2px);box-shadow:var(--sh-card);border-color:var(--panel-line)}
+.mode.on{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+.mode .mico{
+  width:36px;height:36px;border-radius:var(--r-input);display:flex;align-items:center;justify-content:center;
+  background:var(--panel);color:var(--navy);margin-bottom:10px;transition:all .2s;
+}
+.mode.on .mico{background:var(--navy);color:#fff}
+.mode b{display:block;font-size:14px;font-weight:700;color:var(--ink)}
+.mode small{display:block;font-size:12px;color:var(--label);margin-top:3px;line-height:1.45}
+.mode .tick{
+  position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;
+  background:var(--navy);color:#fff;display:none;align-items:center;justify-content:center;
+}
+.mode.on .tick{display:flex}
+
+.sect-lbl{
+  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);
+  margin:0 0 10px;
+}
+
+/* PRESETS */
+.presets{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:22px}
+.preset{
+  border:1.6px solid var(--line);border-radius:var(--r-input);padding:12px 8px 11px;text-align:center;
+  background:var(--paper);transition:all .2s var(--ease);position:relative;
+}
+.preset:hover{transform:translateY(-2px);box-shadow:var(--sh-card)}
+.preset.on{border-color:var(--navy);background:var(--panel);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+.preset .pv{font-size:16px;font-weight:700;color:var(--navy)}
+.preset .pd{font-size:11.5px;color:var(--label);font-weight:600;margin-top:2px}
+.preset .badge-on{
+  position:absolute;top:-8px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:#fff;font-size:10.5px;font-weight:700;
+  padding:1.5px 9px;border-radius:999px;display:none;white-space:nowrap;
+}
+.preset.on .badge-on{display:block}
+
+/* cálculo vivo */
+.calcrow{display:grid;grid-template-columns:1.4fr 1fr;gap:15px;align-items:stretch;margin-bottom:22px}
+.calc{
+  background:var(--panel);
+  border:1px solid var(--panel-line);border-radius:var(--r-card);padding:16px 18px;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.calc .cl{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+.calc .cv{font-size:22px;font-weight:700;color:var(--navy);margin-top:3px}
+.calc .cv small{font-size:14px;font-weight:600;color:var(--label)}
+.datefield{
+  border:1px solid var(--input-line);border-radius:var(--r-card);padding:13px 15px;background:#FAFBFC;
+  display:flex;flex-direction:column;justify-content:center;gap:5px;
+}
+.datefield label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy)}
+.datefield .dv{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;color:var(--ink)}
+.datefield .dv svg{color:var(--navy)}
+
+/* percentuais */
+.pcts{display:flex;gap:8px}
+.pct{
+  flex:1;border:1.6px solid var(--line);border-radius:var(--r-input);padding:9px 6px;text-align:center;
+  font-weight:700;font-size:14px;color:var(--label);background:var(--paper);
+  transition:all .18s var(--ease);
+}
+.pct small{display:block;font-size:10.5px;font-weight:600;color:var(--muted-2);margin-top:1px}
+.pct:hover{border-color:var(--panel-line);transform:translateY(-1px)}
+.pct.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.pct.on small{color:rgba(255,255,255,.75)}
+
+/* cláusulas */
+.clauses{display:flex;flex-direction:column;gap:7px}
+.clause{
+  display:flex;align-items:center;gap:11px;
+  border:1px solid var(--line);border-radius:var(--r-input);
+  background:var(--paper);padding:10px 12px;
+  transition:all .18s var(--ease);cursor:grab;
+}
+.clause:hover{box-shadow:var(--sh-card);transform:translateX(3px);border-color:var(--panel-line)}
+.clause .cnum{
+  font-weight:700;font-size:12px;color:var(--navy);
+  background:var(--panel);border:1px solid var(--panel-line);border-radius:6px;padding:2px 8px;flex:none;
+}
+.clause b{font-size:13.5px;font-weight:600;color:var(--ink-2)}
+.clause .auto{
+  margin-left:auto;font-size:11px;font-weight:700;color:var(--st-enviado);
+  background:var(--st-enviado-bg);padding:2.5px 9px;border-radius:999px;display:flex;align-items:center;gap:5px;flex:none;
+}
+.clause .grip{margin-left:auto}
+.clause .auto + .grip,.clause .grip:last-child{margin-left:0}
+.addclause{
+  margin-top:10px;width:100%;border:1.6px dashed #C4CDD8;border-radius:var(--r-input);
+  padding:10px;font-weight:600;font-size:13px;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all .2s;
+}
+.addclause:hover{border-color:var(--navy);color:var(--navy);background:#FAFBFD}
+
+/* revisão */
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:20px}
+.rev-item{border:1px solid var(--line);border-radius:var(--r-card);padding:13px 15px;background:#FAFBFC}
+.rev-item .rl{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--navy);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.rev-item .rv{font-size:13.5px;font-weight:600;color:var(--ink-2);line-height:1.45}
+.final-actions{display:flex;flex-wrap:wrap;gap:9px}
+.act{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 16px;border-radius:var(--r-input);
+  font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  border:1px solid var(--panel-line);background:var(--panel);color:var(--navy);
+  transition:all .18s var(--ease);
+}
+.act:hover{transform:translateY(-1px);box-shadow:var(--sh-card)}
+.act.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+.act.primary:hover{background:var(--navy-dark)}
+.act.ghosty{color:var(--st-cancelado);border-color:#F3C6C2;background:var(--st-cancelado-bg)}
+
+/* resumo vivo */
+.summary{
+  position:sticky;top:118px;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);
+  box-shadow:var(--sh-card);overflow:hidden;
+}
+.sum-hd{background:var(--navy);color:#fff;padding:13px 18px 12px}
+.sum-hd .k{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.sum-hd h3{font-size:14px;font-weight:700;letter-spacing:.05em;margin-top:2px;text-transform:uppercase}
+.sum-body{padding:6px 18px 16px}
+.sum-sec{padding:12px 0 13px;border-bottom:1px dashed var(--line);transition:opacity .3s}
+.sum-sec:last-child{border-bottom:none}
+.sum-sec .sl{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label);margin-bottom:6px}
+.sum-sec .sl .okdot{width:15px;height:15px;border-radius:50%;background:var(--st-assinado);color:#fff;display:flex;align-items:center;justify-content:center}
+.sum-sec .sv{font-size:13.5px;font-weight:600;color:var(--ink-2);line-height:1.5}
+.sum-sec .sv small{display:block;font-weight:500;color:var(--label);font-size:12.5px}
+.sum-sec.todo{opacity:.5}
+.sum-sec.todo .sv{color:var(--muted);font-weight:500;font-style:italic}
+.sum-money{font-size:17px;font-weight:700;color:var(--navy)}
+.sum-ft{
+  background:#FAFBFC;border-top:1px solid var(--line);padding:11px 18px;
+  font-size:12px;color:var(--label);display:flex;align-items:center;gap:7px;
+}
+.sum-ft svg{color:var(--st-assinado)}
+
+/* barra inferior da trilha */
+.stagebar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin-top:16px;
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-card);
+  padding:11px 15px;box-shadow:var(--sh-card);
+}
+.stagebar .hint{font-size:12.5px;color:var(--muted)}
+.stagebar .hint kbd{
+  font-family:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+  font-size:11px;font-weight:600;color:var(--label);
+  border:1px solid var(--input-line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:#FAFBFC;
+}
+.navbtns{display:flex;gap:8px}
+.nb{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border-radius:var(--r-input);
+  font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  transition:all .18s var(--ease);
+}
+.nb.back{border:1px solid var(--panel-line);background:var(--panel);color:var(--navy)}
+.nb.back:hover{background:#E2ECFB}
+.nb.next{background:var(--navy);color:#fff}
+.nb.next:hover{background:var(--navy-dark);transform:translateY(-1px)}
+.nb:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* =========================================================
+   BADGE + TOAST
+========================================================= */
+.mock-badge{
+  position:fixed;left:18px;bottom:18px;z-index:60;
+  background:var(--navy-dark);color:#fff;border-radius:10px;
+  padding:9px 14px;font-size:12px;box-shadow:var(--sh-lift);
+  display:flex;align-items:center;gap:10px;opacity:.95;
+}
+.mock-badge b{font-weight:700}
+.mock-badge a{color:#9FC1E8;text-decoration:none;font-weight:600}
+.mock-badge a:hover{color:#fff;text-decoration:underline}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translate(-50%,80px);
+  background:var(--navy-dark);color:#fff;font-weight:600;font-size:13px;
+  padding:11px 20px;border-radius:999px;box-shadow:var(--sh-lift);
+  display:flex;align-items:center;gap:9px;
+  transition:transform .35s var(--ease),opacity .35s;opacity:0;z-index:70;pointer-events:none;
+}
+.toast.show{transform:translate(-50%,0);opacity:1}
+.toast .tico{width:19px;height:19px;border-radius:50%;background:var(--st-assinado);display:flex;align-items:center;justify-content:center}
+
+/* responsivo */
+@media (max-width:1120px){
+  .novo-grid{grid-template-columns:220px minmax(0,1fr)}
+  .summary{display:none}
+  .presets{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width:900px){
+  .board{grid-template-columns:1fr;gap:14px}
+  .brand-in{padding:12px 18px}
+  .tabbar-in{padding:0 18px}
+  .novo-grid{grid-template-columns:1fr}
+  .trail{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:8px}
+  .step{padding:0 18px 0 0}
+  .step::before{display:none}
+  .search{flex:1}
+  .search input{width:100%}
+  .view{padding:20px 16px 110px}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER (padrão do sistema) ============ -->
+<header>
+  <div class="brand">
+    <div class="brand-in">
+      <div>
+        <div class="firm">Conforto, Bergonsi &amp; Cavalari Advogados</div>
+        <div class="firm-oab">OAB/SP n 55227 — Americana - SP</div>
+      </div>
+      <div class="hd-right">
+        <div class="avatar av-mariana me" title="Mariana Maciel — mariana@advocaciacbc.com">MM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="tabbar">
+    <div class="tabbar-in" role="tablist" aria-label="Seções">
+      <button class="tab" id="tab-novo" role="tab" aria-selected="false" data-view="novo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Novo Contrato
+      </button>
+      <button class="tab" id="tab-salvos" role="tab" aria-selected="true" data-view="salvos">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5.5" height="16" rx="1.5"/><rect x="12" y="4" width="5.5" height="10" rx="1.5"/><path d="M21 4v16"/></svg>
+        Contratos Salvos
+        <span class="n tnum">195</span>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- ============ VIEW: CONTRATOS SALVOS (KANBAN) ============ -->
+<section class="view on" id="view-salvos" role="tabpanel" aria-labelledby="tab-salvos">
+
+  <div class="toolbar rise" style="animation-delay:.02s">
+    <div class="tb-left">
+      <h1>Esteira de contratos</h1>
+      <p><strong class="tnum">195 contratos</strong> · acompanhe cada um do rascunho à assinatura</p>
+    </div>
+    <div class="tb-right">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="search" id="q" placeholder="Buscar por nome, CPF ou resort…" aria-label="Buscar contratos">
+      </div>
+      <div class="seg" role="group" aria-label="Modo de visualização">
+        <button class="on" id="segKanban" onclick="setMode('kanban')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="5.5" height="16" rx="1.5"/><rect x="12" y="4" width="5.5" height="10" rx="1.5"/><path d="M21 4v16"/></svg>
+          Kanban
+        </button>
+        <button id="segLista" onclick="setMode('lista')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+          Lista
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KANBAN -->
+  <div class="boardwrap" id="boardwrap">
+    <div class="board">
+
+      <div class="col col-rascunho rise" style="animation-delay:.06s">
+        <div class="col-hd">
+          <span class="cico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.5 2.5 0 0 1 3.5 3.5L8 19l-4.5 1.5L5 16 17 3Z"/></svg>
+          </span>
+          <h2>Rascunhos</h2>
+          <span class="cnt tnum" data-count="5" id="cnt-rascunho">0</span>
+        </div>
+        <div class="cards" id="col-rascunho"></div>
+      </div>
+
+      <div class="col col-aguardando rise" style="animation-delay:.14s">
+        <div class="col-hd">
+          <span class="cico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/></svg>
+          </span>
+          <h2>Aguardando Assinatura</h2>
+          <span class="cnt tnum" data-count="26" id="cnt-aguardando">0</span>
+        </div>
+        <div class="cards" id="col-aguardando"></div>
+      </div>
+
+      <div class="col col-assinado rise" style="animation-delay:.22s">
+        <div class="col-hd">
+          <span class="cico">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>
+          </span>
+          <h2>Assinados</h2>
+          <span class="cnt tnum" data-count="164" id="cnt-assinado">0</span>
+        </div>
+        <div class="cards" id="col-assinado"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- LISTA -->
+  <div class="listwrap" id="listwrap">
+    <table class="lista">
+      <thead>
+        <tr>
+          <th>Contratante(s)</th><th>Resort</th><th>Tipo de ação</th><th>Status</th><th>Honorários</th><th>Criado</th><th>Por</th>
+        </tr>
+      </thead>
+      <tbody id="listbody"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ VIEW: NOVO CONTRATO (TRILHA) ============ -->
+<section class="view" id="view-novo" role="tabpanel" aria-labelledby="tab-novo">
+
+  <div class="novo-head rise">
+    <h1>Novo contrato</h1>
+    <p>Caso: <strong>Natalia Zulmira Sales da Silva</strong> · Olimpia Park Resort · preenchimento em 5 etapas</p>
+  </div>
+
+  <div class="novo-grid">
+
+    <!-- TRILHA -->
+    <aside class="trail rise" style="animation-delay:.05s" aria-label="Etapas do contrato">
+      <button class="step done" data-step="1">
+        <span class="bub"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+        <span class="stx"><b>Contratantes</b><small>2 pessoas · concluído</small></span>
+      </button>
+      <button class="step done" data-step="2">
+        <span class="bub"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+        <span class="stx"><b>Resort &amp; Ação</b><small>Olimpia Park · concluído</small></span>
+      </button>
+      <button class="step cur" data-step="3">
+        <span class="bub">3</span>
+        <span class="stx"><b>Honorários</b><small>etapa atual</small></span>
+      </button>
+      <button class="step" data-step="4">
+        <span class="bub">4</span>
+        <span class="stx"><b>Cláusulas</b><small>13 padrão</small></span>
+      </button>
+      <button class="step" data-step="5">
+        <span class="bub">5</span>
+        <span class="stx"><b>Revisão &amp; Envio</b><small>ZapSign</small></span>
+      </button>
+    </aside>
+
+    <!-- PALCO CENTRAL -->
+    <div>
+      <div class="stage rise" style="animation-delay:.1s">
+
+        <!-- ETAPA 1 -->
+        <div class="pane" data-pane="1">
+          <div class="pane-kicker">Etapa 1 de 5</div>
+          <h2>Contratantes</h2>
+          <p class="sub">Dados preenchidos automaticamente pela CNH (OCR) e pela busca de CPF.</p>
+
+          <div class="person">
+            <div class="person-hd"><span class="pnum">1</span><b>Natalia Zulmira Sales da Silva</b></div>
+            <div class="fgrid">
+              <div class="field"><label>CPF</label><div class="fv tnum">346.116.158-63
+                <span class="okv"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>válido</span></div></div>
+              <div class="field"><label>Estado civil</label><div class="fv">Casada</div></div>
+              <div class="field"><label>Profissão</label><div class="fv">Professora</div></div>
+              <div class="field"><label>E-mail</label><div class="fv">natalia.sales@gmail.com</div></div>
+              <div class="field"><label>CEP</label><div class="fv tnum">13478-540</div></div>
+              <div class="field"><label>Cidade / UF</label><div class="fv">Americana / SP</div></div>
+            </div>
+          </div>
+
+          <div class="person">
+            <div class="person-hd"><span class="pnum">2</span><b>Dimas Sales da Silva</b></div>
+            <div class="fgrid">
+              <div class="field"><label>CPF</label><div class="fv tnum">287.554.108-90
+                <span class="okv"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>válido</span></div></div>
+              <div class="field"><label>Estado civil</label><div class="fv">Casado</div></div>
+              <div class="field"><label>Endereço</label><div class="fv">Mesmo do Contratante 1</div></div>
+              <div class="field"><label>E-mail</label><div class="fv">dimas.sales@gmail.com</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ETAPA 2 -->
+        <div class="pane" data-pane="2">
+          <div class="pane-kicker">Etapa 2 de 5</div>
+          <h2>Resort &amp; Tipo de Ação</h2>
+          <p class="sub">Contra quem é a ação e qual o pedido principal.</p>
+          <div class="selgrid">
+            <div class="bigsel">
+              <label>Resort / Multipropriedade</label>
+              <div class="val">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4M9 11h.01M15 11h.01M12 11h.01"/></svg>
+                Olimpia Park Resort
+              </div>
+            </div>
+            <div class="bigsel">
+              <label>Tipo de ação</label>
+              <div class="val">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M12 3l-7 4M12 3l7 4M4 20h16M7 16l-3 4M17 16l3 4"/></svg>
+                Devolução 80%
+              </div>
+            </div>
+          </div>
+          <p style="margin-top:16px;font-size:12.5px;color:var(--label)">
+            Não achou o resort? <button style="color:var(--navy);font-weight:700;text-decoration:underline">Cadastrar novo resort</button>
+          </p>
+        </div>
+
+        <!-- ETAPA 3 — HONORÁRIOS (ATIVA) -->
+        <div class="pane on" data-pane="3">
+          <div class="pane-kicker">Etapa 3 de 5</div>
+          <h2>Honorários</h2>
+          <p class="sub">Escolha o modo de cobrança e o plano de pagamento.</p>
+
+          <div class="modes" role="radiogroup" aria-label="Modo de honorários">
+            <button class="mode on" data-mode="iniciais-exito" role="radio" aria-checked="true">
+              <span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+              <span class="mico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="9" r="5"/><path d="M8.5 6.8v4.4M6.6 9h3.8"/><path d="m14.5 14 6-6M20.5 12.5V8h-4.5"/></svg></span>
+              <b>Iniciais + Êxito</b>
+              <small>Entrada parcelada e percentual sobre o resultado. O mais comum.</small>
+            </button>
+            <button class="mode" data-mode="exito" role="radio" aria-checked="false">
+              <span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+              <span class="mico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v4a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4.5a0 0 0 0 0 0 0c0 2.5 1 4 2.5 4.5M17 5h2.5c0 2.5-1 4-2.5 4.5M12 13v4M8.5 21h7M10 17h4"/></svg></span>
+              <b>Somente Êxito</b>
+              <small>Nada agora: percentual maior (30 a 40%) só se ganhar.</small>
+            </button>
+            <button class="mode" data-mode="iniciais" role="radio" aria-checked="false">
+              <span class="tick"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+              <span class="mico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8.2v7.6M9.4 10.2c0-1 1.1-1.7 2.6-1.7s2.6.7 2.6 1.7c0 2.6-5.2 1.3-5.2 3.8 0 1 1.1 1.7 2.6 1.7s2.6-.7 2.6-1.7"/></svg></span>
+              <b>Somente Iniciais</b>
+              <small>Valor fixo de entrada, sem percentual de êxito.</small>
+            </button>
+          </div>
+
+          <p class="sect-lbl">Plano de pagamento</p>
+          <div class="presets" role="radiogroup" aria-label="Presets de honorários">
+            <button class="preset" data-preset='{"v":"R$ 2.700","d":"à vista","calc":"R$ 2.700 <small>à vista</small>"}'>
+              <span class="badge-on">selecionado</span>
+              <div class="pv tnum">R$ 2.700</div><div class="pd">à vista</div>
+            </button>
+            <button class="preset" data-preset='{"v":"R$ 3.000","d":"10x R$ 300","calc":"10x de R$ 300 <small>= R$ 3.000</small>"}'>
+              <span class="badge-on">selecionado</span>
+              <div class="pv tnum">R$ 3.000</div><div class="pd tnum">10x R$ 300</div>
+            </button>
+            <button class="preset" data-preset='{"v":"R$ 3.000","d":"12x R$ 250","calc":"12x de R$ 250 <small>= R$ 3.000</small>"}'>
+              <span class="badge-on">selecionado</span>
+              <div class="pv tnum">R$ 3.000</div><div class="pd tnum">12x R$ 250</div>
+            </button>
+            <button class="preset on" data-preset='{"v":"R$ 3.300","d":"12x R$ 275","calc":"12x de R$ 275 <small>= R$ 3.300</small>"}'>
+              <span class="badge-on">selecionado</span>
+              <div class="pv tnum">R$ 3.300</div><div class="pd tnum">12x R$ 275</div>
+            </button>
+            <button class="preset" data-preset='{"v":"Personalizado","d":"definir valores","calc":"Personalizado <small>defina abaixo</small>"}'>
+              <span class="badge-on">selecionado</span>
+              <div class="pv" style="font-size:13.5px;padding-top:3px">Personalizado</div><div class="pd">outros valores</div>
+            </button>
+          </div>
+
+          <div class="calcrow">
+            <div class="calc">
+              <span class="cl">Como fica</span>
+              <span class="cv tnum" id="calcOut">12x de R$ 275 <small>= R$ 3.300</small></span>
+            </div>
+            <div class="datefield">
+              <label>1ª parcela</label>
+              <div class="dv tnum">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+                10/07/2026
+              </div>
+            </div>
+          </div>
+
+          <p class="sect-lbl">Percentual de êxito</p>
+          <div class="pcts" role="radiogroup" aria-label="Percentual de êxito">
+            <button class="pct tnum" data-pct="15">15%</button>
+            <button class="pct on tnum" data-pct="20">20%<small>mais comum</small></button>
+            <button class="pct tnum" data-pct="25">25%</button>
+            <button class="pct tnum" data-pct="30">30%</button>
+          </div>
+        </div>
+
+        <!-- ETAPA 4 -->
+        <div class="pane" data-pane="4">
+          <div class="pane-kicker">Etapa 4 de 5</div>
+          <h2>Cláusulas</h2>
+          <p class="sub">Arraste para reordenar. A Cláusula 2ª é gerada automaticamente a partir dos honorários.</p>
+          <div class="clauses" id="clauseList"></div>
+          <button class="addclause">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Adicionar cláusula avulsa
+          </button>
+        </div>
+
+        <!-- ETAPA 5 -->
+        <div class="pane" data-pane="5">
+          <div class="pane-kicker">Etapa 5 de 5</div>
+          <h2>Revisão &amp; Envio</h2>
+          <p class="sub">Confira tudo antes de enviar. Os signatários recebem o link do ZapSign por e-mail.</p>
+
+          <div class="rev-grid">
+            <div class="rev-item">
+              <div class="rl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3.5 20c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 15c2.8 0 4.5 1.8 4.5 4.5"/></svg>Contratantes</div>
+              <div class="rv">Natalia Zulmira Sales da Silva<br>Dimas Sales da Silva</div>
+            </div>
+            <div class="rev-item">
+              <div class="rl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Resort &amp; ação</div>
+              <div class="rv">Olimpia Park Resort<br>Devolução 80%</div>
+            </div>
+            <div class="rev-item">
+              <div class="rl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10h5"/></svg>Honorários</div>
+              <div class="rv tnum" id="revHon">R$ 3.300 em 12x de R$ 275 · êxito 20%<br>1ª parcela 10/07/2026</div>
+            </div>
+            <div class="rev-item">
+              <div class="rl"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6V3ZM14 3v5h5"/></svg>Documentos</div>
+              <div class="rv">Contrato de honorários<br>Procuração Ad Judicia</div>
+            </div>
+          </div>
+
+          <div class="final-actions">
+            <button class="act primary" onclick="toast('Contrato enviado ao ZapSign: links gerados para 2 signatários')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 3-9.5 9.5M21 3l-6.5 18-3-8.5L3 9.5 21 3Z"/></svg>
+              Enviar para ZapSign
+            </button>
+            <button class="act" onclick="toast('PDF gerado e contrato salvo')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M8 10l4 4 4-4"/><path d="M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/></svg>
+              Gerar PDF e Salvar
+            </button>
+            <button class="act" onclick="toast('Procuração Ad Judicia gerada')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6V3ZM14 3v5h5M9 13h6M9 17h4"/></svg>
+              Gerar Procuração
+            </button>
+            <button class="act" onclick="toast('Rascunho salvo na 1ª coluna da esteira')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h11l3 3v15H5V3ZM8 3v5h7V3M8 21v-7h8v7"/></svg>
+              Salvar rascunho
+            </button>
+            <button class="act ghosty" onclick="toast('Formulário limpo')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7M6.5 7l1 13h9l1-13"/></svg>
+              Limpar
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- barra inferior -->
+      <div class="stagebar rise" style="animation-delay:.16s">
+        <span class="hint"><kbd>Ctrl</kbd> + <kbd>S</kbd> salva · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> envia</span>
+        <div class="navbtns">
+          <button class="nb back" id="btnBack">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+            Voltar
+          </button>
+          <button class="nb next" id="btnNext">
+            Continuar
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESUMO VIVO -->
+    <aside class="summary rise" style="animation-delay:.18s" aria-label="Resumo do contrato">
+      <div class="sum-hd">
+        <div class="k">Resumo vivo</div>
+        <h3>Contrato até agora</h3>
+      </div>
+      <div class="sum-body">
+        <div class="sum-sec" data-req="1">
+          <div class="sl"><span class="okdot"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>Contratantes</div>
+          <div class="sv">Natalia Zulmira Sales da Silva<small>Dimas Sales da Silva · casados, mesmo endereço</small></div>
+        </div>
+        <div class="sum-sec" data-req="2">
+          <div class="sl"><span class="okdot"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>Resort &amp; ação</div>
+          <div class="sv">Olimpia Park Resort<small>Devolução 80%</small></div>
+        </div>
+        <div class="sum-sec todo" data-req="3" id="sumHon">
+          <div class="sl"><span class="okdot"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>Honorários</div>
+          <div class="sv" id="sumHonTxt">definindo nesta etapa…</div>
+        </div>
+        <div class="sum-sec todo" data-req="4" id="sumCla">
+          <div class="sl"><span class="okdot"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>Cláusulas</div>
+          <div class="sv" id="sumClaTxt">aguardando etapa 4</div>
+        </div>
+      </div>
+      <div class="sum-ft">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+        Salvo automaticamente há 12 s
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- badge do mockup -->
+<div class="mock-badge">
+  <b>M3 · Esteira Kanban</b>
+  <a href="index.html">← Todos os mockups</a>
+</div>
+
+<!-- toast -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="tico"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg></span>
+  <span id="toastTxt">Feito</span>
+</div>
+
+<script>
+/* =========================================================
+   DADOS REAIS (BRIEF)
+========================================================= */
+const RESORT_DOT = {
+  "Ilhas do Lago":"#2563EB","Leaves Premium":"#16A34A","Olimpia Park Resort":"#64748B",
+  "Thermas São Pedro":"#DC2626","Lagoa Quente/Ecotowers":"#60A5FA","Alta Vista":"#15803D",
+  "Ondas Praia":"#1B3A5C","Gran Paradiso":"#6B7280"
+};
+const AV = {"Mariana":["MM","av-mariana"],"Maria":["Ma","av-maria"],"Ana Cristina":["AC","av-ana"],"Beatriz":["Be","av-beatriz"]};
+
+const DATA = [
+ {nomes:["Fabiane Aparecida Borges","Roberto Ribeiro dos Santos"],cpf:"055.843.406-18",resort:"Ilhas do Lago",acao:"Cota Quitada sem Matrícula",status:"enviado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"01/07/2026",idade:"hoje",por:"Mariana",
+  sign:[{n:"Fabiane",ok:true},{n:"Roberto",ok:false}]},
+ {nomes:["Fabio Tavares de Melo","Patricia Pinheiro de Melo"],cpf:"318.761.358-67",resort:"Leaves Premium",acao:"Distrato por Atraso",status:"enviado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"01/07/2026",idade:"hoje",por:"Mariana",
+  sign:[{n:"Fabio",ok:false},{n:"Patricia",ok:false}]},
+ {nomes:["Natalia Zulmira Sales da Silva","Dimas Sales da Silva"],cpf:"346.116.158-63",resort:"Olimpia Park Resort",acao:"Devolução 80%",status:"enviado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"30/06/2026",idade:"ontem",por:"Mariana",
+  sign:[{n:"Natalia",ok:true},{n:"Dimas",ok:false}]},
+ {nomes:["Marco Antonio Puppin"],cpf:"040.853.568-79",resort:"Thermas São Pedro",acao:"Devolução 80%",status:"assinado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"30/06/2026",idade:"ontem",por:"Mariana"},
+ {nomes:["Rosemary Aparecida Piccioni"],cpf:"577.678.239-20",resort:"Thermas São Pedro",acao:"Devolução 80%",status:"assinado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"30/06/2026",idade:"ontem",por:"Mariana"},
+ {nomes:["João Carlos Ferreira de Freitas","André da Silva Barros"],cpf:"067.504.508-81",resort:"Thermas São Pedro",acao:"Ação de Cobrança",status:"assinado",val:"Somente êxito",det:"40% sobre o resultado",criado:"26/06/2026",idade:"há 5 dias",por:"Mariana"},
+ {nomes:["Andreia Flor da Silva"],cpf:"939.465.036-91",resort:"Lagoa Quente/Ecotowers",acao:"Devolução 80%",status:"assinado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"26/06/2026",idade:"há 5 dias",por:"Mariana"},
+ {nomes:["Flavio de Carvalho Pereira","Fabiana Custodio Vieira"],cpf:"849.125.456-00",resort:"Alta Vista",acao:"Cota Quitada sem Matrícula",status:"enviado",val:"Somente êxito",det:"35% sobre o resultado",criado:"26/06/2026",idade:"há 5 dias",por:"Mariana",
+  sign:[{n:"Flavio",ok:false},{n:"Fabiana",ok:true}]},
+ {nomes:["Terezinha de Jesus Paulino da Costa"],cpf:"122.551.748-63",resort:"Ondas Praia",acao:"Devolução 80%",status:"enviado",val:"Somente êxito",det:"30% sobre o resultado",criado:"26/06/2026",idade:"há 5 dias",por:"Maria",
+  sign:[{n:"Terezinha",ok:false}]},
+ {nomes:["Vanessa de Pietro Soares"],cpf:"137.674.498-89",resort:"Gran Paradiso",acao:"Distrato por Atraso",status:"assinado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"26/06/2026",idade:"há 5 dias",por:"Ana Cristina"},
+ {nomes:["Flavio de Carvalho Pereira"],cpf:"849.125.456-00",resort:"Alta Vista",acao:"Cota Quitada sem Matrícula",status:"rascunho",val:"R$ 3.000",det:"12x R$ 250 · êxito 20%",criado:"25/06/2026",idade:"há 6 dias",por:"Mariana"},
+ {nomes:["Terezinha de Jesus Paulino da Costa"],cpf:"122.551.748-63",resort:"Ondas Praia",acao:"Devolução 80%",status:"rascunho",val:"Somente êxito",det:"30% sobre o resultado",criado:"25/06/2026",idade:"há 6 dias",por:"Maria"},
+ {nomes:["Ernando Raimundo dos Santos Filho"],cpf:"048.177.056-98",resort:"Ondas Praia",acao:"Ação de Cobrança",status:"assinado",val:"Somente êxito",det:"35% sobre o resultado",criado:"25/06/2026",idade:"há 6 dias",por:"Mariana"},
+ {nomes:["Gabriel Silva Pires de Almeida"],cpf:"142.047.217-88",resort:"Ondas Praia",acao:"Revisão de Distrato",status:"assinado",val:"R$ 3.300",det:"12x R$ 275 · êxito 20%",criado:"25/06/2026",idade:"há 6 dias",por:"Beatriz"},
+];
+
+const TOTALS = {rascunho:5, enviado:26, assinado:164};
+const GHOSTS = {
+  rascunho:"+ 3 rascunhos mais antigos · ver todos",
+  enviado:"+ 21 aguardando assinatura · ver todos",
+  assinado:"+ 157 contratos assinados · ver todos"
+};
+
+/* ---------- helpers ---------- */
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function avatar(nome, extra=""){
+  const [ini, cls] = AV[nome] || [nome.slice(0,2), "av-mariana"];
+  return `<span class="avatar ${cls} ${extra}" title="${esc(nome)}">${ini}</span>`;
+}
+function dot(resort){
+  return `<span class="dot" style="background:${RESORT_DOT[resort]||'#6B7280'}"></span>`;
+}
+
+/* ---------- render do card ---------- */
+function cardHTML(c, delay){
+  const n2 = c.nomes[1] ? `<span class="c2">+ ${esc(c.nomes[1])}</span>` : "";
+  let signers = "";
+  if(c.status === "enviado" && c.sign){
+    signers = `<div class="signers">` + c.sign.map(s => s.ok
+      ? `<div class="signer ok"><span class="st-ic"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path class="chk" d="M5 12.5 10 17.5 19 7"/></svg></span><span class="nm">${esc(s.n)}</span><span class="lbl">assinou</span></div>`
+      : `<div class="signer pend"><span class="st-ic"></span><span class="nm">${esc(s.n)}</span><span class="lbl">pendente</span></div>`
+    ).join("") + `</div>
+    <button class="copybtn" onclick="copyLink(this,'${esc(c.nomes[0])}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+      <span>Copiar link de assinatura</span>
+    </button>`;
+  }
+  let statusRow = "";
+  if(c.status === "assinado"){
+    statusRow = `<div style="margin-top:10px"><span class="status s-assinado">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>
+      Assinado por todos</span></div>`;
+  }
+  if(c.status === "rascunho"){
+    statusRow = `<div style="margin-top:10px"><span class="status s-rascunho">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.5 2.5 0 0 1 3.5 3.5L8 19l-4.5 1.5L5 16 17 3Z"/></svg>
+      Rascunho · continuar edição</span></div>`;
+  }
+  return `<article class="card" style="animation-delay:${delay}ms" data-q="${esc((c.nomes.join(' ')+' '+c.cpf+' '+c.resort).toLowerCase())}" tabindex="0">
+    <div class="card-top">
+      <h3>${esc(c.nomes[0])}${n2}</h3>
+      <svg class="grip" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+    </div>
+    <div class="chips">
+      <span class="chip">${dot(c.resort)}${esc(c.resort)}</span>
+      <span class="chip">${esc(c.acao)}</span>
+    </div>
+    <div class="card-val"><span class="v tnum">${esc(c.val)}</span><span class="d tnum">${esc(c.det)}</span></div>
+    ${signers}${statusRow}
+    <div class="card-ft">
+      <span class="byline">${avatar(c.por)}${esc(c.por)}</span>
+      <span class="age">criado ${c.idade}</span>
+    </div>
+  </article>`;
+}
+
+function renderBoard(){
+  const cols = {rascunho:"col-rascunho", enviado:"col-aguardando", assinado:"col-assinado"};
+  const buckets = {rascunho:[], enviado:[], assinado:[]};
+  DATA.forEach(c => buckets[c.status].push(c));
+  let colIdx = 0;
+  for(const [st, elId] of Object.entries(cols)){
+    const el = document.getElementById(elId);
+    el.innerHTML = buckets[st].map((c,i)=>cardHTML(c, 180 + colIdx*140 + i*70)).join("")
+      + `<button class="ghost" style="animation-delay:${180 + colIdx*140 + buckets[st].length*70}ms" onclick="toast('Abrindo a lista completa…')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          ${GHOSTS[st]}</button>`;
+    colIdx++;
+  }
+}
+
+function renderList(){
+  const ST = {
+    assinado:['s-assinado','Assinado','<path d="M4 12.5 9.5 18 20 6.5"/>',3],
+    enviado:['s-enviado','Aguardando','<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 2"/>',2],
+    rascunho:['s-rascunho','Rascunho','<path d="M17 3a2.5 2.5 0 0 1 3.5 3.5L8 19l-4.5 1.5L5 16 17 3Z"/>',2]
+  };
+  document.getElementById("listbody").innerHTML = DATA.map(c=>{
+    const [cls,lbl,ic,w] = ST[c.status];
+    return `<tr data-q="${esc((c.nomes.join(' ')+' '+c.cpf+' '+c.resort).toLowerCase())}">
+      <td class="nm-cell">${esc(c.nomes[0])}${c.nomes[1]?`<span>+ ${esc(c.nomes[1])}</span>`:""}</td>
+      <td><span class="chip">${dot(c.resort)}${esc(c.resort)}</span></td>
+      <td>${esc(c.acao)}</td>
+      <td><span class="status ${cls}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${ic}</svg>${lbl}</span></td>
+      <td class="val-cell tnum">${esc(c.val)} <span style="font-weight:500;color:var(--label)">${esc(c.det)}</span></td>
+      <td class="tnum">${c.criado}</td>
+      <td><span class="byline">${avatar(c.por)}${esc(c.por)}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ---------- tween dos contadores ---------- */
+function tween(el, to, dur=900){
+  const t0 = performance.now();
+  function f(t){
+    const p = Math.min(1,(t-t0)/dur), e = 1-Math.pow(1-p,3);
+    el.textContent = Math.round(to*e);
+    if(p<1) requestAnimationFrame(f);
+  }
+  requestAnimationFrame(f);
+}
+
+/* ---------- busca ---------- */
+const q = document.getElementById("q");
+q.addEventListener("input", ()=>{
+  const term = q.value.trim().toLowerCase();
+  document.querySelectorAll("[data-q]").forEach(el=>{
+    el.style.display = (!term || el.dataset.q.includes(term)) ? "" : "none";
+  });
+  document.querySelectorAll(".ghost").forEach(g=>{ g.style.display = term ? "none" : ""; });
+  // contadores refletem a busca
+  const counts = {rascunho:0, enviado:0, assinado:0};
+  DATA.forEach(c=>{
+    if(!term || (c.nomes.join(' ')+' '+c.cpf+' '+c.resort).toLowerCase().includes(term)) counts[c.status]++;
+  });
+  const map = {rascunho:"cnt-rascunho", enviado:"cnt-aguardando", assinado:"cnt-assinado"};
+  for(const [st,id] of Object.entries(map)){
+    document.getElementById(id).textContent = term ? counts[st] : TOTALS[st];
+  }
+});
+
+/* ---------- kanban / lista ---------- */
+function setMode(m){
+  document.getElementById("segKanban").classList.toggle("on", m==="kanban");
+  document.getElementById("segLista").classList.toggle("on", m==="lista");
+  document.getElementById("boardwrap").classList.toggle("off", m!=="kanban");
+  document.getElementById("listwrap").classList.toggle("on", m==="lista");
+}
+
+/* ---------- abas ---------- */
+function switchView(v){
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected", t.dataset.view===v));
+  document.getElementById("view-salvos").classList.toggle("on", v==="salvos");
+  document.getElementById("view-novo").classList.toggle("on", v==="novo");
+  window.scrollTo({top:0});
+}
+document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>switchView(t.dataset.view)));
+
+/* =========================================================
+   NOVO CONTRATO — trilha
+========================================================= */
+let cur = 3;
+let honPago = "12x de R$ 275 = R$ 3.300", honPct = "20%";
+
+function setStep(n){
+  cur = Math.min(5, Math.max(1, n));
+  document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on", +p.dataset.pane===cur));
+  document.querySelectorAll(".step").forEach(s=>{
+    const sn = +s.dataset.step;
+    s.classList.toggle("done", sn<cur);
+    s.classList.toggle("cur", sn===cur);
+    const small = s.querySelector("small");
+    if(sn===cur) small.textContent = "etapa atual";
+    else if(sn<cur) small.textContent = "concluído";
+    else small.textContent = {2:"Olimpia Park",4:"13 padrão",5:"ZapSign"}[sn] || "pendente";
+    const bub = s.querySelector(".bub");
+    bub.innerHTML = sn<cur
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17.5 19 7"/></svg>'
+      : sn;
+  });
+  document.getElementById("btnBack").disabled = cur===1;
+  document.getElementById("btnNext").style.display = cur===5 ? "none" : "";
+  updateSummary();
+}
+document.querySelectorAll(".step").forEach(s=>s.addEventListener("click",()=>setStep(+s.dataset.step)));
+document.getElementById("btnBack").addEventListener("click",()=>setStep(cur-1));
+document.getElementById("btnNext").addEventListener("click",()=>setStep(cur+1));
+
+function updateSummary(){
+  const hon = document.getElementById("sumHon"), cla = document.getElementById("sumCla");
+  if(cur>=3){
+    hon.classList.remove("todo");
+    document.getElementById("sumHonTxt").innerHTML =
+      `<span class="sum-money tnum">${honPago}</span><small class="tnum">êxito ${honPct} · 1ª parcela 10/07/2026</small>`;
+  } else {
+    hon.classList.add("todo");
+    document.getElementById("sumHonTxt").textContent = "aguardando etapa 3";
+  }
+  if(cur>=4){
+    cla.classList.remove("todo");
+    document.getElementById("sumClaTxt").innerHTML = `13 cláusulas padrão<small>Cláusula 2ª gerada dos honorários</small>`;
+  } else {
+    cla.classList.add("todo");
+    document.getElementById("sumClaTxt").textContent = "aguardando etapa 4";
+  }
+}
+
+/* modos */
+document.querySelectorAll(".mode").forEach(m=>m.addEventListener("click",()=>{
+  document.querySelectorAll(".mode").forEach(x=>{x.classList.remove("on");x.setAttribute("aria-checked","false")});
+  m.classList.add("on"); m.setAttribute("aria-checked","true");
+}));
+
+/* presets */
+document.querySelectorAll(".preset").forEach(p=>p.addEventListener("click",()=>{
+  document.querySelectorAll(".preset").forEach(x=>x.classList.remove("on"));
+  p.classList.add("on");
+  const d = JSON.parse(p.dataset.preset);
+  document.getElementById("calcOut").innerHTML = d.calc;
+  honPago = d.calc.replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();
+  document.getElementById("revHon").innerHTML = `${honPago} · êxito ${honPct}<br>1ª parcela 10/07/2026`;
+  updateSummary();
+}));
+
+/* percentuais */
+document.querySelectorAll(".pct").forEach(p=>p.addEventListener("click",()=>{
+  document.querySelectorAll(".pct").forEach(x=>x.classList.remove("on"));
+  p.classList.add("on");
+  honPct = p.dataset.pct + "%";
+  document.getElementById("revHon").innerHTML = `${honPago} · êxito ${honPct}<br>1ª parcela 10/07/2026`;
+  updateSummary();
+}));
+
+/* cláusulas */
+const CLAUSES = [
+  ["1ª","Objeto do Contrato"],["2ª","Honorários",true],["3ª","Desistência"],["4ª","Despesas Processuais"],
+  ["5ª","Dados de Contato"],["6ª","Abrangência do Mandato"],["7ª","Negociação Direta Proibida"],
+  ["8ª","Confidencialidade e LGPD"],["9ª","Prestação de Contas"],["10ª","Advocacia de Meios"],
+  ["11ª","Revogação e Renúncia"],["12ª","Herdeiros e Sucessores"],["13ª","Foro"]
+];
+document.getElementById("clauseList").innerHTML = CLAUSES.map(([n,t,auto])=>`
+  <div class="clause" tabindex="0">
+    <span class="cnum tnum">${n}</span><b>${t}</b>
+    ${auto?`<span class="auto"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12L13 2Z"/></svg>gerada dos honorários</span>`:""}
+    <svg class="grip" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+  </div>`).join("");
+
+/* ---------- copiar link ---------- */
+function copyLink(btn, nome){
+  const link = "https://app.zapsign.com.br/verificar/doc-cbc-" + nome.toLowerCase().split(" ")[0];
+  (navigator.clipboard ? navigator.clipboard.writeText(link) : Promise.resolve()).finally(()=>{
+    btn.classList.add("done");
+    btn.querySelector("span").textContent = "Link copiado!";
+    toast("Link de assinatura copiado");
+    setTimeout(()=>{
+      btn.classList.remove("done");
+      btn.querySelector("span").textContent = "Copiar link de assinatura";
+    },1800);
+  });
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){
+  const t = document.getElementById("toast");
+  document.getElementById("toastTxt").textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ---------- atalhos ---------- */
+document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="s"){e.preventDefault();toast("Contrato salvo (Ctrl+S)");}
+  if((e.ctrlKey||e.metaKey) && e.key==="Enter"){e.preventDefault();toast("Enviado para ZapSign (Ctrl+Enter)");}
+});
+
+/* ---------- boot ---------- */
+renderBoard();
+renderList();
+setStep(3);
+tween(document.getElementById("cnt-rascunho"), TOTALS.rascunho);
+tween(document.getElementById("cnt-aguardando"), TOTALS.enviado);
+tween(document.getElementById("cnt-assinado"), TOTALS.assinado);
+</script>
+</body>
+</html>

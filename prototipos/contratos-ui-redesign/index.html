@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CBC Contratos — Redesign UI/UX · Mockups</title>
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264a72; --navy-dark:#0F2035;
+    --cream:#F0F4F8; --cream-dark:#E4EAF0;
+    --panel:#EEF4FF; --panel-border:#C0D0E8;
+    --label:#5A6070; --ink:#1A1A1A;
+    --green:#16A34A; --blue:#2563EB;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--cream); color:var(--ink); min-height:100dvh; line-height:1.55; font-size:15px;
+  }
+  header.bar{ background:var(--navy); color:#fff; text-align:center; padding:18px 20px 14px; }
+  header.bar h1{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; }
+  header.bar .oab{ font-size:11px; opacity:.7; letter-spacing:.6px; margin-top:3px; }
+  .subbar{ background:var(--navy-dark); color:#fff; text-align:center; padding:9px 20px; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .subbar span{ opacity:.65; font-weight:400; text-transform:none; letter-spacing:0; }
+
+  .wrap{max-width:980px;margin:0 auto;padding:34px 24px 70px}
+  .lede{ text-align:center; color:var(--label); max-width:640px; margin:0 auto 30px; animation:rise .5s ease both; }
+  .lede b{ color:var(--navy); }
+  .totais{ display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .totais .pill{ background:#fff; border:1px solid var(--cream-dark); border-radius:999px; padding:5px 14px; font-size:13px; color:var(--label); box-shadow:0 1px 6px rgba(0,0,0,.06); font-variant-numeric:tabular-nums; }
+  .totais .pill b{ color:var(--navy); font-size:14px; }
+  .totais .pill.g b{ color:var(--green);} .totais .pill.b b{ color:var(--blue);}
+
+  h2.section{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1.2px; color:var(--label); display:flex; align-items:center; gap:12px; margin:30px 0 16px; }
+  h2.section::before,h2.section::after{ content:""; flex:1; height:1px; background:var(--cream-dark); }
+
+  .diag{ background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.09); padding:22px 26px; animation:rise .5s .05s ease both; }
+  .diag ul{ list-style:none; display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:9px 24px; }
+  .diag li{ font-size:13.5px; color:#3D4657; padding-left:18px; position:relative; }
+  .diag li::before{ content:""; position:absolute; left:2px; top:8px; width:6px; height:6px; border-radius:50%; background:var(--navy-light); }
+  .diag li strong{ color:var(--navy); }
+
+  .grid{ display:grid; gap:14px; }
+  a.mock{
+    display:grid; grid-template-columns:64px 1fr auto; gap:20px; align-items:center;
+    background:#fff; border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,.09);
+    padding:20px 24px; text-decoration:none; color:inherit; border:1px solid transparent;
+    transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    animation:rise .5s ease both;
+  }
+  .grid a.mock:nth-child(1){animation-delay:.1s}.grid a.mock:nth-child(2){animation-delay:.16s}
+  .grid a.mock:nth-child(3){animation-delay:.22s}.grid a.mock:nth-child(4){animation-delay:.28s}
+  .grid a.mock:nth-child(5){animation-delay:.34s}
+  a.mock:hover{ transform:translateY(-2px); box-shadow:0 10px 26px -12px rgba(15,32,53,.3); border-color:var(--panel-border); }
+  .num{
+    width:48px; height:48px; border-radius:10px; background:var(--panel); border:1px solid var(--panel-border);
+    color:var(--navy); font-weight:700; font-size:18px; display:flex; align-items:center; justify-content:center;
+    justify-self:center;
+  }
+  .mock h3{ font-size:19px; color:var(--navy-dark); margin-bottom:3px; font-weight:700; }
+  .mock p{ font-size:13.5px; color:#4B5468; max-width:640px; }
+  .tags{ display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+  .tag{ font-size:11px; font-weight:600; padding:3px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--panel-border); color:var(--navy); }
+  .go{ display:flex; align-items:center; gap:7px; color:var(--navy); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.5px; white-space:nowrap; }
+  .go svg{ transition:transform .2s ease; }
+  a.mock:hover .go svg{ transform:translateX(4px); }
+
+  footer{ margin-top:38px; text-align:center; color:var(--label); font-size:13px; animation:rise .5s .4s ease both;}
+  footer b{color:var(--navy)}
+  @keyframes rise{ from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+  @media (max-width:640px){ a.mock{ grid-template-columns:1fr; gap:10px; } .num{justify-self:start} .go{display:none} }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Conforto, Bergonsi &amp; Cavalari Advogados</h1>
+  <div class="oab">OAB/SP n 55227 — Americana - SP</div>
+</header>
+<div class="subbar">CBC Contratos · Redesign das abas <span>&nbsp;— Novo Contrato &amp; Contratos Salvos</span></div>
+
+<div class="wrap">
+  <p class="lede">
+    Cinco direções de UI/UX, todas <b>dentro do design system atual</b> (navy, tokens e fontes do sistema) e com o
+    <b>padrão do documento preservado</b>: muda apenas o formulário e a aba de contratos salvos. Interativas e populadas com dados reais.
+    <span class="totais">
+      <span class="pill"><b>195</b> contratos</span>
+      <span class="pill g"><b>164</b> assinados</span>
+      <span class="pill b"><b>26</b> aguardando</span>
+      <span class="pill"><b>5</b> rascunhos</span>
+    </span>
+  </p>
+
+  <h2 class="section">O que os mockups corrigem</h2>
+  <section class="diag">
+    <ul>
+      <li><strong>Micro-tipografia</strong>: rótulos de 8–10px e uppercase em tudo cansam a leitura diária.</li>
+      <li><strong>Status fraco</strong>: emojis como ícones e badges pequenos escondem onde o contrato está no fluxo.</li>
+      <li><strong>Acordeões que escondem estado</strong>: o formulário não mostra o que falta sem abrir cada seção.</li>
+      <li><strong>Links ZapSign enterrados</strong>: a ação mais frequente da aba Salvos exige expandir o card.</li>
+      <li><strong>Superpoderes invisíveis</strong>: OCR de CNH, busca por CPF e CEP automáticos existem, mas a interface não os mostra.</li>
+      <li><strong>Hierarquia de ações</strong>: 5 botões empilhados de peso parecido no fim do formulário.</li>
+    </ul>
+  </section>
+
+  <h2 class="section">Os cinco mockups</h2>
+  <div class="grid">
+    <a class="mock" href="m1-atelie-juridico.html">
+      <div class="num">1</div>
+      <div>
+        <h3>Registro</h3>
+        <p>Livro de registros: aba Salvos como ledger com número de ordem, sumário de inventário e linhas expansíveis; formulário em seções numeradas I–IV com régua de progresso vertical e preview do documento ao lado.</p>
+        <div class="tags"><span class="tag">Ledger</span><span class="tag">Seções numeradas</span><span class="tag">Régua de progresso</span></div>
+      </div>
+      <span class="go">Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="mock" href="m2-mesa-de-operacoes.html">
+      <div class="num">2</div>
+      <div>
+        <h3>Mesa de Operações</h3>
+        <p>Tema escuro do sistema, denso e keyboard-first para quem cria vários contratos por dia: tabela com pipeline de status, drawer de dossiê, barra de comando ⌘K e atalhos visíveis em todas as ações.</p>
+        <div class="tags"><span class="tag">Tema escuro</span><span class="tag">Tabela + drawer</span><span class="tag">Atalhos ⌘K</span></div>
+      </div>
+      <span class="go">Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="mock" href="m3-esteira-kanban.html">
+      <div class="num">3</div>
+      <div>
+        <h3>Esteira Kanban</h3>
+        <p>O funil visível: Salvos em 3 colunas (Rascunhos · Aguardando · Assinados) com signatários e copiar-link direto no card; Novo Contrato como trilha de 5 etapas com resumo vivo que cresce a cada passo.</p>
+        <div class="tags"><span class="tag">Kanban por status</span><span class="tag">Trilha de etapas</span><span class="tag">Resumo vivo</span></div>
+      </div>
+      <span class="go">Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="mock" href="m4-lavratura-guiada.html">
+      <div class="num">4</div>
+      <div>
+        <h3>Lavratura Guiada</h3>
+        <p>Wizard capítulo a capítulo, uma seção por vez com Enter para avançar, e o documento padrão (Times New Roman, intocado) atualizando em tempo real ao lado. Salvos como índice com totais clicáveis.</p>
+        <div class="tags"><span class="tag">Wizard</span><span class="tag">Documento em tempo real</span><span class="tag">Enter avança</span></div>
+      </div>
+      <span class="go">Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+
+    <a class="mock" href="m5-balcao-bento.html">
+      <div class="num">5</div>
+      <div>
+        <h3>Balcão</h3>
+        <p>Visão executiva: busca em destaque, stat-cards que filtram (195/164/26/5), grid de cards com régua de fluxo, modal-dossiê com timeline de eventos, e formulário com painel sticky de resumo e hierarquia clara de ações.</p>
+        <div class="tags"><span class="tag">Stat-cards filtram</span><span class="tag">Grid de cards</span><span class="tag">Timeline no dossiê</span></div>
+      </div>
+      <span class="go">Abrir <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    </a>
+  </div>
+
+  <footer>
+    Cada mockup é autocontido e interativo — teste a troca de abas, busca, filtros e expansões.<br>
+    Gostou de <b>aspectos</b> de mockups diferentes? Eles podem ser combinados na implementação final.
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4 · Lavratura Guiada · CBC Contratos</title>
+<style>
+:root{
+  --navy:#1B3A5C;
+  --navy-light:#264a72;
+  --navy-dark:#0F2035;
+  --bg:#F0F4F8;
+  --line:#E4EAF0;
+  --panel:#EEF4FF;
+  --panel-bd:#C0D0E8;
+  --txt:#333333;
+  --txt-strong:#1A1A1A;
+  --label:#5A6070;
+  --gray4:#9CA3AF;
+  --gray5:#6B7280;
+  --ok:#16A34A;   --ok-bg:#F0FDF4;
+  --info:#2563EB; --info-bg:#EFF6FF;
+  --ras:#9CA3AF;  --ras-bg:#F3F4F6;
+  --danger:#DC2626; --danger-bg:#FEF2F2;
+  --card-sh:0 1px 6px rgba(0,0,0,.09);
+  --ui:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono:ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:var(--ui);
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit}
+input,select,textarea{font-family:inherit;color:var(--txt-strong)}
+svg{flex:none}
+.num{font-variant-numeric:tabular-nums}
+
+/* ============ reveal escalonado ============ */
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.reveal{opacity:0;animation:rise .55s cubic-bezier(.22,.8,.3,1) forwards;animation-delay:var(--d,0s)}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ============ header + abas (padrão do sistema) ============ */
+.hd{
+  background:var(--navy);color:#fff;
+  padding:14px 32px;display:flex;align-items:center;gap:20px;
+}
+.hd-name{font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:14.5px}
+.hd-sub{font-size:11.5px;opacity:.72;letter-spacing:.03em;margin-top:1px}
+.hd-user{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:13px;opacity:.92}
+.hd-user .dot{
+  width:27px;height:27px;border-radius:50%;background:rgba(255,255,255,.15);
+  display:grid;place-items:center;font-size:11px;font-weight:700;letter-spacing:.03em;
+}
+.tabbar{background:var(--navy-dark);padding:0 32px;display:flex;gap:4px}
+.tb{
+  text-transform:uppercase;font-weight:700;font-size:12px;letter-spacing:.06em;
+  color:rgba(255,255,255,.5);padding:12px 18px;border-radius:8px 8px 0 0;
+  transition:color .2s,background .2s;display:inline-flex;align-items:center;gap:8px;
+}
+.tb:hover{color:rgba(255,255,255,.8)}
+.tb.on{background:rgba(255,255,255,.1);color:#fff}
+.tb .cnt{
+  background:rgba(255,255,255,.14);border-radius:999px;padding:1px 8px;
+  font-size:11px;font-variant-numeric:tabular-nums;
+}
+
+/* ============ layout novo contrato ============ */
+.view{display:none}
+.view.on{display:block}
+.lavra{
+  display:grid;
+  grid-template-columns:200px minmax(360px,1fr) minmax(430px,45%);
+  gap:20px;
+  padding:22px 32px 40px;
+  align-items:start;
+}
+
+/* ---- rail ---- */
+.rail{padding-top:10px;position:sticky;top:16px}
+.rail-title{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gray5);
+  margin-bottom:18px;font-weight:700;
+}
+.chapters{position:relative;display:flex;flex-direction:column;gap:2px}
+.chapters .thread{position:absolute;left:12px;top:14px;bottom:14px;width:2px;background:var(--line)}
+.chapters .thread i{
+  position:absolute;left:0;top:0;width:2px;background:var(--navy);
+  height:100%;transform:scaleY(0);transform-origin:top;
+  transition:transform .45s cubic-bezier(.22,.8,.3,1);display:block;
+}
+.chap{display:flex;align-items:center;gap:13px;padding:9px 0;position:relative;text-align:left}
+.chap .pip{
+  width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:var(--bg);border:2px solid var(--line);color:var(--gray4);
+  font-size:11px;font-weight:700;position:relative;z-index:1;
+  transition:all .25s;font-variant-numeric:tabular-nums;
+}
+.chap .lbl{font-size:13.5px;color:var(--gray5);font-weight:600;transition:color .2s;display:block}
+.chap .st{font-size:11px;color:var(--gray4);display:block}
+.chap:hover .lbl{color:var(--navy)}
+.chap.done .pip{background:var(--navy);border-color:var(--navy);color:#fff}
+.chap.done .lbl{color:var(--txt)}
+.chap.now .pip{border-color:var(--navy);color:var(--navy);background:#fff;box-shadow:0 0 0 4px rgba(27,58,92,.12)}
+.chap.now .lbl{color:var(--navy)}
+.chap.now .st{color:var(--info)}
+
+/* ---- wizard (card branco) ---- */
+.wizard{
+  background:#fff;border-radius:12px;box-shadow:var(--card-sh);
+  padding:28px 32px 24px;display:flex;flex-direction:column;overflow:hidden;
+}
+.crumb{
+  font-size:11px;color:var(--gray5);letter-spacing:.09em;text-transform:uppercase;
+  font-weight:700;margin-bottom:10px;
+}
+.crumb b{color:var(--navy)}
+.steps{flex:1;position:relative}
+.step{display:none}
+.step.on{display:block}
+@keyframes stepR{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes stepL{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+.step.in-r{animation:stepR .34s cubic-bezier(.22,.8,.3,1)}
+.step.in-l{animation:stepL .34s cubic-bezier(.22,.8,.3,1)}
+.q{font-size:25px;line-height:1.25;color:var(--navy);font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
+.q-sub{font-size:13.5px;color:var(--label);margin-bottom:26px;max-width:56ch}
+
+/* campos */
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:16px 18px;margin-bottom:16px}
+.frow.one{grid-template-columns:1fr}
+.frow.tri{grid-template-columns:1.2fr .8fr 1fr}
+.field label{
+  display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--navy);font-weight:700;margin-bottom:5px;
+}
+.field .ok{color:var(--ok);font-weight:700;letter-spacing:.02em;text-transform:none;font-size:11px}
+.field input,.field select{
+  width:100%;background:#fff;border:1px solid #D1D5DB;border-radius:8px;
+  font-size:14.5px;padding:9px 12px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+  font-variant-numeric:tabular-nums;
+}
+.field input::placeholder{color:var(--gray4)}
+.field input:focus,.field select:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+.field.pulse input,.field.pulse select{animation:fieldPulse 1s ease}
+@keyframes fieldPulse{30%{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.18)}}
+.field select{
+  appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20' fill='none' stroke='%235A6070' stroke-width='1.8'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:32px;
+}
+.ocr{
+  margin:2px 0 20px;border:1.5px dashed var(--panel-bd);border-radius:10px;background:var(--panel);
+  padding:12px 16px;display:flex;align-items:center;gap:12px;
+  color:var(--navy);font-size:13px;transition:all .2s;cursor:pointer;
+}
+.ocr:hover{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.12)}
+.linkish{
+  display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--navy);
+  font-weight:600;border-radius:8px;padding:8px 12px;background:var(--panel);
+  border:1px solid var(--panel-bd);transition:all .2s;margin-top:4px;
+}
+.linkish:hover{border-color:var(--navy);transform:translateY(-1px)}
+
+/* honorários */
+.modes{display:flex;border:1px solid #D1D5DB;border-radius:9px;width:100%;max-width:100%;margin-bottom:24px;overflow:hidden;background:#fff}
+.mode{
+  flex:1;padding:8px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;
+  color:var(--gray5);transition:all .2s;border-right:1px solid #D1D5DB;white-space:nowrap;text-align:center;
+}
+.mode:last-child{border-right:none}
+.mode:hover{color:var(--navy)}
+.mode.on{background:var(--navy);color:#fff}
+.group-lbl{
+  font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);
+  font-weight:700;margin-bottom:10px;
+}
+.presets{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+.preset{
+  display:flex;align-items:center;gap:13px;padding:11px 14px;text-align:left;width:100%;
+  border:1px solid var(--line);border-radius:10px;background:#fff;
+  transition:border-color .2s,background .2s,box-shadow .2s;
+}
+.preset:hover{border-color:var(--panel-bd)}
+.preset.on{background:var(--panel);border-color:var(--panel-bd);box-shadow:0 0 0 1px var(--panel-bd)}
+.preset .radio{
+  width:16px;height:16px;border-radius:50%;border:2px solid #D1D5DB;
+  transition:all .2s;position:relative;
+}
+.preset.on .radio{border-color:var(--navy)}
+.preset.on .radio::after{content:"";position:absolute;inset:2.5px;border-radius:50%;background:var(--navy)}
+.preset .val{font-size:15px;color:var(--navy);font-weight:700;font-variant-numeric:tabular-nums;min-width:110px}
+.preset .how{font-size:12.5px;color:var(--gray5);font-variant-numeric:tabular-nums}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.chip{
+  border:1px solid #D1D5DB;border-radius:999px;padding:7px 16px;background:#fff;
+  font-size:13.5px;font-weight:600;color:var(--gray5);transition:all .2s;font-variant-numeric:tabular-nums;
+}
+.chip:hover{border-color:var(--navy);color:var(--navy)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.duo{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:end}
+
+/* cláusulas */
+.claus{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px;background:#fff}
+.clau{border-bottom:1px solid var(--line)}
+.clau:last-child{border-bottom:none}
+.clau-head{
+  width:100%;display:flex;align-items:center;gap:12px;text-align:left;
+  padding:11px 14px;transition:background .2s;
+}
+.clau-head:hover{background:var(--panel)}
+.clau-head .grip{color:#D1D5DB;cursor:grab}
+.clau-head .n{
+  width:30px;height:22px;border-radius:6px;background:var(--panel);color:var(--navy);
+  font-size:11.5px;font-weight:700;display:grid;place-items:center;font-variant-numeric:tabular-nums;
+}
+.clau-head .t{font-size:13.5px;color:var(--txt-strong);font-weight:600;flex:1}
+.clau-head .auto{
+  font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:700;
+  color:var(--info);background:var(--info-bg);border-radius:999px;padding:3px 10px;
+}
+.clau-head .chev{color:var(--gray4);transition:transform .25s}
+.clau.open .chev{transform:rotate(180deg)}
+.clau-body{display:none;padding:2px 14px 14px 56px}
+.clau.open .clau-body{display:block;animation:rise .28s cubic-bezier(.22,.8,.3,1)}
+.clau-body textarea{
+  width:100%;border:1px solid #D1D5DB;border-radius:8px;background:#fff;
+  font-size:13px;line-height:1.6;color:var(--txt);
+  padding:10px 12px;resize:vertical;min-height:80px;outline:none;transition:border-color .2s,box-shadow .2s;
+}
+.clau-body textarea:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+.clau-body .mini{font-size:11.5px;color:var(--gray4);margin-top:6px}
+
+/* revisão */
+.checklist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:24px;background:#fff}
+.checkit{
+  display:flex;align-items:center;gap:13px;padding:12px 14px;
+  border-bottom:1px solid var(--line);text-align:left;width:100%;transition:background .2s;
+}
+.checkit:last-child{border-bottom:none}
+.checkit:hover{background:var(--panel)}
+.checkit .box{
+  width:20px;height:20px;border-radius:6px;border:2px solid #D1D5DB;
+  display:grid;place-items:center;color:#fff;transition:all .2s;
+}
+.checkit.ok .box{background:var(--ok);border-color:var(--ok)}
+.checkit .box svg{opacity:0;transform:scale(.5);transition:all .2s}
+.checkit.ok .box svg{opacity:1;transform:none}
+.checkit .w{font-size:13.5px;color:var(--txt)}
+.checkit .d{font-size:12px;color:var(--gray4);margin-left:auto;font-variant-numeric:tabular-nums}
+.actions{display:flex;flex-direction:column;gap:12px}
+.act-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border-radius:8px;
+  padding:11px 18px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  transition:all .2s;border:1px solid transparent;
+}
+.btn.sec{background:var(--panel);color:var(--navy);border-color:var(--panel-bd)}
+.btn.sec:hover{border-color:var(--navy);transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.btn.zap{
+  background:var(--navy-dark);color:#fff;font-size:13px;padding:14px 26px;
+  box-shadow:0 1px 6px rgba(0,0,0,.09);
+}
+.btn.zap:hover{background:#000C18;transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.btn.zap:active{transform:translateY(0)}
+.kbd-hint{font-size:12px;color:var(--gray4);display:flex;align-items:center;gap:6px;margin-top:2px}
+kbd{
+  font-family:var(--mono);font-size:10.5px;border:1px solid #D1D5DB;border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:#fff;color:var(--gray5);
+}
+
+/* nav do wizard */
+.wnav{
+  display:flex;align-items:center;gap:14px;margin-top:26px;padding-top:18px;
+  border-top:1px solid var(--line);
+}
+.wback{
+  display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--gray5);
+  padding:10px 12px;border-radius:8px;transition:all .2s;
+}
+.wback:hover{color:var(--navy);background:var(--panel)}
+.wback[disabled]{opacity:.35;pointer-events:none}
+.wnext{
+  display:inline-flex;align-items:center;gap:9px;background:var(--navy);color:#fff;
+  border-radius:8px;padding:12px 22px;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;
+  transition:all .2s;box-shadow:0 1px 6px rgba(0,0,0,.09);
+}
+.wnext:hover{background:var(--navy-light);transform:translateY(-1px)}
+.wnext svg{transition:transform .2s}
+.wnext:hover svg{transform:translateX(3px)}
+.wnav .enter{margin-left:auto;font-size:12px;color:var(--gray4);display:flex;gap:6px;align-items:center}
+
+/* ---- lado do documento ---- */
+.deskside{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column}
+.paper-switch{display:flex;gap:6px;margin-bottom:10px;align-items:center}
+.pswitch{
+  font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--gray5);padding:8px 14px;border-radius:8px;border:1px solid transparent;
+  transition:all .2s;
+}
+.pswitch:hover{color:var(--navy)}
+.pswitch.on{color:var(--navy);background:#fff;border-color:var(--line);box-shadow:var(--card-sh)}
+.paper-switch .autosave{margin-left:auto;font-size:11.5px;color:var(--gray5);display:flex;align-items:center;gap:6px}
+.autosave .p{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:breathe 2.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* barrinha "Editando:" — indicação FORA do documento, como no sistema */
+.edit-bar{
+  display:flex;align-items:center;gap:9px;
+  background:var(--panel);border:1px solid var(--panel-bd);border-radius:8px;
+  padding:8px 14px;margin-bottom:10px;font-size:12.5px;color:var(--navy);font-weight:600;
+}
+.edit-bar svg{color:var(--navy)}
+.edit-bar b{font-weight:700}
+
+.paper-scroll{overflow-y:auto;flex:1;border-radius:4px}
+
+/* ===== DOCUMENTO — padrão intocável do sistema ===== */
+.paper{
+  background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.14), 0 8px 26px -14px rgba(0,0,0,.28);
+  padding:30px 35px;
+  max-width:660px;margin:0 auto;
+  font-family:'Times New Roman', Times, serif;
+  font-size:12pt;line-height:1.8;text-align:justify;color:#000;
+}
+.paper h1{
+  text-align:center;font-size:14pt;font-weight:bold;line-height:1.5;
+  margin-bottom:22px;font-family:'Times New Roman', Times, serif;
+}
+.paper p{margin-bottom:12px}
+.paper p.par{text-indent:40px}
+.paper .doc-city{margin-top:18px}
+.paper .sig{margin-top:44px;text-align:center}
+.paper .sig .sig-line{width:280px;border-top:1px solid #000;margin:0 auto 4px}
+.paper .sig .nm{font-size:12pt}
+.paper .sig-duo{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;margin-top:44px}
+.paper .sig-duo .sig{margin-top:0;flex:1;min-width:230px}
+.paper .sig-duo .sig .sig-line{width:100%;max-width:280px}
+/* flash diff breve, desaparece por completo — nenhum estilo persistente no documento */
+@keyframes diffFlash{0%{background-color:#FEF9C3}100%{background-color:transparent}}
+.paper .df{animation:diffFlash .7s ease forwards}
+
+/* ============ contratos salvos ============ */
+.shelf{max-width:1020px;margin:0 auto;padding:34px 32px 120px}
+.shelf .lede{font-size:23px;line-height:1.45;color:var(--txt-strong);font-weight:700;max-width:44ch;margin-bottom:6px;letter-spacing:-.01em}
+.lede .f{
+  border-bottom:2px solid transparent;padding-bottom:1px;cursor:pointer;
+  transition:all .2s;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.lede .f:hover{border-bottom-color:currentColor}
+.lede .f.on{border-bottom-color:currentColor}
+.lede .f.tot{color:var(--navy)}
+.lede .f.ass{color:var(--ok)}
+.lede .f.env{color:var(--info)}
+.lede .f.ras{color:var(--gray5)}
+.shelf .lede-hint{font-size:12.5px;color:var(--gray5);margin-bottom:28px}
+.bigsearch{position:relative;margin-bottom:10px}
+.bigsearch svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--gray4)}
+.bigsearch input{
+  width:100%;background:#fff;border:1px solid #D1D5DB;border-radius:10px;outline:none;
+  font-size:15.5px;padding:13px 16px 13px 44px;box-shadow:var(--card-sh);
+  transition:border-color .2s,box-shadow .2s;
+}
+.bigsearch input::placeholder{color:var(--gray4)}
+.bigsearch input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.3)}
+.result-note{font-size:12px;color:var(--gray5);margin-bottom:18px;min-height:18px;font-variant-numeric:tabular-nums}
+
+.entries{background:#fff;border-radius:12px;box-shadow:var(--card-sh);overflow:hidden}
+.entry{border-bottom:1px solid var(--line)}
+.entry:last-child{border-bottom:none}
+.entry-head{
+  width:100%;display:grid;grid-template-columns:1fr auto 20px;gap:20px;align-items:center;
+  text-align:left;padding:16px 20px;transition:background .2s;
+}
+.entry-head:hover{background:var(--panel)}
+.entry-head h3{font-size:15.5px;font-weight:700;color:var(--txt-strong);line-height:1.3}
+.entry-head h3 .amp{color:var(--gray4);font-weight:400}
+.entry-head .meta{font-size:12.5px;color:var(--gray5);margin-top:3px;font-variant-numeric:tabular-nums}
+.entry-head .meta b{color:var(--txt);font-weight:600}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;
+  font-size:12px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.pill.ass{color:var(--ok);background:var(--ok-bg)}
+.pill.env{color:var(--info);background:var(--info-bg)}
+.pill.ras{color:var(--ras);background:var(--ras-bg)}
+.entry-head .chev{color:var(--gray4);transition:transform .25s}
+.entry.open .entry-head .chev{transform:rotate(180deg)}
+.entry-body{display:none;padding:0 20px 20px}
+.entry.open .entry-body{display:block;animation:rise .28s cubic-bezier(.22,.8,.3,1)}
+.dossie{background:var(--panel);border:1px solid var(--panel-bd);border-radius:10px;padding:18px 22px}
+.dossie .dt{
+  font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--navy);
+  font-weight:700;margin-bottom:10px;
+}
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 20px;margin-bottom:16px}
+.dcell .k{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--gray5);font-weight:700}
+.dcell .v{font-size:13.5px;color:var(--txt-strong);font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+.signer{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--panel-bd)}
+.signer .nm{font-size:13.5px;font-weight:600;color:var(--txt-strong);flex:1}
+.signer .ss{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px}
+.signer .ss.ok{color:var(--ok);background:var(--ok-bg)}
+.signer .ss.pd{color:var(--info);background:var(--info-bg)}
+.signer .lk{
+  font-size:11.5px;color:var(--gray5);font-family:var(--mono);
+  max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.copybtn{
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--navy);
+  border:1px solid var(--panel-bd);border-radius:7px;padding:5px 10px;transition:all .2s;background:#fff;
+}
+.copybtn:hover{border-color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.dact{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--panel-bd)}
+.dact .btn{padding:8px 14px;font-size:11px}
+.dact .btn.sec{background:#fff}
+.dact .danger{color:var(--danger);border-color:#FECACA;background:#fff}
+.dact .danger:hover{border-color:var(--danger);background:var(--danger-bg)}
+.empty{text-align:center;padding:60px 20px;color:var(--gray5);font-size:15px}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;bottom:32px;transform:translate(-50%,20px);
+  background:var(--navy-dark);color:#fff;border-radius:10px;
+  padding:12px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;
+  opacity:0;pointer-events:none;transition:all .3s cubic-bezier(.22,.8,.3,1);
+  box-shadow:0 6px 20px rgba(0,0,0,.22);z-index:60;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast svg{color:#4ADE80}
+
+/* badge */
+.mockbadge{
+  position:fixed;right:18px;bottom:16px;z-index:50;
+  background:#fff;border:1px solid var(--line);border-radius:999px;
+  padding:8px 16px;font-size:11.5px;color:var(--gray5);
+  display:flex;align-items:center;gap:10px;box-shadow:var(--card-sh);
+}
+.mockbadge b{color:var(--navy);font-weight:700}
+.mockbadge a{color:var(--info);text-decoration:none;font-weight:600}
+.mockbadge a:hover{text-decoration:underline}
+
+/* ============ responsivo ============ */
+@media (max-width:1240px){
+  .lavra{grid-template-columns:180px 1fr 42%}
+}
+@media (max-width:1040px){
+  .lavra{grid-template-columns:1fr;padding:18px 22px 40px}
+  .rail{position:static}
+  .chapters{flex-direction:row;gap:16px;flex-wrap:wrap}
+  .chapters .thread{display:none}
+  .chap{padding:4px 0}
+  .chap .st{display:none}
+  .deskside{position:static;max-height:none}
+  .paper-scroll{max-height:640px}
+}
+@media (max-width:768px){
+  .hd{padding:12px 18px}
+  .tabbar{padding:0 18px}
+  .lavra{padding:14px 14px 40px}
+  .wizard{padding:20px 18px}
+  .paper{padding:24px 20px}
+  .frow,.frow.tri{grid-template-columns:1fr}
+  .duo{grid-template-columns:1fr}
+  .shelf{padding:24px 16px 120px}
+  .dgrid{grid-template-columns:1fr 1fr}
+  .entry-head{grid-template-columns:1fr;gap:8px}
+  .q{font-size:21px}
+}
+</style>
+</head>
+<body>
+
+<header class="hd reveal" style="--d:.02s">
+  <div>
+    <div class="hd-name">Conforto, Bergonsi &amp; Cavalari Advogados</div>
+    <div class="hd-sub">OAB/SP n 55227 — Americana - SP</div>
+  </div>
+  <div class="hd-user"><span class="dot">MM</span> Mariana Maciel</div>
+</header>
+<nav class="tabbar reveal" style="--d:.05s" role="tablist">
+  <button class="tb on" id="tabNovo" role="tab" aria-selected="true" onclick="switchTab('novo')">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4 9.5-9.5z"/></svg>
+    Novo Contrato
+  </button>
+  <button class="tb" id="tabSalvos" role="tab" aria-selected="false" onclick="switchTab('salvos')">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5L12.5 3z"/><path d="M12.5 3v3.5H16"/></svg>
+    Contratos Salvos <span class="cnt num">195</span>
+  </button>
+</nav>
+
+<!-- ================= NOVO CONTRATO ================= -->
+<section class="view on" id="view-novo">
+  <div class="lavra">
+
+    <!-- rail de capítulos -->
+    <aside class="rail reveal" style="--d:.08s">
+      <div class="rail-title">Lavratura</div>
+      <div class="chapters">
+        <span class="thread"><i id="thread-fill"></i></span>
+        <button class="chap" data-step="0" onclick="goStep(0)">
+          <span class="pip" data-pip>1</span>
+          <span><span class="lbl">Partes</span><span class="st" data-st>por preencher</span></span>
+        </button>
+        <button class="chap" data-step="1" onclick="goStep(1)">
+          <span class="pip" data-pip>2</span>
+          <span><span class="lbl">Demanda</span><span class="st" data-st>por preencher</span></span>
+        </button>
+        <button class="chap" data-step="2" onclick="goStep(2)">
+          <span class="pip" data-pip>3</span>
+          <span><span class="lbl">Honorários</span><span class="st" data-st>por preencher</span></span>
+        </button>
+        <button class="chap" data-step="3" onclick="goStep(3)">
+          <span class="pip" data-pip>4</span>
+          <span><span class="lbl">Cláusulas</span><span class="st" data-st>13 padrão</span></span>
+        </button>
+        <button class="chap" data-step="4" onclick="goStep(4)">
+          <span class="pip" data-pip>5</span>
+          <span><span class="lbl">Revisão</span><span class="st" data-st>conferir e enviar</span></span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- wizard central -->
+    <div class="wizard reveal" style="--d:.12s">
+      <div class="crumb" id="crumb">Etapa <b class="num">3</b> de 5 · Honorários</div>
+      <div class="steps">
+
+        <!-- Passo 1: Partes -->
+        <section class="step" data-step="0">
+          <h2 class="q">Quem contrata os serviços?</h2>
+          <p class="q-sub">O CPF busca o nome automaticamente; o CEP preenche o endereço. Se preferir, arraste a CNH e deixe o resto conosco.</p>
+          <div class="ocr" onclick="toast('OCR da CNH: os campos seriam preenchidos automaticamente')">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="15" height="12" rx="2"/><circle cx="7" cy="9" r="1.6"/><path d="M4.5 13.5c.6-1.4 1.5-2 2.5-2s1.9.6 2.5 2M12 8h3.5M12 11h3.5"/></svg>
+            Arraste a CNH aqui para leitura automática dos dados (OCR)
+          </div>
+          <div class="frow tri">
+            <div class="field">
+              <label>CPF · <span class="ok">✓ válido</span></label>
+              <input type="text" data-field="cpf" value="040.853.568-79" class="num">
+            </div>
+            <div class="field">
+              <label>RG</label>
+              <input type="text" data-field="rg" value="18.765.432-0" class="num">
+            </div>
+            <div class="field">
+              <label>Estado civil</label>
+              <select data-field="ec">
+                <option>Solteiro(a)</option>
+                <option selected>Casado(a)</option>
+                <option>Divorciado(a)</option>
+                <option>Viúvo(a)</option>
+                <option>União Estável</option>
+              </select>
+            </div>
+          </div>
+          <div class="frow one">
+            <div class="field">
+              <label>Nome completo</label>
+              <input type="text" data-field="nome" value="Marco Antonio Puppin" placeholder="nome como consta no documento">
+            </div>
+          </div>
+          <div class="frow">
+            <div class="field">
+              <label>Nacionalidade</label>
+              <input type="text" data-field="nac" value="Brasileiro">
+            </div>
+            <div class="field">
+              <label>Profissão</label>
+              <input type="text" data-field="prof" value="Aposentado">
+            </div>
+          </div>
+          <div class="frow">
+            <div class="field">
+              <label>E-mail (recebe o link de assinatura)</label>
+              <input type="email" data-field="email" value="marco.puppin@gmail.com">
+            </div>
+            <div class="field">
+              <label>CEP</label>
+              <input type="text" data-field="cep" value="13416-000" class="num">
+            </div>
+          </div>
+          <div class="frow tri">
+            <div class="field">
+              <label>Endereço</label>
+              <input type="text" data-field="end" value="Rua Dom Pedro II, 1.234">
+            </div>
+            <div class="field">
+              <label>Bairro</label>
+              <input type="text" data-field="bairro" value="Centro">
+            </div>
+            <div class="field">
+              <label>Cidade / UF</label>
+              <input type="text" data-field="cidade" value="Piracicaba/SP">
+            </div>
+          </div>
+          <button class="linkish" onclick="toast('Um segundo bloco de contratante seria aberto aqui')">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>
+            Adicionar segundo contratante
+          </button>
+        </section>
+
+        <!-- Passo 2: Demanda -->
+        <section class="step" data-step="1">
+          <h2 class="q">Contra quem, e por quê?</h2>
+          <p class="q-sub">O resort e o tipo de ação definem o objeto do contrato; a cláusula 1 se escreve sozinha à direita.</p>
+          <div class="frow">
+            <div class="field">
+              <label>Resort / Multipropriedade</label>
+              <select data-field="resort">
+                <option>Ondas Praia</option>
+                <option selected>Thermas São Pedro</option>
+                <option>Ilhas do Lago</option>
+                <option>Leaves Premium</option>
+                <option>Olimpia Park Resort</option>
+                <option>Lagoa Quente/Ecotowers</option>
+                <option>Alta Vista</option>
+                <option>Gran Paradiso</option>
+                <option>Encontro das Águas</option>
+                <option>Águas da Serra</option>
+                <option>Costa do Sauípe</option>
+                <option>Praia Bonita</option>
+                <option>Outro…</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tipo de ação</label>
+              <select data-field="acao">
+                <option>Ação de Cobrança</option>
+                <option>Cancelamento de Contrato</option>
+                <option>Cota Quitada sem Matrícula</option>
+                <option>Dano Moral</option>
+                <option selected>Devolução 80%</option>
+                <option>Devolução 50%</option>
+                <option>Distrato por Atraso</option>
+                <option>Execução Honorários</option>
+                <option>Revisão de Distrato</option>
+                <option>Outro…</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Passo 3: Honorários -->
+        <section class="step on" data-step="2">
+          <h2 class="q">Como serão os honorários?</h2>
+          <p class="q-sub">Escolha o regime e o plano: a cláusula 2 e seus sete parágrafos são gerados automaticamente.</p>
+          <div class="modes" id="modes">
+            <button class="mode on" data-mode="ie" onclick="setMode('ie')">Iniciais + Êxito</button>
+            <button class="mode" data-mode="se" onclick="setMode('se')">Somente Êxito</button>
+            <button class="mode" data-mode="si" onclick="setMode('si')">Somente Iniciais</button>
+          </div>
+
+          <div id="grp-presets">
+            <div class="group-lbl">Honorários iniciais</div>
+            <div class="presets" id="presets"></div>
+          </div>
+
+          <div class="duo" id="grp-data">
+            <div class="field">
+              <label>1ª parcela em</label>
+              <input type="date" data-field="data1" value="2026-07-15" class="num">
+            </div>
+            <div></div>
+          </div>
+
+          <div id="grp-exito" style="margin-top:20px">
+            <div class="group-lbl">Percentual de êxito</div>
+            <div class="chips" id="chips"></div>
+          </div>
+        </section>
+
+        <!-- Passo 4: Cláusulas -->
+        <section class="step" data-step="3">
+          <h2 class="q">As cláusulas do instrumento.</h2>
+          <p class="q-sub">Treze cláusulas padrão, editáveis e reordenáveis. A 2ª nasce da etapa anterior. Toque em qualquer uma para ler ou ajustar o texto.</p>
+          <div class="claus" id="clausList"></div>
+          <button class="linkish" onclick="toast('Uma cláusula avulsa em branco seria adicionada ao final')">
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>
+            Adicionar cláusula avulsa
+          </button>
+        </section>
+
+        <!-- Passo 5: Revisão -->
+        <section class="step" data-step="4">
+          <h2 class="q">Tudo conferido?</h2>
+          <p class="q-sub">Uma última leitura antes de lavrar. Cada item abaixo foi verificado automaticamente; toque para desmarcar se algo pedir atenção.</p>
+          <div class="checklist">
+            <button class="checkit ok" onclick="toggleCheck(this)">
+              <span class="box"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+              <span class="w">Partes · Marco Antonio Puppin, CPF válido</span>
+              <span class="d num">1 contratante</span>
+            </button>
+            <button class="checkit ok" onclick="toggleCheck(this)">
+              <span class="box"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+              <span class="w">Demanda · Devolução 80% × Thermas São Pedro</span>
+              <span class="d">objeto definido</span>
+            </button>
+            <button class="checkit ok" onclick="toggleCheck(this)">
+              <span class="box"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+              <span class="w">Honorários · R$ 3.300 em 12× R$ 275 + 20% de êxito</span>
+              <span class="d num">1ª parcela 15/07</span>
+            </button>
+            <button class="checkit ok" onclick="toggleCheck(this)">
+              <span class="box"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+              <span class="w">Cláusulas · 13 padrão, nenhuma alterada</span>
+              <span class="d">íntegras</span>
+            </button>
+            <button class="checkit ok" onclick="toggleCheck(this)">
+              <span class="box"><svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg></span>
+              <span class="w">E-mail de assinatura · marco.puppin@gmail.com</span>
+              <span class="d">ZapSign pronto</span>
+            </button>
+          </div>
+          <div class="actions">
+            <div class="act-row">
+              <button class="btn sec" onclick="toast('Contrato salvo como rascunho')">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3.5h9l3.5 3.5v9.5a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5z"/><path d="M6.5 3.5V8h6V3.5M6.5 17v-5h7v5"/></svg>
+                Salvar contrato
+              </button>
+              <button class="btn sec" onclick="toast('PDF gerado e contrato salvo')">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9m0 0l-3.5-3.5M10 12l3.5-3.5"/><path d="M3.5 14.5v2a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-2"/></svg>
+                Gerar PDF e salvar
+              </button>
+              <button class="btn sec" onclick="toast('Procuração Ad Judicia gerada')">
+                <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 3H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5L12.5 3z"/><path d="M12.5 3v3.5H16M7 10.5h6M7 13.5h4"/></svg>
+                Gerar procuração
+              </button>
+            </div>
+            <div class="act-row">
+              <button class="btn zap" onclick="toast('Enviado para assinatura via ZapSign: link disparado por e-mail')">
+                <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 2.5L9 11M17.5 2.5l-5.5 15-3-6.5-6.5-3 15-5.5z"/></svg>
+                Enviar para ZapSign
+              </button>
+            </div>
+            <div class="kbd-hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> envia · <kbd>Ctrl</kbd> + <kbd>S</kbd> salva</div>
+          </div>
+        </section>
+      </div>
+
+      <div class="wnav">
+        <button class="wback" id="btnBack" onclick="prevStep()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4L6.5 10l6 6"/></svg>
+          Voltar
+        </button>
+        <button class="wnext" id="btnNext" onclick="nextStep()">
+          Continuar
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4l6 6-6 6"/></svg>
+        </button>
+        <span class="enter" id="enterHint"><kbd>Enter ↵</kbd> para continuar</span>
+      </div>
+    </div>
+
+    <!-- documento (padrão do sistema, intocável) -->
+    <aside class="deskside reveal" style="--d:.16s">
+      <div class="paper-switch">
+        <button class="pswitch on" id="psContrato" onclick="switchPaper('contrato')">Contrato</button>
+        <button class="pswitch" id="psProc" onclick="switchPaper('proc')">Procuração Ad Judicia</button>
+        <span class="autosave"><span class="p"></span> atualizando em tempo real</span>
+      </div>
+      <div class="edit-bar" id="editBar">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Editando: <b id="editBarTxt">Cláusula 2ª — Honorários</b></span>
+      </div>
+
+      <div class="paper-scroll" id="paperScroll">
+        <article class="paper" id="paperContrato">
+          <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS E HONORÁRIOS ADVOCATÍCIOS</h1>
+
+          <div id="pv-partes">
+            <p>Pelo presente instrumento particular de prestação de serviços jurídicos, de um lado:</p>
+            <p><strong><span data-pv="nomeCaps">MARCO ANTONIO PUPPIN</span></strong>, <span data-pv="nac">brasileiro</span>, <span data-pv="ec">casado(a)</span>, <span data-pv="prof">aposentado</span>, RG: <span data-pv="rg">18.765.432-0</span>, CPF: <span data-pv="cpf">040.853.568-79</span>, e-mail: <span data-pv="email">marco.puppin@gmail.com</span>, residente e domiciliado na <span data-pv="end">Rua Dom Pedro II, 1.234</span>, no bairro <span data-pv="bairro">Centro</span>, na cidade <span data-pv="cidade">Piracicaba/SP</span>, CEP: <span data-pv="cep">13416-000</span>, doravante denominado como contratante;</p>
+            <p><strong>CONFORTO E BERGONSI SOCIEDADE DE ADVOGADOS</strong>, CNPJ 56.096.172/0001-65, doravante como contratado; têm entre si, justos e avençados, o que adiante segue: <strong><span data-pv="acaoCaps">DEVOLUÇÃO 80%</span> REFERENTE AO <span data-pv="resortCaps">THERMAS SÃO PEDRO</span></strong>.</p>
+          </div>
+
+          <div id="pv-obj">
+            <p><strong>1- </strong>O contratado prestará ao contratante serviços profissionais de advocacia consistentes na propositura e no acompanhamento, até decisão final, de ação de <span data-pv="acao">Devolução 80%</span> em face de <span data-pv="resort">Thermas São Pedro</span>, relativa ao contrato de multipropriedade celebrado entre as partes.</p>
+          </div>
+
+          <div id="pv-hon">
+            <p id="pv-hon-p"></p>
+            <p class="par">§1º - Havendo mais de um contratante, todos serão solidariamente responsáveis pelo pagamento integral dos honorários ora pactuados.</p>
+            <p class="par">§2º - Os honorários de êxito incidirão sobre o proveito econômico efetivamente obtido pelo contratante ao final da demanda.</p>
+            <p class="par">§3º - O atraso no pagamento de qualquer parcela por prazo superior a 30 (trinta) dias implicará multa de 20% (vinte por cento) sobre o valor em aberto.</p>
+            <p class="par">§4º - Os honorários de sucumbência pertencem exclusivamente ao contratado, não se confundindo com os honorários contratuais.</p>
+            <p class="par">§5º - Os pagamentos serão realizados por meio da plataforma ASAAS, mediante boleto ou cartão, conforme instruções enviadas ao contratante.</p>
+            <p class="par">§6º - O presente contrato constitui título executivo extrajudicial, nos termos da legislação processual vigente.</p>
+            <p class="par">§7º - As verbas de honorários iniciais, de êxito e de sucumbência são independentes entre si.</p>
+          </div>
+
+          <div id="pv-claus">
+            <p><strong>3- </strong>Em caso de desistência pelo contratante após a distribuição da demanda, permanecerão integralmente devidos os honorários iniciais pactuados.</p>
+            <p><strong>4- </strong>Correrão por conta do contratante as despesas processuais e extraprocessuais, tais como custas, taxas, emolumentos e diligências.</p>
+            <p><strong>5- </strong>O contratante declara válidos os dados de contato informados e compromete-se a comunicar qualquer alteração de endereço, telefone ou e-mail.</p>
+            <p><strong>6- </strong>O mandato outorgado abrange os poderes das cláusulas ad judicia et extra, para o foro em geral, em qualquer instância.</p>
+            <p><strong>7- </strong>É vedado ao contratante negociar diretamente com a parte contrária sem a anuência expressa do contratado.</p>
+            <p><strong>8- </strong>As partes tratarão os dados pessoais na forma da Lei nº 13.709/2018 (LGPD), restritos à finalidade deste contrato.</p>
+            <p><strong>9- </strong>O contratado prestará contas ao contratante dos valores recebidos em razão do mandato.</p>
+            <p><strong>10- </strong>A obrigação assumida pelo contratado é de meio, e não de resultado, nos termos do Código de Ética da OAB.</p>
+            <p><strong>11- </strong>A revogação do mandato não exime o contratante do pagamento dos honorários pactuados até a data da revogação.</p>
+            <p><strong>12- </strong>O presente contrato obriga as partes, seus herdeiros e sucessores, a qualquer título.</p>
+            <p><strong>13- </strong>Fica eleito o foro da comarca de Americana/SP para dirimir quaisquer controvérsias oriundas deste instrumento.</p>
+          </div>
+
+          <p>E por estarem as partes acima contratadas firmam o presente contrato particular para que produza seus legais e regulares efeitos de direito.</p>
+          <p class="doc-city">Americana, data da assinatura digital.</p>
+
+          <div class="sig">
+            <div class="sig-line"></div>
+            <p class="nm"><span data-pv="nomeCaps">MARCO ANTONIO PUPPIN</span></p>
+          </div>
+          <div class="sig-duo">
+            <div class="sig">
+              <div class="sig-line"></div>
+              <p class="nm">BRUNO CAVALARI GOMES CAMARGO<br>OAB/SP 390.509</p>
+            </div>
+            <div class="sig">
+              <div class="sig-line"></div>
+              <p class="nm">PAULO ROBERTO CONFORTO<br>OAB/SP 391.151</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="paper" id="paperProc" style="display:none">
+          <h1>PROCURAÇÃO AD JUDICIA</h1>
+          <p><strong>OUTORGANTE: </strong><strong><span data-pv="nomeCaps">MARCO ANTONIO PUPPIN</span></strong>, <span data-pv="nac">brasileiro</span>, <span data-pv="ec">casado(a)</span>, <span data-pv="prof">aposentado</span>, RG: <span data-pv="rg">18.765.432-0</span>, CPF: <span data-pv="cpf">040.853.568-79</span>, residente e domiciliado na <span data-pv="end">Rua Dom Pedro II, 1.234</span>, no bairro <span data-pv="bairro">Centro</span>, na cidade <span data-pv="cidade">Piracicaba/SP</span>, CEP: <span data-pv="cep">13416-000</span>.</p>
+          <p><strong>OUTORGADOS: BRUNO CAVALARI GOMES CAMARGO</strong>, OAB/SP 390.509, e <strong>PAULO ROBERTO CONFORTO</strong>, OAB/SP 391.151, integrantes de <strong>CONFORTO E BERGONSI SOCIEDADE DE ADVOGADOS</strong>, CNPJ 56.096.172/0001-65.</p>
+          <p><strong>PODERES: </strong>pelo presente instrumento, o outorgante confere aos outorgados os poderes das cláusulas ad judicia et extra, para o foro em geral, podendo propor as ações competentes em face de <span data-pv="resort">Thermas São Pedro</span>, defender-se nas contrárias, transigir, desistir, firmar compromissos e acordos, receber e dar quitação, substabelecer com ou sem reserva de poderes.</p>
+          <p class="doc-city">Americana, data da assinatura digital.</p>
+          <div class="sig">
+            <div class="sig-line"></div>
+            <p class="nm"><span data-pv="nomeCaps">MARCO ANTONIO PUPPIN</span></p>
+          </div>
+        </article>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ================= CONTRATOS SALVOS ================= -->
+<section class="view" id="view-salvos">
+  <div class="shelf">
+    <h2 class="lede reveal" style="--d:.05s">
+      <span class="f tot on num" data-f="todos" onclick="setFilter('todos')">195 contratos lavrados</span> —
+      <span class="f ass num" data-f="assinado" onclick="setFilter('assinado')">164 assinados</span>,
+      <span class="f env num" data-f="enviado" onclick="setFilter('enviado')">26 aguardando assinatura</span>,
+      <span class="f ras num" data-f="rascunho" onclick="setFilter('rascunho')">5 rascunhos</span>.
+    </h2>
+    <p class="lede-hint reveal" style="--d:.09s">Toque em um número para filtrar a lista.</p>
+
+    <div class="bigsearch reveal" style="--d:.12s">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="9" r="5.5"/><path d="M13.5 13.5L17 17"/></svg>
+      <input type="search" id="q" placeholder="Buscar por nome, CPF ou resort…" oninput="renderShelf()">
+    </div>
+    <div class="result-note reveal" style="--d:.15s" id="resultNote"></div>
+
+    <div id="shelfList" class="entries reveal" style="--d:.18s"></div>
+  </div>
+</section>
+
+<div class="toast" id="toast">
+  <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l4 4 8-9"/></svg>
+  <span id="toastMsg"></span>
+</div>
+
+<div class="mockbadge">
+  <b>M4 · Lavratura Guiada</b>
+  <a href="index.html">← Todos os mockups</a>
+</div>
+
+<script>
+/* ================= estado ================= */
+var STEPS = ['Partes','Demanda','Honorários','Cláusulas','Revisão'];
+var cur = 2; /* começa em Honorários (jornada no meio) */
+var hon = { mode:'ie', preset:'12x275', exito:20, data:'2026-07-15' };
+
+var PRESETS = [
+  { id:'avista', val:'R$ 2.700', how:'à vista', doc:'R$ 2.700,00 (dois mil e setecentos reais), pagos à vista' },
+  { id:'10x300', val:'R$ 3.000', how:'em 10× de R$ 300', doc:'R$ 3.000,00 (três mil reais), pagos em 10 (dez) parcelas mensais e consecutivas de R$ 300,00' },
+  { id:'12x250', val:'R$ 3.000', how:'em 12× de R$ 250', doc:'R$ 3.000,00 (três mil reais), pagos em 12 (doze) parcelas mensais e consecutivas de R$ 250,00' },
+  { id:'12x275', val:'R$ 3.300', how:'em 12× de R$ 275', doc:'R$ 3.300,00 (três mil e trezentos reais), pagos em 12 (doze) parcelas mensais e consecutivas de R$ 275,00' },
+  { id:'custom', val:'Personalizado', how:'valor e parcelas livres', doc:'valor ajustado entre as partes' }
+];
+var EXT = {15:'quinze',20:'vinte',25:'vinte e cinco',30:'trinta',35:'trinta e cinco',40:'quarenta'};
+
+var CLAUSULAS = [
+  ['1','Objeto do Contrato','O contratado prestará ao contratante serviços profissionais de advocacia consistentes na propositura e no acompanhamento, até decisão final, de ação de Devolução 80% em face de Thermas São Pedro.'],
+  ['2','Honorários','Gerada automaticamente a partir da etapa Honorários: R$ 3.300,00 em 12× de R$ 275,00 + 20% de êxito. Parágrafos: §1º Solidariedade · §2º Êxito · §3º Multa 20% · §4º Sucumbência · §5º Pagamento via ASAAS · §6º Título Executivo · §7º Independência.'],
+  ['3','Desistência','Em caso de desistência pelo contratante após a distribuição da demanda, permanecerão integralmente devidos os honorários iniciais pactuados.'],
+  ['4','Despesas Processuais','Correrão por conta do contratante as despesas processuais e extraprocessuais, tais como custas, taxas, emolumentos e diligências.'],
+  ['5','Dados de Contato','O contratante declara válidos os dados informados e compromete-se a comunicar qualquer alteração de endereço, telefone ou e-mail.'],
+  ['6','Abrangência do Mandato','O mandato outorgado abrange os poderes das cláusulas ad judicia et extra, para o foro em geral, em qualquer instância.'],
+  ['7','Negociação Direta Proibida','É vedado ao contratante negociar diretamente com a parte contrária sem a anuência expressa do contratado.'],
+  ['8','Confidencialidade e LGPD','As partes tratarão os dados pessoais na forma da Lei nº 13.709/2018, restritos à finalidade deste contrato.'],
+  ['9','Prestação de Contas','O contratado prestará contas ao contratante dos valores recebidos em razão do mandato.'],
+  ['10','Advocacia de Meios','A obrigação assumida pelo contratado é de meio, e não de resultado, nos termos do Código de Ética da OAB.'],
+  ['11','Revogação e Renúncia','A revogação do mandato não exime o contratante do pagamento dos honorários pactuados até a data da revogação.'],
+  ['12','Herdeiros e Sucessores','O presente contrato obriga as partes, seus herdeiros e sucessores, a qualquer título.'],
+  ['13','Foro','Fica eleito o foro da comarca de Americana/SP para dirimir quaisquer controvérsias oriundas deste instrumento.']
+];
+
+/* rótulo da barrinha "Editando:" por etapa (fora do documento, como no sistema real) */
+var EDIT_LABEL = [
+  'Qualificação das partes',
+  'Cláusula 1ª — Objeto',
+  'Cláusula 2ª — Honorários',
+  'Cláusulas 3ª a 13ª',
+  'Revisão final do instrumento'
+];
+
+/* ================= ícones ================= */
+function icon(name, s){
+  s = s || 15;
+  var paths = {
+    check:'<path d="M4 10.5l4 4 8-9"/>',
+    clock:'<circle cx="10" cy="10" r="7"/><path d="M10 6v4.5l3 1.8"/>',
+    pen:'<path d="M13.5 3.5l3 3L7 16l-4 1 1-4 9.5-9.5z"/>',
+    copy:'<rect x="7" y="7" width="9.5" height="9.5" rx="1.5"/><path d="M4 12.5V4.5A1.5 1.5 0 0 1 5.5 3h8"/>',
+    chev:'<path d="M5 8l5 5 5-5"/>',
+    trash:'<path d="M3.5 5.5h13M8 5V3.5h4V5M5 5.5l.8 11a1 1 0 0 0 1 .9h6.4a1 1 0 0 0 1-.9l.8-11"/>',
+    sync:'<path d="M16 4v4h-4M4 16v-4h4"/><path d="M16 8a6.2 6.2 0 0 0-11.5-2M4 12a6.2 6.2 0 0 0 11.5 2"/>',
+    form:'<path d="M12.5 3H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.5L12.5 3z"/><path d="M12.5 3v3.5H16M7 10.5h6M7 13.5h4"/>'
+  };
+  return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(paths[name]||'')+'</svg>';
+}
+
+/* ================= abas ================= */
+var activeTab = 'novo';
+function switchTab(t){
+  document.getElementById('view-novo').classList.toggle('on', t==='novo');
+  document.getElementById('view-salvos').classList.toggle('on', t==='salvos');
+  document.getElementById('tabNovo').classList.toggle('on', t==='novo');
+  document.getElementById('tabSalvos').classList.toggle('on', t==='salvos');
+  document.getElementById('tabNovo').setAttribute('aria-selected', t==='novo');
+  document.getElementById('tabSalvos').setAttribute('aria-selected', t==='salvos');
+  activeTab = t;
+}
+
+/* ================= wizard ================= */
+function goStep(n, dir){
+  if(n<0 || n>4) return;
+  dir = dir || (n>cur ? 'r' : 'l');
+  var panels = document.querySelectorAll('.step');
+  panels.forEach(function(p){ p.classList.remove('on','in-r','in-l'); });
+  var target = document.querySelector('.step[data-step="'+n+'"]');
+  target.classList.add('on', dir==='r' ? 'in-r' : 'in-l');
+  cur = n;
+  syncRail();
+  syncEditBar();
+  pulseFirstField(target);
+  document.getElementById('crumb').innerHTML = 'Etapa <b class="num">'+(n+1)+'</b> de 5 · '+STEPS[n];
+  document.getElementById('btnBack').disabled = (n===0);
+  document.getElementById('btnNext').style.display = (n===4) ? 'none' : '';
+  document.getElementById('enterHint').style.display = (n===4) ? 'none' : '';
+}
+function nextStep(){ if(cur<4) goStep(cur+1,'r'); }
+function prevStep(){ if(cur>0) goStep(cur-1,'l'); }
+
+var RAIL_DEFAULT = ['por preencher','por preencher','por preencher','13 padrão','conferir e enviar'];
+function syncRail(){
+  document.querySelectorAll('.chap').forEach(function(c){
+    var s = +c.dataset.step;
+    c.classList.toggle('done', s<cur);
+    c.classList.toggle('now', s===cur);
+    var pip = c.querySelector('[data-pip]');
+    pip.innerHTML = s<cur ? icon('check',12) : String(s+1);
+    var st = c.querySelector('[data-st]');
+    if(s<cur) st.textContent = 'preenchido';
+    else if(s===cur) st.textContent = 'em edição';
+    else st.textContent = RAIL_DEFAULT[s];
+  });
+  document.getElementById('thread-fill').style.transform = 'scaleY('+(cur/4)+')';
+}
+
+function pulseFirstField(panel){
+  var f = panel.querySelector('.field');
+  if(!f) return;
+  f.classList.remove('pulse');
+  void f.offsetWidth;
+  f.classList.add('pulse');
+}
+
+/* barrinha "Editando:" FORA do papel + scroll até a seção correspondente */
+function syncEditBar(){
+  document.getElementById('editBarTxt').textContent = EDIT_LABEL[cur];
+  var map = {0:'pv-partes',1:'pv-obj',2:'pv-hon',3:'pv-claus',4:null};
+  var id = map[cur];
+  var host = document.getElementById('paperScroll');
+  if(!id){ host.scrollTo({top:host.scrollHeight, behavior:'smooth'}); return; }
+  var sec = document.getElementById(id);
+  host.scrollTo({top: Math.max(sec.offsetTop - 60, 0), behavior:'smooth'});
+}
+
+/* flash diff breve (desaparece por completo; sem estilo persistente no papel) */
+function flashDiff(el){
+  el.classList.remove('df');
+  void el.offsetWidth;
+  el.classList.add('df');
+  setTimeout(function(){ el.classList.remove('df'); }, 800);
+}
+
+/* ================= binding de campos → documento ================= */
+function setPv(key, text, noFlash){
+  document.querySelectorAll('[data-pv="'+key+'"]').forEach(function(sp){
+    if(sp.textContent !== text){
+      sp.textContent = text;
+      if(!noFlash) flashDiff(sp);
+    }
+  });
+}
+function onFieldInput(f, value){
+  if(f==='nome'){ setPv('nomeCaps', value.toUpperCase()); return; }
+  if(f==='ec' || f==='nac' || f==='prof'){ setPv(f, value.toLowerCase()); return; }
+  if(f==='resort'){ setPv('resort', value); setPv('resortCaps', value.toUpperCase()); return; }
+  if(f==='acao'){ setPv('acao', value); setPv('acaoCaps', value.toUpperCase()); return; }
+  if(f==='data1'){ hon.data = value; renderHon(true); return; }
+  if(['cpf','rg','email','end','bairro','cidade','cep'].indexOf(f)>=0){ setPv(f, value); }
+}
+document.addEventListener('input', function(e){
+  var f = e.target.dataset && e.target.dataset.field;
+  if(f) onFieldInput(f, e.target.value);
+});
+document.addEventListener('change', function(e){
+  var f = e.target.dataset && e.target.dataset.field;
+  if(f) onFieldInput(f, e.target.value);
+});
+
+/* ================= honorários ================= */
+function renderPresets(){
+  var box = document.getElementById('presets');
+  box.innerHTML = PRESETS.map(function(p){
+    return '<button class="preset'+(hon.preset===p.id?' on':'')+'" onclick="setPreset(\''+p.id+'\')">' +
+      '<span class="radio"></span>' +
+      '<span class="val num">'+p.val+'</span>' +
+      '<span class="how num">'+p.how+'</span></button>';
+  }).join('');
+}
+function renderChips(){
+  var opts = hon.mode==='se' ? [30,35,40] : [15,20,25,30];
+  if(opts.indexOf(hon.exito)<0) hon.exito = hon.mode==='se' ? 30 : 20;
+  var box = document.getElementById('chips');
+  box.innerHTML = opts.map(function(v){
+    return '<button class="chip num'+(hon.exito===v?' on':'')+'" onclick="setExito('+v+')">'+v+'%</button>';
+  }).join('');
+}
+function setPreset(id){ hon.preset = id; renderPresets(); renderHon(true); }
+function setExito(v){ hon.exito = v; renderChips(); renderHon(true); }
+function setMode(m){
+  hon.mode = m;
+  document.querySelectorAll('.mode').forEach(function(b){ b.classList.toggle('on', b.dataset.mode===m); });
+  document.getElementById('grp-presets').style.display = (m==='se') ? 'none' : '';
+  document.getElementById('grp-data').style.display = (m==='se') ? 'none' : '';
+  document.getElementById('grp-exito').style.display = (m==='si') ? 'none' : '';
+  renderChips();
+  renderHon(true);
+}
+function fmtData(iso){
+  if(!iso) return '____';
+  var p = iso.split('-');
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+function renderHon(fresh){
+  var p = PRESETS.filter(function(x){ return x.id===hon.preset; })[0];
+  var venc = (hon.preset==='avista')
+    ? 'com vencimento em '+fmtData(hon.data)
+    : 'vencendo a primeira parcela em '+fmtData(hon.data);
+  var exito = hon.exito+'% ('+(EXT[hon.exito]||hon.exito)+' por cento)';
+  var txt;
+  if(hon.mode==='ie'){
+    txt = 'Pelos serviços descritos na cláusula anterior, o contratante pagará ao contratado honorários iniciais de '+p.doc+', '+venc+', além de honorários de êxito correspondentes a '+exito+' sobre o proveito econômico obtido ao final da demanda.';
+  } else if(hon.mode==='se'){
+    txt = 'Pelos serviços descritos na cláusula anterior, o contratante pagará ao contratado exclusivamente honorários de êxito correspondentes a '+exito+' sobre o proveito econômico obtido ao final da demanda, nada sendo devido a título de honorários iniciais.';
+  } else {
+    txt = 'Pelos serviços descritos na cláusula anterior, o contratante pagará ao contratado honorários de '+p.doc+', '+venc+', não havendo cobrança de honorários de êxito.';
+  }
+  var el = document.getElementById('pv-hon-p');
+  el.innerHTML = '<strong>2- </strong>' + txt;
+  if(fresh) flashDiff(el);
+}
+
+/* ================= cláusulas ================= */
+function renderClausulas(){
+  var box = document.getElementById('clausList');
+  box.innerHTML = CLAUSULAS.map(function(c, i){
+    var auto = (i===1) ? '<span class="auto">gerada automaticamente</span>' : '';
+    return '<div class="clau" id="clau-'+i+'">' +
+      '<button class="clau-head" onclick="toggleClau('+i+')">' +
+        '<span class="grip"><svg width="12" height="14" viewBox="0 0 12 16" fill="currentColor"><circle cx="3.5" cy="3" r="1.3"/><circle cx="8.5" cy="3" r="1.3"/><circle cx="3.5" cy="8" r="1.3"/><circle cx="8.5" cy="8" r="1.3"/><circle cx="3.5" cy="13" r="1.3"/><circle cx="8.5" cy="13" r="1.3"/></svg></span>' +
+        '<span class="n num">'+c[0]+'</span>' +
+        '<span class="t">'+c[1]+'</span>' + auto +
+        '<span class="chev">'+icon('chev',14)+'</span>' +
+      '</button>' +
+      '<div class="clau-body">' +
+        '<textarea'+(i===1?' readonly':'')+'>'+c[2]+'</textarea>' +
+        '<div class="mini">'+(i===1?'Para alterar, volte à etapa Honorários.':'Alterações valem apenas para este contrato.')+'</div>' +
+      '</div></div>';
+  }).join('');
+}
+function toggleClau(i){
+  document.getElementById('clau-'+i).classList.toggle('open');
+}
+
+/* ================= revisão ================= */
+function toggleCheck(el){ el.classList.toggle('ok'); }
+
+/* ================= documento: contrato/procuração ================= */
+function switchPaper(w){
+  document.getElementById('paperContrato').style.display = (w==='contrato') ? '' : 'none';
+  document.getElementById('paperProc').style.display = (w==='proc') ? '' : 'none';
+  document.getElementById('psContrato').classList.toggle('on', w==='contrato');
+  document.getElementById('psProc').classList.toggle('on', w==='proc');
+  document.getElementById('paperScroll').scrollTo({top:0});
+}
+
+/* ================= contratos salvos ================= */
+var CONTRATOS = [
+  {n1:'Fabiane Aparecida Borges', n2:'Roberto Ribeiro dos Santos', cpf:'055.843.406-18', resort:'Ilhas do Lago', acao:'Cota Quitada sem Matrícula', status:'enviado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'01/07/2026', por:'Mariana', sig:[1,0]},
+  {n1:'Fabio Tavares de Melo', n2:'Patricia Pinheiro de Melo', cpf:'318.761.358-67', resort:'Leaves Premium', acao:'Distrato por Atraso', status:'enviado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'01/07/2026', por:'Mariana', sig:[0,0]},
+  {n1:'Natalia Zulmira Sales da Silva', n2:'Dimas Sales da Silva', cpf:'346.116.158-63', resort:'Olimpia Park Resort', acao:'Devolução 80%', status:'enviado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'30/06/2026', por:'Mariana', sig:[0,0]},
+  {n1:'Marco Antonio Puppin', n2:null, cpf:'040.853.568-79', resort:'Thermas São Pedro', acao:'Devolução 80%', status:'assinado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'30/06/2026', por:'Mariana', sig:[1]},
+  {n1:'Rosemary Aparecida Piccioni', n2:null, cpf:'577.678.239-20', resort:'Thermas São Pedro', acao:'Devolução 80%', status:'assinado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'30/06/2026', por:'Mariana', sig:[1]},
+  {n1:'João Carlos Ferreira de Freitas', n2:'André da Silva Barros', cpf:'067.504.508-81', resort:'Thermas São Pedro', acao:'Ação de Cobrança', status:'assinado', hon:'Somente êxito', exito:'40%', data:'26/06/2026', por:'Mariana', sig:[1,1]},
+  {n1:'Andreia Flor da Silva', n2:null, cpf:'939.465.036-91', resort:'Lagoa Quente/Ecotowers', acao:'Devolução 80%', status:'assinado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'26/06/2026', por:'Mariana', sig:[1]},
+  {n1:'Flavio de Carvalho Pereira', n2:'Fabiana Custodio Vieira', cpf:'849.125.456-00', resort:'Alta Vista', acao:'Cota Quitada sem Matrícula', status:'enviado', hon:'Somente êxito', exito:'35%', data:'26/06/2026', por:'Mariana', sig:[0,0]},
+  {n1:'Terezinha de Jesus Paulino da Costa', n2:null, cpf:'122.551.748-63', resort:'Ondas Praia', acao:'Devolução 80%', status:'enviado', hon:'Somente êxito', exito:'30%', data:'26/06/2026', por:'Maria', sig:[0]},
+  {n1:'Vanessa de Pietro Soares', n2:null, cpf:'137.674.498-89', resort:'Gran Paradiso', acao:'Distrato por Atraso', status:'assinado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'26/06/2026', por:'Ana Cristina', sig:[1]},
+  {n1:'Flavio de Carvalho Pereira', n2:null, cpf:'849.125.456-00', resort:'Alta Vista', acao:'Cota Quitada sem Matrícula', status:'rascunho', hon:'R$ 3.000 · 12× R$ 250', exito:'20%', data:'25/06/2026', por:'Mariana', sig:[]},
+  {n1:'Terezinha de Jesus Paulino da Costa', n2:null, cpf:'122.551.748-63', resort:'Ondas Praia', acao:'Devolução 80%', status:'rascunho', hon:'Somente êxito', exito:'30%', data:'25/06/2026', por:'Maria', sig:[]},
+  {n1:'Ernando Raimundo dos Santos Filho', n2:null, cpf:'048.177.056-98', resort:'Ondas Praia', acao:'Ação de Cobrança', status:'assinado', hon:'Somente êxito', exito:'35%', data:'25/06/2026', por:'Mariana', sig:[1]},
+  {n1:'Gabriel Silva Pires de Almeida', n2:null, cpf:'142.047.217-88', resort:'Ondas Praia', acao:'Revisão de Distrato', status:'assinado', hon:'R$ 3.300 · 12× R$ 275', exito:'20%', data:'25/06/2026', por:'Beatriz', sig:[1]}
+];
+var filter = 'todos';
+var openEntry = -1;
+
+function norm(s){
+  return (s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+}
+function token(i, j){
+  var seed = (i*7+j*13+5) % 26;
+  var abc = 'abcdefghijklmnopqrstuvwxyz';
+  var t = '';
+  for(var k=0;k<8;k++){ t += abc[(seed+k*3+i+j)%26]; }
+  return t + (1000+i*37+j*11);
+}
+function statusPill(c){
+  if(c.status==='assinado'){
+    return '<span class="pill ass">'+icon('check',13)+'Assinado em <span class="num">'+c.data.slice(0,5)+'</span></span>';
+  }
+  if(c.status==='enviado'){
+    var pend = c.sig.filter(function(s){ return !s; }).length;
+    var lbl = pend===1 ? 'Aguardando 1 assinatura' : 'Aguardando '+pend+' assinaturas';
+    return '<span class="pill env">'+icon('clock',13)+lbl+'</span>';
+  }
+  return '<span class="pill ras">'+icon('pen',13)+'Rascunho · <span class="num">'+c.data.slice(0,5)+'</span></span>';
+}
+function renderShelf(){
+  var q = norm(document.getElementById('q').value);
+  var list = document.getElementById('shelfList');
+  var shown = 0;
+  var html = '';
+  CONTRATOS.forEach(function(c, i){
+    if(filter!=='todos' && c.status!==filter) return;
+    if(q){
+      var hay = norm(c.n1+' '+(c.n2||'')+' '+c.cpf+' '+c.resort);
+      if(hay.indexOf(q)<0) return;
+    }
+    shown++;
+    var nome = c.n1 + (c.n2 ? ' <span class="amp">&amp;</span> ' + c.n2 : '');
+    var honStr = c.hon + ' + ' + c.exito;
+    if(c.hon.indexOf('êxito')>=0) honStr = c.hon + ' · ' + c.exito;
+    var open = (openEntry===i) ? ' open' : '';
+    html += '<article class="entry'+open+'" style="animation:rise .45s cubic-bezier(.22,.8,.3,1) both;animation-delay:'+(shown*0.04)+'s">' +
+      '<button class="entry-head" onclick="toggleEntry('+i+')" aria-expanded="'+(openEntry===i)+'">' +
+        '<span><h3>'+nome+'</h3>' +
+        '<span class="meta num">'+c.cpf+' · <b>'+c.resort+'</b> · '+c.acao+' · '+honStr+' · '+c.data+' · por '+c.por+'</span></span>' +
+        statusPill(c) +
+        '<span class="chev">'+icon('chev',16)+'</span>' +
+      '</button>' +
+      '<div class="entry-body">'+dossie(c, i)+'</div>' +
+    '</article>';
+  });
+  list.innerHTML = shown ? html : '<div class="empty">Nenhum contrato encontrado'+(q ? ' para “'+document.getElementById('q').value+'”' : '')+'.</div>';
+  var note = document.getElementById('resultNote');
+  var fName = {todos:'na lista', assinado:'assinados', enviado:'aguardando assinatura', rascunho:'em rascunho'}[filter];
+  note.textContent = shown + (shown===1?' contrato ':' contratos ') + fName + (q ? ' correspondendo à busca' : ', exibindo os mais recentes');
+}
+function dossie(c, i){
+  var h = '<div class="dossie">';
+  h += '<div class="dgrid">' +
+    '<div class="dcell"><div class="k">Tipo de ação</div><div class="v">'+c.acao+'</div></div>' +
+    '<div class="dcell"><div class="k">Resort</div><div class="v">'+c.resort+'</div></div>' +
+    '<div class="dcell"><div class="k">Honorários</div><div class="v num">'+c.hon+'</div></div>' +
+    '<div class="dcell"><div class="k">Êxito</div><div class="v num">'+c.exito+'</div></div>' +
+  '</div>';
+  if(c.sig.length){
+    h += '<div class="dt">Assinaturas · ZapSign</div>';
+    var names = [c.n1, c.n2].filter(Boolean);
+    names.forEach(function(nm, j){
+      var ok = c.sig[j];
+      var link = 'app.zapsign.co/verificar/'+token(i,j);
+      h += '<div class="signer">' +
+        '<span class="nm">'+nm+'</span>' +
+        '<span class="ss '+(ok?'ok':'pd')+'">'+icon(ok?'check':'clock',12)+(ok?'Assinado':'Pendente')+'</span>' +
+        '<span class="lk">'+link+'</span>' +
+        '<button class="copybtn" onclick="event.stopPropagation();copyLink(\''+link+'\')">'+icon('copy',11)+'Copiar link</button>' +
+      '</div>';
+    });
+  } else {
+    h += '<div class="dt">Ainda não enviado para assinatura</div>';
+  }
+  h += '<div class="dact">' +
+    '<button class="btn sec" onclick="loadToForm(\''+c.n1.replace(/'/g,"\\'")+'\')">'+icon('form',13)+'Carregar no formulário</button>' +
+    (c.sig.length>1 ? '<button class="btn sec" onclick="copyLink(\'todos os links\')">'+icon('copy',13)+'Copiar todos os links</button>' : '') +
+    (c.status==='enviado' ? '<button class="btn sec" onclick="toast(\'Status sincronizado com o ZapSign\')">'+icon('sync',13)+'Sincronizar status</button>' : '') +
+    '<button class="btn sec danger" onclick="toast(\'O contrato seria excluído (com confirmação)\')">'+icon('trash',13)+'Excluir</button>' +
+  '</div></div>';
+  return h;
+}
+function toggleEntry(i){
+  openEntry = (openEntry===i) ? -1 : i;
+  renderShelf();
+}
+function setFilter(f){
+  filter = f;
+  document.querySelectorAll('.lede .f').forEach(function(el){
+    el.classList.toggle('on', el.dataset.f===f);
+  });
+  openEntry = -1;
+  renderShelf();
+}
+function copyLink(link){
+  try{ navigator.clipboard && navigator.clipboard.writeText('https://'+link); }catch(e){}
+  toast(link==='todos os links' ? 'Todos os links copiados' : 'Link de assinatura copiado');
+}
+function loadToForm(nome){
+  switchTab('novo');
+  goStep(0,'l');
+  toast('Contrato de '+nome+' carregado no formulário');
+}
+
+/* ================= toast ================= */
+var toastTimer = null;
+function toast(msg){
+  var t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+
+/* ================= teclado ================= */
+document.addEventListener('keydown', function(e){
+  if(activeTab!=='novo') return;
+  if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){
+    e.preventDefault();
+    toast('Enviado para assinatura via ZapSign: link disparado por e-mail');
+    return;
+  }
+  if((e.ctrlKey||e.metaKey) && (e.key==='s'||e.key==='S')){
+    e.preventDefault();
+    toast('Contrato salvo');
+    return;
+  }
+  if(e.key==='Enter'){
+    var tag = (e.target.tagName||'').toLowerCase();
+    if(tag==='textarea' || tag==='button' || tag==='a') return;
+    e.preventDefault();
+    nextStep();
+  }
+});
+
+/* ================= boot ================= */
+renderPresets();
+renderChips();
+renderHon(false);
+renderClausulas();
+renderShelf();
+syncRail();
+setTimeout(syncEditBar, 350);
+document.getElementById('btnBack').disabled = false;
+</script>
+</body>
+</html>

@@ -19,6 +19,28 @@ echo "=== CBC Contratos Deploy ==="
 echo "Site: $SITE_NAME (.netlify.app)"
 echo ""
 
+# 0. TRAVA ANTI-REGRESSAO (incidente 02/07/2026: build com o repo no main antigo
+# publicou o app de MARCO — tela antiga + login apontando p/ backend Render morto).
+# Sentinelas: o AuthContext atual importa lib/supabase; o chat do portal existe.
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+if ! grep -q "from './lib/supabase'" src/AuthContext.jsx 2>/dev/null; then
+  echo "🛑 ABORTADO: src/ parece ser a versao ANTIGA (marco/2026) — AuthContext sem Supabase."
+  echo "   Branch atual: $BRANCH. Volte ao codigo de producao (main atualizado)"
+  echo "   ou restaure de backups/. NAO deploye este estado."
+  exit 1
+fi
+if [ ! -f "netlify/functions/portal-chat.mjs" ]; then
+  echo "🛑 ABORTADO: netlify/functions/portal-chat.mjs ausente — worktree incompleto."
+  echo "   Restaure as funcoes do chat (backups/20260702_054729_pre_checkout_recuperacao)."
+  exit 1
+fi
+if ! grep -qi "conversas" portal.html 2>/dev/null; then
+  echo "🛑 ABORTADO: portal.html (raiz do client/, entry do Vite) sem a aba Conversas."
+  echo "   O canonico do portal e client/portal.html — nao o public/. Ver CHAT-PORTAL.md."
+  exit 1
+fi
+echo "   ✓ sanidade do codigo-fonte OK (branch: $BRANCH)"
+
 # 1. Salvar deploy atual antes de fazer o novo (rollback de emergencia)
 echo "[1/4] Salvando deploy atual como backup de rollback..."
 CURRENT_DEPLOY=$(curl -s -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \

@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesa de Operações — CBC Contratos</title>
+<style>
+:root{
+  --bg:#111827;
+  --bg-2:#0F172A;
+  --surface:#1F2937;
+  --surface-2:#263140;
+  --surface-3:#374151;
+  --line:#374151;
+  --line-soft:#2A3441;
+  --text:#F3F4F6;
+  --text-2:#D1D5DB;
+  --muted:#9CA3AF;
+  --accent:#60A5FA;
+  --accent-deep:#2563EB;
+  --accent-dim:rgba(96,165,250,.13);
+  --accent-line:rgba(96,165,250,.38);
+  --green:#4ADE80;
+  --green-dim:rgba(74,222,128,.12);
+  --red:#F87171;
+  --red-dim:rgba(248,113,113,.12);
+  --slate-chip:rgba(156,163,175,.14);
+  --shadow-drawer:-24px 0 64px rgba(2,6,23,.6);
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{color-scheme:dark}
+body{
+  font-family:var(--font-ui);
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  min-height:100vh;
+}
+::selection{background:var(--accent-line);color:var(--text)}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer;font-size:inherit}
+input,select{font-family:inherit;color:inherit;font-size:inherit}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+svg{flex-shrink:0}
+
+/* ===== SHELL ===== */
+.shell{display:grid;grid-template-columns:78px 1fr;min-height:100vh}
+.sidebar{
+  position:sticky;top:0;height:100vh;z-index:40;
+  background:#020617;
+  border-right:1px solid var(--line-soft);
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 8px;gap:6px;
+}
+.logo{
+  width:42px;height:42px;border-radius:11px;margin-bottom:14px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  display:grid;place-items:center;
+  font-weight:800;font-size:13px;letter-spacing:.04em;color:var(--accent);
+}
+.nav-btn{
+  width:62px;padding:9px 2px 8px;border-radius:10px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  color:var(--muted);font-size:11px;font-weight:600;
+  transition:background .18s,color .18s,transform .18s;
+  border:1px solid transparent;
+}
+.nav-btn:hover{color:var(--text-2);background:var(--surface)}
+.nav-btn.active{
+  color:var(--accent);background:var(--accent-dim);
+  border-color:var(--accent-line);
+}
+.nav-btn svg{width:19px;height:19px}
+.sidebar .spacer{flex:1}
+.side-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:#1E3A8A;
+  border:1px solid var(--line);
+  display:grid;place-items:center;font-size:11px;font-weight:700;color:#BFDBFE;
+}
+
+/* ===== HEADER ===== */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{
+  position:sticky;top:0;z-index:30;
+  display:flex;align-items:center;gap:16px;
+  padding:10px 24px;
+  background:rgba(15,23,42,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line-soft);
+}
+.brand{display:flex;flex-direction:column;line-height:1.3;margin-right:6px;white-space:nowrap}
+.brand .b1{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--text-2)}
+.brand .b2{font-size:11px;color:var(--muted)}
+.cmdk{
+  flex:1;max-width:520px;
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:10px;
+  background:var(--surface);border:1px solid var(--line);
+  color:var(--muted);font-size:13px;text-align:left;
+  transition:border-color .18s,background .18s;
+}
+.cmdk:hover{border-color:var(--accent-line);background:var(--surface-2)}
+.cmdk svg{width:15px;height:15px}
+.cmdk .grow{flex:1}
+kbd{
+  font-family:var(--font-mono);font-size:11px;font-weight:500;
+  padding:2px 6px;border-radius:5px;
+  background:var(--surface-3);border:1px solid var(--line);
+  color:var(--text-2);white-space:nowrap;
+}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+.sync-pill{
+  display:flex;align-items:center;gap:8px;
+  font-size:12.5px;font-weight:600;color:var(--text-2);
+  padding:6px 12px;border-radius:99px;
+  background:var(--surface);border:1px solid var(--line);
+}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(74,222,128,.5);animation:syncPulse 2.4s ease-out infinite}
+@keyframes syncPulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.45)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.user-chip{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:600;color:var(--text-2)}
+.avatar{
+  width:29px;height:29px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:10.5px;font-weight:700;letter-spacing:.02em;
+  border:1px solid var(--line);
+}
+.av-mm{background:rgba(96,165,250,.16);color:#93C5FD}
+.av-ma{background:rgba(165,180,252,.15);color:#A5B4FC}
+.av-ac{background:rgba(74,222,128,.13);color:#86EFAC}
+.av-be{background:rgba(209,213,219,.13);color:#D1D5DB}
+
+/* ===== CONTENT / VIEWS ===== */
+.content{padding:22px 26px 90px;max-width:1460px;width:100%;margin:0 auto}
+.view{display:none}
+.view.active{display:block}
+.reveal{opacity:0;transform:translateY(10px);animation:reveal .5s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes reveal{to{opacity:1;transform:none}}
+.d1{animation-delay:.04s}.d2{animation-delay:.1s}.d3{animation-delay:.16s}.d4{animation-delay:.22s}.d5{animation-delay:.28s}.d6{animation-delay:.34s}
+
+.page-head{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.page-head h1{font-size:21px;font-weight:800;letter-spacing:-.01em}
+.page-head .sub{font-size:13px;color:var(--muted)}
+
+/* ===== STAT STRIP ===== */
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--line);
+  text-align:left;transition:border-color .18s,background .18s,transform .18s;
+}
+.stat:hover{transform:translateY(-2px);border-color:var(--accent-line)}
+.stat.active{border-color:var(--accent);background:var(--accent-dim)}
+.stat .ic{
+  width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+}
+.stat .ic svg{width:17px;height:17px}
+.stat .num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:700;line-height:1.1}
+.stat .lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.ic-total{background:var(--slate-chip);color:var(--text-2)}
+.ic-green{background:var(--green-dim);color:var(--green)}
+.ic-cyan{background:var(--accent-dim);color:var(--accent)}
+.ic-slate{background:var(--slate-chip);color:var(--muted)}
+
+/* ===== TOOLBAR ===== */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.search-box{
+  flex:1;min-width:220px;max-width:380px;position:relative;
+}
+.search-box svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted)}
+.search-box input{
+  width:100%;padding:8px 12px 8px 34px;border-radius:9px;
+  background:var(--surface);border:1px solid var(--line);
+  color:var(--text);font-size:13px;outline:none;
+  transition:border-color .18s;
+}
+.search-box input::placeholder{color:var(--muted)}
+.search-box input:focus{border-color:var(--accent)}
+.seg{
+  display:flex;background:var(--surface);border:1px solid var(--line);
+  border-radius:9px;padding:3px;gap:2px;
+}
+.seg button{
+  padding:5px 13px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--muted);
+  transition:background .18s,color .18s;display:flex;align-items:center;gap:6px;
+}
+.seg button:hover{color:var(--text-2)}
+.seg button.active{background:var(--surface-3);color:var(--text)}
+.seg .cnt{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.seg button.active .cnt{color:var(--accent)}
+.toolbar .right{margin-left:auto;display:flex;gap:8px}
+
+/* ===== BUTTONS ===== */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:9px;font-size:13px;font-weight:600;
+  border:1px solid var(--line);background:var(--surface);color:var(--text-2);
+  transition:background .18s,border-color .18s,color .18s,transform .12s;
+  white-space:nowrap;
+}
+.btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--accent-line)}
+.btn:active{transform:scale(.97)}
+.btn svg{width:15px;height:15px}
+.btn-primary{
+  background:var(--accent-deep);border-color:var(--accent-deep);color:#FFFFFF;
+}
+.btn-primary:hover{background:#1D4ED8;border-color:#1D4ED8;color:#FFFFFF}
+.btn-primary kbd{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.26);color:#EFF6FF}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-ghost:hover{background:var(--surface)}
+.btn-danger{color:var(--red)}
+.btn-danger:hover{background:var(--red-dim);border-color:rgba(240,138,138,.4);color:var(--red)}
+.btn-block{width:100%;justify-content:space-between}
+.btn-block .btn-label{display:flex;align-items:center;gap:8px}
+
+/* ===== TABLE ===== */
+.table-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  overflow:hidden;
+}
+table{width:100%;border-collapse:collapse}
+thead th{
+  text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);
+  padding:10px 14px;border-bottom:1px solid var(--line);
+  background:var(--bg-2);white-space:nowrap;
+}
+thead th.num{text-align:right}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr{cursor:pointer;transition:background .16s,box-shadow .16s,transform .16s}
+tbody tr:hover{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--accent);transform:translateY(-1px)}
+tbody tr.selected{background:var(--accent-dim)}
+tbody tr:last-child td{border-bottom:none}
+.cell-names .n1{font-weight:700;font-size:13.5px}
+.cell-names .n2{font-size:12.5px;color:var(--text-2)}
+.cell-names .cpf{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted);margin-top:2px}
+.cell-resort{font-size:13px;font-weight:600;color:var(--text-2)}
+.cell-acao{font-size:12.5px;color:var(--muted)}
+.cell-honor{font-family:var(--font-mono);font-variant-numeric:tabular-nums;text-align:right;font-size:12.5px;color:var(--text);white-space:nowrap}
+.cell-honor .ex{display:block;font-size:11px;color:var(--muted)}
+.cell-data{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12px;color:var(--muted);white-space:nowrap}
+.checkcell{width:38px}
+.checkbox{
+  width:16px;height:16px;border-radius:5px;border:1.5px solid var(--muted);
+  background:transparent;display:grid;place-items:center;
+  transition:background .15s,border-color .15s;cursor:pointer;
+  appearance:none;-webkit-appearance:none;position:relative;
+}
+.checkbox:checked{background:var(--accent-deep);border-color:var(--accent-deep)}
+.checkbox:checked::after{
+  content:"";width:9px;height:5px;
+  border-left:2px solid #FFFFFF;border-bottom:2px solid #FFFFFF;
+  transform:rotate(-45deg) translate(0,-1px);
+}
+
+/* ===== PIPELINE ===== */
+.pipe{display:flex;align-items:center;margin-bottom:5px}
+.pnode{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted);background:transparent;position:relative}
+.pnode.done{background:var(--accent);border-color:var(--accent)}
+.pnode.done-green{background:var(--green);border-color:var(--green)}
+.pnode.current{background:var(--accent);border-color:var(--accent);animation:nodePulse 1.8s ease-out infinite}
+.pnode.current-slate{background:var(--muted);border-color:var(--muted);animation:nodePulseAm 1.8s ease-out infinite}
+@keyframes nodePulse{0%{box-shadow:0 0 0 0 rgba(96,165,250,.55)}70%{box-shadow:0 0 0 6px rgba(96,165,250,0)}100%{box-shadow:0 0 0 0 rgba(96,165,250,0)}}
+@keyframes nodePulseAm{0%{box-shadow:0 0 0 0 rgba(156,163,175,.5)}70%{box-shadow:0 0 0 6px rgba(156,163,175,0)}100%{box-shadow:0 0 0 0 rgba(156,163,175,0)}}
+.plink{width:16px;height:1.5px;background:var(--line)}
+.plink.done{background:var(--accent)}
+.plink.done-green{background:var(--green)}
+.status-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:700;
+}
+.status-chip svg{width:12px;height:12px}
+.st-assinado{color:var(--green)}
+.st-enviado{color:var(--accent)}
+.st-rascunho{color:var(--muted)}
+.st-cancelado{color:var(--red)}
+
+.empty-row td{padding:36px;text-align:center;color:var(--muted);font-size:13.5px;cursor:default}
+.table-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);background:var(--bg-2);
+}
+.table-foot .mono{font-size:12px}
+
+/* ===== DRAWER ===== */
+.scrim{
+  position:fixed;inset:0;background:rgba(4,8,18,.55);backdrop-filter:blur(2px);
+  opacity:0;pointer-events:none;transition:opacity .25s;z-index:60;
+}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:460px;max-width:94vw;z-index:70;
+  background:var(--bg-2);border-left:1px solid var(--line);
+  box-shadow:var(--shadow-drawer);
+  transform:translateX(105%);
+  transition:transform .45s cubic-bezier(.16,1,.3,1);
+  display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{
+  padding:20px 22px 16px;border-bottom:1px solid var(--line);
+  display:flex;align-items:flex-start;gap:12px;
+}
+.drawer-head h2{font-size:17px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.drawer-head .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.drawer-close{
+  margin-left:auto;width:30px;height:30px;border-radius:8px;
+  display:grid;place-items:center;color:var(--muted);
+  transition:background .15s,color .15s;
+}
+.drawer-close:hover{background:var(--surface-2);color:var(--text)}
+.drawer-close svg{width:16px;height:16px}
+.drawer-body{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:18px}
+.dsec-title{
+  font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:9px;display:flex;align-items:center;gap:7px;
+}
+.dsec-title svg{width:13px;height:13px}
+.dossie{
+  display:grid;grid-template-columns:1fr 1fr;gap:1px;
+  background:var(--line-soft);border:1px solid var(--line);border-radius:var(--r-md);
+  overflow:hidden;
+}
+.dfield{background:var(--surface);padding:10px 13px}
+.dfield.wide{grid-column:1/-1}
+.dfield .k{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.dfield .v{font-size:13px;font-weight:600;margin-top:2px}
+.dfield .v.mono{font-size:12.5px}
+.signer{
+  display:flex;align-items:center;gap:11px;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-md);padding:11px 13px;margin-bottom:8px;
+}
+.signer .info{flex:1;min-width:0}
+.signer .nm{font-size:13px;font-weight:700}
+.signer .lk{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.copy-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;
+  background:var(--surface-3);border:1px solid var(--line);color:var(--text-2);
+  transition:all .18s;white-space:nowrap;
+}
+.copy-btn:hover{border-color:var(--accent-line);color:var(--accent)}
+.copy-btn.copied{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.copy-btn svg{width:13px;height:13px}
+.drawer-actions{
+  padding:14px 22px;border-top:1px solid var(--line);
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--bg-2);
+}
+.drawer-actions .btn{justify-content:center}
+.drawer-actions .full{grid-column:1/-1}
+.draft-note{
+  font-size:12.5px;color:var(--muted);background:var(--surface);
+  border:1px dashed var(--line);border-radius:var(--r-md);padding:12px 14px;
+}
+
+/* ===== BULK BAR ===== */
+.bulkbar{
+  position:fixed;left:50%;bottom:18px;z-index:55;
+  transform:translate(-50%,90px);
+  transition:transform .38s cubic-bezier(.16,1,.3,1);
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface-3);border:1px solid var(--accent-line);
+  border-radius:14px;padding:10px 12px 10px 18px;
+  box-shadow:0 16px 48px rgba(2,6,16,.65);
+}
+.bulkbar.show{transform:translate(-50%,0)}
+.bulkbar .count{font-size:13px;font-weight:700;color:var(--accent)}
+.bulkbar .count .mono{font-size:13px}
+.bulkbar .sep{width:1px;height:22px;background:var(--line)}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;bottom:22px;right:24px;z-index:90;
+  display:flex;align-items:center;gap:9px;
+  background:var(--surface-3);border:1px solid var(--green);
+  color:var(--text);font-size:13px;font-weight:600;
+  padding:11px 16px;border-radius:11px;
+  box-shadow:0 12px 36px rgba(2,6,16,.6);
+  transform:translateY(80px);opacity:0;
+  transition:transform .32s cubic-bezier(.16,1,.3,1),opacity .25s;
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast svg{width:15px;height:15px;color:var(--green)}
+
+/* ===== CMD PALETTE ===== */
+.palette{
+  position:fixed;inset:0;z-index:100;display:none;
+  align-items:flex-start;justify-content:center;padding-top:14vh;
+  background:rgba(4,8,18,.6);backdrop-filter:blur(3px);
+}
+.palette.open{display:flex}
+.palette-panel{
+  width:560px;max-width:92vw;
+  background:var(--bg-2);border:1px solid var(--line);
+  border-radius:var(--r-lg);overflow:hidden;
+  box-shadow:0 32px 90px rgba(2,6,16,.8);
+  animation:palIn .24s cubic-bezier(.16,1,.3,1);
+}
+@keyframes palIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+.palette-input{
+  display:flex;align-items:center;gap:11px;padding:14px 18px;
+  border-bottom:1px solid var(--line);
+}
+.palette-input svg{width:17px;height:17px;color:var(--muted)}
+.palette-input input{flex:1;background:none;border:none;outline:none;font-size:15px;color:var(--text)}
+.palette-input input::placeholder{color:var(--muted)}
+.palette-list{padding:8px}
+.pal-group{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:8px 12px 5px}
+.pal-item{
+  width:100%;display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:600;
+  color:var(--text-2);transition:background .13s,color .13s;text-align:left;
+}
+.pal-item:hover,.pal-item.focus{background:var(--accent-dim);color:var(--text)}
+.pal-item svg{width:16px;height:16px;color:var(--accent)}
+.pal-item kbd{margin-left:auto}
+.palette-foot{
+  padding:9px 16px;border-top:1px solid var(--line);
+  display:flex;gap:16px;font-size:11.5px;color:var(--muted);
+}
+.palette-foot span{display:flex;align-items:center;gap:6px}
+
+/* ===== FORM (NOVO CONTRATO) ===== */
+.form-layout{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:18px;align-items:start}
+.form-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.fcard{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:18px 20px;
+}
+.fcard-head{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+.fcard-head .step-ic{
+  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent-dim);color:var(--accent);
+}
+.fcard-head .step-ic svg{width:14px;height:14px}
+.fcard-head h3{font-size:14.5px;font-weight:800;letter-spacing:-.005em}
+.fcard-head .hint{margin-left:auto;font-size:12px;color:var(--muted)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px 12px}
+.fgrid .wide{grid-column:1/-1}
+.field label{
+  display:flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:700;letter-spacing:.03em;
+  color:var(--muted);margin-bottom:5px;text-transform:uppercase;
+}
+.field input,.field select{
+  width:100%;padding:8px 11px;border-radius:8px;
+  background:var(--bg-2);border:1px solid var(--line);
+  color:var(--text);font-size:13px;outline:none;
+  transition:border-color .18s,box-shadow .18s;
+}
+.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(96,165,250,.15)}
+.field input.mono,.field select.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+.field .ok{color:var(--green);display:inline-flex}
+.field .ok svg{width:12px;height:12px}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px !important}
+
+.dropzone{
+  display:flex;align-items:center;gap:13px;
+  border:1.5px dashed var(--accent-line);border-radius:var(--r-md);
+  background:var(--accent-dim);
+  padding:12px 15px;margin-bottom:15px;cursor:pointer;
+  transition:background .2s,border-color .2s;
+}
+.dropzone:hover{background:rgba(96,165,250,.18);border-color:var(--accent)}
+.dropzone .dz-ic{
+  width:36px;height:36px;border-radius:9px;background:rgba(96,165,250,.16);
+  display:grid;place-items:center;color:var(--accent);
+}
+.dropzone .dz-ic svg{width:17px;height:17px}
+.dropzone .t1{font-size:13px;font-weight:700;color:var(--text)}
+.dropzone .t2{font-size:12px;color:var(--muted)}
+.dropzone kbd{margin-left:auto}
+
+.subhead{
+  display:flex;align-items:center;gap:9px;margin:16px 0 11px;
+  font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--text-2);
+}
+.subhead .badge-n{
+  width:19px;height:19px;border-radius:6px;display:grid;place-items:center;
+  background:var(--surface-3);color:var(--accent);font-family:var(--font-mono);font-size:11px;
+}
+.subhead .line{flex:1;height:1px;background:var(--line-soft)}
+.link-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--accent);
+  padding:4px 8px;border-radius:7px;transition:background .15s;
+}
+.link-btn:hover{background:var(--accent-dim)}
+.link-btn svg{width:13px;height:13px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  padding:7px 13px;border-radius:99px;font-size:12.5px;font-weight:600;
+  background:var(--bg-2);border:1px solid var(--line);color:var(--text-2);
+  transition:all .18s;font-variant-numeric:tabular-nums;
+}
+.chip:hover{border-color:var(--accent-line);color:var(--text)}
+.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);font-weight:700}
+.chip .mono{font-size:12px}
+.calc-extenso{
+  margin-top:12px;padding:12px 14px;border-radius:var(--r-md);
+  background:var(--bg-2);border:1px solid var(--line-soft);
+  font-size:12.5px;color:var(--text-2);line-height:1.6;
+}
+.calc-extenso strong{color:var(--accent);font-weight:700}
+.calc-extenso .lbl{display:block;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+
+.clause-list{display:flex;flex-direction:column;gap:6px}
+.clause{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 11px;border-radius:9px;
+  background:var(--bg-2);border:1px solid var(--line-soft);
+  font-size:12.5px;font-weight:600;color:var(--text-2);
+  transition:border-color .15s,transform .15s;cursor:grab;
+}
+.clause:hover{border-color:var(--accent-line);transform:translateX(2px)}
+.clause .grip{color:var(--muted);display:flex}
+.clause .grip svg{width:13px;height:13px}
+.clause .cnum{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:11px;color:var(--accent);width:26px}
+.clause .auto{
+  margin-left:auto;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  color:var(--accent);background:var(--accent-dim);
+  padding:2px 8px;border-radius:99px;text-transform:uppercase;
+}
+.clause .edit{margin-left:auto;color:var(--muted);display:flex;padding:3px;border-radius:5px}
+.clause .edit:hover{color:var(--accent);background:var(--accent-dim)}
+.clause .edit svg{width:13px;height:13px}
+.clause .auto + .edit,.clause .edit + .auto{margin-left:8px}
+
+/* ===== RAIL ===== */
+.rail{position:sticky;top:74px;display:flex;flex-direction:column;gap:12px}
+.rail-card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r-lg);padding:16px 18px;
+}
+.progress-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+.progress-head .t{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.progress-head .pct{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:16px;font-weight:700;color:var(--accent)}
+.progress-track{height:5px;border-radius:99px;background:var(--bg-2);overflow:hidden}
+.progress-fill{height:100%;width:100%;border-radius:99px;background:var(--accent-deep);transform:scaleX(0);transform-origin:left center;transition:transform .5s cubic-bezier(.22,1,.36,1)}
+.progress-note{font-size:11.5px;color:var(--muted);margin-top:8px}
+
+.resume-line{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+.resume-line:last-child{border-bottom:none}
+.resume-line .k{color:var(--muted);font-weight:600;white-space:nowrap}
+.resume-line .v{font-weight:700;text-align:right;color:var(--text)}
+.resume-line .v.mono{font-size:12px}
+.resume-line .v.dim{color:var(--muted);font-weight:500}
+
+.rail-actions{display:flex;flex-direction:column;gap:8px}
+.rail .btn-clear{align-self:center;font-size:12px;color:var(--muted);padding:6px 12px}
+.rail .btn-clear:hover{color:var(--red)}
+
+/* ===== DASHBOARD STUB ===== */
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.dash-note{
+  background:var(--surface);border:1px dashed var(--line);
+  border-radius:var(--r-lg);padding:34px;text-align:center;color:var(--muted);font-size:13.5px;
+}
+
+/* ===== BADGE ===== */
+.mock-badge{
+  position:fixed;left:16px;bottom:14px;z-index:95;
+  display:flex;align-items:center;gap:10px;
+  background:rgba(15,23,42,.92);border:1px solid var(--line);
+  border-radius:99px;padding:6px 14px;font-size:11.5px;color:var(--muted);
+  backdrop-filter:blur(6px);
+}
+.mock-badge b{color:var(--text-2);font-weight:700}
+.mock-badge a{color:var(--accent);text-decoration:none;font-weight:600}
+.mock-badge a:hover{text-decoration:underline}
+
+@media (max-width:1120px){
+  .brand{display:none}
+  .form-layout{grid-template-columns:1fr}
+  .rail{position:static}
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+  .dash-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:820px){
+  .shell{grid-template-columns:64px 1fr}
+  .nav-btn{width:52px;font-size:10px}
+  .content{padding:16px 14px 90px}
+  th.hide-md,td.hide-md{display:none}
+  .fgrid{grid-template-columns:1fr}
+  .drawer{width:100vw}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+    <div class="logo">CBC</div>
+    <button class="nav-btn" data-nav="novo" title="Novo Contrato">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Novo
+    </button>
+    <button class="nav-btn active" data-nav="salvos" title="Contratos Salvos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+      Salvos
+    </button>
+    <button class="nav-btn" data-nav="dash" title="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v-4M12 15V7M17 15v-6"/></svg>
+      Dashboard
+    </button>
+    <div class="spacer"></div>
+    <div class="side-avatar" title="Mariana Maciel">MM</div>
+  </aside>
+
+  <!-- ===== MAIN ===== -->
+  <div class="main">
+    <header class="topbar">
+      <div class="brand">
+        <span class="b1">CONFORTO, BERGONSI &amp; CAVALARI</span>
+        <span class="b2">OAB/SP 55.227 · Americana-SP</span>
+      </div>
+      <button class="cmdk" id="cmdkTrigger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <span class="grow">Buscar contrato ou executar comando…</span>
+        <kbd>⌘K</kbd>
+      </button>
+      <div class="topbar-right">
+        <div class="sync-pill" title="Última sincronização com ZapSign">
+          <span class="sync-dot"></span>
+          ZapSign · Sincronizado há 2 min
+        </div>
+        <div class="user-chip">
+          <span class="avatar av-mm">MM</span>
+          Mariana
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- ================= VIEW: CONTRATOS SALVOS ================= -->
+      <section class="view active" id="view-salvos">
+        <div class="page-head reveal d1">
+          <h1>Contratos Salvos</h1>
+          <span class="sub">195 contratos · atualizado agora</span>
+        </div>
+
+        <div class="stat-strip reveal d2">
+          <button class="stat active" data-filter="todos">
+            <span class="ic ic-total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span>
+            <span><span class="num">195</span><br><span class="lbl">Total de contratos</span></span>
+          </button>
+          <button class="stat" data-filter="assinado">
+            <span class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span><span class="num">164</span><br><span class="lbl">Assinados</span></span>
+          </button>
+          <button class="stat" data-filter="enviado">
+            <span class="ic ic-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span><span class="num">26</span><br><span class="lbl">Aguardando assinatura</span></span>
+          </button>
+          <button class="stat" data-filter="rascunho">
+            <span class="ic ic-slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></span>
+            <span><span class="num">5</span><br><span class="lbl">Rascunhos</span></span>
+          </button>
+        </div>
+
+        <div class="toolbar reveal d3">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="searchInput" placeholder="Nome, CPF ou resort…  ( / )">
+          </div>
+          <div class="seg" id="segFilter">
+            <button class="active" data-filter="todos">Todos</button>
+            <button data-filter="assinado">Assinados <span class="cnt">164</span></button>
+            <button data-filter="enviado">Aguardando <span class="cnt">26</span></button>
+            <button data-filter="rascunho">Rascunhos <span class="cnt">5</span></button>
+          </div>
+          <div class="right">
+            <button class="btn" id="btnSync">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+              Sincronizar <kbd>⌘R</kbd>
+            </button>
+            <button class="btn btn-primary" data-goto="novo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              Novo contrato <kbd>⌘N</kbd>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-card reveal d4">
+          <table>
+            <thead>
+              <tr>
+                <th class="checkcell"><input type="checkbox" class="checkbox" id="checkAll" title="Selecionar todos"></th>
+                <th>Contratante(s)</th>
+                <th class="hide-md">Resort</th>
+                <th class="hide-md">Tipo de ação</th>
+                <th class="num">Honorários</th>
+                <th>Status</th>
+                <th class="hide-md">Resp.</th>
+                <th class="num">Data</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+          <div class="table-foot">
+            <span id="footCount" class="mono">14 de 195 contratos exibidos</span>
+            <span>↑↓ navegar · Enter abre o dossiê · Esc fecha</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: NOVO CONTRATO ================= -->
+      <section class="view" id="view-novo">
+        <div class="page-head reveal d1">
+          <h1>Novo Contrato</h1>
+          <span class="sub">Honorários advocatícios · multipropriedade</span>
+        </div>
+
+        <div class="form-layout">
+          <div class="form-col">
+
+            <!-- Card 1: Contratantes -->
+            <div class="fcard reveal d2">
+              <div class="fcard-head">
+                <span class="step-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span>
+                <h3>Contratantes</h3>
+                <span class="hint">2 de 2 pessoas</span>
+              </div>
+
+              <div class="dropzone" id="dropzone" title="Arraste a CNH aqui">
+                <span class="dz-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg></span>
+                <span>
+                  <span class="t1">Arraste a CNH: o OCR preenche tudo</span><br>
+                  <span class="t2">PDF ou foto · CPF, RG, nome e filiação em segundos</span>
+                </span>
+                <kbd>⌘U</kbd>
+              </div>
+
+              <div class="subhead"><span class="badge-n">1</span> Contratante 1 <span class="line"></span></div>
+              <div class="fgrid">
+                <div class="field">
+                  <label>CPF <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> válido</span></label>
+                  <input class="mono" data-req value="318.761.358-67" data-sum="c1">
+                </div>
+                <div class="field"><label>RG</label><input class="mono" data-req value="28.554.102-3"></div>
+                <div class="field wide"><label>Nome completo <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> localizado via CPF</span></label><input data-req id="inpNome1" value="Fabio Tavares de Melo"></div>
+                <div class="field"><label>Nacionalidade</label><input data-req value="Brasileiro"></div>
+                <div class="field"><label>Profissão</label><input data-req value="Empresário"></div>
+                <div class="field"><label>Estado civil</label>
+                  <select data-req>
+                    <option>Solteiro(a)</option><option selected>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União Estável</option>
+                  </select>
+                </div>
+                <div class="field"><label>E-mail</label><input data-req type="email" value="fabio.tmelo@gmail.com"></div>
+                <div class="field"><label>CEP</label><input class="mono" data-req value="13478-540"></div>
+                <div class="field"><label>UF</label>
+                  <select data-req><option selected>SP</option><option>MG</option><option>RJ</option><option>PR</option><option>GO</option></select>
+                </div>
+                <div class="field wide"><label>Endereço</label><input data-req value="Rua das Palmeiras, 412"></div>
+                <div class="field"><label>Complemento</label><input value="Casa 2"></div>
+                <div class="field"><label>Bairro</label><input data-req value="Jardim São Paulo"></div>
+                <div class="field wide"><label>Cidade</label><input data-req value="Americana"></div>
+              </div>
+
+              <div class="subhead">
+                <span class="badge-n">2</span> Contratante 2 <span class="line"></span>
+                <button class="link-btn" id="btnSameAddr">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  Mesmo endereço do Contratante 1
+                </button>
+              </div>
+              <div class="fgrid">
+                <div class="field">
+                  <label>CPF <span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> válido</span></label>
+                  <input class="mono" data-req value="274.905.118-30">
+                </div>
+                <div class="field"><label>RG</label><input class="mono" data-req value="30.112.887-9"></div>
+                <div class="field wide"><label>Nome completo</label><input data-req id="inpNome2" value="Patricia Pinheiro de Melo"></div>
+                <div class="field"><label>Nacionalidade</label><input data-req value="Brasileira"></div>
+                <div class="field"><label>Profissão</label><input data-req value="Professora"></div>
+                <div class="field"><label>Estado civil</label>
+                  <select data-req>
+                    <option>Solteiro(a)</option><option selected>Casado(a)</option><option>Divorciado(a)</option><option>Viúvo(a)</option><option>União Estável</option>
+                  </select>
+                </div>
+                <div class="field"><label>E-mail</label><input data-req type="email" value="patricia.pmelo@gmail.com"></div>
+                <div class="field"><label>CEP</label><input class="mono" data-req id="cep2" placeholder="00000-000"></div>
+                <div class="field"><label>UF</label>
+                  <select data-req id="uf2"><option value="" selected></option><option>SP</option><option>MG</option><option>RJ</option><option>PR</option><option>GO</option></select>
+                </div>
+                <div class="field wide"><label>Endereço</label><input data-req id="end2" placeholder="Rua, número"></div>
+                <div class="field"><label>Complemento</label><input id="comp2"></div>
+                <div class="field"><label>Bairro</label><input data-req id="bai2"></div>
+                <div class="field wide"><label>Cidade</label><input data-req id="cid2"></div>
+              </div>
+            </div>
+
+            <!-- Card 2: Resort + Ação -->
+            <div class="fcard reveal d3">
+              <div class="fcard-head">
+                <span class="step-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg></span>
+                <h3>Resort e Tipo de Ação</h3>
+              </div>
+              <div class="fgrid">
+                <div class="field"><label>Resort / Empreendimento</label>
+                  <select data-req id="selResort" data-sum="resort">
+                    <option>Ondas Praia</option><option>Thermas São Pedro</option><option>Ilhas do Lago</option>
+                    <option selected>Leaves Premium</option><option>Olimpia Park Resort</option><option>Lagoa Quente/Ecotowers</option>
+                    <option>Alta Vista</option><option>Gran Paradiso</option><option>Encontro das Águas</option>
+                    <option>Águas da Serra</option><option>Costa do Sauípe</option><option>Praia Bonita</option>
+                    <option>+ Novo resort…</option>
+                  </select>
+                </div>
+                <div class="field"><label>Tipo de ação</label>
+                  <select data-req id="selAcao" data-sum="acao">
+                    <option>Ação de Cobrança</option><option>Cancelamento de Contrato</option><option>Cota Quitada sem Matrícula</option>
+                    <option>Dano Moral</option><option>Devolução 80%</option><option>Devolução 50%</option>
+                    <option selected>Distrato por Atraso</option><option>Execução Honorários</option><option>Revisão de Distrato</option>
+                    <option>+ Outro…</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Honorários -->
+            <div class="fcard reveal d4">
+              <div class="fcard-head">
+                <span class="step-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6v12"/><path d="M15 9.5c0-1.1-1.3-2-3-2s-3 .9-3 2 1 1.8 3 2.2 3 1.1 3 2.3-1.3 2-3 2-3-.9-3-2"/></svg></span>
+                <h3>Honorários</h3>
+              </div>
+              <div class="field" style="margin-bottom:13px">
+                <label>Modalidade</label>
+                <div class="seg" style="display:inline-flex">
+                  <button class="active" type="button">Iniciais + Êxito</button>
+                  <button type="button">Somente Êxito</button>
+                  <button type="button">Somente Iniciais</button>
+                </div>
+              </div>
+              <div class="field" style="margin-bottom:13px">
+                <label>Preset de valores</label>
+                <div class="chips" id="presetChips">
+                  <button class="chip" data-preset="0"><span class="mono">R$ 2.700</span> à vista</button>
+                  <button class="chip" data-preset="1"><span class="mono">R$ 3.000</span> · 10× <span class="mono">R$ 300</span></button>
+                  <button class="chip" data-preset="2"><span class="mono">R$ 3.000</span> · 12× <span class="mono">R$ 250</span></button>
+                  <button class="chip active" data-preset="3"><span class="mono">R$ 3.300</span> · 12× <span class="mono">R$ 275</span></button>
+                  <button class="chip" data-preset="4">Personalizado</button>
+                </div>
+              </div>
+              <div class="fgrid">
+                <div class="field"><label>Percentual de êxito</label>
+                  <div class="chips" id="exitoChips">
+                    <button class="chip" data-exito="15">15%</button>
+                    <button class="chip active" data-exito="20">20%</button>
+                    <button class="chip" data-exito="25">25%</button>
+                    <button class="chip" data-exito="30">30%</button>
+                  </div>
+                </div>
+                <div class="field"><label>Data da 1ª parcela</label><input class="mono" data-req type="text" value="10/08/2026"></div>
+              </div>
+              <div class="calc-extenso" id="calcExtenso">
+                <span class="lbl">Cláusula 2ª (gerada automaticamente)</span>
+                Honorários iniciais de <strong>R$ 3.300,00</strong> (três mil e trezentos reais), pagos em <strong>12 parcelas</strong> mensais de <strong>R$ 275,00</strong> (duzentos e setenta e cinco reais), acrescidos de <strong>20% de êxito</strong> sobre o proveito econômico obtido.
+              </div>
+            </div>
+
+            <!-- Card 4: Cláusulas -->
+            <div class="fcard reveal d5">
+              <div class="fcard-head">
+                <span class="step-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>
+                <h3>Cláusulas do contrato</h3>
+                <span class="hint">13 cláusulas · arraste para reordenar</span>
+              </div>
+              <div class="clause-list" id="clauseList"></div>
+              <div style="margin-top:11px">
+                <button class="link-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  Adicionar cláusula avulsa
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- RAIL -->
+          <aside class="rail reveal d3">
+            <div class="rail-card">
+              <div class="progress-head">
+                <span class="t">Progresso</span>
+                <span class="pct" id="pctLabel">0%</span>
+              </div>
+              <div class="progress-track"><div class="progress-fill" id="pctFill"></div></div>
+              <div class="progress-note" id="pctNote">Preenchendo…</div>
+            </div>
+
+            <div class="rail-card">
+              <div class="dsec-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                Resumo do contrato
+              </div>
+              <div class="resume-line"><span class="k">Contratante 1</span><span class="v" id="sumC1">Fabio Tavares de Melo</span></div>
+              <div class="resume-line"><span class="k">Contratante 2</span><span class="v" id="sumC2">Patricia Pinheiro de Melo</span></div>
+              <div class="resume-line"><span class="k">Resort</span><span class="v" id="sumResort">Leaves Premium</span></div>
+              <div class="resume-line"><span class="k">Ação</span><span class="v" id="sumAcao">Distrato por Atraso</span></div>
+              <div class="resume-line"><span class="k">Honorários</span><span class="v mono" id="sumHonor">R$ 3.300 · 12× R$ 275</span></div>
+              <div class="resume-line"><span class="k">Êxito</span><span class="v mono" id="sumExito">20%</span></div>
+            </div>
+
+            <div class="rail-card rail-actions">
+              <button class="btn btn-primary btn-block" id="btnSalvar">
+                <span class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+                  Salvar contrato
+                </span><kbd>⌘S</kbd>
+              </button>
+              <button class="btn btn-block">
+                <span class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+                  Gerar PDF e salvar
+                </span><kbd>⌘P</kbd>
+              </button>
+              <button class="btn btn-block">
+                <span class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+                  Gerar procuração
+                </span><kbd>⌘G</kbd>
+              </button>
+              <button class="btn btn-block" id="btnEnviar" style="border-color:var(--accent-line);color:var(--accent)">
+                <span class="btn-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                  Enviar para ZapSign
+                </span><kbd>⌘⏎</kbd>
+              </button>
+              <button class="btn-clear" id="btnLimpar">Limpar formulário</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================= VIEW: DASHBOARD (stub) ================= -->
+      <section class="view" id="view-dash">
+        <div class="page-head reveal d1">
+          <h1>Dashboard</h1>
+          <span class="sub">visão geral da operação</span>
+        </div>
+        <div class="dash-grid reveal d2">
+          <div class="stat" style="cursor:default"><span class="ic ic-total"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></span><span><span class="num">195</span><br><span class="lbl">Contratos gerados</span></span></div>
+          <div class="stat" style="cursor:default"><span class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span><span class="num">84%</span><br><span class="lbl">Taxa de assinatura</span></span></div>
+          <div class="stat" style="cursor:default"><span class="ic ic-cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span><span class="num">1,8 d</span><br><span class="lbl">Tempo médio p/ assinar</span></span></div>
+          <div class="stat" style="cursor:default"><span class="ic ic-slate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span><span><span class="num">4</span><br><span class="lbl">Colaboradoras ativas</span></span></div>
+        </div>
+        <div class="dash-note reveal d3">Gráficos de produção mensal, ranking de resorts e funil de assinatura entram aqui na versão final.</div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<!-- ===== DRAWER ===== -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Dossiê do contrato">
+  <div class="drawer-head">
+    <div>
+      <h2 id="dTitle">—</h2>
+      <div class="sub" id="dSub">—</div>
+    </div>
+    <button class="drawer-close" id="drawerClose" title="Fechar (Esc)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-actions">
+    <button class="btn full btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      Carregar no formulário <kbd>⌘E</kbd>
+    </button>
+    <button class="btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+      Baixar PDF
+    </button>
+    <button class="btn btn-danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      Excluir
+    </button>
+  </div>
+</aside>
+
+<!-- ===== BULK BAR ===== -->
+<div class="bulkbar" id="bulkbar">
+  <span class="count"><span class="mono" id="bulkCount">0</span> selecionados</span>
+  <span class="sep"></span>
+  <button class="btn btn-ghost">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+    Sincronizar
+  </button>
+  <button class="btn btn-ghost">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+    PDF em lote
+  </button>
+  <button class="btn btn-ghost btn-danger">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    Excluir
+  </button>
+  <button class="btn btn-ghost" id="bulkClear" title="Limpar seleção">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toastMsg">Link copiado</span>
+</div>
+
+<!-- ===== CMD PALETTE ===== -->
+<div class="palette" id="palette">
+  <div class="palette-panel">
+    <div class="palette-input">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="paletteInput" placeholder="Digite um comando ou busque um contrato…" autocomplete="off">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-list">
+      <div class="pal-group">Ações rápidas</div>
+      <button class="pal-item" data-cmd="novo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Novo contrato <kbd>⌘N</kbd>
+      </button>
+      <button class="pal-item" data-cmd="buscar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        Buscar contrato <kbd>/</kbd>
+      </button>
+      <button class="pal-item" data-cmd="sync">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>
+        Sincronizar ZapSign <kbd>⌘R</kbd>
+      </button>
+    </div>
+    <div class="palette-foot">
+      <span><kbd>↑↓</kbd> navegar</span>
+      <span><kbd>⏎</kbd> executar</span>
+      <span><kbd>Esc</kbd> fechar</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BADGE ===== -->
+<div class="mock-badge">
+  <b>M2 · Mesa de Operações</b>
+  <a href="index.html">← Todos os mockups</a>
+</div>
+
+<script>
+/* ================= DADOS ================= */
+const CONTRATOS = [
+  {id:1, c1:"Fabiane Aparecida Borges", c2:"Roberto Ribeiro dos Santos", cpf:"055.843.406-18", resort:"Ilhas do Lago", acao:"Cota Quitada sem Matrícula", status:"enviado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"01/07/2026", por:"Mariana",
+   signers:[{n:"Fabiane Aparecida Borges", st:"pendente", tk:"a3f9-c81d-4e02"},{n:"Roberto Ribeiro dos Santos", st:"pendente", tk:"b7e2-115a-9cd4"}]},
+  {id:2, c1:"Fabio Tavares de Melo", c2:"Patricia Pinheiro de Melo", cpf:"318.761.358-67", resort:"Leaves Premium", acao:"Distrato por Atraso", status:"enviado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"01/07/2026", por:"Mariana",
+   signers:[{n:"Fabio Tavares de Melo", st:"assinado", tk:"c4d1-98ab-7f30"},{n:"Patricia Pinheiro de Melo", st:"pendente", tk:"d9a6-2270-b3e8"}]},
+  {id:3, c1:"Natalia Zulmira Sales da Silva", c2:"Dimas Sales da Silva", cpf:"346.116.158-63", resort:"Olimpia Park Resort", acao:"Devolução 80%", status:"enviado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"30/06/2026", por:"Mariana",
+   signers:[{n:"Natalia Zulmira Sales da Silva", st:"pendente", tk:"e1c8-44f5-a902"},{n:"Dimas Sales da Silva", st:"pendente", tk:"f6b3-807e-25dc"}]},
+  {id:4, c1:"Marco Antonio Puppin", c2:null, cpf:"040.853.568-79", resort:"Thermas São Pedro", acao:"Devolução 80%", status:"assinado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"30/06/2026", por:"Mariana",
+   signers:[{n:"Marco Antonio Puppin", st:"assinado", tk:"0a5d-c391-6e47"}]},
+  {id:5, c1:"Rosemary Aparecida Piccioni", c2:null, cpf:"577.678.239-20", resort:"Thermas São Pedro", acao:"Devolução 80%", status:"assinado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"30/06/2026", por:"Mariana",
+   signers:[{n:"Rosemary Aparecida Piccioni", st:"assinado", tk:"1b8e-d502-73fa"}]},
+  {id:6, c1:"João Carlos Ferreira de Freitas", c2:"André da Silva Barros", cpf:"067.504.508-81", resort:"Thermas São Pedro", acao:"Ação de Cobrança", status:"assinado", honor:"Somente êxito", parc:null, exito:"40%", data:"26/06/2026", por:"Mariana",
+   signers:[{n:"João Carlos Ferreira de Freitas", st:"assinado", tk:"2c9f-e613-84ab"},{n:"André da Silva Barros", st:"assinado", tk:"3daa-f724-95bc"}]},
+  {id:7, c1:"Andreia Flor da Silva", c2:null, cpf:"939.465.036-91", resort:"Lagoa Quente/Ecotowers", acao:"Devolução 80%", status:"assinado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"26/06/2026", por:"Mariana",
+   signers:[{n:"Andreia Flor da Silva", st:"assinado", tk:"4ebb-0835-a6cd"}]},
+  {id:8, c1:"Flavio de Carvalho Pereira", c2:"Fabiana Custodio Vieira", cpf:"849.125.456-00", resort:"Alta Vista", acao:"Cota Quitada sem Matrícula", status:"enviado", honor:"Somente êxito", parc:null, exito:"35%", data:"26/06/2026", por:"Mariana",
+   signers:[{n:"Flavio de Carvalho Pereira", st:"pendente", tk:"5fcc-1946-b7de"},{n:"Fabiana Custodio Vieira", st:"pendente", tk:"60dd-2a57-c8ef"}]},
+  {id:9, c1:"Terezinha de Jesus Paulino da Costa", c2:null, cpf:"122.551.748-63", resort:"Ondas Praia", acao:"Devolução 80%", status:"enviado", honor:"Somente êxito", parc:null, exito:"30%", data:"26/06/2026", por:"Maria",
+   signers:[{n:"Terezinha de J. Paulino da Costa", st:"pendente", tk:"71ee-3b68-d9f0"}]},
+  {id:10, c1:"Vanessa de Pietro Soares", c2:null, cpf:"137.674.498-89", resort:"Gran Paradiso", acao:"Distrato por Atraso", status:"assinado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"26/06/2026", por:"Ana Cristina",
+   signers:[{n:"Vanessa de Pietro Soares", st:"assinado", tk:"82ff-4c79-ea01"}]},
+  {id:11, c1:"Flavio de Carvalho Pereira", c2:null, cpf:"849.125.456-00", resort:"Alta Vista", acao:"Cota Quitada sem Matrícula", status:"rascunho", honor:"R$ 3.000", parc:"12× R$ 250", exito:"20%", data:"25/06/2026", por:"Mariana", signers:[]},
+  {id:12, c1:"Terezinha de Jesus Paulino da Costa", c2:null, cpf:"122.551.748-63", resort:"Ondas Praia", acao:"Devolução 80%", status:"rascunho", honor:"Somente êxito", parc:null, exito:"30%", data:"25/06/2026", por:"Maria", signers:[]},
+  {id:13, c1:"Ernando Raimundo dos Santos Filho", c2:null, cpf:"048.177.056-98", resort:"Ondas Praia", acao:"Ação de Cobrança", status:"assinado", honor:"Somente êxito", parc:null, exito:"35%", data:"25/06/2026", por:"Mariana",
+   signers:[{n:"Ernando R. dos Santos Filho", st:"assinado", tk:"93aa-5d8a-fb12"}]},
+  {id:14, c1:"Gabriel Silva Pires de Almeida", c2:null, cpf:"142.047.217-88", resort:"Ondas Praia", acao:"Revisão de Distrato", status:"assinado", honor:"R$ 3.300", parc:"12× R$ 275", exito:"20%", data:"25/06/2026", por:"Beatriz",
+   signers:[{n:"Gabriel S. Pires de Almeida", st:"assinado", tk:"a4bb-6e9b-0c23"}]}
+];
+
+const AVATAR = {"Mariana":["MM","av-mm"],"Maria":["MA","av-ma"],"Ana Cristina":["AC","av-ac"],"Beatriz":["BE","av-be"]};
+const STAGES = ["Rascunho","Salvo","Enviado","Assinado"];
+
+const ICONS = {
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  pencil:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+};
+
+const STATUS_META = {
+  assinado:{label:"Assinado", cls:"st-assinado", icon:ICONS.check, stage:3},
+  enviado:{label:"Aguardando", cls:"st-enviado", icon:ICONS.clock, stage:2},
+  rascunho:{label:"Rascunho", cls:"st-rascunho", icon:ICONS.pencil, stage:0}
+};
+
+/* ================= ESTADO ================= */
+let filtro = "todos";
+let busca = "";
+const selecionados = new Set();
+
+/* ================= HELPERS ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+function pipelineHTML(status){
+  const meta = STATUS_META[status];
+  let dots = "";
+  for(let i=0;i<4;i++){
+    let cls = "pnode";
+    if(status==="assinado") cls += " done-green";
+    else if(i < meta.stage) cls += " done";
+    else if(i === meta.stage) cls += status==="rascunho" ? " current-slate" : " current";
+    dots += `<span class="${cls}" title="${STAGES[i]}"></span>`;
+    if(i<3){
+      let lcls = "plink";
+      if(status==="assinado") lcls += " done-green";
+      else if(i < meta.stage) lcls += " done";
+      dots += `<span class="${lcls}"></span>`;
+    }
+  }
+  return `<div class="pipe">${dots}</div>
+    <span class="status-chip ${meta.cls}">${meta.icon}${meta.label}</span>`;
+}
+
+function avatarHTML(por){
+  const [ini, cls] = AVATAR[por] || ["??","av-mm"];
+  return `<span class="avatar ${cls}" title="${por}">${ini}</span>`;
+}
+
+function honorHTML(c){
+  if(c.parc) return `${c.honor}<span class="ex">${c.parc} + ${c.exito} êxito</span>`;
+  return `${c.honor}<span class="ex">${c.exito} sobre o êxito</span>`;
+}
+
+/* ================= TABELA ================= */
+function filtrados(){
+  const q = busca.trim().toLowerCase();
+  return CONTRATOS.filter(c=>{
+    if(filtro!=="todos" && c.status!==filtro) return false;
+    if(!q) return true;
+    return [c.c1, c.c2||"", c.cpf, c.resort, c.acao].join(" ").toLowerCase().includes(q);
+  });
+}
+
+function renderTabela(){
+  const rows = filtrados();
+  const tbody = $("#tbody");
+  if(!rows.length){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Nenhum contrato encontrado para esta busca ou filtro.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(c=>`
+      <tr data-id="${c.id}" class="${selecionados.has(c.id)?"selected":""}">
+        <td class="checkcell"><input type="checkbox" class="checkbox row-check" data-id="${c.id}" ${selecionados.has(c.id)?"checked":""}></td>
+        <td class="cell-names">
+          <div class="n1">${c.c1}</div>
+          ${c.c2?`<div class="n2">+ ${c.c2}</div>`:""}
+          <div class="cpf">${c.cpf}</div>
+        </td>
+        <td class="cell-resort hide-md">${c.resort}</td>
+        <td class="cell-acao hide-md">${c.acao}</td>
+        <td class="cell-honor">${honorHTML(c)}</td>
+        <td>${pipelineHTML(c.status)}</td>
+        <td class="hide-md">${avatarHTML(c.por)}</td>
+        <td class="cell-data">${c.data}</td>
+      </tr>`).join("");
+  }
+  $("#footCount").textContent = `${rows.length} de 195 contratos exibidos`;
+  atualizarBulk();
+}
+
+/* filtros: stat strip + segmented sincronizados */
+function setFiltro(f){
+  filtro = f;
+  $$(".stat[data-filter]").forEach(b=>b.classList.toggle("active", b.dataset.filter===f));
+  $$("#segFilter button").forEach(b=>b.classList.toggle("active", b.dataset.filter===f));
+  renderTabela();
+}
+$$(".stat[data-filter]").forEach(b=>b.addEventListener("click",()=>setFiltro(b.dataset.filter)));
+$$("#segFilter button").forEach(b=>b.addEventListener("click",()=>setFiltro(b.dataset.filter)));
+
+$("#searchInput").addEventListener("input",e=>{busca=e.target.value;renderTabela();});
+
+/* seleção múltipla */
+document.addEventListener("change",e=>{
+  if(e.target.classList.contains("row-check")){
+    const id = +e.target.dataset.id;
+    e.target.checked ? selecionados.add(id) : selecionados.delete(id);
+    e.target.closest("tr").classList.toggle("selected", e.target.checked);
+    atualizarBulk();
+  }
+  if(e.target.id==="checkAll"){
+    const rows = filtrados();
+    if(e.target.checked) rows.forEach(c=>selecionados.add(c.id));
+    else rows.forEach(c=>selecionados.delete(c.id));
+    renderTabela();
+  }
+});
+function atualizarBulk(){
+  $("#bulkCount").textContent = selecionados.size;
+  $("#bulkbar").classList.toggle("show", selecionados.size>0);
+}
+$("#bulkClear").addEventListener("click",()=>{selecionados.clear();renderTabela();});
+
+/* clique na linha abre o drawer (exceto no checkbox) */
+$("#tbody").addEventListener("click",e=>{
+  if(e.target.closest(".checkbox")) return;
+  const tr = e.target.closest("tr[data-id]");
+  if(tr) abrirDrawer(+tr.dataset.id);
+});
+
+/* ================= DRAWER ================= */
+function abrirDrawer(id){
+  const c = CONTRATOS.find(x=>x.id===id);
+  if(!c) return;
+  const meta = STATUS_META[c.status];
+  $("#dTitle").textContent = c.c2 ? `${c.c1} + ${c.c2}` : c.c1;
+  $("#dSub").innerHTML = `Contrato #${String(c.id).padStart(4,"0")} · criado em <span class="mono">${c.data}</span> por ${c.por}`;
+
+  let signersHTML = "";
+  if(c.signers.length){
+    signersHTML = c.signers.map(s=>{
+      const ok = s.st==="assinado";
+      return `<div class="signer">
+        <span class="status-chip ${ok?"st-assinado":"st-enviado"}" style="min-width:96px">${ok?ICONS.check:ICONS.clock}${ok?"Assinado":"Pendente"}</span>
+        <span class="info">
+          <span class="nm">${s.n}</span><br>
+          <span class="lk">zapsign.com.br/a/${s.tk}</span>
+        </span>
+        <button class="copy-btn" data-link="https://app.zapsign.com.br/verificar/${s.tk}">${ICONS.copy} Copiar</button>
+      </div>`;
+    }).join("");
+    signersHTML += `<button class="copy-btn" style="width:100%;justify-content:center;padding:9px" data-link="todos-os-links">${ICONS.link} Copiar todos os links</button>`;
+  } else {
+    signersHTML = `<div class="draft-note">Rascunho ainda não enviado ao ZapSign. Os links de assinatura aparecem aqui depois do envio (<b>⌘⏎</b>).</div>`;
+  }
+
+  $("#dBody").innerHTML = `
+    <div>
+      <div class="dsec-title">${ICONS.file} Dossiê</div>
+      <div class="dossie">
+        <div class="dfield wide"><div class="k">Status</div><div class="v"><span class="status-chip ${meta.cls}">${meta.icon}${meta.label}</span></div></div>
+        <div class="dfield"><div class="k">CPF titular</div><div class="v mono">${c.cpf}</div></div>
+        <div class="dfield"><div class="k">Criado em</div><div class="v mono">${c.data}</div></div>
+        <div class="dfield"><div class="k">Resort</div><div class="v">${c.resort}</div></div>
+        <div class="dfield"><div class="k">Tipo de ação</div><div class="v">${c.acao}</div></div>
+        <div class="dfield"><div class="k">Honorários</div><div class="v mono">${c.parc?`${c.honor} · ${c.parc}`:c.honor}</div></div>
+        <div class="dfield"><div class="k">Êxito</div><div class="v mono">${c.exito}</div></div>
+        <div class="dfield wide"><div class="k">Responsável</div><div class="v" style="display:flex;align-items:center;gap:8px">${avatarHTML(c.por)} ${c.por}</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="dsec-title">${ICONS.user} Assinaturas ZapSign</div>
+      ${signersHTML}
+    </div>`;
+
+  $("#drawer").classList.add("open");
+  $("#scrim").classList.add("open");
+}
+function fecharDrawer(){
+  $("#drawer").classList.remove("open");
+  $("#scrim").classList.remove("open");
+}
+$("#drawerClose").addEventListener("click",fecharDrawer);
+$("#scrim").addEventListener("click",fecharDrawer);
+
+/* copiar link com feedback */
+document.addEventListener("click",e=>{
+  const btn = e.target.closest(".copy-btn");
+  if(!btn) return;
+  try{ navigator.clipboard && navigator.clipboard.writeText(btn.dataset.link||""); }catch(_){}
+  const original = btn.innerHTML;
+  btn.classList.add("copied");
+  btn.innerHTML = `${ICONS.check} Copiado`;
+  mostrarToast(btn.dataset.link==="todos-os-links" ? "Todos os links copiados" : "Link de assinatura copiado");
+  setTimeout(()=>{btn.classList.remove("copied");btn.innerHTML=original;},1800);
+});
+
+/* ================= TOAST ================= */
+let toastTimer;
+function mostrarToast(msg){
+  $("#toastMsg").textContent = msg;
+  $("#toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>$("#toast").classList.remove("show"),1900);
+}
+
+/* ================= NAVEGAÇÃO ================= */
+function irPara(view){
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  $("#view-"+view).classList.add("active");
+  $$(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.nav===view));
+  window.scrollTo({top:0});
+}
+$$(".nav-btn").forEach(b=>b.addEventListener("click",()=>irPara(b.dataset.nav)));
+$$("[data-goto]").forEach(b=>b.addEventListener("click",()=>irPara(b.dataset.goto)));
+
+/* ================= CMD PALETTE ================= */
+const palette = $("#palette");
+function abrirPalette(){ palette.classList.add("open"); $("#paletteInput").focus(); }
+function fecharPalette(){ palette.classList.remove("open"); }
+$("#cmdkTrigger").addEventListener("click",abrirPalette);
+palette.addEventListener("click",e=>{ if(e.target===palette) fecharPalette(); });
+$$(".pal-item").forEach(item=>item.addEventListener("click",()=>{
+  const cmd = item.dataset.cmd;
+  fecharPalette();
+  if(cmd==="novo") irPara("novo");
+  if(cmd==="buscar"){ irPara("salvos"); $("#searchInput").focus(); }
+  if(cmd==="sync"){ irPara("salvos"); simularSync(); }
+}));
+
+/* ================= ATALHOS ================= */
+document.addEventListener("keydown",e=>{
+  const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName);
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); abrirPalette(); return; }
+  if(e.key==="Escape"){ fecharPalette(); fecharDrawer(); return; }
+  if(typing) return;
+  if(e.key==="/"){ e.preventDefault(); irPara("salvos"); $("#searchInput").focus(); }
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="s"){ e.preventDefault(); mostrarToast("Contrato salvo como rascunho"); }
+  if((e.metaKey||e.ctrlKey) && e.key==="Enter"){ e.preventDefault(); mostrarToast("Enviado para o ZapSign"); }
+});
+
+/* ================= SYNC MOCK ================= */
+function simularSync(){
+  const pill = document.querySelector(".sync-pill");
+  pill.childNodes[2].textContent = " ZapSign · Sincronizando…";
+  setTimeout(()=>{
+    pill.childNodes[2].textContent = " ZapSign · Sincronizado agora";
+    mostrarToast("Status sincronizado com o ZapSign");
+  },900);
+}
+$("#btnSync").addEventListener("click",simularSync);
+
+/* ================= FORM: CLÁUSULAS ================= */
+const CLAUSULAS = [
+  ["1ª","Objeto do Contrato",false],
+  ["2ª","Honorários (§1º a §7º)",true],
+  ["3ª","Desistência",false],
+  ["4ª","Despesas Processuais",false],
+  ["5ª","Dados de Contato",false],
+  ["6ª","Abrangência do Mandato",false],
+  ["7ª","Negociação Direta Proibida",false],
+  ["8ª","Confidencialidade e LGPD",false],
+  ["9ª","Prestação de Contas",false],
+  ["10ª","Advocacia de Meios",false],
+  ["11ª","Revogação e Renúncia",false],
+  ["12ª","Herdeiros e Sucessores",false],
+  ["13ª","Foro",false]
+];
+$("#clauseList").innerHTML = CLAUSULAS.map(([n,t,auto])=>`
+  <div class="clause" draggable="true">
+    <span class="grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg></span>
+    <span class="cnum">${n}</span>
+    ${t}
+    ${auto?'<span class="auto">Automática</span>':""}
+    <button class="edit" title="Editar cláusula">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+    </button>
+  </div>`).join("");
+
+/* ================= FORM: PRESETS ================= */
+const PRESETS = [
+  {sum:"R$ 2.700 à vista", ext:'Honorários iniciais de <strong>R$ 2.700,00</strong> (dois mil e setecentos reais), pagos <strong>à vista</strong>, acrescidos de <strong>{EX}% de êxito</strong> sobre o proveito econômico obtido.'},
+  {sum:"R$ 3.000 · 10× R$ 300", ext:'Honorários iniciais de <strong>R$ 3.000,00</strong> (três mil reais), pagos em <strong>10 parcelas</strong> mensais de <strong>R$ 300,00</strong> (trezentos reais), acrescidos de <strong>{EX}% de êxito</strong> sobre o proveito econômico obtido.'},
+  {sum:"R$ 3.000 · 12× R$ 250", ext:'Honorários iniciais de <strong>R$ 3.000,00</strong> (três mil reais), pagos em <strong>12 parcelas</strong> mensais de <strong>R$ 250,00</strong> (duzentos e cinquenta reais), acrescidos de <strong>{EX}% de êxito</strong> sobre o proveito econômico obtido.'},
+  {sum:"R$ 3.300 · 12× R$ 275", ext:'Honorários iniciais de <strong>R$ 3.300,00</strong> (três mil e trezentos reais), pagos em <strong>12 parcelas</strong> mensais de <strong>R$ 275,00</strong> (duzentos e setenta e cinco reais), acrescidos de <strong>{EX}% de êxito</strong> sobre o proveito econômico obtido.'},
+  {sum:"Personalizado", ext:'Defina o valor total, o número de parcelas e o valor de cada parcela: a cláusula por extenso é gerada automaticamente.'}
+];
+let presetAtivo = 3, exitoAtivo = "20";
+
+function renderCalc(){
+  const p = PRESETS[presetAtivo];
+  $("#calcExtenso").innerHTML = `<span class="lbl">Cláusula 2ª (gerada automaticamente)</span>${p.ext.replaceAll("{EX}",exitoAtivo)}`;
+  $("#sumHonor").textContent = p.sum;
+  $("#sumExito").textContent = exitoAtivo+"%";
+}
+$$("#presetChips .chip").forEach(ch=>ch.addEventListener("click",()=>{
+  $$("#presetChips .chip").forEach(c=>c.classList.remove("active"));
+  ch.classList.add("active");
+  presetAtivo = +ch.dataset.preset;
+  renderCalc(); atualizarProgresso();
+}));
+$$("#exitoChips .chip").forEach(ch=>ch.addEventListener("click",()=>{
+  $$("#exitoChips .chip").forEach(c=>c.classList.remove("active"));
+  ch.classList.add("active");
+  exitoAtivo = ch.dataset.exito;
+  renderCalc();
+}));
+
+/* ================= FORM: resumo vivo + progresso ================= */
+$("#inpNome1").addEventListener("input",e=>$("#sumC1").textContent = e.target.value || "—");
+$("#inpNome2").addEventListener("input",e=>$("#sumC2").textContent = e.target.value || "—");
+$("#selResort").addEventListener("change",e=>{$("#sumResort").textContent = e.target.value;});
+$("#selAcao").addEventListener("change",e=>{$("#sumAcao").textContent = e.target.value;});
+
+function atualizarProgresso(){
+  const reqs = $$("#view-novo [data-req]");
+  const done = reqs.filter(el=>el.value && el.value.trim()!=="").length;
+  const pct = Math.round(done/reqs.length*100);
+  $("#pctLabel").textContent = pct+"%";
+  $("#pctFill").style.transform = `scaleX(${pct/100})`;
+  $("#pctNote").textContent = pct===100
+    ? "Tudo pronto. Revise e envie com ⌘⏎"
+    : `${reqs.length-done} campo${reqs.length-done>1?"s":""} obrigatório${reqs.length-done>1?"s":""} restante${reqs.length-done>1?"s":""}`;
+}
+$$("#view-novo [data-req]").forEach(el=>el.addEventListener("input",atualizarProgresso));
+
+/* mesmo endereço do contratante 1 */
+$("#btnSameAddr").addEventListener("click",()=>{
+  $("#cep2").value="13478-540"; $("#uf2").value="SP";
+  $("#end2").value="Rua das Palmeiras, 412"; $("#comp2").value="Casa 2";
+  $("#bai2").value="Jardim São Paulo"; $("#cid2").value="Americana";
+  mostrarToast("Endereço copiado do Contratante 1");
+  atualizarProgresso();
+});
+
+/* botões do rail */
+$("#btnSalvar").addEventListener("click",()=>mostrarToast("Contrato salvo como rascunho"));
+$("#btnEnviar").addEventListener("click",()=>mostrarToast("Enviado para o ZapSign"));
+$("#btnLimpar").addEventListener("click",()=>mostrarToast("Formulário limpo (simulação)"));
+$("#dropzone").addEventListener("click",()=>mostrarToast("OCR da CNH: campos preenchidos"));
+
+/* init */
+renderTabela();
+renderCalc();
+atualizarProgresso();
+</script>
+</body>
+</html>

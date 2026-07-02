@@ -9,6 +9,24 @@
 
 **Versão em produção: v6.6.x** (última sessão 25/06/2026). Changelog detalhado das últimas sessões abaixo.
 
+### 🛑 REGRA DE DEPLOY (incidente 02/07/2026 — NUNCA REPETIR)
+
+Em 02/07 a produção regrediu para o app de **março** (tela antiga + login morto):
+o repo estava no `main` desatualizado (snapshot de 24/03) quando um `vite build`
++ deploy rodou de madrugada. Correções permanentes:
+
+1. **Deploy SÓ via `client/deploy.sh`** — nunca `netlify deploy` direto. O script
+   tem trava que aborta se o `src/` for a versão antiga (AuthContext sem Supabase),
+   se as funções do chat sumirem ou se `portal.html` estiver sem a aba Conversas.
+2. **`main` é o branch canônico e DEVE conter o estado de produção** (sincronizado
+   em 02/07/2026). Antes de qualquer build: `git branch --show-current` e
+   `git log -1` — se o código não bater com este changelog, PARE.
+3. **`client/portal.html` (raiz) é o canônico do Portal do Cliente** — entry do
+   Vite. O `public/portal.html` NÃO é usado pelo build (ver CHAT-PORTAL.md).
+4. Funções que existem só como artefato recuperado ficam documentadas em
+   `client/netlify/functions/LEIA-ME-ARTEFATOS.md`; backups do incidente em
+   `backups/20260702_*`.
+
 ### Auditoria de bugs + melhorias (25/06/2026) — EM PRODUÇÃO
 
 Sessão de auditoria multi-agente (50 bugs achados, **48 corrigidos** em 3 deploys) + leva de melhorias + nova aba. Backups: `backups/20260625_*`. Rollbacks: `./rollback.sh 6a3d4c1f0f77326b570f409f` (e anteriores nos backups).
