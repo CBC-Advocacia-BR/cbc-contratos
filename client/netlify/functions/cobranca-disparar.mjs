@@ -39,6 +39,8 @@ export default async (req) => {
     // Campo do lead onde gravamos o LINK do boleto-ancora (invoice_url do Asaas, sempre com
     // 2a via + PIX atualizados). O Salesbot ecoa esse campo quando o cliente toca "Boleto atualizado".
     const fieldId = cfg.field_id_link || null;
+    // (cobranca 06/07) campo do PIX copia-e-cola (ancora_pix). O bot manda link + PIX juntos.
+    const fieldIdPix = cfg.field_id_pix || null;
 
     const { data, error } = await db.rpc('cobranca_inadimplentes', { p_chave: RPC_SECRET });
     if (error) throw new Error(error.message);
@@ -73,7 +75,8 @@ export default async (req) => {
       };
       try {
         const job = await enqueueKommo('cobranca_send',
-          { leadId: String(d.lead_id), fieldId, value: d.ancora_link || '', botId: tpl.bot_id },
+          { leadId: String(d.lead_id), fieldId, value: d.ancora_link || '',
+            fieldId2: fieldIdPix, value2: d.ancora_pix || '', botId: tpl.bot_id },
           { source: 'cobranca', priority: 3, dedupeKey: `cobranca_send:${d.lead_id}:${templateName}:${hoje}` });
         rows.push({ ...rowBase, resultado: 'enfileirado', motivo_pulo: null, kommo_queue_id: job?.id || null });
         enfileirados++;

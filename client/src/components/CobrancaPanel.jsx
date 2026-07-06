@@ -66,6 +66,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
   const [promById, setPromById] = useState(() => new Map()); // cpf -> promessa de pagamento (#34)
   const [tendencia, setTendencia] = useState([]); // inadimplencia_historico p/ o sparkline (#31)
   const [toast, setToast] = useState('');
+  const [autoEnvio, setAutoEnvio] = useState(null); // (cobranca 06/07) saúde do envio automático de boleto
   const toastT = useRef(null);
 
   const flash = useCallback((msg) => {
@@ -104,6 +105,14 @@ export default function CobrancaPanel({ userEmail = '' }) {
     } catch { setMetrics([]); }
   }, []);
 
+  // (cobranca 06/07) métrica de ENVIO AUTOMÁTICO do boleto pelo bot (entregue vs erro)
+  const loadAutoEnvio = useCallback(async () => {
+    try {
+      const j = await callFn('cobranca-metrica', {});
+      if (j?.ok) setAutoEnvio(j);
+    } catch { /* silencioso — badge só aparece se vier dado */ }
+  }, []);
+
   const loadProm = useCallback(async () => {
     try {
       const j = await callFn('cobranca-promessa', { action: 'list' });
@@ -121,7 +130,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
   }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { load(); loadBoletos(); loadMetrics(); loadProm(); loadTendencia(); }, [load, loadBoletos, loadMetrics, loadProm, loadTendencia]);
+  useEffect(() => { load(); loadBoletos(); loadMetrics(); loadProm(); loadTendencia(); loadAutoEnvio(); }, [load, loadBoletos, loadMetrics, loadProm, loadTendencia, loadAutoEnvio]);
 
   // cfg/templates/janela memoizados (estáveis enquanto `data` não muda) — base p/ os demais memos
   const cfg = useMemo(() => data?.cfg || {}, [data]);
@@ -313,6 +322,28 @@ export default function CobrancaPanel({ userEmail = '' }) {
         <Kpi titulo="Maior atraso" cor="var(--cbc-text-primary)" v={`${maiorAtraso} d`} d="por devedor" />
         <Kpi titulo="Recuperado 90d" cor="var(--cbc-success)" v={<MoneyValue value={stats90.recuperado} />} d={`${stats90.pagos}/${stats90.enviados} pagos`} />
       </div>
+
+      {/* (cobranca 06/07) Saúde do ENVIO AUTOMÁTICO do boleto (link + PIX) pelo bot */}
+      {autoEnvio && autoEnvio.total > 0 && (() => {
+        const ok = autoEnvio.erros === 0;
+        return (
+          <div className="rounded-xl p-3 flex items-center gap-3 text-[12.5px]"
+            style={{ background: ok ? 'var(--cbc-success-bg)' : 'var(--cbc-warning-bg)', border: `1px solid ${ok ? 'var(--cbc-success-border)' : 'var(--cbc-warning-border)'}` }}>
+            <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden="true">{ok ? '✅' : '⚠️'}</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold" style={{ color: ok ? 'var(--cbc-success)' : 'var(--cbc-warning)' }}>
+                Envio automático de boleto {ok ? '— funcionando' : '— com erros'}
+              </div>
+              <div style={{ color: 'var(--cbc-text-secondary)' }}>
+                Últimos {autoEnvio.dias} dias: <b>{autoEnvio.entregues}</b> entregue{autoEnvio.entregues === 1 ? '' : 's'} pelo bot · <b>{autoEnvio.erros}</b> com erro{autoEnvio.pendentes ? ` · ${autoEnvio.pendentes} na fila` : ''}
+                {autoEnvio.ultimo_erro ? <span title={String(autoEnvio.ultimo_erro)}> — último erro: {String(autoEnvio.ultimo_erro).slice(0, 70)}</span> : ''}
+              </div>
+            </div>
+            <button onClick={loadAutoEnvio} className="text-[11px] font-bold px-2 py-1 rounded-md cursor-pointer shrink-0"
+              style={{ color: 'var(--cbc-text-secondary)', border: '1px solid var(--cbc-border)' }} title="Atualizar">↻</button>
+          </div>
+        );
+      })()}
 
       {/* Saúde / aging (filtra) */}
       <div className="rounded-xl overflow-hidden grid grid-cols-2 min-[720px]:grid-cols-4" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)' }}>

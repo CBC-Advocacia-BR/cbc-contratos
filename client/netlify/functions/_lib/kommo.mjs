@@ -165,8 +165,18 @@ async function opNote({ leadId, marker, text }) {
 // (cobranca 29/06) job COMPOSTO: seta o campo do lead (texto da cobranca) e roda o
 // Salesbot no MESMO job — garante a ordem (campo antes do bot) por devedor, sem
 // depender de prioridade entre dois jobs separados. fieldId opcional (bot sem variavel).
-async function opCobrancaSend({ leadId, fieldId, value, botId }) {
-  if (fieldId) await opLeadField({ leadId, fieldId, value });
+async function opCobrancaSend({ leadId, fieldId, value, fieldId2, value2, botId }) {
+  // (cobranca 06/07/2026) grava LINK (fieldId) e, se vier, o PIX copia-e-cola (fieldId2)
+  // no lead num UNICO PATCH — continua 2 chamadas por devedor (1 PATCH + 1 bot), sem custo
+  // extra. Depois roda o Salesbot, que ecoa esses campos no botao "Boleto atualizado".
+  const norm = (v) => (v === '' || v == null ? null : String(v));
+  const cfv = [];
+  if (fieldId)  cfv.push({ field_id: Number(fieldId),  values: [{ value: norm(value)  }] });
+  if (fieldId2) cfv.push({ field_id: Number(fieldId2), values: [{ value: norm(value2) }] });
+  if (cfv.length) {
+    const r = await kommoFetch(`/leads/${leadId}`, { method: 'PATCH', body: JSON.stringify({ custom_fields_values: cfv }) }, 'PATCH');
+    if (!r.ok) throw new Error(`Kommo PATCH lead ${leadId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 120)}`);
+  }
   await opSalesbot({ botId, entityId: leadId });
   return true;
 }
