@@ -27,9 +27,35 @@ export const PAID_STATUSES = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH
 export const PAID_LOOKBACK_DAYS = 90;
 export const BLOCK_SIZE = 100;
 
-export async function asaasGet(path) {
+const _sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+const _asaasBackoff = (t) => 1500 * Math.pow(2, t) + Math.floor(Math.random() * 500); // 1.5s,3s,6s + jitter
+
+export async function asaasGet(path, tentativa = 0) {
   // (integ-5) timeout p/ nao pendurar a function se o Asaas ficar lento
-  const r = await fetch(`${ASAAS_URL}${path}`, { headers: { 'access_token': ASAAS_KEY }, signal: AbortSignal.timeout(15000) });
+  let r;
+  try {
+    r = await fetch(`${ASAAS_URL}${path}`, { headers: { 'access_token': ASAAS_KEY }, signal: AbortSignal.timeout(15000) });
+  } catch (e) {
+    // (auditoria #78) rede/timeout: backoff + retry (ate 2x) antes de desistir
+    if (tentativa < 2) { await _sleep(_asaasBackoff(tentativa)); return asaasGet(path, tentativa + 1); }
+    const err = new Error(`Asaas ${path.split('?')[0]}: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`);
+    err.status = 0;
+    throw err;
+  }
+  // (auditoria #78) 429: respeita Retry-After quando presente, senao backoff exponencial
+  // (ate 3x). Antes so reconcileStaleOpen tinha um retry ad-hoc; agora TODA chamada Asaas
+  // (sync, backfill, webhook) herda a mesma resiliencia e para de deixar buracos no espelho.
+  if (r.status === 429 && tentativa < 3) {
+    const ra = Number(r.headers.get('retry-after'));
+    const waitMs = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 30000) : (8000 * (tentativa + 1) + Math.floor(Math.random() * 1000));
+    await _sleep(waitMs);
+    return asaasGet(path, tentativa + 1);
+  }
+  // (auditoria #78) 5xx temporario do Asaas: backoff + retry (ate 2x)
+  if (r.status >= 500 && tentativa < 2) {
+    await _sleep(_asaasBackoff(tentativa));
+    return asaasGet(path, tentativa + 1);
+  }
   if (!r.ok) {
     const txt = await r.text().catch(() => '');
     const err = new Error(`Asaas ${path.split('?')[0]}: ${r.status} ${txt.slice(0, 180)}`);
@@ -39,7 +65,10 @@ export async function asaasGet(path) {
   return r.json();
 }
 
-async function promiseMap(items, mapper, concurrency = 8) {
+// (auditoria #78) concorrencia default 8 -> 4: reduz o risco de estourar o rate limit
+// do Asaas quando um bloco busca customers/invoices/pix em paralelo (o 429 agora e
+// tratado no asaasGet, mas menos pressao simultanea ja evita a maioria).
+async function promiseMap(items, mapper, concurrency = 4) {
   const results = new Array(items.length);
   let i = 0;
   async function worker() {

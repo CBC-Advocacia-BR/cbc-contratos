@@ -3,6 +3,7 @@
  * Actions: create-customer, find-customer, create-payment, list-payments, list-invoices
  */
 import { createClient } from '@supabase/supabase-js';
+import { summarizeOpenParcelamentos } from './_lib/asaasDedup.mjs';
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY;
 const ASAAS_URL = 'https://api.asaas.com/v3';
@@ -101,6 +102,18 @@ async function createPayment(customerId, honorarios, contractId, description) {
   return await asaasPost('/payments', body);
 }
 
+// (anti-duplicidade 06/07/2026) Busca parcelamentos EM ABERTO (PENDING/OVERDUE) do
+// cliente no Asaas e resume por grupo. Usado antes de criar nova cobranca para avisar
+// de possivel duplicata. Ver docs/superpowers/specs/2026-07-06-asaas-anti-duplicidade-design.md
+async function findOpenParcelamentos(customerId) {
+  const [pend, over] = await Promise.all([
+    asaasGet(`/payments?customer=${customerId}&status=PENDING&limit=100`),
+    asaasGet(`/payments?customer=${customerId}&status=OVERDUE&limit=100`),
+  ]);
+  const payments = [...(pend.data || []), ...(over.data || [])];
+  return summarizeOpenParcelamentos(payments);
+}
+
 // Schedule invoice for payment (nota fiscal on payment confirmation)
 async function scheduleInvoice(paymentId, customerName) {
   if (!NF_AUTOMATICA_ATIVA) return null; // NF suspensa em 16/06/2026 (ver flag no topo)
@@ -157,6 +170,26 @@ export default async (req) => {
         const c = payload.contratante;
         let customer = await findCustomer(c.cpf);
         if (!customer) customer = await createCustomer(c);
+
+        // (anti-duplicidade 06/07/2026) Antes de criar, avisa se o cliente JA tem
+        // parcelamento em aberto no Asaas. NAO bloqueia: retorna duplicate_warning e o
+        // caller decide (botao "Lancar mesmo assim" -> rechama com force:true). Decisao
+        // do Paulo. Falha na checagem NAO trava o lancamento (fail-open, best-effort).
+        if (!payload.force) {
+          try {
+            const existing = await findOpenParcelamentos(customer.id);
+            if (existing.length > 0) {
+              return new Response(JSON.stringify({
+                success: false,
+                duplicate_warning: true,
+                existing,
+                customer,
+              }), { headers: CORS });
+            }
+          } catch (checkErr) {
+            await logError('asaas-sync:dup-check', checkErr.message, { customerId: customer.id, contractId: payload.contractId });
+          }
+        }
 
         const clientName = c.nome;
         const resort = payload.resort || '';

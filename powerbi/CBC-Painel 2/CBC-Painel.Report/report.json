@@ -1,0 +1,531 @@
+{
+  "id": 0,
+  "config": "{\"version\": \"5.37\", \"themeCollection\": {\"baseTheme\": {\"name\": \"CY24SU06\", \"type\": 2}}, \"activeSectionIndex\": 0, \"defaultDrillFilterOtherVisuals\": true}",
+  "layoutOptimization": 0,
+  "resourcePackages": [
+    {
+      "resourcePackage": {
+        "name": "SharedResources",
+        "type": 2,
+        "items": [
+          {
+            "name": "CY24SU06",
+            "path": "BaseThemes/CY24SU06.json",
+            "type": 202
+          }
+        ]
+      }
+    }
+  ],
+  "sections": [
+    {
+      "id": 0,
+      "name": "p1",
+      "displayName": "1 · Produtividade",
+      "ordinal": 0,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 1,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 100.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v101\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 100, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.Concluídas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Concluídas\"}, \"Name\": \"Produtividade.Concluídas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 1
+        },
+        {
+          "id": 2,
+          "x": 320.0,
+          "y": 20.0,
+          "z": 200.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v102\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 320, \"y\": 20, \"z\": 200, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.Tempo Mediano (dias)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Tempo Mediano (dias)\"}, \"Name\": \"Produtividade.Tempo Mediano (dias)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 2
+        },
+        {
+          "id": 3,
+          "x": 620.0,
+          "y": 20.0,
+          "z": 300.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v103\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 620, \"y\": 20, \"z\": 300, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.% Em Dia\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"% Em Dia\"}, \"Name\": \"Produtividade.% Em Dia\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 3
+        },
+        {
+          "id": 4,
+          "x": 920.0,
+          "y": 20.0,
+          "z": 400.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v104\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 920, \"y\": 20, \"z\": 400, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.Tarefas Abertas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Tarefas Abertas\"}, \"Name\": \"CargaAtual.Tarefas Abertas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 4
+        },
+        {
+          "id": 5,
+          "x": 20.0,
+          "y": 130.0,
+          "z": 500.0,
+          "width": 620.0,
+          "height": 260.0,
+          "config": "{\"name\": \"v105\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 130, \"z\": 500, \"width\": 620, \"height\": 260}}], \"singleVisual\": {\"visualType\": \"columnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Calendario.AnoMes\"}], \"Y\": [{\"queryRef\": \"Produtividade.Concluídas\"}], \"Series\": [{\"queryRef\": \"Produtividade.categoria\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Calendario\", \"Type\": 0}, {\"Name\": \"t2\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"AnoMes\"}, \"Name\": \"Calendario.AnoMes\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t2\"}}, \"Property\": \"Concluídas\"}, \"Name\": \"Produtividade.Concluídas\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t2\"}}, \"Property\": \"categoria\"}, \"Name\": \"Produtividade.categoria\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 5
+        },
+        {
+          "id": 6,
+          "x": 660.0,
+          "y": 130.0,
+          "z": 600.0,
+          "width": 600.0,
+          "height": 260.0,
+          "config": "{\"name\": \"v106\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 660, \"y\": 130, \"z\": 600, \"width\": 600, \"height\": 260}}], \"singleVisual\": {\"visualType\": \"pivotTable\", \"projections\": {\"Rows\": [{\"queryRef\": \"Produtividade.pessoa\"}], \"Columns\": [{\"queryRef\": \"Produtividade.categoria\"}], \"Values\": [{\"queryRef\": \"Produtividade.Concluídas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"Produtividade.pessoa\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"categoria\"}, \"Name\": \"Produtividade.categoria\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Concluídas\"}, \"Name\": \"Produtividade.Concluídas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 6
+        },
+        {
+          "id": 7,
+          "x": 20.0,
+          "y": 410.0,
+          "z": 700.0,
+          "width": 620.0,
+          "height": 290.0,
+          "config": "{\"name\": \"v107\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 410, \"z\": 700, \"width\": 620, \"height\": 290}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Produtividade.pessoa\"}], \"Y\": [{\"queryRef\": \"Produtividade.Concluídas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"Produtividade.pessoa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Concluídas\"}, \"Name\": \"Produtividade.Concluídas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 7
+        },
+        {
+          "id": 8,
+          "x": 660.0,
+          "y": 410.0,
+          "z": 800.0,
+          "width": 600.0,
+          "height": 80.0,
+          "config": "{\"name\": \"v108\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 660, \"y\": 410, \"z\": 800, \"width\": 600, \"height\": 80}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"Calendario.Date\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Calendario\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Date\"}, \"Name\": \"Calendario.Date\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 8
+        },
+        {
+          "id": 9,
+          "x": 660.0,
+          "y": 500.0,
+          "z": 900.0,
+          "width": 290.0,
+          "height": 200.0,
+          "config": "{\"name\": \"v109\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 660, \"y\": 500, \"z\": 900, \"width\": 290, \"height\": 200}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.equipe\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"equipe\"}, \"Name\": \"Produtividade.equipe\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 9
+        },
+        {
+          "id": 10,
+          "x": 970.0,
+          "y": 500.0,
+          "z": 1000.0,
+          "width": 290.0,
+          "height": 200.0,
+          "config": "{\"name\": \"v110\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 970, \"y\": 500, \"z\": 1000, \"width\": 290, \"height\": 200}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.categoria\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"categoria\"}, \"Name\": \"Produtividade.categoria\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 10
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "p2",
+      "displayName": "2 · Retrabalho",
+      "ordinal": 1,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 11,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 1100.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v201\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 1100, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.Qtde Retrabalho\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Retrabalho\"}, \"Name\": \"Produtividade.Qtde Retrabalho\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 11
+        },
+        {
+          "id": 12,
+          "x": 320.0,
+          "y": 20.0,
+          "z": 1200.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v202\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 320, \"y\": 20, \"z\": 1200, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Produtividade.Taxa Retrabalho Inicial\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Taxa Retrabalho Inicial\"}, \"Name\": \"Produtividade.Taxa Retrabalho Inicial\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 12
+        },
+        {
+          "id": 13,
+          "x": 920.0,
+          "y": 20.0,
+          "z": 1300.0,
+          "width": 340.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v203\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 920, \"y\": 20, \"z\": 1300, \"width\": 340, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"Calendario.Date\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Calendario\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Date\"}, \"Name\": \"Calendario.Date\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 13
+        },
+        {
+          "id": 14,
+          "x": 20.0,
+          "y": 130.0,
+          "z": 1400.0,
+          "width": 620.0,
+          "height": 560.0,
+          "config": "{\"name\": \"v204\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 130, \"z\": 1400, \"width\": 620, \"height\": 560}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Produtividade.pessoa\"}], \"Y\": [{\"queryRef\": \"Produtividade.Qtde Retrabalho\"}], \"Series\": [{\"queryRef\": \"Produtividade.tarefa\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"Produtividade.pessoa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Retrabalho\"}, \"Name\": \"Produtividade.Qtde Retrabalho\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"tarefa\"}, \"Name\": \"Produtividade.tarefa\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 14
+        },
+        {
+          "id": 15,
+          "x": 660.0,
+          "y": 130.0,
+          "z": 1500.0,
+          "width": 600.0,
+          "height": 250.0,
+          "config": "{\"name\": \"v205\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 660, \"y\": 130, \"z\": 1500, \"width\": 600, \"height\": 250}}], \"singleVisual\": {\"visualType\": \"columnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Calendario.AnoMes\"}], \"Y\": [{\"queryRef\": \"Produtividade.Qtde Retrabalho\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Calendario\", \"Type\": 0}, {\"Name\": \"t2\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"AnoMes\"}, \"Name\": \"Calendario.AnoMes\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t2\"}}, \"Property\": \"Qtde Retrabalho\"}, \"Name\": \"Produtividade.Qtde Retrabalho\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 15
+        },
+        {
+          "id": 16,
+          "x": 660.0,
+          "y": 400.0,
+          "z": 1600.0,
+          "width": 600.0,
+          "height": 290.0,
+          "config": "{\"name\": \"v206\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 660, \"y\": 400, \"z\": 1600, \"width\": 600, \"height\": 290}}], \"singleVisual\": {\"visualType\": \"pivotTable\", \"projections\": {\"Rows\": [{\"queryRef\": \"Produtividade.pessoa\"}], \"Columns\": [{\"queryRef\": \"Produtividade.tarefa\"}], \"Values\": [{\"queryRef\": \"Produtividade.Qtde Retrabalho\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Produtividade\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"Produtividade.pessoa\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"tarefa\"}, \"Name\": \"Produtividade.tarefa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Retrabalho\"}, \"Name\": \"Produtividade.Qtde Retrabalho\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 16
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "p3",
+      "displayName": "3 · Distribuição",
+      "ordinal": 2,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 17,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 1700.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v301\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 1700, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Distribuicao.Dias até Distribuir (mediana)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Distribuicao\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Dias até Distribuir (mediana)\"}, \"Name\": \"Distribuicao.Dias até Distribuir (mediana)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 17
+        },
+        {
+          "id": 18,
+          "x": 320.0,
+          "y": 20.0,
+          "z": 1800.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v302\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 320, \"y\": 20, \"z\": 1800, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Distribuicao.Distribuídos\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Distribuicao\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Distribuídos\"}, \"Name\": \"Distribuicao.Distribuídos\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 18
+        },
+        {
+          "id": 19,
+          "x": 620.0,
+          "y": 20.0,
+          "z": 1900.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v303\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 620, \"y\": 20, \"z\": 1900, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Distribuicao.Aguardando Distribuição\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Distribuicao\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Aguardando Distribuição\"}, \"Name\": \"Distribuicao.Aguardando Distribuição\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 19
+        },
+        {
+          "id": 20,
+          "x": 20.0,
+          "y": 130.0,
+          "z": 2000.0,
+          "width": 610.0,
+          "height": 250.0,
+          "config": "{\"name\": \"v304\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 130, \"z\": 2000, \"width\": 610, \"height\": 250}}], \"singleVisual\": {\"visualType\": \"lineChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Calendario.AnoMes\"}], \"Y\": [{\"queryRef\": \"Distribuicao.Dias até Distribuir (mediana)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Calendario\", \"Type\": 0}, {\"Name\": \"t2\", \"Entity\": \"Distribuicao\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"AnoMes\"}, \"Name\": \"Calendario.AnoMes\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t2\"}}, \"Property\": \"Dias até Distribuir (mediana)\"}, \"Name\": \"Distribuicao.Dias até Distribuir (mediana)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 20
+        },
+        {
+          "id": 21,
+          "x": 650.0,
+          "y": 130.0,
+          "z": 2100.0,
+          "width": 610.0,
+          "height": 250.0,
+          "config": "{\"name\": \"v305\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 650, \"y\": 130, \"z\": 2100, \"width\": 610, \"height\": 250}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"PreDistribuicao.tarefa\"}], \"Y\": [{\"queryRef\": \"PreDistribuicao.Dia Mediano no Processo\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"PreDistribuicao\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"tarefa\"}, \"Name\": \"PreDistribuicao.tarefa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Dia Mediano no Processo\"}, \"Name\": \"PreDistribuicao.Dia Mediano no Processo\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 21
+        },
+        {
+          "id": 22,
+          "x": 650.0,
+          "y": 400.0,
+          "z": 2200.0,
+          "width": 610.0,
+          "height": 290.0,
+          "config": "{\"name\": \"v306\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 650, \"y\": 400, \"z\": 2200, \"width\": 610, \"height\": 290}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"PreDistribuicao.tarefa\"}], \"Y\": [{\"queryRef\": \"PreDistribuicao.Ciclo Médio (dias)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"PreDistribuicao\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"tarefa\"}, \"Name\": \"PreDistribuicao.tarefa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Ciclo Médio (dias)\"}, \"Name\": \"PreDistribuicao.Ciclo Médio (dias)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 22
+        },
+        {
+          "id": 23,
+          "x": 20.0,
+          "y": 400.0,
+          "z": 2300.0,
+          "width": 610.0,
+          "height": 290.0,
+          "config": "{\"name\": \"v307\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 400, \"z\": 2300, \"width\": 610, \"height\": 290}}], \"singleVisual\": {\"visualType\": \"tableEx\", \"projections\": {\"Values\": [{\"queryRef\": \"Distribuicao.process_number\"}, {\"queryRef\": \"Distribuicao.clientes\"}, {\"queryRef\": \"Distribuicao.criado_em\"}, {\"queryRef\": \"Distribuicao.etapa\"}, {\"queryRef\": \"Distribuicao.Dias Aguardando\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Distribuicao\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"process_number\"}, \"Name\": \"Distribuicao.process_number\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"clientes\"}, \"Name\": \"Distribuicao.clientes\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"criado_em\"}, \"Name\": \"Distribuicao.criado_em\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"etapa\"}, \"Name\": \"Distribuicao.etapa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Dias Aguardando\"}, \"Name\": \"Distribuicao.Dias Aguardando\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 23
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "p4",
+      "displayName": "4 · Carga atual",
+      "ordinal": 3,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 24,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 2400.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v401\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 2400, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.Tarefas Abertas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Tarefas Abertas\"}, \"Name\": \"CargaAtual.Tarefas Abertas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 24
+        },
+        {
+          "id": 25,
+          "x": 320.0,
+          "y": 20.0,
+          "z": 2500.0,
+          "width": 280.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v402\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 320, \"y\": 20, \"z\": 2500, \"width\": 280, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.Vencidas\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Vencidas\"}, \"Name\": \"CargaAtual.Vencidas\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 25
+        },
+        {
+          "id": 26,
+          "x": 620.0,
+          "y": 20.0,
+          "z": 2600.0,
+          "width": 300.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v403\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 620, \"y\": 20, \"z\": 2600, \"width\": 300, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.equipe\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"equipe\"}, \"Name\": \"CargaAtual.equipe\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 26
+        },
+        {
+          "id": 27,
+          "x": 940.0,
+          "y": 20.0,
+          "z": 2700.0,
+          "width": 320.0,
+          "height": 90.0,
+          "config": "{\"name\": \"v404\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 940, \"y\": 20, \"z\": 2700, \"width\": 320, \"height\": 90}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.situacao_agenda\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"situacao_agenda\"}, \"Name\": \"CargaAtual.situacao_agenda\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 27
+        },
+        {
+          "id": 28,
+          "x": 20.0,
+          "y": 130.0,
+          "z": 2800.0,
+          "width": 720.0,
+          "height": 560.0,
+          "config": "{\"name\": \"v405\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 130, \"z\": 2800, \"width\": 720, \"height\": 560}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"CargaAtual.pessoa\"}], \"Y\": [{\"queryRef\": \"CargaAtual.Tarefas Abertas\"}], \"Series\": [{\"queryRef\": \"CargaAtual.situacao_agenda\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"CargaAtual.pessoa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Tarefas Abertas\"}, \"Name\": \"CargaAtual.Tarefas Abertas\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"situacao_agenda\"}, \"Name\": \"CargaAtual.situacao_agenda\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 28
+        },
+        {
+          "id": 29,
+          "x": 760.0,
+          "y": 130.0,
+          "z": 2900.0,
+          "width": 500.0,
+          "height": 560.0,
+          "config": "{\"name\": \"v406\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 760, \"y\": 130, \"z\": 2900, \"width\": 500, \"height\": 560}}], \"singleVisual\": {\"visualType\": \"tableEx\", \"projections\": {\"Values\": [{\"queryRef\": \"CargaAtual.pessoa\"}, {\"queryRef\": \"CargaAtual.tarefa\"}, {\"queryRef\": \"CargaAtual.cliente\"}, {\"queryRef\": \"CargaAtual.data_agendada\"}, {\"queryRef\": \"CargaAtual.situacao_agenda\"}, {\"queryRef\": \"CargaAtual.dias_em_aberto\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"CargaAtual\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"pessoa\"}, \"Name\": \"CargaAtual.pessoa\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"tarefa\"}, \"Name\": \"CargaAtual.tarefa\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"cliente\"}, \"Name\": \"CargaAtual.cliente\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"data_agendada\"}, \"Name\": \"CargaAtual.data_agendada\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"situacao_agenda\"}, \"Name\": \"CargaAtual.situacao_agenda\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"dias_em_aberto\"}, \"Name\": \"CargaAtual.dias_em_aberto\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 29
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "p5",
+      "displayName": "5 · Comercial",
+      "ordinal": 4,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 30,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 3000.0,
+          "width": 400.0,
+          "height": 300.0,
+          "config": "{\"name\": \"v501\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 3000, \"width\": 400, \"height\": 300}}], \"singleVisual\": {\"visualType\": \"funnel\", \"projections\": {\"Category\": [{\"queryRef\": \"Contratos.status\"}], \"Y\": [{\"queryRef\": \"Contratos.Contratos Criados\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Contratos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"status\"}, \"Name\": \"Contratos.status\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Contratos Criados\"}, \"Name\": \"Contratos.Contratos Criados\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 30
+        },
+        {
+          "id": 31,
+          "x": 440.0,
+          "y": 20.0,
+          "z": 3100.0,
+          "width": 820.0,
+          "height": 300.0,
+          "config": "{\"name\": \"v502\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 440, \"y\": 20, \"z\": 3100, \"width\": 820, \"height\": 300}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Contratos.created_by\"}], \"Y\": [{\"queryRef\": \"Contratos.Contratos Criados\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Contratos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"created_by\"}, \"Name\": \"Contratos.created_by\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Contratos Criados\"}, \"Name\": \"Contratos.Contratos Criados\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 31
+        },
+        {
+          "id": 32,
+          "x": 20.0,
+          "y": 340.0,
+          "z": 3200.0,
+          "width": 400.0,
+          "height": 350.0,
+          "config": "{\"name\": \"v503\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 340, \"z\": 3200, \"width\": 400, \"height\": 350}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Contratos.created_by\"}], \"Y\": [{\"queryRef\": \"Contratos.Tempo Assinatura Médio (dias)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Contratos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"created_by\"}, \"Name\": \"Contratos.created_by\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Tempo Assinatura Médio (dias)\"}, \"Name\": \"Contratos.Tempo Assinatura Médio (dias)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 32
+        },
+        {
+          "id": 33,
+          "x": 440.0,
+          "y": 340.0,
+          "z": 3300.0,
+          "width": 500.0,
+          "height": 350.0,
+          "config": "{\"name\": \"v504\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 440, \"y\": 340, \"z\": 3300, \"width\": 500, \"height\": 350}}], \"singleVisual\": {\"visualType\": \"columnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Videochamadas.MesAgenda\"}], \"Y\": [{\"queryRef\": \"Videochamadas.Qtde Videochamadas\"}], \"Series\": [{\"queryRef\": \"Videochamadas.status\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Videochamadas\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"MesAgenda\"}, \"Name\": \"Videochamadas.MesAgenda\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Videochamadas\"}, \"Name\": \"Videochamadas.Qtde Videochamadas\"}, {\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"status\"}, \"Name\": \"Videochamadas.status\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 33
+        },
+        {
+          "id": 34,
+          "x": 960.0,
+          "y": 340.0,
+          "z": 3400.0,
+          "width": 300.0,
+          "height": 350.0,
+          "config": "{\"name\": \"v505\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 960, \"y\": 340, \"z\": 3400, \"width\": 300, \"height\": 350}}], \"singleVisual\": {\"visualType\": \"columnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Contratos.origem_cliente\"}], \"Y\": [{\"queryRef\": \"Contratos.Contratos Criados\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Contratos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"origem_cliente\"}, \"Name\": \"Contratos.origem_cliente\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Contratos Criados\"}, \"Name\": \"Contratos.Contratos Criados\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 34
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "p6",
+      "displayName": "6 · Carteira",
+      "ordinal": 5,
+      "width": 1280,
+      "height": 720,
+      "displayOption": 1,
+      "config": "{}",
+      "filters": "[]",
+      "visualContainers": [
+        {
+          "id": 35,
+          "x": 20.0,
+          "y": 20.0,
+          "z": 3500.0,
+          "width": 400.0,
+          "height": 330.0,
+          "config": "{\"name\": \"v601\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 20, \"z\": 3500, \"width\": 400, \"height\": 330}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Processos.quadro\"}], \"Y\": [{\"queryRef\": \"Processos.Qtde Processos\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Processos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"quadro\"}, \"Name\": \"Processos.quadro\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Processos\"}, \"Name\": \"Processos.Qtde Processos\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 35
+        },
+        {
+          "id": 36,
+          "x": 440.0,
+          "y": 20.0,
+          "z": 3600.0,
+          "width": 820.0,
+          "height": 330.0,
+          "config": "{\"name\": \"v602\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 440, \"y\": 20, \"z\": 3600, \"width\": 820, \"height\": 330}}], \"singleVisual\": {\"visualType\": \"barChart\", \"projections\": {\"Category\": [{\"queryRef\": \"FunilEtapas.etapa\"}], \"Y\": [{\"queryRef\": \"FunilEtapas.Dias na Etapa (média)\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"FunilEtapas\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"etapa\"}, \"Name\": \"FunilEtapas.etapa\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Dias na Etapa (média)\"}, \"Name\": \"FunilEtapas.Dias na Etapa (média)\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 36
+        },
+        {
+          "id": 37,
+          "x": 20.0,
+          "y": 370.0,
+          "z": 3700.0,
+          "width": 610.0,
+          "height": 330.0,
+          "config": "{\"name\": \"v603\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 20, \"y\": 370, \"z\": 3700, \"width\": 610, \"height\": 330}}], \"singleVisual\": {\"visualType\": \"columnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Andamentos.MesAndamento\"}], \"Y\": [{\"queryRef\": \"Andamentos.Qtde Andamentos\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Andamentos\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"MesAndamento\"}, \"Name\": \"Andamentos.MesAndamento\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Andamentos\"}, \"Name\": \"Andamentos.Qtde Andamentos\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 37
+        },
+        {
+          "id": 38,
+          "x": 650.0,
+          "y": 370.0,
+          "z": 3800.0,
+          "width": 300.0,
+          "height": 330.0,
+          "config": "{\"name\": \"v604\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 650, \"y\": 370, \"z\": 3800, \"width\": 300, \"height\": 330}}], \"singleVisual\": {\"visualType\": \"treemap\", \"projections\": {\"Group\": [{\"queryRef\": \"Clientes.origem\"}], \"Values\": [{\"queryRef\": \"Clientes.Qtde Clientes\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Clientes\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"origem\"}, \"Name\": \"Clientes.origem\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Clientes\"}, \"Name\": \"Clientes.Qtde Clientes\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 38
+        },
+        {
+          "id": 39,
+          "x": 970.0,
+          "y": 370.0,
+          "z": 3900.0,
+          "width": 290.0,
+          "height": 330.0,
+          "config": "{\"name\": \"v605\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 970, \"y\": 370, \"z\": 3900, \"width\": 290, \"height\": 330}}], \"singleVisual\": {\"visualType\": \"treemap\", \"projections\": {\"Group\": [{\"queryRef\": \"Clientes.uf\"}], \"Values\": [{\"queryRef\": \"Clientes.Qtde Clientes\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"t1\", \"Entity\": \"Clientes\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"uf\"}, \"Name\": \"Clientes.uf\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"t1\"}}, \"Property\": \"Qtde Clientes\"}, \"Name\": \"Clientes.Qtde Clientes\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "tabOrder": 39
+        }
+      ]
+    }
+  ],
+  "filters": "[]",
+  "publicCustomVisuals": []
+}

@@ -1,6 +1,8 @@
 # Conectar o Power BI (Windows) à base do escritório — passo a passo
 
 > Tempo estimado: 20–30 min. Feito uma vez; depois tudo funciona pelo navegador.
+>
+> 👉 **Para montar o PAINEL completo (produtividade/retrabalho/distribuição/carga), siga o tutorial de iniciante: `docs/POWERBI_PAINEL_TUTORIAL.md`** — ele já embute esta conexão e usa as views novas de 02/07/2026.
 
 ## 1. Instalar o Power BI Desktop
 - Abra a **Microsoft Store** do Windows → pesquise **Power BI Desktop** → Instalar (gratuito).
@@ -21,14 +23,20 @@
 4. Conectar.
 5. **Se aparecer erro de certificado/criptografia**: o Power BI vai perguntar se deseja conectar sem criptografia — responda **Sim/OK**. (Se der erro direto sem perguntar: Arquivo → Opções e configurações → Configurações da fonte de dados → selecione o servidor → Editar Permissões → desmarque "Criptografar conexões" → tente de novo.)
 
-## 4. Escolher as tabelas (só as 6 views!)
-Marque SOMENTE estas (têm "vw_bi_" no nome):
+## 4. Escolher as tabelas (as views do BI)
+Marque SOMENTE estas:
 - ☑ `public.vw_bi_processos`
 - ☑ `public.vw_bi_tarefas`
+- ☑ `public.vw_bi_produtividade` ← produtividade por PESSOA, com equipe (02/07/2026)
+- ☑ `public.vw_bi_carga_atual` ← tarefas ABERTAS por pessoa/equipe + aging (02/07/2026)
+- ☑ `public.vw_bi_distribuicao` ← régua criação→distribuição por processo (02/07/2026)
+- ☑ `public.vw_bi_tarefas_pre_distribuicao` ← esteira de tarefas até distribuir (02/07/2026)
 - ☑ `public.vw_bi_andamentos`
 - ☑ `public.vw_bi_funil`
+- ☑ `public.vw_bi_funil_etapas` ← tempo por etapa do processo (02/07/2026)
 - ☑ `public.vw_bi_clientes`
 - ☑ `public.vw_bi_financeiro`
+- ☑ `public.bi_equipes` ← de-para pessoa→equipe (editável; novas pessoas = 'operacional')
 
 NÃO marque as demais (bi_*, bot_*, cron.*, net.*, extensions.*). Clique **Carregar**.
 
@@ -36,9 +44,11 @@ NÃO marque as demais (bi_*, bot_*, cron.*, net.*, extensions.*). Clique **Carre
 1. Clique no ícone **Modelo** (3º na barra lateral esquerda).
 2. Confira/crie as ligações (arraste o campo de uma tabela até o da outra):
    - `vw_bi_tarefas.processo_id_advbox`  →  `vw_bi_processos.lawsuit_id`
+   - `vw_bi_produtividade.processo_id_advbox`  →  `vw_bi_processos.lawsuit_id`
    - `vw_bi_andamentos.processo_id_advbox`  →  `vw_bi_processos.lawsuit_id`
    - `vw_bi_financeiro.lawsuit_id`  →  `vw_bi_processos.lawsuit_id`
    - `vw_bi_funil.lawsuit_id`  →  `vw_bi_processos.lawsuit_id`
+   - `vw_bi_funil_etapas.lawsuit_id`  →  `vw_bi_processos.lawsuit_id`
    (Tipo: muitos-para-um, direção única — é o padrão sugerido.)
 
 ## 6. Tabela de calendário (recomendado, 1 min)
@@ -62,9 +72,13 @@ necessário de novo para mudanças estruturais no modelo.
 ### O que cada view contém
 | View | Conteúdo |
 |---|---|
-| vw_bi_tarefas | tarefas com status (pendente/atrasada/concluída), responsáveis, prazos |
+| vw_bi_tarefas | tarefas com status (pendente/atrasada/concluída), responsáveis, prazos. **Novas colunas 02/07/2026**: `data_criacao_real` (criação de fato no ADVBOX), `tempo_ciclo_dias` (criação→conclusão) e `reward` (pontos de gamificação) |
+| vw_bi_produtividade | **1 linha por PESSOA × tarefa concluída** (sem precisar de Split Column): data agendada × conclusão (`dias_vs_agendado`), `tempo_ciclo_dias`, `reward` e `categoria` (`ciclo` / `instantanea` = COMENTÁRIO, PUBLICAÇÃO TRATADA, VERIFICAR INTERNO / `sistema` = alertas de exclusão — filtre `sistema` fora e trate `instantanea` à parte nas médias de tempo) |
 | vw_bi_andamentos | todas as movimentações dos processos (histórico completo) |
 | vw_bi_processos | carteira: fase, quadro, advogado, honorários, partes |
-| vw_bi_funil | mudanças de fase datadas (tempo por etapa — acumula ao longo dos dias) |
+| vw_bi_funil | mudanças de fase datadas (log bruto — acumula ao longo dos dias) |
+| vw_bi_funil_etapas | **permanência por etapa**: 1 linha por período (processo × etapa) com `dias_na_etapa` e `em_andamento` — só períodos observados desde 10/06/2026 |
 | vw_bi_clientes | cadastro: origem de captação, cidade/UF, perfil, nascimento |
 | vw_bi_financeiro | lançamentos: receita/despesa, vencimento × pagamento |
+
+> **Atenção**: em `vw_bi_tarefas`/`vw_bi_produtividade`, `data_criacao`/`data_agendada` é a data **AGENDADA** da tarefa no ADVBOX (campo `date`) — a diferença para a conclusão mede **pontualidade**. O tempo real de execução é `tempo_ciclo_dias` (usa o `created_at` do ADVBOX; histórico repovoado pelo backfill em 02/07/2026).

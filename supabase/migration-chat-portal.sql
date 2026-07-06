@@ -2,6 +2,14 @@
 -- MÓDULO CHAT — Portal do Cliente (cbc-contratos) ↔ CBC Conversas (chatguru-export)
 -- 2026-07-01. Canônico: este arquivo. Aplicado via Supabase MCP (apply_migration).
 --
+-- DELTA v2 (2026-07-02, migração `chat_portal_cpf_fallback_v2`): tokens sem CPF
+-- (caso ANDRESSA BICK) quebravam o envio do cliente. Backfill de
+-- cliente_portal_tokens.cpf a partir de bi_clientes + função
+-- public.chat_token_cpf(p_token) (resolve CPF do token com fallback no espelho
+-- Advbox) usada por chat_cliente_enviar/listar/badge. As versões abaixo dessas
+-- 3 funções são a v1; a definição v2 vigente está no histórico de migrações do
+-- Supabase (supabase_migrations.schema_migrations).
+--
 -- SEGURANÇA (deliberadamente diferente do padrão bot_allow_all do portal):
 --   · Tabelas no schema `chat` com RLS deny-all — anon/authenticated NÃO acessam.
 --   · Todo acesso via RPCs public.chat_* (SECURITY DEFINER), com EXECUTE

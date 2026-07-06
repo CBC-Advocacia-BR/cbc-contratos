@@ -13,6 +13,15 @@ NETLIFY_AUTH_TOKEN="${NETLIFY_AUTH_TOKEN}"
 SITE_ID="d7b38821-22e9-4308-8fda-a8f124a65b72"
 SITE_NAME="contratos-cbc"
 
+# (auditoria #95) Por padrao, se o smoke-test pos-deploy falhar, revertemos sozinhos
+# para o ultimo deploy OK. Use --no-auto-rollback para inspecionar um deploy quebrado.
+AUTO_ROLLBACK=1
+for arg in "$@"; do
+  case "$arg" in
+    --no-auto-rollback) AUTO_ROLLBACK=0 ;;
+  esac
+done
+
 cd "$(dirname "$0")"
 
 echo "=== CBC Contratos Deploy ==="
@@ -64,6 +73,20 @@ echo ""
 echo "[3/5] Rodando build..."
 npm run build
 
+# (auditoria #91) Sanidade do build: complementa as sentinelas de texto com uma
+# verificacao de COMPORTAMENTO — dist tem que existir com index.html e um bundle JS
+# de tamanho plausivel. Um build "verde" mas vazio/quebrado nao passa mais batido.
+if [ ! -f dist/index.html ]; then
+  echo "🛑 ABORTADO: dist/index.html nao existe apos o build."
+  exit 1
+fi
+JS_BYTES=$(find dist/assets -name '*.js' -exec cat {} + 2>/dev/null | wc -c | tr -d ' ')
+if [ "${JS_BYTES:-0}" -lt 200000 ]; then
+  echo "🛑 ABORTADO: bundle JS suspeito (${JS_BYTES:-0} bytes < 200KB) — build provavelmente quebrado."
+  exit 1
+fi
+echo "   ✓ build sanity OK (JS ~$((JS_BYTES/1024)) KB)"
+
 # 4. Verificar tamanho do bundle (alerta se gigante)
 echo ""
 echo "[4/5] Tamanhos dos bundles:"
@@ -102,5 +125,16 @@ case "$HEALTH_CODE" in 200|204|404) ;; *) SMOKE_OK=0 ;; esac
 if [ "$SMOKE_OK" = "1" ]; then
   echo "   ✅ smoke OK"
 else
-  echo "   ⚠️  SMOKE FALHOU — verifique o site. Para reverter: ./rollback.sh $CURRENT_DEPLOY"
+  echo "   ⚠️  SMOKE FALHOU (home=$HOME_CODE health=$HEALTH_CODE)."
+  if [ "$AUTO_ROLLBACK" = "1" ] && [ -n "$CURRENT_DEPLOY" ]; then
+    # (auditoria #95) reverte sozinho para o ultimo deploy OK — nao deixa site quebrado no ar.
+    echo "   ↩️  AUTO-ROLLBACK: restaurando $CURRENT_DEPLOY..."
+    RB_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+      -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+      "https://api.netlify.com/api/v1/sites/$SITE_ID/deploys/$CURRENT_DEPLOY/restore")
+    echo "   restore HTTP $RB_CODE — revertido para o ultimo deploy OK."
+    echo "   (Para publicar mesmo assim e inspecionar: ./deploy.sh --no-auto-rollback)"
+  else
+    echo "   Para reverter: ./rollback.sh $CURRENT_DEPLOY"
+  fi
 fi

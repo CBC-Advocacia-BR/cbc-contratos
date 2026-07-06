@@ -1,0 +1,31 @@
+PAINEL CBC — COMO ABRIR (Windows)  [v5 — formato classico]
+===========================================================
+
+1. Copie a PASTA INTEIRA "CBC-Painel" para o computador Windows
+   (se veio no ZIP, extraia TUDO antes — botão direito > Extrair Tudo).
+
+2. Instale/atualize o Power BI Desktop (Microsoft Store, gratuito).
+
+3. Dê dois cliques em  CBC-Painel.pbip
+
+4. IMPORTANTE (evita o erro "max clients reached... pool_size: 15"):
+   Arquivo > Opções e configurações > Opções > seção ARQUIVO ATUAL >
+   Carregamento de Dados > DESMARQUE "Habilitar carregamento paralelo
+   de tabelas" > OK. (O banco aceita 15 conexões por vez; sem isso o
+   Power BI tenta baixar as 10 tabelas juntas e estoura o limite.)
+
+5. O painel abre com os gráficos VAZIOS (o arquivo não carrega dados
+   por segurança). Clique no botão ATUALIZAR (aba Página Inicial).
+
+6. Na janela de credenciais, aba "Banco de dados" (NÃO a aba Windows):
+   Usuário: powerbi_cbc.vygczeepvoyaehfchxko
+   Senha:   (pedir ao Paulo / Claude)
+   Se aparecer aviso de criptografia, aceite conectar sem criptografia.
+
+7. Aguarde 2-4 min (as tabelas baixam uma por vez).
+   Pronto: 6 páginas nas abas de baixo.
+   Depois: Arquivo > Salvar. Para publicar no navegador e agendar
+   atualização, siga a Etapa 8 do tutorial (docs/POWERBI_PAINEL_TUTORIAL.md).
+
+Qualquer erro: tire um print e mande para o Claude —
+o arquivo é texto e se corrige em minutos.

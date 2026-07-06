@@ -1,0 +1,1402 @@
+{
+  "name": "CBC-Painel",
+  "compatibilityLevel": 1550,
+  "model": {
+    "culture": "pt-BR",
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "sourceQueryCulture": "pt-BR",
+    "annotations": [
+      {
+        "name": "PBI_TimeIntelligenceEnabled",
+        "value": "0"
+      }
+    ],
+    "tables": [
+      {
+        "name": "Produtividade",
+        "columns": [
+          {
+            "name": "tarefa_id",
+            "dataType": "int64",
+            "sourceColumn": "tarefa_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tarefa",
+            "dataType": "string",
+            "sourceColumn": "tarefa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "pessoa",
+            "dataType": "string",
+            "sourceColumn": "pessoa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data_conclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_conclusao",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "mes_conclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "mes_conclusao",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "data_agendada",
+            "dataType": "dateTime",
+            "sourceColumn": "data_agendada",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "data_criacao_real",
+            "dataType": "dateTime",
+            "sourceColumn": "data_criacao_real",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_vs_agendado",
+            "dataType": "int64",
+            "sourceColumn": "dias_vs_agendado",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tempo_ciclo_dias",
+            "dataType": "int64",
+            "sourceColumn": "tempo_ciclo_dias",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "reward",
+            "dataType": "decimal",
+            "sourceColumn": "reward",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "categoria",
+            "dataType": "string",
+            "sourceColumn": "categoria",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "oculta_do_cliente",
+            "dataType": "boolean",
+            "sourceColumn": "oculta_do_cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo",
+            "dataType": "string",
+            "sourceColumn": "processo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cliente",
+            "dataType": "string",
+            "sourceColumn": "cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo_id_advbox",
+            "dataType": "int64",
+            "sourceColumn": "processo_id_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "equipe",
+            "dataType": "string",
+            "sourceColumn": "equipe",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "retrabalho",
+            "dataType": "boolean",
+            "sourceColumn": "retrabalho",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Produtividade",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_produtividade\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Concluídas",
+            "expression": "CALCULATE(COUNTROWS(Produtividade), Produtividade[categoria] <> \"sistema\")",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tempo Mediano (dias)",
+            "expression": "CALCULATE(MEDIAN(Produtividade[tempo_ciclo_dias]), Produtividade[categoria] = \"ciclo\")",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Tempo Médio (dias)",
+            "expression": "CALCULATE(AVERAGE(Produtividade[tempo_ciclo_dias]), Produtividade[categoria] = \"ciclo\")",
+            "formatString": "0.0"
+          },
+          {
+            "name": "% Em Dia",
+            "expression": "DIVIDE(CALCULATE([Concluídas], Produtividade[dias_vs_agendado] <= 0), CALCULATE([Concluídas], NOT ISBLANK(Produtividade[dias_vs_agendado])))",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Qtde Retrabalho",
+            "expression": "CALCULATE([Concluídas], Produtividade[retrabalho] = TRUE())",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Taxa Retrabalho Inicial",
+            "expression": "DIVIDE(CALCULATE([Concluídas], Produtividade[tarefa] = \"REFAZER INICIAL\"), CALCULATE([Concluídas], Produtividade[tarefa] = \"FAZER INICIAL\"))",
+            "formatString": "0.0%"
+          }
+        ]
+      },
+      {
+        "name": "CargaAtual",
+        "columns": [
+          {
+            "name": "tarefa_id",
+            "dataType": "int64",
+            "sourceColumn": "tarefa_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tarefa",
+            "dataType": "string",
+            "sourceColumn": "tarefa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "pessoa",
+            "dataType": "string",
+            "sourceColumn": "pessoa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "equipe",
+            "dataType": "string",
+            "sourceColumn": "equipe",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "status",
+            "dataType": "string",
+            "sourceColumn": "status",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data_agendada",
+            "dataType": "dateTime",
+            "sourceColumn": "data_agendada",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "data_criacao_real",
+            "dataType": "dateTime",
+            "sourceColumn": "data_criacao_real",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "prazo",
+            "dataType": "dateTime",
+            "sourceColumn": "prazo",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_em_aberto",
+            "dataType": "int64",
+            "sourceColumn": "dias_em_aberto",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "faixa_aging",
+            "dataType": "string",
+            "sourceColumn": "faixa_aging",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "agendada_para_futuro",
+            "dataType": "boolean",
+            "sourceColumn": "agendada_para_futuro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo",
+            "dataType": "string",
+            "sourceColumn": "processo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cliente",
+            "dataType": "string",
+            "sourceColumn": "cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo_id_advbox",
+            "dataType": "int64",
+            "sourceColumn": "processo_id_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "oculta_do_cliente",
+            "dataType": "boolean",
+            "sourceColumn": "oculta_do_cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "situacao_agenda",
+            "dataType": "string",
+            "sourceColumn": "situacao_agenda",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CargaAtual",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_carga_atual\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Tarefas Abertas",
+            "expression": "COUNTROWS(CargaAtual)",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Vencidas",
+            "expression": "CALCULATE(COUNTROWS(CargaAtual), CargaAtual[situacao_agenda] = \"vencida\")",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Distribuicao",
+        "columns": [
+          {
+            "name": "lawsuit_id",
+            "dataType": "int64",
+            "sourceColumn": "lawsuit_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "process_number",
+            "dataType": "string",
+            "sourceColumn": "process_number",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tipo",
+            "dataType": "string",
+            "sourceColumn": "tipo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "grupo",
+            "dataType": "string",
+            "sourceColumn": "grupo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "quadro",
+            "dataType": "string",
+            "sourceColumn": "quadro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "etapa",
+            "dataType": "string",
+            "sourceColumn": "etapa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "responsavel",
+            "dataType": "string",
+            "sourceColumn": "responsavel",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "clientes",
+            "dataType": "string",
+            "sourceColumn": "clientes",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "criado_em",
+            "dataType": "dateTime",
+            "sourceColumn": "criado_em",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "distribuido_em",
+            "dataType": "dateTime",
+            "sourceColumn": "distribuido_em",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "tarefa_distribuir_concluida",
+            "dataType": "dateTime",
+            "sourceColumn": "tarefa_distribuir_concluida",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_ate_distribuir",
+            "dataType": "int64",
+            "sourceColumn": "dias_ate_distribuir",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "dias_ate_tarefa_distribuir",
+            "dataType": "int64",
+            "sourceColumn": "dias_ate_tarefa_distribuir",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "distribuido",
+            "dataType": "boolean",
+            "sourceColumn": "distribuido",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "dias_aguardando",
+            "dataType": "int64",
+            "sourceColumn": "dias_aguardando",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cadastro_retroativo",
+            "dataType": "boolean",
+            "sourceColumn": "cadastro_retroativo",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Distribuicao",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_distribuicao\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Distribuídos",
+            "expression": "CALCULATE(COUNTROWS(Distribuicao), Distribuicao[distribuido] = TRUE(), Distribuicao[cadastro_retroativo] = FALSE())",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Dias até Distribuir (mediana)",
+            "expression": "CALCULATE(MEDIAN(Distribuicao[dias_ate_distribuir]), Distribuicao[cadastro_retroativo] = FALSE())",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Aguardando Distribuição",
+            "expression": "CALCULATE(COUNTROWS(Distribuicao), Distribuicao[distribuido] = FALSE(), ALL(Calendario))",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Dias Aguardando",
+            "expression": "CALCULATE(MAX(Distribuicao[dias_aguardando]), Distribuicao[distribuido] = FALSE())",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "PreDistribuicao",
+        "columns": [
+          {
+            "name": "tarefa_id",
+            "dataType": "int64",
+            "sourceColumn": "tarefa_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tarefa",
+            "dataType": "string",
+            "sourceColumn": "tarefa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "pessoa",
+            "dataType": "string",
+            "sourceColumn": "pessoa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data_conclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "data_conclusao",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "mes_conclusao",
+            "dataType": "dateTime",
+            "sourceColumn": "mes_conclusao",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "data_agendada",
+            "dataType": "dateTime",
+            "sourceColumn": "data_agendada",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "data_criacao_real",
+            "dataType": "dateTime",
+            "sourceColumn": "data_criacao_real",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_vs_agendado",
+            "dataType": "int64",
+            "sourceColumn": "dias_vs_agendado",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tempo_ciclo_dias",
+            "dataType": "int64",
+            "sourceColumn": "tempo_ciclo_dias",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "reward",
+            "dataType": "decimal",
+            "sourceColumn": "reward",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "categoria",
+            "dataType": "string",
+            "sourceColumn": "categoria",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "oculta_do_cliente",
+            "dataType": "boolean",
+            "sourceColumn": "oculta_do_cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo",
+            "dataType": "string",
+            "sourceColumn": "processo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cliente",
+            "dataType": "string",
+            "sourceColumn": "cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo_id_advbox",
+            "dataType": "int64",
+            "sourceColumn": "processo_id_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "equipe",
+            "dataType": "string",
+            "sourceColumn": "equipe",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "retrabalho",
+            "dataType": "boolean",
+            "sourceColumn": "retrabalho",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "distribuido_em",
+            "dataType": "dateTime",
+            "sourceColumn": "distribuido_em",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_antes_da_distribuicao",
+            "dataType": "int64",
+            "sourceColumn": "dias_antes_da_distribuicao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "criado_em",
+            "dataType": "dateTime",
+            "sourceColumn": "criado_em",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "dias_desde_criacao",
+            "dataType": "int64",
+            "sourceColumn": "dias_desde_criacao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cadastro_retroativo",
+            "dataType": "boolean",
+            "sourceColumn": "cadastro_retroativo",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "PreDistribuicao",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_tarefas_pre_distribuicao\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Dia Mediano no Processo",
+            "expression": "CALCULATE(MEDIAN(PreDistribuicao[dias_desde_criacao]), PreDistribuicao[cadastro_retroativo] = FALSE(), PreDistribuicao[categoria] = \"ciclo\")",
+            "formatString": "0.0"
+          },
+          {
+            "name": "Ciclo Médio (dias)",
+            "expression": "CALCULATE(AVERAGE(PreDistribuicao[tempo_ciclo_dias]), PreDistribuicao[cadastro_retroativo] = FALSE(), PreDistribuicao[categoria] = \"ciclo\")",
+            "formatString": "0.0"
+          }
+        ]
+      },
+      {
+        "name": "FunilEtapas",
+        "columns": [
+          {
+            "name": "lawsuit_id",
+            "dataType": "int64",
+            "sourceColumn": "lawsuit_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "process_number",
+            "dataType": "string",
+            "sourceColumn": "process_number",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "etapa",
+            "dataType": "string",
+            "sourceColumn": "etapa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "inicio",
+            "dataType": "dateTime",
+            "sourceColumn": "inicio",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "fim",
+            "dataType": "dateTime",
+            "sourceColumn": "fim",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "dias_na_etapa",
+            "dataType": "decimal",
+            "sourceColumn": "dias_na_etapa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "em_andamento",
+            "dataType": "boolean",
+            "sourceColumn": "em_andamento",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "quadro",
+            "dataType": "string",
+            "sourceColumn": "quadro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "responsavel",
+            "dataType": "string",
+            "sourceColumn": "responsavel",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "etapa_atual_processo",
+            "dataType": "string",
+            "sourceColumn": "etapa_atual_processo",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "FunilEtapas",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_funil_etapas\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Dias na Etapa (média)",
+            "expression": "AVERAGE(FunilEtapas[dias_na_etapa])",
+            "formatString": "0.0"
+          }
+        ]
+      },
+      {
+        "name": "Processos",
+        "columns": [
+          {
+            "name": "lawsuit_id",
+            "dataType": "int64",
+            "sourceColumn": "lawsuit_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "process_number",
+            "dataType": "string",
+            "sourceColumn": "process_number",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "protocol_number",
+            "dataType": "string",
+            "sourceColumn": "protocol_number",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "folder",
+            "dataType": "string",
+            "sourceColumn": "folder",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "process_date",
+            "dataType": "dateTime",
+            "sourceColumn": "process_date",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "tipo",
+            "dataType": "string",
+            "sourceColumn": "tipo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "grupo",
+            "dataType": "string",
+            "sourceColumn": "grupo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "quadro",
+            "dataType": "string",
+            "sourceColumn": "quadro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "etapa",
+            "dataType": "string",
+            "sourceColumn": "etapa",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "stages_id",
+            "dataType": "int64",
+            "sourceColumn": "stages_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "responsavel",
+            "dataType": "string",
+            "sourceColumn": "responsavel",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "fees_expec",
+            "dataType": "decimal",
+            "sourceColumn": "fees_expec",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "fees_money",
+            "dataType": "decimal",
+            "sourceColumn": "fees_money",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "contingency",
+            "dataType": "decimal",
+            "sourceColumn": "contingency",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "status_closure",
+            "dataType": "string",
+            "sourceColumn": "status_closure",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "exit_production",
+            "dataType": "string",
+            "sourceColumn": "exit_production",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "exit_execution",
+            "dataType": "string",
+            "sourceColumn": "exit_execution",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "clientes",
+            "dataType": "string",
+            "sourceColumn": "clientes",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "parte_contraria",
+            "dataType": "string",
+            "sourceColumn": "parte_contraria",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "criado_em_advbox",
+            "dataType": "string",
+            "sourceColumn": "criado_em_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "atualizado_em",
+            "dataType": "dateTime",
+            "sourceColumn": "atualizado_em",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Processos",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_processos\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Qtde Processos",
+            "expression": "COUNTROWS(Processos)",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Andamentos",
+        "columns": [
+          {
+            "name": "processo_id_advbox",
+            "dataType": "int64",
+            "sourceColumn": "processo_id_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "processo",
+            "dataType": "string",
+            "sourceColumn": "processo",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cliente",
+            "dataType": "string",
+            "sourceColumn": "cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data",
+            "dataType": "dateTime",
+            "sourceColumn": "data",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "andamento",
+            "dataType": "string",
+            "sourceColumn": "andamento",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tribunal",
+            "dataType": "string",
+            "sourceColumn": "tribunal",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "veio_do_backfill",
+            "dataType": "boolean",
+            "sourceColumn": "veio_do_backfill",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "detectado_em",
+            "dataType": "dateTime",
+            "sourceColumn": "detectado_em",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "MesAndamento",
+            "dataType": "string",
+            "type": "calculated",
+            "expression": "FORMAT('Andamentos'[data], \"YYYY-MM\")",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Andamentos",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_bi_andamentos\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Qtde Andamentos",
+            "expression": "COUNTROWS(Andamentos)",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Clientes",
+        "columns": [
+          {
+            "name": "customer_id",
+            "dataType": "int64",
+            "sourceColumn": "customer_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "nome",
+            "dataType": "string",
+            "sourceColumn": "nome",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cpf_cnpj",
+            "dataType": "string",
+            "sourceColumn": "cpf_cnpj",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "email",
+            "dataType": "string",
+            "sourceColumn": "email",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "celular",
+            "dataType": "string",
+            "sourceColumn": "celular",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "telefone",
+            "dataType": "string",
+            "sourceColumn": "telefone",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cidade",
+            "dataType": "string",
+            "sourceColumn": "cidade",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "uf",
+            "dataType": "string",
+            "sourceColumn": "uf",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "profissao",
+            "dataType": "string",
+            "sourceColumn": "profissao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "estado_civil",
+            "dataType": "string",
+            "sourceColumn": "estado_civil",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "genero",
+            "dataType": "string",
+            "sourceColumn": "genero",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "nascimento",
+            "dataType": "dateTime",
+            "sourceColumn": "nascimento",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "origem",
+            "dataType": "string",
+            "sourceColumn": "origem",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "criado_em_advbox",
+            "dataType": "string",
+            "sourceColumn": "criado_em_advbox",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "qtd_processos",
+            "dataType": "int64",
+            "sourceColumn": "qtd_processos",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "atualizado_em",
+            "dataType": "dateTime",
+            "sourceColumn": "atualizado_em",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "eh_pf",
+            "dataType": "boolean",
+            "sourceColumn": "eh_pf",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cliente_uid",
+            "dataType": "string",
+            "sourceColumn": "cliente_uid",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "logradouro",
+            "dataType": "string",
+            "sourceColumn": "logradouro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cep",
+            "dataType": "string",
+            "sourceColumn": "cep",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "bairro",
+            "dataType": "string",
+            "sourceColumn": "bairro",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "rg",
+            "dataType": "string",
+            "sourceColumn": "rg",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Clientes",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"bi_clientes\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Qtde Clientes",
+            "expression": "COUNTROWS(Clientes)",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Contratos",
+        "columns": [
+          {
+            "name": "id",
+            "dataType": "string",
+            "sourceColumn": "id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "created_at",
+            "dataType": "dateTime",
+            "sourceColumn": "created_at",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "updated_at",
+            "dataType": "dateTime",
+            "sourceColumn": "updated_at",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "nome_contratante1",
+            "dataType": "string",
+            "sourceColumn": "nome_contratante1",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cpf_contratante1",
+            "dataType": "string",
+            "sourceColumn": "cpf_contratante1",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "email_contratante1",
+            "dataType": "string",
+            "sourceColumn": "email_contratante1",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "nome_contratante2",
+            "dataType": "string",
+            "sourceColumn": "nome_contratante2",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "cpf_contratante2",
+            "dataType": "string",
+            "sourceColumn": "cpf_contratante2",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "resort",
+            "dataType": "string",
+            "sourceColumn": "resort",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tipo_acao",
+            "dataType": "string",
+            "sourceColumn": "tipo_acao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "honorarios_total",
+            "dataType": "decimal",
+            "sourceColumn": "honorarios_total",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "honorarios_parcelas",
+            "dataType": "int64",
+            "sourceColumn": "honorarios_parcelas",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "honorarios_valor_parcela",
+            "dataType": "decimal",
+            "sourceColumn": "honorarios_valor_parcela",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "honorarios_percentual_exito",
+            "dataType": "decimal",
+            "sourceColumn": "honorarios_percentual_exito",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data_primeira_parcela",
+            "dataType": "dateTime",
+            "sourceColumn": "data_primeira_parcela",
+            "summarizeBy": "none",
+            "formatString": "dd/mm/yyyy"
+          },
+          {
+            "name": "status",
+            "dataType": "string",
+            "sourceColumn": "status",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "created_by",
+            "dataType": "string",
+            "sourceColumn": "created_by",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "updated_by",
+            "dataType": "string",
+            "sourceColumn": "updated_by",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "zapsign_sent_at",
+            "dataType": "dateTime",
+            "sourceColumn": "zapsign_sent_at",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "signed_at",
+            "dataType": "dateTime",
+            "sourceColumn": "signed_at",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "advbox_date",
+            "dataType": "dateTime",
+            "sourceColumn": "advbox_date",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "observacoes_internas",
+            "dataType": "string",
+            "sourceColumn": "observacoes_internas",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "advbox_status",
+            "dataType": "string",
+            "sourceColumn": "advbox_status",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "sexo_contratante1",
+            "dataType": "string",
+            "sourceColumn": "sexo_contratante1",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "sexo_contratante2",
+            "dataType": "string",
+            "sourceColumn": "sexo_contratante2",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "origem_cliente",
+            "dataType": "string",
+            "sourceColumn": "origem_cliente",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "data_primeira_mensagem",
+            "dataType": "string",
+            "sourceColumn": "data_primeira_mensagem",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "jornada_compra_dias",
+            "dataType": "int64",
+            "sourceColumn": "jornada_compra_dias",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tempo_assinatura_dias",
+            "dataType": "decimal",
+            "sourceColumn": "tempo_assinatura_dias",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "mes_criacao",
+            "dataType": "string",
+            "sourceColumn": "mes_criacao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "ano_criacao",
+            "dataType": "string",
+            "sourceColumn": "ano_criacao",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tipo_honorario",
+            "dataType": "string",
+            "sourceColumn": "tipo_honorario",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Contratos",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_powerbi_contratos\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Contratos Criados",
+            "expression": "COUNTROWS(Contratos)",
+            "formatString": "#,0"
+          },
+          {
+            "name": "Tempo Assinatura Médio (dias)",
+            "expression": "AVERAGE(Contratos[tempo_assinatura_dias])",
+            "formatString": "0.0"
+          }
+        ]
+      },
+      {
+        "name": "Videochamadas",
+        "columns": [
+          {
+            "name": "event_id",
+            "dataType": "string",
+            "sourceColumn": "event_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "vendedora_email",
+            "dataType": "string",
+            "sourceColumn": "vendedora_email",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "status",
+            "dataType": "string",
+            "sourceColumn": "status",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "color_id",
+            "dataType": "string",
+            "sourceColumn": "color_id",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "scheduled_at",
+            "dataType": "dateTime",
+            "sourceColumn": "scheduled_at",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "tem_meet",
+            "dataType": "boolean",
+            "sourceColumn": "tem_meet",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "MesAgenda",
+            "dataType": "string",
+            "type": "calculated",
+            "expression": "FORMAT('Videochamadas'[scheduled_at], \"YYYY-MM\")",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Videochamadas",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let\n    Source = PostgreSQL.Database(\"aws-1-sa-east-1.pooler.supabase.com:5432\", \"postgres\"),\n    dados = Source{[Schema=\"public\",Item=\"vw_funil_videochamadas\"]}[Data]\nin\n    dados"
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Qtde Videochamadas",
+            "expression": "COUNTROWS(Videochamadas)",
+            "formatString": "#,0"
+          }
+        ]
+      },
+      {
+        "name": "Calendario",
+        "dataCategory": "Time",
+        "columns": [
+          {
+            "name": "Date",
+            "dataType": "dateTime",
+            "isKey": true,
+            "isNameInferred": true,
+            "type": "calculatedTableColumn",
+            "sourceColumn": "[Date]",
+            "formatString": "dd/mm/yyyy",
+            "summarizeBy": "none"
+          },
+          {
+            "name": "AnoMes",
+            "dataType": "string",
+            "type": "calculated",
+            "expression": "FORMAT('Calendario'[Date], \"YYYY-MM\")",
+            "summarizeBy": "none"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Calendario",
+            "mode": "import",
+            "source": {
+              "type": "calculated",
+              "expression": "CALENDAR(DATE(2025,1,1), TODAY())"
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "rel_prod",
+        "fromTable": "Produtividade",
+        "fromColumn": "data_conclusao",
+        "toTable": "Calendario",
+        "toColumn": "Date"
+      },
+      {
+        "name": "rel_dist",
+        "fromTable": "Distribuicao",
+        "fromColumn": "distribuido_em",
+        "toTable": "Calendario",
+        "toColumn": "Date"
+      },
+      {
+        "name": "rel_pre",
+        "fromTable": "PreDistribuicao",
+        "fromColumn": "data_conclusao",
+        "toTable": "Calendario",
+        "toColumn": "Date"
+      }
+    ]
+  }
+}

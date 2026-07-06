@@ -152,25 +152,27 @@ export default function Dashboard() {
       const { data, error: dbError } = await query;
       if (dbError) throw dbError;
       const normalizados = (data || []).map(normalizeContrato);
-      // (etapa funil "Distribuídos") processo distribuído = tem nº de processo no ADVBOX,
-      // da view vw_processo_distribuido. Merge por advbox_lawsuit_id (flag booleana).
-      try {
-        const { data: dist } = await supabase.from('vw_processo_distribuido').select('lawsuit_id');
-        const distSet = new Set((dist || []).map((r) => String(r.lawsuit_id)));
+      // (perf #15) As 3 views de funil sao independentes entre si e da consulta
+      // principal — rodam em PARALELO (Promise.allSettled) em vez de 3 awaits em fila,
+      // cortando o tempo de abertura do Dashboard. Cada uma mantem a degradacao
+      // graciosa individual (rejeicao/erro => aquela etapa simplesmente vira 0).
+      const [distR, gpR, vcR] = await Promise.allSettled([
+        supabase.from('vw_processo_distribuido').select('lawsuit_id'),
+        supabase.from('vw_processo_guia_paga').select('lawsuit_id'),
+        supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
+      ]);
+      // (etapa "Distribuídos") tem nº de processo no ADVBOX. Merge por advbox_lawsuit_id.
+      if (distR.status === 'fulfilled' && !distR.value.error) {
+        const distSet = new Set((distR.value.data || []).map((r) => String(r.lawsuit_id)));
         for (const c of normalizados) { if (c) c.distribuido = distSet.has(String(c.advbox_lawsuit_id)); }
-      } catch { /* etapa Distribuídos degrada p/ 0 se a view falhar — não derruba o dashboard */ }
-      // (etapa funil "Guia Paga/JEC") processo passou da citação no ADVBOX (guia paga ou JEC),
-      // do espelho do bot (vw_processo_guia_paga). Merge por advbox_lawsuit_id.
-      try {
-        const { data: gp } = await supabase.from('vw_processo_guia_paga').select('lawsuit_id');
-        const gpSet = new Set((gp || []).map((r) => String(r.lawsuit_id)));
+      }
+      // (etapa "Guia Paga/JEC") passou da citação no ADVBOX. Merge por advbox_lawsuit_id.
+      if (gpR.status === 'fulfilled' && !gpR.value.error) {
+        const gpSet = new Set((gpR.value.data || []).map((r) => String(r.lawsuit_id)));
         for (const c of normalizados) { if (c) c.guia_paga = gpSet.has(String(c.advbox_lawsuit_id)); }
-      } catch { /* etapa Guia Paga degrada p/ 0 se a view falhar */ }
-      // (etapas funil "Videochamada agendada/realizada") da agenda do Google, via view sem PII.
-      try {
-        const { data: vc } = await supabase.from('vw_funil_videochamadas').select('status, scheduled_at');
-        setVideochamadas(vc || []);
-      } catch { setVideochamadas([]); /* degrada p/ 0 se a view falhar */ }
+      }
+      // (etapas "Videochamada agendada/realizada") da agenda do Google, via view sem PII.
+      setVideochamadas(vcR.status === 'fulfilled' && !vcR.value.error ? (vcR.value.data || []) : []);
       _cachedContratos = normalizados;
       _cachedFull = full;
       setAllContratos(normalizados);
@@ -288,6 +290,15 @@ export default function Dashboard() {
     ),
     [allContratos, videochamadas, periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados]
   );
+
+  // (perf #14) Escopo FILTRADO para os widgets pesados (mapa + heatmap temporal).
+  // Antes recebiam allContratos (base bruta, ate 20k linhas) e varriam tudo a cada
+  // render, ignorando o periodo/resort selecionado. Agora respeitam o filtro da
+  // pagina via dash.idsFiltrados (mesmo recorte dos demais graficos).
+  const contratosFiltrados = useMemo(() => {
+    const ids = new Set(dash.idsFiltrados);
+    return allContratos.filter((c) => c && ids.has(c.id));
+  }, [allContratos, dash.idsFiltrados]);
 
   // ─── Celebração de meta mensal (deduplicada por mês dentro de celebrations) ───
   useEffect(() => {
@@ -561,11 +572,11 @@ export default function Dashboard() {
           <SectionTitle hint="origem dos clientes e horários de pico">Geografia & ritmo</SectionTitle>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 items-start">
             <Suspense fallback={<div className="text-center text-xs py-6" style={{ color: 'var(--cbc-text-muted)' }}>Carregando mapa…</div>}>
-              {/* (R8) reusa os contratos ja carregados — sem fetch proprio */}
-              <GeoHeatmap rows={allContratos} />
+              {/* (R8/#14) reusa os contratos ja carregados, no recorte FILTRADO da pagina */}
+              <GeoHeatmap rows={contratosFiltrados} />
             </Suspense>
             <Suspense fallback={<div className="text-center text-xs py-6" style={{ color: 'var(--cbc-text-muted)' }}>Carregando heatmap…</div>}>
-              <HeatmapTemporal contratos={allContratos} />
+              <HeatmapTemporal contratos={contratosFiltrados} />
             </Suspense>
           </div>
 

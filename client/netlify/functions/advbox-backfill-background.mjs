@@ -12,7 +12,10 @@
  *  - Itens entram como communicated=true e SEM nota no Kommo (e historico,
  *    nao "novidade"); payload.backfill = true
  *  - Tarefas da lista de ignoradas (bot_config 'monitor') ficam de fora
- *  - Idempotente: unique(kind, item_key) — pode rodar quantas vezes precisar
+ *  - Idempotente: unique(kind, item_key) — pode rodar quantas vezes precisar.
+ *    Na fase "tarefas" o upsert ATUALIZA duplicatas (enriquece payload com
+ *    created_at/reward — BI de produtividade 02/07/2026); andamentos seguem
+ *    insert-only (imutaveis).
  *  - Cada lote roda ~12 min e dispara o proximo (fetch em si mesmo).
  *    Pausa: bot_config 'backfill_status'.ativo = false (botao no painel).
  *  - Progresso em bot_config 'backfill_status' (o painel exibe em tempo real)
@@ -21,7 +24,7 @@
  */
 import * as adv from './_lib/advbox.mjs';
 import {
-  bulkRecordSyncItems, hashKey, getVisibilityConfig, isHiddenFromClient,
+  bulkRecordSyncItems, bulkUpsertSyncItems, hashKey, getVisibilityConfig, isHiddenFromClient,
   getBackfillStatus, setBackfillStatus, logAdvbox,
 } from './_lib/botDb.mjs';
 
@@ -62,16 +65,18 @@ function taskRows(p, vis) {
     communicated: true,
     communicated_at: new Date().toISOString(),
   };
+  // created_at/reward (02/07/2026): BI de produtividade — tempo de ciclo real
+  // (criacao->conclusao) e pontos de gamificacao. Gravados nos DOIS eventos.
   const rows = [{
     ...base, kind: 'task_created', item_key: `task:${p.id}`, event_date: p.date || null,
-    payload: { deadline: p.date_deadline || null, users: (p.users || []).map(u => u.name), backfill: true, oculto },
+    payload: { deadline: p.date_deadline || null, users: (p.users || []).map(u => u.name), created_at: p.created_at || null, reward: p.reward ?? null, backfill: true, oculto },
   }];
   const completedAt = (p.users || []).map(u => u.completed).find(Boolean);
   if (completedAt) {
     rows.push({
       ...base, kind: 'task_completed', item_key: `taskdone:${p.id}`,
       event_date: String(completedAt).slice(0, 10),
-      payload: { completed_by: (p.users || []).filter(u => u.completed).map(u => u.name), backfill: true, oculto },
+      payload: { completed_by: (p.users || []).filter(u => u.completed).map(u => u.name), created_at: p.created_at || null, reward: p.reward ?? null, backfill: true, oculto },
     });
   }
   return { rows, ignored: !!oculto };
@@ -166,7 +171,9 @@ export default async (req) => {
           if (r.ignored) ign++; // conta como "oculta do cliente", mas ENTRA no banco
           rows.push(...r.rows);
         }
-        saved = rows.length ? await bulkRecordSyncItems(rows) : 0;
+        // upsert que ATUALIZA duplicatas: re-rodar a fase "tarefas" enriquece as
+        // linhas antigas com created_at/reward (tarefas_gravadas = novos+atualizados)
+        saved = rows.length ? await bulkUpsertSyncItems(rows) : 0;
         off += items.length;
         st = await setBackfillStatus({
           tarefas_offset_abertas: off, sub_fase: items.length < POST_PAGE ? 'concluidas' : 'abertas',
@@ -214,7 +221,7 @@ export default async (req) => {
           if (r.ignored) ign++; // oculta do cliente, mas ENTRA no banco
           rows.push(...r.rows);
         }
-        const saved = rows.length ? await bulkRecordSyncItems(rows) : 0;
+        const saved = rows.length ? await bulkUpsertSyncItems(rows) : 0;
         off += items.length;
         if (items.length < POST_PAGE) { wi++; off = 0; } // proxima janela mensal
         st = await setBackfillStatus({

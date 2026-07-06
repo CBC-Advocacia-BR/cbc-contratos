@@ -818,6 +818,35 @@ html { scrollbar-width: thin; scrollbar-color: var(--cbc-border-strong, #CBD5E0)
 :root.dark .text-navy { color: var(--cbc-accent) !important; }
 :root.dark .text-\[\#1B3A5C\] { color: var(--cbc-accent) !important; }
 
+/* (auditoria #34) Texto COLORIDO no dark mode. Antes so os FUNDOS coloridos eram
+   adaptados (bg-red-50 etc); os textos (text-red-600...) ficavam escuros sobre fundo
+   escuro = ilegiveis. Aqui mapeamos para as versoes claras dos tokens de status
+   (--cbc-danger/success/warning/info ja viram tons claros em :root.dark). */
+:root.dark .text-red-500,
+:root.dark .text-red-600,
+:root.dark .text-red-700,
+:root.dark .text-red-800,
+:root.dark .text-rose-600,
+:root.dark .text-rose-700 { color: var(--cbc-danger) !important; }
+:root.dark .text-green-600,
+:root.dark .text-green-700,
+:root.dark .text-green-800,
+:root.dark .text-emerald-600,
+:root.dark .text-emerald-700 { color: var(--cbc-success) !important; }
+:root.dark .text-yellow-600,
+:root.dark .text-yellow-700,
+:root.dark .text-yellow-800,
+:root.dark .text-amber-600,
+:root.dark .text-amber-700,
+:root.dark .text-amber-800,
+:root.dark .text-orange-600,
+:root.dark .text-orange-700 { color: var(--cbc-warning) !important; }
+:root.dark .text-blue-600,
+:root.dark .text-blue-700,
+:root.dark .text-blue-800,
+:root.dark .text-indigo-600,
+:root.dark .text-indigo-700 { color: var(--cbc-info) !important; }
+
 /* Borders */
 :root.dark .border-gray-200 { border-color: var(--cbc-border) !important; }
 :root.dark .border-gray-300 { border-color: var(--cbc-border-strong) !important; }

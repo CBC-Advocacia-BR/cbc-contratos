@@ -8,6 +8,8 @@
  *   URL: https://contratos-cbc.netlify.app/.netlify/functions/kommo-advbox-webhook
  *   Evento: "Mensagem recebida" (incoming chat message)
  */
+import { logAdvbox } from './_lib/botDb.mjs';
+
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
 export default async (req) => {
@@ -39,6 +41,12 @@ export default async (req) => {
     });
   } catch (e) {
     console.error('[kommo-advbox-webhook] falha ao despachar worker:', e.message);
+    // (auditoria #80) grava RASTRO com o raw da mensagem — antes, se o despacho falhasse
+    // (cold start/rede), a mensagem do cliente sumia sem registro e ele ficava sem resposta.
+    // Agora fica visivel no console do Monitor (advbox_api_log) e pode ser reprocessada.
+    try {
+      await logAdvbox('bot', 'erro', `Falha ao despachar o worker do bot — mensagem do cliente pode ter se perdido: ${e.message}`.slice(0, 300), { raw: String(raw).slice(0, 2000), contentType });
+    } catch { /* best-effort */ }
   }
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };

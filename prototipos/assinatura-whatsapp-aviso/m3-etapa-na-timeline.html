@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M3 — Etapa na Timeline · Aviso WhatsApp · CBC Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+    --gold:#C9A84C; --gold-dark:#B8860B;
+    --header-bg:#1B3A5C; --header-text:#FFFFFF;
+    --bg:#F0F4F8; --bg-card:#FFFFFF; --bg-subtle:#F7FAFC;
+    --panel:#EEF4FF; --panel-border:#C0D0E8;
+    --ink:#1A1A1A; --text:#1B3A5C; --text-2:#4A5568; --muted:#5E6675;
+    --border:#E2E8F0; --border-strong:#CBD5E0;
+    --success:#15803D; --success-bg:rgba(22,163,74,.10); --success-border:rgba(22,163,74,.28);
+    --warning:#B45309; --warning-bg:rgba(217,119,6,.12); --warning-border:rgba(217,119,6,.30);
+    --danger:#B91C1C; --info:#1D4ED8; --info-bg:rgba(37,99,235,.10);
+    --radius:12px; --radius-lg:18px;
+    --shadow:0 1px 6px rgba(0,0,0,.09); --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  }
+  html.dark{
+    --header-bg:#0A0F1A; --header-text:#F4CE46;
+    --bg:#0A0F1A; --bg-card:#111827; --bg-subtle:#1F2937;
+    --panel:#16233B; --panel-border:#2C405F;
+    --ink:#E5E7EB; --text:#E5E7EB; --text-2:#9CA3AF; --muted:#8A93A3;
+    --border:#374151; --border-strong:#4B5563;
+    --success:#4ADE80; --success-bg:rgba(74,222,128,.14); --success-border:rgba(74,222,128,.30);
+    --warning:#FBBF24; --warning-bg:rgba(251,191,36,.16); --warning-border:rgba(251,191,36,.32);
+    --danger:#F87171; --info:#60A5FA; --info-bg:rgba(96,165,250,.16);
+    --gold:#F4CE46; --gold-dark:#D4AF37;
+    --shadow:0 1px 6px rgba(0,0,0,.45); --shadow-lg:0 8px 30px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.55;font-size:15px;transition:background .3s ease,color .3s ease}
+  svg{flex-shrink:0}
+  header.bar{background:var(--header-bg);color:var(--header-text);text-align:center;padding:16px 20px 12px}
+  header.bar h1{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  header.bar .sub{font-size:11px;opacity:.7;letter-spacing:.6px;margin-top:2px}
+  .subbar{background:var(--navy-dark);color:#fff;text-align:center;padding:8px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  html.dark .subbar{background:#111827}
+  .subbar span{opacity:.65;font-weight:400;text-transform:none;letter-spacing:0}
+  .mode-toggle{position:fixed;top:12px;right:12px;z-index:99;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;backdrop-filter:blur(6px)}
+  .wrap{max-width:900px;margin:0 auto;padding:30px 22px 80px}
+  .mtitle{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:31px;line-height:1.15;font-weight:700;color:var(--text);text-align:center;margin:4px 0 12px}
+  .lede{color:var(--muted);max-width:680px;margin:0 auto;text-align:center}
+  .lede b{color:var(--text)}
+  h2.section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;align-items:center;gap:12px;margin:34px 0 16px}
+  h2.section::before,h2.section::after{content:"";flex:1;height:1px;background:var(--border)}
+  .stage{background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:26px 18px;display:flex;justify-content:center}
+  .note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;max-width:640px;margin-left:auto;margin-right:auto}
+  .diag{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px}
+  .diag ul{list-style:none}
+  .diag li{font-size:13.5px;color:var(--text-2);padding:4px 0 4px 18px;position:relative}
+  .diag li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--navy-light)}
+  html.dark .diag li::before{background:var(--gold)}
+  .diag b{color:var(--text)}
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.procon{grid-template-columns:1fr}}
+  .procon .col{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px}
+  .procon h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .procon .pro h3{color:var(--success)} .procon .con h3{color:var(--warning)}
+  .procon li{font-size:13px;color:var(--text-2);margin-left:16px;padding:2px 0}
+  .mnav{display:flex;justify-content:space-between;gap:10px;margin-top:44px;font-size:13px;flex-wrap:wrap}
+  .mnav a{color:var(--text);font-weight:700;text-decoration:none;background:var(--bg-card);border:1px solid var(--border);padding:8px 16px;border-radius:999px;box-shadow:var(--shadow);transition:border-color .2s}
+  .mnav a:hover{border-color:var(--gold)}
+
+  /* :: réplica da linha do contrato + timeline :: */
+  .row{width:100%;max-width:740px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);padding:14px 16px;position:relative}
+  .rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .rhead .nome{font-size:14px;font-weight:800;color:var(--ink)}
+  .rhead .nome2{font-size:11px;color:var(--muted)}
+  .badge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border-radius:999px;color:var(--warning);background:var(--warning-bg);border:1px solid var(--warning-border);white-space:nowrap}
+  .pipe{display:flex;align-items:flex-start;margin-top:14px;overflow-x:auto;padding:2px 0 4px}
+  .step{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:66px}
+  .step .dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--border-strong);color:var(--muted);background:var(--bg-card);transition:all .3s}
+  .step.done .dot{background:var(--navy);border-color:var(--navy);color:#fff}
+  html.dark .step.done .dot{background:var(--gold);border-color:var(--gold);color:#0A0F1A}
+  .step.warn .dot{background:var(--warning-bg);border-color:var(--warning);color:var(--warning);animation:pulse 1.6s ease-in-out infinite}
+  .step .lb{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);text-align:center;line-height:1.25}
+  .step.done .lb{color:var(--text)}
+  .step.warn .lb{color:var(--warning)}
+  .conn{flex:1;height:2px;background:var(--border);margin-top:14px;min-width:12px;border-radius:2px}
+  .conn.done{background:var(--navy)}
+  html.dark .conn.done{background:var(--gold)}
+  @keyframes pulse{50%{opacity:.45}}
+
+  /* :: chips por signatário (SignerName) :: */
+  .sigs{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)}
+  .sig{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+  .sig .b{width:10px;height:10px;border-radius:50%}
+  .sig .b.amber{background:#F59E0B;animation:pulse 1.6s infinite}
+  .sig .b.blue{background:#60A5FA}
+  .sig .nm{color:var(--warning)}
+  .views{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;color:var(--info);background:var(--info-bg);padding:2px 8px;border-radius:999px}
+  .wmini{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;padding:2px 7px;border-radius:999px}
+  .wmini.ok{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+  .wmini.warn{color:var(--warning);background:var(--warning-bg);border:1px solid var(--warning-border)}
+
+  .novo-arrow{position:absolute;top:-14px;display:flex;flex-direction:column;align-items:center;z-index:3}
+  .novo-arrow .tag{background:var(--gold);color:#1A1A1A;font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow)}
+  .novo-arrow .ln{width:2px;height:12px;background:var(--gold)}
+
+  /* :: hovercard (mostrado estático no estado 2) :: */
+  .hover{position:absolute;right:14px;bottom:-64px;background:var(--bg-card);border:1px solid var(--warning-border);border-radius:10px;box-shadow:var(--shadow-lg);padding:10px 13px;max-width:330px;z-index:4}
+  .hover .ht{font-size:11px;font-weight:800;color:var(--warning)}
+  .hover .hx{font-size:10.5px;color:var(--text-2);margin-top:3px;line-height:1.45}
+</style>
+</head>
+<body>
+<button class="mode-toggle" id="mode">🌙 Escuro</button>
+<header class="bar"><h1>CBC Advogados</h1><div class="sub">Sistema de Contratos · Mockup de funcionalidade</div></header>
+<div class="subbar">M3 · Etapa na Timeline &nbsp;<span>— o WhatsApp vira a 8ª bolinha da régua de automações, visível direto na lista</span></div>
+
+<div class="wrap">
+  <h2 class="mtitle">Etapa "WhatsApp" na Timeline</h2>
+  <p class="lede">A régua de automações do contrato (Salvo → Aguardando → Assinado → Pasta → ADVBOX → Kommo) ganha a etapa <b>WhatsApp</b> logo após o envio. Verde quando disparou; âmbar pulsando quando ficou fora da janela e precisa de ação. É o único mockup em que o status se enxerga <b>sem abrir nada</b>, escaneando a lista inteira de contratos.</p>
+
+  <h2 class="section">Estado 1 — Enviado (dentro da janela de 24h)</h2>
+  <div class="stage">
+    <div class="row">
+      <div class="rhead">
+        <div><div class="nome">Maria Aparecida Souza</div><div class="nome2">&amp; João Carlos Souza</div></div>
+        <span class="badge">Enviado ZapSign</span>
+      </div>
+      <div class="pipe">
+        <div class="step done"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg></div><div class="lb">Salvo</div></div>
+        <div class="conn done"></div>
+        <div class="step done"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5"/><circle cx="12" cy="12" r="9"/></svg></div><div class="lb">Aguardando</div></div>
+        <div class="conn done"></div>
+        <div class="step done" style="position:relative">
+          <div class="novo-arrow" style="left:50%;transform:translateX(-50%)"><span class="tag">Novo</span><span class="ln"></span></div>
+          <div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg></div><div class="lb">WhatsApp</div>
+        </div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="lb">Assinado</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg></div><div class="lb">Pasta</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div><div class="lb">Cliente ADVBOX</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg></div><div class="lb">Processo ADVBOX</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/></svg></div><div class="lb">Kommo</div></div>
+      </div>
+      <div class="sigs">
+        <span class="sig"><span class="b amber"></span><span class="nm">Maria: Pendente</span> <span class="views">👁 2x · 02/07 15:10</span> <span class="wmini ok">WA ✓ 14:32</span></span>
+        <span class="sig"><span class="b amber"></span><span class="nm">João: Pendente</span> <span class="wmini ok">WA ✓ 14:32</span></span>
+      </div>
+    </div>
+  </div>
+  <p class="note">Bolinha WhatsApp verde: os dois links foram entregues pelo Kommo. Nos chips por signatário (que já existem hoje), entra o mini-selo "WA ✓" com horário.</p>
+
+  <h2 class="section">Estado 2 — Não enviado (fora da janela de 24h)</h2>
+  <div class="stage" style="padding-bottom:84px">
+    <div class="row">
+      <div class="rhead">
+        <div><div class="nome">Maria Aparecida Souza</div><div class="nome2">&amp; João Carlos Souza</div></div>
+        <span class="badge">Enviado ZapSign</span>
+      </div>
+      <div class="pipe">
+        <div class="step done"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg></div><div class="lb">Salvo</div></div>
+        <div class="conn done"></div>
+        <div class="step done"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5"/><circle cx="12" cy="12" r="9"/></svg></div><div class="lb">Aguardando</div></div>
+        <div class="conn done"></div>
+        <div class="step warn">
+          <div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z"/></svg></div><div class="lb">WhatsApp</div>
+        </div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="lb">Assinado</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg></div><div class="lb">Pasta</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div><div class="lb">Cliente ADVBOX</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z"/></svg></div><div class="lb">Processo ADVBOX</div></div>
+        <div class="conn"></div>
+        <div class="step"><div class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/></svg></div><div class="lb">Kommo</div></div>
+      </div>
+      <div class="sigs">
+        <span class="sig"><span class="b amber"></span><span class="nm">Maria: Pendente</span> <span class="wmini ok">WA ✓ 14:32</span></span>
+        <span class="sig"><span class="b amber"></span><span class="nm">João: Pendente</span> <span class="wmini warn">⚠ WA manual</span></span>
+      </div>
+      <div class="hover">
+        <div class="ht">⚠ WhatsApp não enviado para João</div>
+        <div class="hx">Fora da janela de 24h (última mensagem: ontem 09:15). Clique para abrir a conversa no Kommo, ou aguarde: se o cliente responder, o sistema reenvia sozinho.</div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Bolinha âmbar pulsando chama o olho na lista; o mini-selo "⚠ WA manual" aponta quem ficou de fora. O cartão de detalhe (mostrado fixo aqui) aparece no hover ou toque da bolinha.</p>
+
+  <h2 class="section">Comportamento no sistema</h2>
+  <div class="diag"><ul>
+    <li><b>Onde:</b> na régua de automações que já existe em cada linha da lista (visões Lista e Cards) e no detalhe.</li>
+    <li>A etapa entra entre "Aguardando" e "Assinado": verde (todos enviados), âmbar pulsando (algum lead fora da janela), cinza (ainda verificando).</li>
+    <li>Os chips por signatário que já existem hoje ganham o mini-selo <b>WA ✓ / ⚠ WA manual</b>, mantendo tudo na mesma linha visual.</li>
+    <li>Hover (desktop) ou toque (mobile) na bolinha âmbar mostra o motivo e o atalho para a conversa do Kommo.</li>
+    <li>Quando a re-tentativa automática funciona (cliente respondeu), a bolinha vira verde sozinha via realtime.</li>
+    <li>Escala para a visão em massa: dá para varrer 30 contratos e achar os âmbar em segundos.</li>
+  </ul></div>
+
+  <h2 class="section">Prós & contras</h2>
+  <div class="procon">
+    <div class="col pro"><h3>Prós</h3><ul>
+      <li><b>Visível da lista</b>, sem expandir nada: triagem em massa dos pendentes.</li>
+      <li>Zero espaço novo na tela; usa a régua que a equipe já lê todo dia.</li>
+      <li>Estados via realtime: âmbar vira verde sozinho quando resolver.</li>
+    </ul></div>
+    <div class="col con"><h3>Contras</h3><ul>
+      <li>Sinal compacto: o motivo e as ações exigem hover/toque ou expansão.</li>
+      <li>Régua fica com 8 etapas (mais densa no iPad em modo retrato).</li>
+      <li>Aviso menos "gritante" que uma faixa ou toast para quem não conhece o código de cores.</li>
+    </ul></div>
+  </div>
+
+  <nav class="mnav">
+    <a href="m2-faixa-no-contrato.html">← M2 · Faixa no Contrato</a>
+    <a href="index.html">Índice</a>
+    <a href="m4-toast-e-central.html">M4 · Toast e Central →</a>
+  </nav>
+</div>
+<script>
+  const t=document.getElementById('mode');
+  t.onclick=()=>{const d=document.documentElement.classList.toggle('dark');t.textContent=d?'☀️ Claro':'🌙 Escuro'};
+</script>
+</body>
+</html>

@@ -36,9 +36,15 @@ Cliente (portal.html, aba Conversas)          Equipe (CBC Conversas, painel Conv
 
 - Só **texto** (até 4.000 caracteres por mensagem).
 - **Polling** (sem tempo-real ainda): portal consulta a cada 20 s com a aba
-  aberta; CBC Conversas: badge 60 s, lista 25 s, thread aberta 8 s.
-- Badges de não-lidas dos dois lados; "marcar como resolvida" no lado equipe;
-  equipe pode iniciar conversa por CPF (botão +).
+  aberta; CBC Conversas: badge/lista 30 s, conversa aberta 8 s.
+- **Integrado à interface principal do CBC Conversas** (2026-07-02, pedido do
+  Paulo): seção "Conversas ativas · Portal do Cliente" no TOPO da lista
+  lateral; a conversa abre na MESMA área do arquivo (mesmas bolhas), com caixa
+  de resposta embaixo e botão ✓ (resolver) no cabeçalho. Deep link
+  `#/live/<thread_id>`. O painel modal anterior foi removido.
+- Badges de não-lidas dos dois lados; "marcar como resolvida" no lado equipe.
+- Iniciar conversa por CPF (lado equipe): via API (`op abrirPorCpf` em
+  /api/chat) — sem botão na UI por enquanto.
 
 ## Deploy — FEITO em 2026-07-02 (produção)
 

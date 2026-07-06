@@ -110,7 +110,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
           <div
             className="text-[13px] font-bold tracking-[2px] uppercase"
             style={{
-              color: '#1B3A5C',
+              color: 'var(--cbc-text-primary, #1B3A5C)',
               opacity: visible ? 1 : 0,
               transition: 'opacity 0.6s ease 0.3s',
             }}>
@@ -120,7 +120,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
             style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.6s ease 0.4s' }}>
             Advogados
           </div>
-          <hr className="w-16 border-t-2 mt-4 mb-3" style={{ borderColor: '#C9A84C' }} />
+          <hr className="w-16 border-t-2 mt-4 mb-3" style={{ borderColor: 'var(--cbc-gold, #C9A84C)' }} />
           <div className="text-[11px] font-bold tracking-[1px] uppercase text-gray-500">
             {resetMode ? 'Recuperar Senha' : 'Gerador de Contratos'}
           </div>
@@ -130,25 +130,25 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
         <form onSubmit={resetMode ? handleReset : handleLogin} className="px-8 pb-8">
           {error && (
             <div className="mb-4 p-3 rounded-lg text-[12px] text-red-700 font-medium animate-shake"
-              style={{ background: '#FEF0F0', border: '1px solid #FECACA' }}>
+              style={{ background: 'var(--cbc-danger-bg)', border: '1px solid var(--cbc-danger-border)' }}>
               {error}
             </div>
           )}
 
           {resetSent ? (
             <div className="text-center py-4">
-              <EnvelopeIcon className="w-12 h-12 mx-auto mb-3" style={{ color: '#1B3A5C' }} aria-hidden="true" />
-              <div className="text-sm font-bold" style={{ color: '#1B3A5C' }}>E-mail enviado!</div>
+              <EnvelopeIcon className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }} aria-hidden="true" />
+              <div className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>E-mail enviado!</div>
               <div className="text-xs text-gray-500 mt-2">Verifique sua caixa de entrada para redefinir a senha.</div>
               <button type="button" onClick={() => { setResetMode(false); setResetSent(false); setError(''); }}
-                className="mt-4 text-xs font-bold cursor-pointer hover:underline" style={{ color: '#1B3A5C' }}>
+                className="mt-4 text-xs font-bold cursor-pointer hover:underline" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
                 Voltar ao login
               </button>
             </div>
           ) : (
             <>
               <div className="mb-4">
-                <label className="block text-[10px] font-bold uppercase tracking-[1px] mb-1.5" style={{ color: '#5A6070' }}>
+                <label className="block text-[10px] font-bold uppercase tracking-[1px] mb-1.5" style={{ color: 'var(--cbc-text-secondary, #5A6070)' }}>
                   E-mail
                 </label>
                 <input
@@ -165,14 +165,14 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
                   spellCheck={false}
                   aria-label="Email"
                   className="w-full px-3.5 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all"
-                  style={{ borderColor: '#CBD3DC', color: '#1A1A1A' }}
+                  style={{ borderColor: 'var(--cbc-border-strong, #CBD3DC)', color: 'var(--cbc-text-primary, #1A1A1A)' }}
                 />
               </div>
 
               {!resetMode && (
                 <>
                   <div className="mb-4">
-                    <label className="block text-[10px] font-bold uppercase tracking-[1px] mb-1.5" style={{ color: '#5A6070' }}>
+                    <label className="block text-[10px] font-bold uppercase tracking-[1px] mb-1.5" style={{ color: 'var(--cbc-text-secondary, #5A6070)' }}>
                       Senha
                     </label>
                     <div className="relative">
@@ -185,7 +185,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
                         autoComplete="current-password"
                         aria-label="Senha"
                         className="w-full px-3.5 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all pr-10"
-                        style={{ borderColor: '#CBD3DC', color: '#1A1A1A' }}
+                        style={{ borderColor: 'var(--cbc-border-strong, #CBD3DC)', color: 'var(--cbc-text-primary, #1A1A1A)' }}
                       />
                       <button type="button" onClick={() => setShowPwd(!showPwd)}
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
@@ -202,7 +202,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
                       <span className="text-[11px] text-gray-500">Lembrar de mim</span>
                     </label>
                     <button type="button" onClick={() => { setResetMode(true); setError(''); }}
-                      className="text-[11px] font-bold cursor-pointer hover:underline" style={{ color: '#1B3A5C' }}>
+                      className="text-[11px] font-bold cursor-pointer hover:underline" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
                       Esqueci a senha
                     </button>
                   </div>
@@ -211,7 +211,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
 
               <button type="submit" disabled={loading}
                 className="w-full py-3 rounded-lg text-white font-bold text-[12px] uppercase tracking-[1px] cursor-pointer transition-all hover:opacity-90 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                style={{ background: '#1B3A5C' }}>
+                style={{ background: 'var(--cbc-navy, #1B3A5C)' }}>
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -228,7 +228,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
               {resetMode && (
                 <button type="button" onClick={() => { setResetMode(false); setError(''); }}
                   className="w-full mt-3 py-2.5 rounded-lg font-bold text-[12px] uppercase tracking-[1px] cursor-pointer transition-all hover:bg-gray-50 border border-gray-200"
-                  style={{ color: '#1B3A5C' }}>
+                  style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
                   Voltar ao Login
                 </button>
               )}

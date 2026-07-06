@@ -6,6 +6,7 @@
  *  (observ-2)  checa cron_heartbeat: se um robo nao bate o ponto no prazo, alerta
  */
 import { db, recordHealth, heartbeat, logAdvbox } from './_lib/botDb.mjs';
+import { sendCriticalAlert } from './_lib/alertEmail.mjs';
 
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
@@ -18,11 +19,17 @@ const CRON_SLA = {
   // semana (a régua só roda seg–sex; Fri→Mon ~72h > 30h gerava "Cron sem rodar").
   'asaas-sync-boletos': 14 * 60,     // 2x/dia
   'asaas-sync-customers': 26 * 60,   // 1x/dia
-  'advbox-monitor': 14 * 60,         // 2x/dia (seg-sex)
+  'advbox-monitor': 14 * 60,         // 2x/dia (06h30/17h30)
+  'advbox-snapshot': 15 * 60,        // (auditoria #86) disparado em seq ao monitor
+  'advbox-sweep-cron': 60,           // (auditoria #75) a cada 20min, 24/7
+  'db-backup-cron': 26 * 60,         // (auditoria #87) 1x/dia
+  'commission-calculator': 33 * 24 * 60, // (auditoria #89) dia 20 do mes (~33d de folga)
+  'kommo-queue-worker': 30,          // (auditoria #89) a cada 1min (drena a fila Kommo)
+  'bandwidth-check-cron': 14 * 60,   // (auditoria #93) 3x/dia
 };
 
 export default async () => {
-  const out = { health: [], caiu: [], crons_parados: [] };
+  const out = { health: [], caiu: [], crons_parados: [], kommo_failed: 0, kommo_presos: 0 };
 
   // 1) HEALTH ---------------------------------------------------------------
   try {
@@ -76,8 +83,61 @@ export default async () => {
     }
   } catch { /* tabela pode estar vazia */ }
 
+  // 3) FILA KOMMO (auditoria #76) -------------------------------------------
+  // Jobs que esgotam as tentativas viram 'failed' e morriam sem ninguem saber
+  // (o watchdog nao olhava a kommo_queue). Alerta os que FALHARAM na ultima janela
+  // (~35min, evita spam) e os pendentes ha muito tempo (worker travado).
+  try {
+    const desde = new Date(Date.now() - 35 * 60000).toISOString();
+    const { count: nFailed } = await db.from('kommo_queue')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'failed').gte('updated_at', desde);
+    if (nFailed && nFailed > 0) {
+      out.kommo_failed = nFailed;
+      await logAdvbox('kommo', 'erro', `Fila Kommo: ${nFailed} job(s) FALHOU nos ultimos 35min (esgotou as tentativas) — nota/mensagem/movimento de lead pode ter se perdido. Ver kommo_queue status=failed.`, { failed_recentes: nFailed });
+    }
+    const antigo = new Date(Date.now() - 60 * 60000).toISOString();
+    const { count: nPresos } = await db.from('kommo_queue')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending').lt('created_at', antigo);
+    if (nPresos && nPresos > 0) {
+      out.kommo_presos = nPresos;
+      await logAdvbox('kommo', 'aviso', `Fila Kommo: ${nPresos} job(s) pendente(s) ha mais de 1h — o kommo-queue-worker pode estar travado.`, { pendentes_antigos: nPresos });
+    }
+  } catch { /* kommo_queue pode nao existir em ambientes antigos */ }
+
+  // 4) E-MAIL DE ALERTA CRITICO (auditoria #88/#89) ------------------------
+  // Decisao do Paulo (06/07): e-mail para paulo@advocaciacbc.com SOMENTE em erro
+  // CRITICO — integracao caida, robo parado no prazo, ou jobs Kommo perdidos. Avisos
+  // (bandwidth 50-80%, fila pendente) NAO geram e-mail. Throttle de 2h (o watchdog roda
+  // a cada 30min) p/ nao encher a caixa. Estado do throttle em bot_config.
+  const criticos = [
+    ...out.caiu.map((s) => `Integracao CAIU: ${s}`),
+    ...out.crons_parados.map((j) => `Robo parado (nao rodou no prazo): ${j}`),
+    ...(out.kommo_failed ? [`Fila Kommo: ${out.kommo_failed} job(s) FALHARAM (nota/mensagem/lead pode ter se perdido)`] : []),
+  ];
+  out.email = 'nenhum critico';
+  if (criticos.length) {
+    try {
+      const { data: cfg } = await db.from('bot_config').select('value').eq('key', 'alert_email_state').maybeSingle();
+      const lastSent = cfg?.value?.last_sent_at ? new Date(cfg.value.last_sent_at).getTime() : 0;
+      if (Date.now() - lastSent > 2 * 3600 * 1000) {
+        const res = await sendCriticalAlert(`${criticos.length} problema(s) critico(s)`, criticos);
+        if (res.ok) {
+          out.email = 'enviado';
+          await db.from('bot_config').upsert({ key: 'alert_email_state', value: { last_sent_at: new Date().toISOString(), ultimos: criticos }, updated_at: new Date().toISOString() });
+        } else {
+          out.email = res.skipped || res.error;
+          await logAdvbox('health', 'aviso', `Erro critico detectado, mas e-mail NAO enviado (${res.skipped || res.error}). Configure RESEND_API_KEY no Netlify.`.slice(0, 300), { criticos });
+        }
+      } else {
+        out.email = 'throttled (2h)';
+      }
+    } catch (e) { out.email = `erro: ${e.message}`; }
+  }
+
   await heartbeat('monitor-watchdog', true,
-    `${out.caiu.length} caiu, ${out.crons_parados.length} cron(s) parado(s)`);
+    `${out.caiu.length} caiu, ${out.crons_parados.length} cron(s) parado(s), kommo ${out.kommo_failed} falhou/${out.kommo_presos} preso(s)`);
   console.log('[monitor-watchdog]', JSON.stringify(out));
   return new Response(JSON.stringify({ ok: true, ...out }), { headers: { 'Content-Type': 'application/json' } });
 };

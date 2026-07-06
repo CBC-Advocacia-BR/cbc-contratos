@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { friendlyError } from '../utils/friendlyError';
 import { SkeletonBoletos } from './Skeleton';
 import ErrorState from './ErrorState';
 import RelatorioBoletosModal from './RelatorioBoletosModal';
@@ -125,7 +126,7 @@ function NotesModal({ customer, userEmail, onClose, onToast }) {
     const { error } = await supabase.from('asaas_customer_notes').insert({
       customer_id: customer.id, note: newNote.trim(), author_email: userEmail || null,
     });
-    if (error) { onToast('⚠️ ' + error.message); return; }
+    if (error) { console.error('[BoletosPanel] add nota:', error); onToast('⚠️ ' + friendlyError(error)); return; }
     setNewNote('');
     load();
   };
@@ -1043,10 +1044,20 @@ export default function BoletosPanel({ userEmail = '' }) {
   // e DELETE (raro mas possivel). Volume razoavel pois ha muitos boletos.
   // Channel name ja era fixo, sem vazamento.
   useEffect(() => {
+    // (perf #13) DEBOUNCE do refetch: o sync 2x/dia mexe em varios clientes de uma
+    // vez; sem isso, cada evento disparava um fetchData() completo (~1,3k clientes +
+    // ~11k boletos), gerando dezenas de recargas em sequencia que travavam a tela.
+    // Agrupa as rajadas numa janela de 2,5s e pula quando a aba esta oculta.
+    let timer = null;
+    const scheduleRefetch = () => {
+      if (document.hidden) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timer = null; fetchData(); }, 2500);
+    };
     const channel = supabase.channel('boletos-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'asaas_customers' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'asaas_customers' }, scheduleRefetch)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); };
   }, [fetchData]);
 
   // Filter + sort customers

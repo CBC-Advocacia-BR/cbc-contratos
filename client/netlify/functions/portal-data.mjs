@@ -13,7 +13,7 @@
  */
 import { db, getGlossary } from './_lib/botDb.mjs';
 import { glossaryTranslate } from './_lib/botEngine.mjs';
-import { checkRateLimit, rateLimitResponse } from './rate-limit.mjs';
+import { checkRateLimitShared, rateLimitResponse } from './rate-limit.mjs';
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY || '';
 const H = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'private, no-store' };
@@ -211,9 +211,10 @@ function jornadaIndice(p) {
 }
 
 export default async (req) => {
-  // (seg-12) rate limit por IP ANTES de processar (funcao publica do portal sem limite ate aqui).
-  // Limite generoso (~30/min por IP via utilitario compartilhado) p/ nao atrapalhar uso normal.
-  const rl = checkRateLimit(req);
+  // (seg-12 / auditoria #77) rate limit COMPARTILHADO por IP ANTES de processar (funcao
+  // publica do portal). Bucket 'portal', ~40/min — conta entre instancias, dificultando
+  // enumeracao de token/PII (o em-memoria antigo contava do zero em cada instancia).
+  const rl = await checkRateLimitShared(req, { bucket: 'portal', max: 40, windowSeconds: 60 });
   if (!rl.allowed) return rateLimitResponse();
 
   const url = new URL(req.url);

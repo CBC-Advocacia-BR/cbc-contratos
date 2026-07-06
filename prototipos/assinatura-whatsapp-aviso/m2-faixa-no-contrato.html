@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2 — Faixa no Contrato · Aviso WhatsApp · CBC Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+    --gold:#C9A84C; --gold-dark:#B8860B;
+    --header-bg:#1B3A5C; --header-text:#FFFFFF;
+    --bg:#F0F4F8; --bg-card:#FFFFFF; --bg-subtle:#F7FAFC;
+    --panel:#EEF4FF; --panel-border:#C0D0E8;
+    --ink:#1A1A1A; --text:#1B3A5C; --text-2:#4A5568; --muted:#5E6675;
+    --border:#E2E8F0; --border-strong:#CBD5E0;
+    --success:#15803D; --success-bg:rgba(22,163,74,.10); --success-border:rgba(22,163,74,.28);
+    --warning:#B45309; --warning-bg:rgba(217,119,6,.12); --warning-border:rgba(217,119,6,.30);
+    --danger:#B91C1C; --info:#1D4ED8; --info-bg:rgba(37,99,235,.10);
+    --radius:12px; --radius-lg:18px;
+    --shadow:0 1px 6px rgba(0,0,0,.09); --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  }
+  html.dark{
+    --header-bg:#0A0F1A; --header-text:#F4CE46;
+    --bg:#0A0F1A; --bg-card:#111827; --bg-subtle:#1F2937;
+    --panel:#16233B; --panel-border:#2C405F;
+    --ink:#E5E7EB; --text:#E5E7EB; --text-2:#9CA3AF; --muted:#8A93A3;
+    --border:#374151; --border-strong:#4B5563;
+    --success:#4ADE80; --success-bg:rgba(74,222,128,.14); --success-border:rgba(74,222,128,.30);
+    --warning:#FBBF24; --warning-bg:rgba(251,191,36,.16); --warning-border:rgba(251,191,36,.32);
+    --danger:#F87171; --info:#60A5FA; --info-bg:rgba(96,165,250,.16);
+    --gold:#F4CE46; --gold-dark:#D4AF37;
+    --shadow:0 1px 6px rgba(0,0,0,.45); --shadow-lg:0 8px 30px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.55;font-size:15px;transition:background .3s ease,color .3s ease}
+  svg{flex-shrink:0}
+  header.bar{background:var(--header-bg);color:var(--header-text);text-align:center;padding:16px 20px 12px}
+  header.bar h1{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  header.bar .sub{font-size:11px;opacity:.7;letter-spacing:.6px;margin-top:2px}
+  .subbar{background:var(--navy-dark);color:#fff;text-align:center;padding:8px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  html.dark .subbar{background:#111827}
+  .subbar span{opacity:.65;font-weight:400;text-transform:none;letter-spacing:0}
+  .mode-toggle{position:fixed;top:12px;right:12px;z-index:99;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;backdrop-filter:blur(6px)}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 22px 80px}
+  .mtitle{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:31px;line-height:1.15;font-weight:700;color:var(--text);text-align:center;margin:4px 0 12px}
+  .lede{color:var(--muted);max-width:680px;margin:0 auto;text-align:center}
+  .lede b{color:var(--text)}
+  h2.section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;align-items:center;gap:12px;margin:34px 0 16px}
+  h2.section::before,h2.section::after{content:"";flex:1;height:1px;background:var(--border)}
+  .stage{background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:26px 20px;display:flex;justify-content:center}
+  .note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;max-width:640px;margin-left:auto;margin-right:auto}
+  .diag{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px}
+  .diag ul{list-style:none}
+  .diag li{font-size:13.5px;color:var(--text-2);padding:4px 0 4px 18px;position:relative}
+  .diag li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--navy-light)}
+  html.dark .diag li::before{background:var(--gold)}
+  .diag b{color:var(--text)}
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.procon{grid-template-columns:1fr}}
+  .procon .col{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px}
+  .procon h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .procon .pro h3{color:var(--success)} .procon .con h3{color:var(--warning)}
+  .procon li{font-size:13px;color:var(--text-2);margin-left:16px;padding:2px 0}
+  .mnav{display:flex;justify-content:space-between;gap:10px;margin-top:44px;font-size:13px;flex-wrap:wrap}
+  .mnav a{color:var(--text);font-weight:700;text-decoration:none;background:var(--bg-card);border:1px solid var(--border);padding:8px 16px;border-radius:999px;box-shadow:var(--shadow);transition:border-color .2s}
+  .mnav a:hover{border-color:var(--gold)}
+
+  /* :: réplica do detalhe expandido (ContratosTab) :: */
+  .detail{width:100%;max-width:620px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);padding:16px}
+  .dhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .dhead .nome{font-size:14px;font-weight:800;color:var(--ink)}
+  .dhead .nome2{font-size:11px;color:var(--muted)}
+  .badge{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;padding:4px 10px;border-radius:999px;color:var(--warning);background:var(--warning-bg);border:1px solid var(--warning-border);white-space:nowrap}
+  .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+  .meta .cell .k{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+  .meta .cell .v{font-size:12.5px;color:var(--text-2);font-weight:700}
+
+  /* :: faixa nova (padrão do alerta do Drive) :: */
+  .novo-wrap{position:relative;margin-bottom:12px}
+  .novo-outline{outline:2px dashed var(--gold);outline-offset:4px;border-radius:12px}
+  .novo-badge{position:absolute;top:-10px;right:8px;background:var(--gold);color:#1A1A1A;font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow);z-index:2}
+  .strip{display:flex;align-items:flex-start;gap:11px;border-radius:11px;padding:12px 14px;border:1px solid}
+  .strip.ok{background:var(--success-bg);border-color:var(--success-border)}
+  .strip.warn{background:var(--warning-bg);border-color:var(--warning-border)}
+  .strip .tt{font-size:13px;font-weight:800}
+  .strip.ok .tt{color:var(--success)} .strip.warn .tt{color:var(--warning)}
+  .strip .tx{font-size:11.5px;color:var(--text-2);margin-top:2px;line-height:1.5}
+  .strip .who{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:3px 9px;border-radius:999px}
+  .chip.ok{color:var(--success);background:var(--bg-card);border:1px solid var(--success-border)}
+  .chip.warn{color:var(--warning);background:var(--bg-card);border:1px solid var(--warning-border)}
+  .strip .acts{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .act{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:7px 12px;border-radius:9px;cursor:pointer;border:0;transition:transform .15s}
+  .act:hover{transform:translateY(-1px)}
+  .act.solid{background:var(--navy);color:#fff}
+  html.dark .act.solid{background:var(--gold);color:#0A0F1A}
+  .act.line{background:transparent;color:var(--text);border:1.5px solid var(--border-strong)}
+
+  /* :: painel de links (existente hoje) :: */
+  .links{background:var(--panel);border:1px solid var(--panel-border);border-radius:11px;padding:12px}
+  .links .lt{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .links .lt .k{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text)}
+  .links .lt .cp{font-size:10px;font-weight:800;color:var(--text);background:var(--bg-card);border:1px solid var(--border-strong);border-radius:8px;padding:5px 10px;cursor:pointer}
+  .lrow{display:flex;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-top:7px}
+  .lrow .nm{font-size:11px;font-weight:800;color:var(--text)}
+  .lrow .pend{font-size:9px;font-weight:900;text-transform:uppercase;padding:2px 8px;border-radius:999px;color:#854D0E;background:#FEF9C3}
+  html.dark .lrow .pend{color:#FDE68A;background:rgba(250,204,21,.15)}
+  .lrow .url{font-size:10.5px;color:var(--info);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .lrow .cp{font-size:10px;font-weight:800;color:#fff;background:var(--navy);border:0;border-radius:8px;padding:6px 11px;cursor:pointer}
+  html.dark .lrow .cp{background:var(--gold);color:#0A0F1A}
+  .wmini{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;padding:2px 7px;border-radius:999px}
+  .wmini.ok{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+  .wmini.warn{color:var(--warning);background:var(--warning-bg);border:1px solid var(--warning-border)}
+</style>
+</head>
+<body>
+<button class="mode-toggle" id="mode">🌙 Escuro</button>
+<header class="bar"><h1>CBC Advogados</h1><div class="sub">Sistema de Contratos · Mockup de funcionalidade</div></header>
+<div class="subbar">M2 · Faixa no Contrato &nbsp;<span>— aviso persistente na expansão do contrato, aba Contratos Salvos</span></div>
+
+<div class="wrap">
+  <h2 class="mtitle">Faixa de Status no Contrato</h2>
+  <p class="lede">Segue o padrão de alerta que a equipe já conhece (o aviso amarelo de "Pasta Google Drive não atribuída"). Ao expandir o contrato na aba <b>Contratos Salvos</b>, uma faixa acima dos links mostra o resultado do disparo. Fica visível para <b>qualquer pessoa da equipe</b>, a qualquer momento, até o contrato ser assinado.</p>
+
+  <h2 class="section">Estado 1 — Enviado (dentro da janela de 24h)</h2>
+  <div class="stage">
+    <div class="detail">
+      <div class="dhead">
+        <div><div class="nome">Maria Aparecida Souza</div><div class="nome2">&amp; João Carlos Souza</div></div>
+        <span class="badge">Enviado ZapSign</span>
+      </div>
+      <div class="meta">
+        <div class="cell"><div class="k">Resort</div><div class="v">Vale das Águas</div></div>
+        <div class="cell"><div class="k">Tipo</div><div class="v">Ação de Cobrança</div></div>
+        <div class="cell"><div class="k">Enviado em</div><div class="v">02/07 · 14:32</div></div>
+      </div>
+
+      <div class="novo-wrap novo-outline">
+        <span class="novo-badge">Novo</span>
+        <div class="strip ok">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <div style="flex:1">
+            <div class="tt">Links de assinatura enviados no WhatsApp</div>
+            <div class="tx">Disparo automático pelo Kommo concluído nas 2 conversas.</div>
+            <div class="who">
+              <span class="chip ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Maria · 14:32</span>
+              <span class="chip ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> João · 14:32</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="links">
+        <div class="lt"><span class="k">Links de Assinatura</span><button class="cp">Copiar Todos</button></div>
+        <div class="lrow">
+          <div style="min-width:0;flex:1">
+            <span class="nm">Maria Aparecida Souza</span> <span class="pend">Pendente</span> <span class="wmini ok">WA ✓</span>
+            <div class="url">https://app.zapsign.com.br/verificar/7f3a2b8e-91c4-4d5f</div>
+          </div>
+          <button class="cp">Copiar</button>
+        </div>
+        <div class="lrow">
+          <div style="min-width:0;flex:1">
+            <span class="nm">João Carlos Souza</span> <span class="pend">Pendente</span> <span class="wmini ok">WA ✓</span>
+            <div class="url">https://app.zapsign.com.br/verificar/c19d5e02-33ab-47aa</div>
+          </div>
+          <button class="cp">Copiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">A faixa verde fica discreta e informativa; os selos "WA ✓" acompanham cada link. Quando o contrato vira assinado, a faixa sai de cena junto com os links, como já acontece hoje.</p>
+
+  <h2 class="section">Estado 2 — Não enviado (fora da janela de 24h)</h2>
+  <div class="stage">
+    <div class="detail">
+      <div class="dhead">
+        <div><div class="nome">Maria Aparecida Souza</div><div class="nome2">&amp; João Carlos Souza</div></div>
+        <span class="badge">Enviado ZapSign</span>
+      </div>
+      <div class="meta">
+        <div class="cell"><div class="k">Resort</div><div class="v">Vale das Águas</div></div>
+        <div class="cell"><div class="k">Tipo</div><div class="v">Ação de Cobrança</div></div>
+        <div class="cell"><div class="k">Enviado em</div><div class="v">02/07 · 14:32</div></div>
+      </div>
+
+      <div class="novo-wrap novo-outline">
+        <span class="novo-badge">Novo</span>
+        <div class="strip warn">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z"/></svg>
+          <div style="flex:1">
+            <div class="tt">WhatsApp não enviado: fora da janela de 24h</div>
+            <div class="tx">João Carlos não troca mensagens no WhatsApp há mais de 24h (última: ontem 09:15). A Meta bloqueia o disparo automático. Envie o link manualmente pela conversa do Kommo.</div>
+            <div class="who">
+              <span class="chip ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Maria · enviada 14:32</span>
+              <span class="chip warn">⚠ João · pendente manual</span>
+            </div>
+            <div class="acts">
+              <button class="act solid"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> Abrir conversa do João</button>
+              <button class="act line">Copiar link do João</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="links">
+        <div class="lt"><span class="k">Links de Assinatura</span><button class="cp">Copiar Todos</button></div>
+        <div class="lrow">
+          <div style="min-width:0;flex:1">
+            <span class="nm">Maria Aparecida Souza</span> <span class="pend">Pendente</span> <span class="wmini ok">WA ✓</span>
+            <div class="url">https://app.zapsign.com.br/verificar/7f3a2b8e-91c4-4d5f</div>
+          </div>
+          <button class="cp">Copiar</button>
+        </div>
+        <div class="lrow" style="border-color:var(--warning-border)">
+          <div style="min-width:0;flex:1">
+            <span class="nm">João Carlos Souza</span> <span class="pend">Pendente</span> <span class="wmini warn">WA manual</span>
+            <div class="url">https://app.zapsign.com.br/verificar/c19d5e02-33ab-47aa</div>
+          </div>
+          <button class="cp">Copiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">O caso parcial aparece naturalmente: Maria recebeu, João não. A faixa concentra a explicação e as ações de envio manual; a pendência fica visível até o contrato ser assinado. Sem re-tentativa automática (decisão de 02/07): um disparo por contrato.</p>
+
+  <h2 class="section">Comportamento no sistema</h2>
+  <div class="diag"><ul>
+    <li><b>Onde:</b> na expansão do contrato em <b>Contratos Salvos</b>, acima do painel "Links de Assinatura". Mesmo padrão visual do alerta de pasta do Drive.</li>
+    <li><b>Persistência:</b> a faixa amarela permanece visível até o contrato ser assinado; o envio pendente é feito manualmente pela conversa.</li>
+    <li><b>Sem re-tentativa automática</b> (decisão de 02/07): um disparo por contrato, no momento do envio ao ZapSign.</li>
+    <li>Selos "WA ✓ / WA manual" por link mantêm o detalhe visível mesmo com a faixa verde recolhida.</li>
+    <li>"Marcar como resolvido" não é necessário: o estado vem do banco (<b>contratos.kommo_assinatura</b>), sem controle manual paralelo.</li>
+    <li>Dark mode nativo: todos os tons vêm dos tokens de status do sistema.</li>
+  </ul></div>
+
+  <h2 class="section">Prós & contras</h2>
+  <div class="procon">
+    <div class="col pro"><h3>Prós</h3><ul>
+      <li><b>Persistente e visível para a equipe toda</b>, não só para quem enviou.</li>
+      <li>Padrão de alerta que o time já conhece (aviso do Drive); curva de aprendizado zero.</li>
+      <li>Trata bem o caso parcial (um recebeu, outro não) com ações por pessoa.</li>
+    </ul></div>
+    <div class="col con"><h3>Contras</h3><ul>
+      <li>Só aparece <b>ao expandir</b> o contrato; não se enxerga da lista fechada.</li>
+      <li>Sem aviso no momento do envio (o operador precisa abrir o contrato para conferir).</li>
+      <li>Mais um bloco no detalhe, que já é denso.</li>
+    </ul></div>
+  </div>
+
+  <nav class="mnav">
+    <a href="m1-selo-no-envio.html">← M1 · Selo no Envio</a>
+    <a href="index.html">Índice</a>
+    <a href="m3-etapa-na-timeline.html">M3 · Etapa na Timeline →</a>
+  </nav>
+</div>
+<script>
+  const t=document.getElementById('mode');
+  t.onclick=()=>{const d=document.documentElement.classList.toggle('dark');t.textContent=d?'☀️ Claro':'🌙 Escuro'};
+</script>
+</body>
+</html>

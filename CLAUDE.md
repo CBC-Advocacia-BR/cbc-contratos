@@ -9,6 +9,14 @@
 
 **Versão em produção: v6.6.x** (última sessão 25/06/2026). Changelog detalhado das últimas sessões abaixo.
 
+### 🔧 Correções de precisão deste guia (06/07/2026 — auditoria)
+
+Alguns números/afirmações mais abaixo estavam defasados e ficam corrigidos aqui (têm precedência):
+- **62 Netlify Functions** (+ **11 libs** em `_lib/`), não "40 funções / 5 libs".
+- **`server/` foi APOSENTADO** (movido para `backups/20260620_152530_server_render_aposentado/`). Logo o **backup diário 03:00 BRT em S3 NÃO existe mais** — ⚠️ hoje **não há backup automático do banco** (pendência crítica, auditoria #87). Onde o guia disser "backup diário/S3 via `server/`", leia como **DESATIVADO**.
+- **`steps/` e `components/Stepper.jsx` já foram REMOVIDOS** (não são mais "candidatos a remoção" — só restam em `backups/`).
+- Maior componente hoje = **VendasPanel.jsx (~2516 linhas)**, depois ContratosTab (~2316) e SociosDashboard (~2043); o FormPanel (~2010) **não** é o maior.
+
 ### 🛑 REGRA DE DEPLOY (incidente 02/07/2026 — NUNCA REPETIR)
 
 Em 02/07 a produção regrediu para o app de **março** (tela antiga + login morto):
@@ -26,6 +34,32 @@ o repo estava no `main` desatualizado (snapshot de 24/03) quando um `vite build`
 4. Funções que existem só como artefato recuperado ficam documentadas em
    `client/netlify/functions/LEIA-ME-ARTEFATOS.md`; backups do incidente em
    `backups/20260702_*`.
+
+### Disparo de links de assinatura via WhatsApp/Kommo (02/07/2026) — EM PRODUÇÃO, flag ATIVA
+
+**Deployado 02/07 em 2 deploys** (2º = fix da checagem de janela; rollback: `./rollback.sh 6a4690444f7bdbfc18c581d5` volta ao pré-feature). **Validado em produção** (caminho fora_janela, contrato de teste `dbc097af`, lead PC 5663434): function+lock+nota no lead+log Monitor+faixa M2 na UI, tudo conferido ao vivo. ⚠️ **Fix crítico descoberto no teste**: eventos `incoming_chat_message` NÃO retornam filtrando por lead — só por **CONTATO** (`mainContactOfLead` → `filter[entity]=contact`); a janela da Meta é por conversa/contato mesmo.
+
+Automação aprovada pelo Paulo (reverte a parte "operador envia manualmente" da REGRA #11; via Kommo o vendedor VÊ a mensagem na conversa do lead). Spec/plano em `docs/superpowers/{specs,plans}/2026-07-02-assinatura-whatsapp-kommo*`. Backup: `backups/20260702_132531_assinatura_whatsapp/`.
+
+- **Fluxo**: enviado ao ZapSign → App chama `kommo-assinatura-send` (fire-and-forget) → function checa a **janela de 24h da Meta** (events API do Kommo, margem 60min) → dentro: grava a mensagem no campo do lead **"CBC Assinatura"** (auto-provisionado, textarea) e roda o Salesbot via job `assinatura_send` da fila (mesma op composta da cobrança); fora: **NÃO envia e NÃO re-tenta** (decisão Paulo) — posta nota `CBC.assinatura.manual:<id>` no lead e a **faixa M2** (âmbar) no detalhe do contrato orienta o envio manual (ações: Abrir conversa/Copiar link; SEM "tentar de novo").
+- **Regras**: 2 contratantes no MESMO lead = UMA mensagem com os 2 links (nunca duplicada); leads distintos = 1 mensagem personalizada cada; **1 disparo por contrato** (lock atômico `contratos.kommo_assinatura IS NULL` — coluna nova jsonb, migração `assinatura_whatsapp`).
+- **Config/kill-switch**: `bot_config.kommo.assinatura` — `ativo:false` (DESLIGADO), copy `msg_1`/`msg_2` editável sem redeploy, `janela_margem_min`. **Setup Kommo FEITO em 02/07 via navegador**: campo **"CBC Assinatura" = field_id 2441560** (textarea, criado via API de sessão) e Salesbot **"CBC - Link Assinatura" = bot_id 98654** (1 bloco `{{lead.cf.2441560}}`, criado na UI, SEM gatilho de etapa — só roda via `bots/run`); ambos já gravados na config. ⚠️ `GET /api/v4/bots` retornou VAZIO via sessão — o lookup por nome da function pode não funcionar; irrelevante enquanto o `bot_id` estiver na config. Config incompleta NÃO consome o disparo único.
+- **UI**: faixa M2 + selos `WA ✓`/`WA manual` por signatário (ContratosTab, detalhe; tokens `--cbc-*`, dark ok). Mockups das 5 opções: `prototipos/assinatura-whatsapp-aviso/` (M2 escolhido). Lógica pura testada: `utils/__tests__/assinaturaWhatsapp.test.js` (23 testes).
+- **PENDENTE p/ ativar (Paulo)**: ligar `ativo:true` na config → teste real com lead próprio (⚠️ validar o formato do endpoint `/events` no 1º teste; conferir no console do Monitor, origem `kommo`) → deploy via `deploy.sh`. (Salesbot e campo JÁ criados em 02/07.)
+
+### BI de produtividade de tarefas p/ Power BI (02/07/2026) — EM PRODUÇÃO
+
+Pedido do Paulo: medir produtividade e tempo de conclusão de tarefas do ADVBOX no Power BI (a conexão já existia: `docs/POWERBI_CONEXAO.md`, usuário read-only `powerbi_cbc`). Deploy 02/07, 198 testes ok (rollback: `./rollback.sh 6a469a3a1d375a1f54e1ec10`). Backup: `backups/20260702_154947_powerbi_produtividade/`. Migração `powerbi_produtividade` (arquivo `supabase_powerbi_produtividade.sql`).
+
+- ⚠️ **Semântica descoberta**: `vw_bi_tarefas.data_criacao` = data **AGENDADA** da tarefa (campo `date` do `/posts`), NÃO a criação — `data_conclusao − data_criacao` mede **pontualidade** (medianas 0/negativas são normais). `prazo` (deadline) só existe em 420/23k tarefas.
+- **monitor + backfill** agora gravam `payload.created_at` (criação real no ADVBOX) e `payload.reward` (pontos de gamificação) nos eventos `task_created` **e** `task_completed` (tarefa criada+concluída entre duas rodadas do monitor nunca gera `task_created`).
+- **botDb**: novo `bulkUpsertSyncItems` (`ignoreDuplicates:false`) — a fase "tarefas" do backfill **ATUALIZA duplicatas** (enriquece payload antigo); andamentos seguem insert-only e o monitor segue com `bulkRecordReturning` (só-novos, para não duplicar nota Kommo). `tarefas_gravadas` do painel passou a contar novos+atualizados.
+- **Views**: `vw_bi_tarefas` +`data_criacao_real`/`tempo_ciclo_dias`/`reward` (append no fim); **`vw_bi_produtividade`** NOVA (1 linha por pessoa×tarefa concluída; `categoria` ciclo/instantanea/sistema — instantânea = COMENTÁRIO/PUBLICAÇÃO TRATADA/VERIFICAR INTERNO); **`vw_bi_funil_etapas`** NOVA (permanência por etapa, LEAD sobre `bi_processos_log`, períodos observados desde 10/06). Tudo `security_invoker=true` + grant `powerbi_cbc`.
+- **Backfill re-rodado só na fase "tarefas"** (estado setado via SQL pulando a fase andamentos, ~40 min) para repovoar o histórico com created_at/reward. **CONCLUÍDO 02/07 19h10 UTC: 22.018/22.028 concluídas com created_at (99,95%)**.
+- **Fase 2 (mesmo dia)** — migração `powerbi_painel_fase2` (arquivo `supabase_powerbi_painel_fase2.sql`): tabela **`bi_equipes`** (pessoa→equipe, 24 seed 'operacional', Paulo classifica vendas), `vw_bi_produtividade` +coluna `equipe`, **`vw_bi_carga_atual`** (abertas com 1 linha/pessoa via regexp_split, aging, equipe), **`vw_bi_distribuicao`** (criado_em→process_date; **validado: `process_date` = data de distribuição**, mediana de diferença 0 vs tarefa DISTRIBUIR AÇÃO; flag `cadastro_retroativo` p/ importados antigos; mediana 12m = 23 dias) e **`vw_bi_tarefas_pre_distribuicao`** (esteira até distribuir). Semântica: ⚠️ tarefa "NF - REFAZER PREST CONTAS" NÃO existe no ADVBOX (o próximo é CORRIGIR PRESTAÇÃO DE CONTAS); `%DISTRIBUIR%` genérico mistura DISTRIBUIR CUMPRIMENTO e infla a régua (usar DISTRIBUIR AÇÃO). **Tutorial de iniciante p/ montar o painel: `docs/POWERBI_PAINEL_TUTORIAL.md`** (6 páginas, medidas DAX prontas; também publicado como Artifact).
+- **Fase 3 (mesmo dia, decisões do Paulo)** — migração `powerbi_esteira_retrabalho` (arquivo `supabase_powerbi_esteira_retrabalho.sql`): coluna **`retrabalho`** na produtividade (= REFAZER* + **CORRIGIR PRESTAÇÃO DE CONTAS**, definição confirmada; 344 all-time), **`situacao_agenda`** na carga (vencida/para hoje/próximos 7 dias/mais adiante — visão da coordenadora; em 02/07: 832 vencidas/82 hoje/439 próx.7d), `vw_bi_tarefas_pre_distribuicao` **recriada** (drop+create; base = `vw_bi_distribuicao`) com `dias_desde_criacao`+`cadastro_retroativo` = **esteira completa**. **Achado**: gargalo da distribuição NÃO é execução (ciclos 0–2 dias) e sim a **espera até a 1ª tarefa** (~dia 22 de vida do processo; mediana distribuição 12m = 23 dias); caudas = DOCUMENTAÇÃO FALTANDO (dia 33,5), ACOMPANHAR PAGAMENTO (dia 39), REFAZER INICIAL (dia 43). Régua principal = `process_date` (decisão Paulo). **Cadência do monitor MANTIDA 2×/dia** (Paulo: "não necessário nesse momento"; teto útil se mudar = 8 refresh/dia no Power BI ⇒ espelho de hora em hora + 8 slots, exige deploy pequeno). **Falta Paulo**: ditar quem é de vendas na `bi_equipes` (24 seed 'operacional'; PUBLIS CBC/SUPORTE ADVBOX são usuários de sistema).
+- **Arquivo PRONTO do painel (PBIP)** — a pedido do Paulo ("só abrir no Power BI"): projeto gerado por script em **`powerbi/CBC-Painel/`** (+ **`powerbi/CBC-Painel-PowerBI-v4.zip`** p/ levar ao Windows; gerador versionado em `powerbi/gerar_pbip.py`). **v3 = formato CLÁSSICO** (SemanticModel `model.bim` TMSL + Report `report.json` legado com config stringificado) — a v1 em TMDL/PBIR falhou no Desktop do Paulo ("Missing required artifact 'model.bim'", formato novo exige preview) e a v2 caiu em colisão de nome (⚠️ lição: **medida NÃO pode ter o mesmo nome de coluna da MESMA tabela**, case-insensitive — 'Retrabalho' virou 'Qtde Retrabalho'); v3 falhou em 'Erro ao renderizar o relatório' → v4 adiciona o ESQUELETO dos .pbix reais no report.json (id numérico no root/seções/visuais, tabOrder, resourcePackages+tema base CY24SU06). v1-v3 arquivadas em `backups/20260702_163104_*`. No 1º refresh real: pooler pool_size 15 estourou (fix = desmarcar "carregamento paralelo de tabelas" no Desktop, viaja no arquivo) e `42501 permission denied for table contratos` (fix = migração `powerbi_fix_vw_contratos`: `vw_powerbi_contratos` → security_invoker=false — powerbi_cbc não lê a base sensível, só a view). Pre-flight validado 02/07 com SET ROLE powerbi_cbc: as 10 views legíveis, nenhuma vazia (Contratos=201).
+- **Carga Atual reconciliada (02/07 à noite, decisões Paulo; deploy `6a46b3a2f63682b4388075f6`, 198 testes ok)** — "vencidas" estava inflado (829 atrib./722 tarefas) por 3 causas do ESPELHO: remarcação no ADVBOX não atualizava a data aqui; tarefa EXCLUÍDA nunca fecha (sem evento); responsável duplo conta 2×. Fixes: (1) monitor agora **re-upserta slim** (sem communicated/communicated_at — senão novidades antigas reaparecem) as abertas conhecidas → remarcações valem; (2) **`bot_tarefas_abertas_snapshot`** (tabela nova) = retrato dos IDs abertos AGORA, gravado por rodada (upsert+delete por timestamp, nunca vazio; pula se paginação truncar em MAX_PAGES) e `vw_bi_carga_atual` INNER JOIN nele; (3) **COMENTÁRIO fora da carga** e categoria 'sistema' na produtividade (some das contagens do painel — [Concluídas] exclui 'sistema' — sem apagar do BI); (4) **vencida = 1+ dia ÚTIL completo** de atraso (novo valor 'carencia (1 dia util)'; coluna `dias_uteis_atraso` append; sáb/dom fora, feriados não considerados). Migração `powerbi_carga_reconciliacao` (seed do retrato = espelho até a 1ª rodada). Conteúdo: 11 tabelas (10 views + Calendario calculada), 21 medidas com filtros de negócio embutidos (sem filtros de página), 3 relacionamentos, 6 páginas/39 visuais. Credenciais NÃO vão no arquivo (Paulo digita 1×; senha na memória `powerbi-credencial-bi`). Convenção: [Concluídas] exclui categoria 'sistema'; medidas de tempo só categoria 'ciclo'; medidas de Distribuicao/PreDistribuicao excluem cadastro_retroativo. Se falhar ao abrir: pedir print e corrigir o JSON (é texto). **v5** (02/07 noite): +medida [Tarefas Vencidas] (DISTINCTCOUNT, únicas) no cartão 4 da P1 (pedido Paulo: atrasadas no lugar de abertas; troca manual de 30s no arquivo já configurado — não precisa re-baixar). **Fuso BRT** na carga (migração `powerbi_carga_fuso_brt` — current_date UTC pulava de dia às 21h BRT). **Guia de leitura do painel (p/ usuário)**: `docs/POWERBI_GUIA_PAINEL.md` + Artifact próprio. Compartilhar grátis = Salvar Como **.pbix** (dados embutidos, abre sem senha; refresh pede senha); credenciais nunca são embutíveis no arquivo (design do Power BI). **Conta p/ publicar**: Power BI nuvem recusa e-mail pessoal — criar conta grátis com e-mail do domínio @advocaciacbc.com (código chega no Gmail); seção 8.0 do tutorial. **Guia de instalação em PC novo (DEFINITIVO, tabela erro→solução de tudo)**: `docs/POWERBI_INSTALACAO_NOVO_PC.md` + Artifact 🔧. Trilogia de docs: TUTORIAL (montar) · GUIA_PAINEL (ler) · INSTALACAO_NOVO_PC (instalar).
 
 ### Auditoria de bugs + melhorias (25/06/2026) — EM PRODUÇÃO
 
@@ -157,7 +191,7 @@ Correções de negócio:
 3. Tokens ADVBOX/CPF-API ainda no bundle frontend (rotacionar + mover para proxies).
 
 ### Documento completo de melhorias
-Ver **`SUGESTOES_MELHORIAS.md`** na raiz do projeto (356 sugestões em 12 dimensões). Obs: parte das sugestões de UX foi gerada a partir deste guia defasado e precisa ser re-validada contra o app v6.4.0 real.
+Ver **`docs/planejamento/SUGESTOES_MELHORIAS.md`** (movido da raiz em 06/07/2026 — auditoria #32; 356 sugestões em 12 dimensões). Obs: parte das sugestões de UX foi gerada a partir deste guia defasado e precisa ser re-validada contra o app real.
 
 ---
 
@@ -211,14 +245,13 @@ Ver **`SUGESTOES_MELHORIAS.md`** na raiz do projeto (356 sugestões em 12 dimens
 - Dev: **eslint 9** (flat config) + plugins react-hooks/react-refresh, **vitest 3** (testes em `utils/__tests__`), **sharp** (otimização de imagem no build)
 - ⚠️ **Leaflet/react-leaflet e file-saver foram REMOVIDOS** (tree-shaking 04/2026) — GeoHeatmap hoje é lista/barras, não mapa Leaflet.
 
-### Backend (`server/`) — automações pesadas + backup
-- **Node.js + Express 5** · **node-cron 4.2** — backup diário 03:00 BRT
-- **Puppeteer 24.40** — renderização PDF server-side · **Tesseract.js + por.traineddata** (OCR PT)
-- **@aws-sdk/client-s3 3.x** — backup redundante em S3
-- ⚠️ Pouco usado no dia a dia: o grosso das automações migrou para Netlify Functions. `server/index.js` é monolito; existe `server/src/*` modular (cutover nunca feito).
+### Backend (`server/`) — ⚠️ APOSENTADO (20/06/2026)
+- **`server/` foi removido do repo** (movido para `backups/20260620_152530_server_render_aposentado/`). Rodava Express + node-cron (backup diário 03:00 BRT) + Puppeteer/OCR + `@aws-sdk/client-s3` (backup redundante em S3).
+- ⚠️ **Consequência: NÃO há mais backup automático do banco** (o cron de backup vivia aqui). Ver pendência crítica de backup (auditoria #87) — precisa ser recriado como Netlify Scheduled Function ou via backup gerenciado do Supabase Pro.
+- Referências a `server/` mais abaixo neste guia estão desatualizadas — o app hoje é 100% `client/` (SPA + Netlify Functions).
 
 ### Serverless (`client/netlify/functions/`)
-- **40 Netlify Functions** em `.mjs` (Node 22) + **5 libs compartilhadas** em `_lib/` (`advbox.mjs`, `kommo.mjs`, `botDb.mjs`, `botEngine.mjs`, `asaasMirror.mjs`)
+- **62 Netlify Functions** em `.mjs` (Node 22) + **11 libs compartilhadas** em `_lib/` (advbox, kommo, botDb, botEngine, asaasMirror, cobranca, kommoQueue, googleAgenda, advboxMaps, nfseAmericana, assinaturaWhatsapp)
 - **2 Edge Functions** (`edge-functions/health.ts`, `zapsign-proxy.ts`) — frontend chama `/api/*` com fallback p/ `/.netlify/functions/*` (`utils/apiEndpoints.js`)
 - Famílias: `advbox-*` (sync/bot/monitor/backfill/snapshot/vendas), `asaas-*` (sync/webhook/boleto-code), `kommo-*` (note/advbox-webhook), `portal-*` (data/admin/feedback/pergunta/push/manifest), `zapsign-*` (proxy/webhook), `save-to-drive*`, `datajud-refresh`, `commission-calculator`, `cobranca-regua`, `reminder-cron`, `keep-warm`, `health`, `cpf-lookup`, `api-powerbi`, `api-rest`, `rate-limit`
 - Crons nativos Netlify (ver §8 para schedules reais)
@@ -272,7 +305,7 @@ cbc-contratos/
 │   │   └── index.css              ← Design tokens + componentes Tailwind + seção MOBILE REDESIGN
 │   ├── public/                   ← _headers, favicons, logos (webp+png), portal.html, portal-sw.js
 │   ├── netlify/
-│   │   ├── functions/             ← 40 funções (.mjs) + _lib/ (5 libs compartilhadas)
+│   │   ├── functions/             ← 62 funções (.mjs) + _lib/ (11 libs compartilhadas)
 │   │   └── edge-functions/        ← health.ts, zapsign-proxy.ts
 │   ├── dist/                      ← Build de produção (Vite)
 │   ├── deploy.sh / rollback.sh / check-bandwidth.sh
@@ -367,7 +400,7 @@ As 12 abas (gated por `user_permissions.tabs`, exceto **Sócios** que é gated p
 ### Ideias levantadas mas não implementadas
 - Migrar a nota Kommo #18 ("abriu e não assinou") para webhook ZapSign server-side (hoje roda no navegador, só com o app aberto).
 - Aniversários automáticos, alertas de prazo, notas internas com contexto processual.
-- Dezenas de sugestões em `SUGESTOES_*.md` e `docs/SUGESTOES_PORTAL_*.md` (revalidar contra o app real).
+- Dezenas de sugestões em `docs/planejamento/SUGESTOES_*.md` (movidas da raiz em 06/07 — auditoria #32; revalidar contra o app real).
 
 ---
 
@@ -582,8 +615,8 @@ Design system custom com variáveis CSS em `index.css`. Tempo de transição pad
 | `reminder-cron` | `*/15 * * * *` | a cada 15 min |
 | `keep-warm` | `*/10 * * * *` | a cada 10 min (cold start de `health`/`zapsign-proxy`) |
 
-### Crons Server Node
-- Backup diário completo: **03:00 BRT** (contratos + clausulas + audit_log → local + S3)
+### Crons Server Node — ⚠️ DESATIVADOS (server/ aposentado 20/06/2026)
+- ~~Backup diário completo 03:00 BRT (contratos + clausulas + audit_log → local + S3)~~ **NÃO roda mais** — o `server/` foi removido. **Hoje não há backup automático do banco** (pendência crítica, auditoria #87). Recriar como Netlify Scheduled Function ou ativar backup gerenciado do Supabase Pro.
 
 ### Google Apps Script
 - URL: `https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec`

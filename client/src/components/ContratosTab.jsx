@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef, memo } from 'react';
 // (perf-fe-1) avaliado: nao virtualizado — as linhas EXPANDEM no lugar (altura
 // variavel: detalhe, links de assinatura, comentarios), e FixedSizeList cortaria o
-// detalhe aberto. Mesma decisao ja tomada no BoletosPanel. Import mantido (#168) por
-// nao fazer parte do escopo desta task; nenhuma <List> e usada nesta aba.
-import { FixedSizeList as List } from 'react-window'; // (#168) — nao usado (ver perf-fe-1 acima)
+// detalhe aberto. Mesma decisao ja tomada no BoletosPanel. Por isso NAO importamos
+// react-window aqui (import morto removido — auditoria 06/07/2026, perf #17).
 import { supabase } from '../lib/supabase';
 import { checkZapSignStatus, saveSignedDocToDrive, getSignedFileUrl } from '../utils/zapsignService';
+import { friendlyError } from '../utils/friendlyError';
 import { SkeletonContratosTab } from './Skeleton';
 import ErrorState from './ErrorState';
 import DriveFolderModal from './DriveFolderModal';
@@ -114,7 +114,8 @@ function AdvboxSyncButton({ dados, dataAssinatura, contractId, existingLawsuitId
       // libera a trava (volta p/ error) p/ o robo poder re-tentar
       if (contractId) { try { await supabase.from('contratos').update({ advbox_status: 'error' }).eq('id', contractId); } catch { /* best-effort */ } }
       setStatus('error');
-      setMsg(err.message);
+      console.error('[ContratosTab] envio/automacao falhou:', err);
+      setMsg(friendlyError(err)); // (#38) msg amigavel; detalhe tecnico no console
     }
     setTimeout(() => { setStatus(''); setMsg(''); }, 8000);
   };
@@ -469,6 +470,147 @@ const SignerName = memo(function SignerName({ signer, index, kommoLink }) {
           Link copiado!
         </div>
       )}
+    </div>
+  );
+});
+
+// ─── (assinatura 02/07/2026) Faixa M2: disparo dos links via Kommo/WhatsApp ───
+// Le contratos.kommo_assinatura (gravado pela function kommo-assinatura-send):
+// verde = enviado dentro da janela de 24h; ambar = fora da janela/erro -> envio
+// MANUAL pela conversa do Kommo. SEM re-tentativa automatica e SEM "tentar de novo"
+// (decisao do Paulo 02/07). Mockup escolhido: prototipos/assinatura-whatsapp-aviso/m2.
+function waStatusForSigner(ka, signerName) {
+  if (!ka?.status || ka.status === 'processando') return null;
+  const nome = String(signerName || '').trim().toLowerCase();
+  for (const l of ka.leads || []) {
+    if ((l.contratantes || []).some((n) => String(n).trim().toLowerCase() === nome)) {
+      return l.resultado === 'enviado' ? 'enviado' : 'manual';
+    }
+  }
+  return null;
+}
+
+function WaPill({ ka, name }) {
+  const wa = waStatusForSigner(ka, name);
+  if (!wa) return null;
+  const ok = wa === 'enviado';
+  return (
+    <span className="text-[11px] font-bold uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap"
+      title={ok ? 'Link enviado no WhatsApp (dentro da janela de 24h)' : 'Fora da janela de 24h — envie o link manualmente pela conversa do Kommo'}
+      style={ok
+        ? { color: 'var(--cbc-success)', background: 'var(--cbc-success-bg)', border: '1px solid var(--cbc-success-border)' }
+        : { color: 'var(--cbc-warning)', background: 'var(--cbc-warning-bg)', border: '1px solid var(--cbc-warning-border)' }}>
+      {ok ? 'WA ✓' : 'WA manual'}
+    </span>
+  );
+}
+
+const WhatsAppAssinaturaStrip = memo(function WhatsAppAssinaturaStrip({ ka, contratantes, signers }) {
+  if (!ka?.status) return null;
+  const fmtHora = (iso) => {
+    try { return iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : null; }
+    catch { return null; }
+  };
+
+  if (ka.status === 'processando') {
+    return (
+      <div className="p-3 rounded-lg flex items-center gap-2 my-2" style={{ background: 'var(--cbc-neutral-bg)', border: '1px solid var(--cbc-neutral-border)' }}>
+        <ArrowPathIcon className="w-4 h-4 animate-spin shrink-0" style={{ color: 'var(--cbc-text-muted)' }} aria-hidden="true" />
+        <span className="text-xs font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Verificando janela do WhatsApp…</span>
+      </div>
+    );
+  }
+
+  const leads = ka.leads || [];
+  const enviados = leads.filter((l) => l.resultado === 'enviado');
+  const pendentes = leads.filter((l) => l.resultado !== 'enviado');
+  const nomesLower = (l) => (l.contratantes || []).map((n) => String(n).trim().toLowerCase());
+  // Conversa do Kommo do grupo pendente (via linkKommo do contratante correspondente)
+  const linkKommoDe = (l) => {
+    const nomes = nomesLower(l);
+    const c = (contratantes || []).find((x) => nomes.includes(String(x?.nome || '').trim().toLowerCase()) && /\/leads\/detail\/\d+/.test(x?.linkKommo || ''));
+    return c?.linkKommo || null;
+  };
+  // Links de assinatura do grupo (p/ copiar e colar na conversa)
+  const linksDe = (l) => {
+    const nomes = nomesLower(l);
+    return (signers || [])
+      .filter((s) => nomes.includes(String(s?.name || '').trim().toLowerCase()) && s?.sign_url)
+      .map((s) => `${s.name}: ${s.sign_url}`).join('\n');
+  };
+  const chipStyle = (ok) => (ok
+    ? { color: 'var(--cbc-success)', background: 'var(--cbc-bg-card, #fff)', border: '1px solid var(--cbc-success-border)' }
+    : { color: 'var(--cbc-warning)', background: 'var(--cbc-bg-card, #fff)', border: '1px solid var(--cbc-warning-border)' });
+
+  if (ka.status === 'ok') {
+    return (
+      <div className="p-3 rounded-lg flex items-start gap-2.5 my-2" style={{ background: 'var(--cbc-success-bg)', border: '1px solid var(--cbc-success-border)' }}>
+        <CheckCircleIcon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--cbc-success)' }} aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-bold" style={{ color: 'var(--cbc-success)' }}>Links de assinatura enviados no WhatsApp</div>
+          <div className="text-xs mt-0.5" style={{ color: 'var(--cbc-text-secondary)' }}>
+            Disparo automático pelo Kommo concluído em {leads.length} conversa{leads.length > 1 ? 's' : ''}.
+          </div>
+          <div className="flex gap-1.5 flex-wrap mt-1.5">
+            {enviados.map((l, i) => (
+              <span key={i} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(true)}>
+                ✓ {(l.contratantes || []).join(' + ')}{l.sent_at ? ` · ${fmtHora(l.sent_at)}` : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // parcial / fora_janela / erro — aviso p/ envio manual (sem re-tentativa automatica)
+  const temForaJanela = pendentes.some((l) => l.resultado === 'fora_janela');
+  const titulo = temForaJanela ? 'WhatsApp não enviado: fora da janela de 24h' : 'WhatsApp não enviado: erro na integração';
+  const texto = temForaJanela
+    ? 'A Meta só permite mensagem automática se o cliente escreveu nas últimas 24h. Envie o link manualmente pela conversa do Kommo.'
+    : `Falha técnica ao disparar${ka.erro ? ` (${ka.erro})` : ''}. Envie o link manualmente pela conversa do Kommo.`;
+
+  return (
+    <div className="p-3 rounded-lg flex items-start gap-2.5 my-2" style={{ background: 'var(--cbc-warning-bg)', border: '1px solid var(--cbc-warning-border)' }}>
+      <ExclamationTriangleIcon className="w-5 h-5 shrink-0 mt-0.5" style={{ color: 'var(--cbc-warning)' }} aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-bold" style={{ color: 'var(--cbc-warning)' }}>{titulo}</div>
+        <div className="text-xs mt-1" style={{ color: 'var(--cbc-text-secondary)' }}>{texto}</div>
+        {leads.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap mt-1.5">
+            {enviados.map((l, i) => (
+              <span key={`ok-${i}`} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(true)}>
+                ✓ {(l.contratantes || []).join(' + ')} · enviada {fmtHora(l.sent_at)}
+              </span>
+            ))}
+            {pendentes.map((l, i) => (
+              <span key={`p-${i}`} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(false)}>
+                ⚠ {(l.contratantes || []).join(' + ')} · {l.resultado === 'fora_janela' ? (l.last_msg_at ? `última msg ${fmtHora(l.last_msg_at)}` : 'sem conversa recente') : 'erro'}
+              </span>
+            ))}
+          </div>
+        )}
+        {pendentes.map((l, i) => {
+          const kommoUrl = linkKommoDe(l);
+          const links = linksDe(l);
+          if (!kommoUrl && !links) return null;
+          return (
+            <div key={`act-${i}`} className="flex items-center gap-2 flex-wrap mt-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--cbc-warning)' }}>
+                {(l.contratantes || []).join(' + ')}:
+              </span>
+              {kommoUrl && (
+                <a href={kommoUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1.5 rounded-lg text-white cursor-pointer hover:opacity-90 transition-all"
+                  style={{ background: '#1B3A5C' }}>
+                  <ChatBubbleLeftRightIcon className="w-3.5 h-3.5" aria-hidden="true" /> Abrir conversa
+                </a>
+              )}
+              {links && <CopyButton text={links} label="Copiar link" />}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 });
@@ -1138,8 +1280,10 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
           setContratos(prev => prev.map(c => c.id === row.id ? { ...c, ...row } : c));
         }
         if (selectedIdRef.current === row.id) {
-          supabase.from('contratos').select('*').eq('id', row.id).single()
-            .then(({ data }) => { if (data) setDetail(data); });
+          // (perf #18) o payload do realtime (row = payload.new) ja traz a linha
+          // COMPLETA; fazemos merge no detalhe em vez de um SELECT * extra, que
+          // rebaixava o JSONB `dados` pesado a cada update do contrato aberto.
+          setDetail(prev => (prev && prev.id === row.id) ? { ...prev, ...row } : prev);
         }
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'contratos' }, (payload) => {
@@ -1830,6 +1974,15 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                       )}
                     </div>
 
+                    {/* (assinatura 02/07/2026) Faixa M2 — resultado do disparo WhatsApp via Kommo */}
+                    {detail.status !== 'assinado' && detail.kommo_assinatura && (
+                      <WhatsAppAssinaturaStrip
+                        ka={detail.kommo_assinatura}
+                        contratantes={detail.dados?.contratantes}
+                        signers={detail.zapsign_links}
+                      />
+                    )}
+
                     {/* Signing links — only show when sent but not yet fully signed */}
                     {detail.zapsign_links && detail.zapsign_links.length > 0 && detail.status !== 'assinado' && (
                       <div className="p-3 rounded-lg space-y-2" style={{ background: '#EEF4FF', border: '1px solid #C0D0E8' }}>
@@ -1862,6 +2015,8 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                                       {signer.status === 'signed' ? 'Assinado' : 'Pendente'}
                                     </span>
                                   )}
+                                  {/* (assinatura 02/07) selo do disparo WhatsApp por signatario */}
+                                  <WaPill ka={detail.kommo_assinatura} name={signer.name} />
                                 </div>
                                 <p className="text-[11px] text-blue-700 truncate mt-0.5">{signer.sign_url}</p>
                               </div>

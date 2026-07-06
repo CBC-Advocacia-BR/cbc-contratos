@@ -17,6 +17,13 @@ const WEBHOOK_SECRET = process.env.ZAPSIGN_WEBHOOK_SECRET || '';
 
 const ZAP_API = 'https://api.zapsign.com.br/api/v1';
 
+// (auditoria #21) Client Supabase em ESCOPO DE MODULO — reutilizado entre invocacoes
+// quentes do mesmo container (menos cold start). null-safe: se faltar env, o handler
+// retorna 500 (checagem !SUPA_URL/!SUPA_KEY) antes de tocar em `sb`.
+const sb = (SUPA_URL && SUPA_KEY)
+  ? createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } })
+  : null;
+
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 }
@@ -67,7 +74,7 @@ export default async (req) => {
     return jsonResponse({ error: 'missing doc token' }, 400);
   }
 
-  const sb = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } });
+  // (auditoria #21) usa o client de escopo de modulo (criado no topo, reutilizado).
 
   // Localiza o contrato pelo doc token
   const { data: contract, error: lookupErr } = await sb

@@ -10,7 +10,7 @@
  * Substitui a chamada direta que existia em src/utils/apiLookup.js, onde o token
  * ficava embutido no site (visível para qualquer visitante).
  */
-import { checkRateLimit, rateLimitResponse } from './rate-limit.mjs';
+import { checkRateLimitShared, rateLimitResponse } from './rate-limit.mjs';
 
 const CPF_API_TOKEN = process.env.CPF_API_TOKEN; // configurar na Netlify
 // Pacote 1 = CPF A (só nome; sem nascimento). Trocado do 7 (CPF B) em 01/07/2026:
@@ -32,9 +32,10 @@ export default async (req) => {
   const cpf = String(url.searchParams.get('cpf') || '').replace(/\D/g, '');
   if (cpf.length !== 11) return json({ valid: false, nome: '' }, 400);
 
-  // (seg-12 / portal-4) rate limit por IP ANTES da chamada externa paga (R$0,25/consulta).
-  // Funcao publica e cara: limita ~30/min por IP usando o utilitario compartilhado.
-  const rl = checkRateLimit(req);
+  // (seg-12 / portal-4 / auditoria #77) rate limit COMPARTILHADO por IP ANTES da chamada
+  // externa PAGA (R$0,25/consulta). Teto baixo (20/min) no bucket 'cpf' — conta de verdade
+  // entre instancias (o em-memoria antigo quase nao limitava e deixava gastar credito).
+  const rl = await checkRateLimitShared(req, { bucket: 'cpf', max: 20, windowSeconds: 60 });
   if (!rl.allowed) return rateLimitResponse();
 
   // Se o token ainda não foi configurado, falha de forma segura (não quebra a tela).

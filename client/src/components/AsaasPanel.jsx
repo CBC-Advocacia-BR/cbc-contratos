@@ -80,6 +80,9 @@ function LaunchBtn({ contract, onDone }) {
   const [err, setErr] = useState('');
   const [done, setDone] = useState(false);
   const [selIdx, setSelIdx] = useState(0);
+  // (anti-duplicidade 06/07/2026) parcelamentos em aberto do cliente devolvidos
+  // pelo servidor (duplicate_warning); null = sem aviso pendente.
+  const [warning, setWarning] = useState(null);
   // (chatguru removal 2026-05) chatguruSent removido — asaas-sync nao envia mais via ChatGuru
   const d = contract.dados || {};
   const num = d.numContratantes || 1;
@@ -93,9 +96,10 @@ function LaunchBtn({ contract, onDone }) {
     );
   }
 
-  const go = async (e) => {
+  const go = async (e, force = false) => {
     e?.stopPropagation();
     setLoading(true); setErr('');
+    if (!force) setWarning(null);
     let claimedLock = false;
     try {
       const c = d.contratantes[selIdx];
@@ -110,7 +114,7 @@ function LaunchBtn({ contract, onDone }) {
       if (!claimed || claimed.length === 0) throw new Error('Cobrança já está sendo lançada ou já foi lançada — aguarde/atualize a lista.');
       claimedLock = true;
       const resort = d.resort === 'outro' ? d.resortCustom : d.resort;
-      const res = await callAsaas('create-payment', { contratante: c, honorarios: d.honorarios, contractId: contract.id, resort });
+      const res = await callAsaas('create-payment', { contratante: c, honorarios: d.honorarios, contractId: contract.id, resort, force });
 
       // (fix D 01/06/2026) Mesmo se payment falhou, se backend retornou customer.id,
       // gravamos no banco para evitar customer orfao no Asaas (caso Celso).
@@ -120,6 +124,19 @@ function LaunchBtn({ contract, onDone }) {
             asaas_customer_id: res.customer.id,
           }).eq('id', contract.id);
         } catch { /* best-effort: persistir customer_id nao deve bloquear o lancamento */ }
+      }
+
+      // (anti-duplicidade 06/07/2026) cliente ja tem parcelamento em aberto no Asaas.
+      // Libera a trava (volta p/ null, nao fica preso em 'launching') e mostra o aviso;
+      // o usuario decide via "Lancar mesmo assim" (rechama go com force=true).
+      if (res.duplicate_warning) {
+        try {
+          await supabase.from('contratos').update({ asaas_status: null })
+            .eq('id', contract.id).eq('asaas_status', 'launching');
+        } catch { /* best-effort */ }
+        claimedLock = false;
+        setWarning(res.existing || []);
+        return;
       }
 
       if (!res.success) {
@@ -170,6 +187,50 @@ function LaunchBtn({ contract, onDone }) {
         {loading ? '...' : 'Lançar'}
       </button>
       {err && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-red-500" title={err} aria-label={err} />}
+
+      {/* (anti-duplicidade 06/07/2026) aviso de parcelamento em aberto — decisao Paulo: avisar e deixar confirmar */}
+      {warning && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center modal-backdrop-glass p-3"
+          onClick={(e) => { e.stopPropagation(); setWarning(null); }}>
+          <div className="modal-glass rounded-xl w-full max-w-[520px] max-h-[85dvh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b flex items-center gap-2.5" style={{ background: '#B45309' }}>
+              <ExclamationTriangleIcon className="w-5 h-5 text-white shrink-0" aria-hidden="true" />
+              <div className="min-w-0">
+                <h3 className="text-white font-bold text-sm">Cliente já tem cobrança em aberto</h3>
+                <p className="text-[10px] text-white/70 truncate">{contract.nome_contratante1} · confira antes de lançar de novo</p>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-2" style={{ background: 'var(--cbc-surface, #fff)' }}>
+              <p className="text-xs" style={{ color: 'var(--cbc-text-secondary, #4B5563)' }}>
+                Encontrei <b>{warning.length}</b> parcelamento(s) com parcela em aberto no Asaas para este cliente.
+                Lançar outra cobrança agora pode <b>duplicar</b>.
+              </p>
+              {warning.map((g, i) => (
+                <div key={g.key || i} className="border rounded-lg p-2.5 text-xs" style={{ background: '#FFFBEB', borderColor: '#FDE68A' }}>
+                  <div className="font-bold" style={{ color: '#92400E' }}>{g.description || 'Cobrança'}</div>
+                  <div className="mt-0.5" style={{ color: '#78350F' }}>
+                    {g.openCount} parcela(s) em aberto{g.installmentTotal ? ` de ${g.installmentTotal}` : ''} · {fmt(g.openValue)}
+                  </div>
+                  <div className="mt-0.5" style={{ color: '#A16207' }}>Vencimentos: {fmtD(g.firstDue)} → {fmtD(g.lastDue)}</div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 border-t flex items-center justify-end gap-2" style={{ background: 'var(--cbc-surface, #fff)' }}>
+              <button onClick={(e) => { e.stopPropagation(); setWarning(null); }}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border cursor-pointer hover:opacity-80"
+                style={{ borderColor: 'var(--cbc-border, #D1D5DB)', color: 'var(--cbc-text-secondary, #4B5563)' }}>
+                Cancelar
+              </button>
+              <button onClick={(e) => go(e, true)} disabled={loading}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg cursor-pointer text-white hover:opacity-90 disabled:opacity-50 flex items-center gap-1"
+                style={{ background: '#B45309' }}>
+                {loading ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : null}
+                {loading ? 'Lançando...' : 'Lançar mesmo assim'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

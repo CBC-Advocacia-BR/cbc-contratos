@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M5 — Central de Disparo · Aviso WhatsApp · CBC Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+    --gold:#C9A84C; --gold-dark:#B8860B;
+    --header-bg:#1B3A5C; --header-text:#FFFFFF;
+    --bg:#F0F4F8; --bg-card:#FFFFFF; --bg-subtle:#F7FAFC;
+    --panel:#EEF4FF; --panel-border:#C0D0E8;
+    --ink:#1A1A1A; --text:#1B3A5C; --text-2:#4A5568; --muted:#5E6675;
+    --border:#E2E8F0; --border-strong:#CBD5E0;
+    --success:#15803D; --success-bg:rgba(22,163,74,.10); --success-border:rgba(22,163,74,.28);
+    --warning:#B45309; --warning-bg:rgba(217,119,6,.12); --warning-border:rgba(217,119,6,.30);
+    --danger:#B91C1C; --info:#1D4ED8; --info-bg:rgba(37,99,235,.10);
+    --radius:12px; --radius-lg:18px;
+    --shadow:0 1px 6px rgba(0,0,0,.09); --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  }
+  html.dark{
+    --header-bg:#0A0F1A; --header-text:#F4CE46;
+    --bg:#0A0F1A; --bg-card:#111827; --bg-subtle:#1F2937;
+    --panel:#16233B; --panel-border:#2C405F;
+    --ink:#E5E7EB; --text:#E5E7EB; --text-2:#9CA3AF; --muted:#8A93A3;
+    --border:#374151; --border-strong:#4B5563;
+    --success:#4ADE80; --success-bg:rgba(74,222,128,.14); --success-border:rgba(74,222,128,.30);
+    --warning:#FBBF24; --warning-bg:rgba(251,191,36,.16); --warning-border:rgba(251,191,36,.32);
+    --danger:#F87171; --info:#60A5FA; --info-bg:rgba(96,165,250,.16);
+    --gold:#F4CE46; --gold-dark:#D4AF37;
+    --shadow:0 1px 6px rgba(0,0,0,.45); --shadow-lg:0 8px 30px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.55;font-size:15px;transition:background .3s ease,color .3s ease}
+  svg{flex-shrink:0}
+  header.bar{background:var(--header-bg);color:var(--header-text);text-align:center;padding:16px 20px 12px}
+  header.bar h1{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  header.bar .sub{font-size:11px;opacity:.7;letter-spacing:.6px;margin-top:2px}
+  .subbar{background:var(--navy-dark);color:#fff;text-align:center;padding:8px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  html.dark .subbar{background:#111827}
+  .subbar span{opacity:.65;font-weight:400;text-transform:none;letter-spacing:0}
+  .mode-toggle{position:fixed;top:12px;right:12px;z-index:99;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;backdrop-filter:blur(6px)}
+  .wrap{max-width:880px;margin:0 auto;padding:30px 22px 80px}
+  .mtitle{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:31px;line-height:1.15;font-weight:700;color:var(--text);text-align:center;margin:4px 0 12px}
+  .lede{color:var(--muted);max-width:680px;margin:0 auto;text-align:center}
+  .lede b{color:var(--text)}
+  h2.section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;align-items:center;gap:12px;margin:34px 0 16px}
+  h2.section::before,h2.section::after{content:"";flex:1;height:1px;background:var(--border)}
+  .stage{background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:26px 20px;display:flex;justify-content:center}
+  .note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;max-width:640px;margin-left:auto;margin-right:auto}
+  .diag{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px}
+  .diag ul{list-style:none}
+  .diag li{font-size:13.5px;color:var(--text-2);padding:4px 0 4px 18px;position:relative}
+  .diag li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--navy-light)}
+  html.dark .diag li::before{background:var(--gold)}
+  .diag b{color:var(--text)}
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.procon{grid-template-columns:1fr}}
+  .procon .col{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px}
+  .procon h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .procon .pro h3{color:var(--success)} .procon .con h3{color:var(--warning)}
+  .procon li{font-size:13px;color:var(--text-2);margin-left:16px;padding:2px 0}
+  .mnav{display:flex;justify-content:space-between;gap:10px;margin-top:44px;font-size:13px;flex-wrap:wrap}
+  .mnav a{color:var(--text);font-weight:700;text-decoration:none;background:var(--bg-card);border:1px solid var(--border);padding:8px 16px;border-radius:999px;box-shadow:var(--shadow);transition:border-color .2s}
+  .mnav a:hover{border-color:var(--gold)}
+
+  /* :: card Central de Disparo :: */
+  .wcard{width:100%;max-width:600px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;position:relative}
+  .novo-wrap{position:relative}
+  .novo-outline{outline:2px dashed var(--gold);outline-offset:5px;border-radius:14px}
+  .novo-badge{position:absolute;top:-11px;right:8px;background:var(--gold);color:#1A1A1A;font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow);z-index:2}
+  .whead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;background:var(--navy);color:#fff}
+  html.dark .whead{background:#0F2035}
+  .whead .k{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px}
+  .whead .overall{font-size:10px;font-weight:900;padding:4px 11px;border-radius:999px;white-space:nowrap}
+  .whead .overall.ok{background:rgba(74,222,128,.2);color:#4ADE80}
+  .whead .overall.warn{background:rgba(251,191,36,.2);color:#FBBF24}
+  .wbody{padding:14px 16px}
+  .prow{display:flex;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;align-items:flex-start}
+  .prow + .prow{margin-top:10px}
+  .prow.warn{border-color:var(--warning-border);background:var(--warning-bg)}
+  .avatar{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+  html.dark .avatar{background:var(--gold);color:#0A0F1A}
+  .prow .nm{font-size:13px;font-weight:800;color:var(--ink)}
+  .prow .lead{font-size:10px;color:var(--muted);margin-top:1px}
+  .stpill{display:inline-flex;align-items:center;gap:5px;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.4px;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  .stpill.ok{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+  .stpill.warn{color:var(--warning);background:var(--bg-card);border:1px solid var(--warning-border)}
+  .meterbox{margin-top:9px}
+  .meterbox .mk{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px}
+  .meter{height:5px;background:var(--border);border-radius:99px;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:99px}
+  .meter i.ok{width:78%;background:var(--success)}
+  .meter i.zero{width:3%;background:var(--warning)}
+  .pacts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .pa{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:7px 12px;border-radius:9px;cursor:pointer;border:0;transition:transform .15s}
+  .pa:hover{transform:translateY(-1px)}
+  .pa.solid{background:var(--navy);color:#fff}
+  html.dark .pa.solid{background:var(--gold);color:#0A0F1A}
+  .pa.line{background:transparent;color:var(--text);border:1.5px solid var(--border-strong)}
+  .wfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--border);background:var(--bg-subtle);flex-wrap:wrap}
+  .wfoot .fi{font-size:10.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .wfoot .fi b{color:var(--text-2)}
+</style>
+</head>
+<body>
+<button class="mode-toggle" id="mode">🌙 Escuro</button>
+<header class="bar"><h1>CBC Advogados</h1><div class="sub">Sistema de Contratos · Mockup de funcionalidade</div></header>
+<div class="subbar">M5 · Central de Disparo &nbsp;<span>— painel completo por contratante, com medidor da janela de 24h</span></div>
+
+<div class="wrap">
+  <h2 class="mtitle">Central de Disparo WhatsApp</h2>
+  <p class="lede">Um painel dedicado dentro do contrato expandido, uma linha por contratante: status do disparo, <b>medidor visual da janela de 24h</b> (quanto tempo resta antes de fechar), horário da última mensagem do cliente e todas as ações no lugar. É a opção mais completa, pensada para quem cuida da esteira de assinaturas o dia todo.</p>
+
+  <h2 class="section">Estado 1 — Tudo enviado (dentro da janela)</h2>
+  <div class="stage">
+    <div class="novo-wrap novo-outline">
+      <span class="novo-badge">Novo</span>
+      <div class="wcard">
+        <div class="whead">
+          <span class="k"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> Disparo WhatsApp</span>
+          <span class="overall ok">2 de 2 enviados</span>
+        </div>
+        <div class="wbody">
+          <div class="prow">
+            <span class="avatar">MA</span>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+                <div><div class="nm">Maria Aparecida Souza</div><div class="lead">Conversa própria no Kommo · lead #5663306</div></div>
+                <span class="stpill ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Enviado · 14:32</span>
+              </div>
+              <div class="meterbox">
+                <div class="mk"><span>Janela de 24h aberta</span><span>cliente respondeu há 2h</span></div>
+                <div class="meter"><i class="ok"></i></div>
+              </div>
+            </div>
+          </div>
+          <div class="prow">
+            <span class="avatar">JC</span>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+                <div><div class="nm">João Carlos Souza</div><div class="lead">Conversa própria no Kommo · lead #5663411</div></div>
+                <span class="stpill ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Enviado · 14:32</span>
+              </div>
+              <div class="meterbox">
+                <div class="mk"><span>Janela de 24h aberta</span><span>cliente respondeu há 5h</span></div>
+                <div class="meter"><i class="ok" style="width:62%"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wfoot">
+          <span class="fi">📝 <b>Nota registrada no lead</b> para o vendedor acompanhar</span>
+          <span class="fi">Disparo automático · hoje 14:32</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Cada contratante tem sua linha com o medidor da janela. Quando os dois estão verdes, o painel é pura confirmação e ocupa pouco espaço mental.</p>
+
+  <h2 class="section">Estado 2 — Parcial (um enviado, outro fora da janela)</h2>
+  <div class="stage">
+    <div class="novo-wrap novo-outline">
+      <span class="novo-badge">Novo</span>
+      <div class="wcard">
+        <div class="whead">
+          <span class="k"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> Disparo WhatsApp</span>
+          <span class="overall warn">1 de 2 enviado · ação necessária</span>
+        </div>
+        <div class="wbody">
+          <div class="prow">
+            <span class="avatar">MA</span>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+                <div><div class="nm">Maria Aparecida Souza</div><div class="lead">Conversa própria no Kommo · lead #5663306</div></div>
+                <span class="stpill ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> Enviado · 14:32</span>
+              </div>
+            </div>
+          </div>
+          <div class="prow warn">
+            <span class="avatar">JC</span>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap">
+                <div><div class="nm">João Carlos Souza</div><div class="lead">Conversa própria no Kommo · lead #5663411</div></div>
+                <span class="stpill warn">⚠ Fora da janela de 24h</span>
+              </div>
+              <div class="meterbox">
+                <div class="mk"><span>Janela fechada</span><span>última mensagem: ontem 09:15</span></div>
+                <div class="meter"><i class="zero"></i></div>
+              </div>
+              <div class="pacts">
+                <button class="pa solid"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> Abrir conversa</button>
+                <button class="pa line">Copiar link</button>
+                <button class="pa line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> Tentar de novo</button>
+                <button class="pa line">✓ Marquei como enviado manual</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="wfoot">
+          <span class="fi">📝 <b>Nota registrada no lead do João</b>: pendência visível ao vendedor</span>
+          <span class="fi">🔄 Re-tentativa automática a cada 5 min se o cliente responder</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">O caso parcial é o dia a dia com casais: Maria recebeu, João não. A linha âmbar concentra o motivo, o medidor zerado e as quatro ações, incluindo "marquei como enviado manual" para dar baixa na pendência.</p>
+
+  <h2 class="section">Comportamento no sistema</h2>
+  <div class="diag"><ul>
+    <li><b>Onde:</b> painel novo na expansão do contrato (aba Contratos Salvos), acima dos links de assinatura; some quando o contrato é assinado.</li>
+    <li>O <b>medidor da janela</b> usa o horário da última mensagem do cliente (API de eventos do Kommo) captado no momento do disparo.</li>
+    <li>"Tentar de novo" re-verifica a janela na hora; a re-tentativa automática (polling de 5 min) faz o mesmo sem cliques.</li>
+    <li>"Marquei como enviado manual" grava quem deu baixa e quando, no mesmo <b>contratos.kommo_assinatura</b> (auditável).</li>
+    <li>PJ: a linha mostra a empresa com o representante legal entre parênteses; conversa é o lead da empresa.</li>
+    <li>Estados via realtime: se o cliente responder e o sistema entregar, a linha âmbar vira verde sozinha.</li>
+  </ul></div>
+
+  <h2 class="section">Prós & contras</h2>
+  <div class="procon">
+    <div class="col pro"><h3>Prós</h3><ul>
+      <li>Painel mais completo: motivo, medidor da janela, ações e baixa manual num lugar só.</li>
+      <li>Perfeito para o caso de 2 contratantes em conversas separadas (parcial).</li>
+      <li>Auditável: registra quem resolveu a pendência e quando.</li>
+    </ul></div>
+    <div class="col con"><h3>Contras</h3><ul>
+      <li>Ocupa mais espaço no detalhe do contrato, que já é denso.</li>
+      <li>Mais elementos para construir e manter (medidor, baixa manual).</li>
+      <li>Talvez seja "muito" para quem só quer saber enviou ou não enviou.</li>
+    </ul></div>
+  </div>
+
+  <nav class="mnav">
+    <a href="m4-toast-e-central.html">← M4 · Toast e Central</a>
+    <a href="index.html">Índice</a>
+    <a href="m1-selo-no-envio.html">M1 · Selo no Envio →</a>
+  </nav>
+</div>
+<script>
+  const t=document.getElementById('mode');
+  t.onclick=()=>{const d=document.documentElement.classList.toggle('dark');t.textContent=d?'☀️ Claro':'🌙 Escuro'};
+</script>
+</body>
+</html>

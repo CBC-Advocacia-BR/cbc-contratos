@@ -8,11 +8,13 @@ import { ArrowUturnLeftIcon } from '@heroicons/react/24/outline';
 //   onUndo: () => void
 //   onDismiss: () => void
 export default function UndoToast({ lastAction, expiresAt, onUndo, onDismiss }) {
-  const [now, setNow] = useState(0);
+  // (auditoria #60) `now` inicia lazy com o relogio atual (nunca 0/stale), evitando
+  // o setState SINCRONO dentro do effect (que a regra react-hooks/set-state-in-effect
+  // sinaliza como re-render em cascata). O intervalo mantem o contador fresco.
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!lastAction) return;
-    setNow(Date.now());
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
   }, [lastAction]);

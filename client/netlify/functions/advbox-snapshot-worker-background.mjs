@@ -12,7 +12,7 @@
  * pelo monitor (nunca em paralelo) para o conjunto somar no maximo 15 req/min.
  */
 import * as adv from './_lib/advbox.mjs';
-import { db, logAdvbox, bulkRecordSyncItems, hashKey } from './_lib/botDb.mjs';
+import { db, logAdvbox, bulkRecordSyncItems, hashKey, heartbeat } from './_lib/botDb.mjs';
 
 const PAGE = 50;
 const MAX_PAGES = 100;
@@ -235,6 +235,10 @@ export default async () => {
     stats);
   // enriquecimento ViaCEP (fire-and-forget): cacheia CEPs novos p/ o ciclo noturno aplicar
   try { await fetch('https://contratos-cbc.netlify.app/.netlify/functions/viacep-enrich-background', { method: 'POST' }); } catch { /* nao critico */ }
+  // (auditoria #86) bate o ponto proprio — antes o snapshot rodava "no escuro" (so se
+  // descobria falha por dado faltando). Agora o monitor-watchdog vigia este cron.
+  await heartbeat('advbox-snapshot', stats.erros.length === 0,
+    `${stats.processos} proc, ${stats.clientes} cli, ${stats.financeiro} fin${stats.erros.length ? `, ${stats.erros.length} erro(s)` : ''}`);
   console.log('[advbox-snapshot]', JSON.stringify(stats));
   return new Response('ok');
 };

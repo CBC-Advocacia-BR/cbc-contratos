@@ -114,6 +114,24 @@ export async function bulkRecordSyncItems(items) {
   return inserted;
 }
 
+/** Upsert em massa que ATUALIZA as duplicatas (title/event_date/payload etc).
+ *  Usado pelo backfill de tarefas para enriquecer linhas antigas com campos
+ *  novos do payload (created_at/reward do ADVBOX — BI de produtividade 02/07/2026).
+ *  NAO usar no monitor: o retorno inclui linhas atualizadas, logo nao serve
+ *  para detectar itens "novos" (notas Kommo/push dependem dessa distincao). */
+export async function bulkUpsertSyncItems(items) {
+  let gravados = 0;
+  for (let i = 0; i < items.length; i += 500) {
+    const chunk = items.slice(i, i + 500);
+    const { data, error } = await db.from('bot_sync_state')
+      .upsert(chunk, { onConflict: 'kind,item_key', ignoreDuplicates: false })
+      .select('id');
+    if (error) throw new Error(`bot_sync_state bulk-upsert: ${error.message}`);
+    gravados += (data || []).length;
+  }
+  return gravados;
+}
+
 /** Lista de termos de tarefas ignoradas (bot_config 'monitor'). Match: contem, sem acento. */
 export async function getIgnoredTaskTerms() {
   const { data } = await db.from('bot_config').select('value').eq('key', 'monitor').maybeSingle();

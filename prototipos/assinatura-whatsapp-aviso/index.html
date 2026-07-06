@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aviso de Envio WhatsApp — 5 Mockups · CBC Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+    --gold:#C9A84C;
+    --header-bg:#1B3A5C; --header-text:#FFFFFF;
+    --bg:#F0F4F8; --bg-card:#FFFFFF; --bg-subtle:#F7FAFC;
+    --ink:#1A1A1A; --text:#1B3A5C; --text-2:#4A5568; --muted:#5E6675;
+    --border:#E2E8F0; --border-strong:#CBD5E0;
+    --success:#15803D; --success-bg:rgba(22,163,74,.10); --success-border:rgba(22,163,74,.28);
+    --warning:#B45309; --warning-bg:rgba(217,119,6,.12); --warning-border:rgba(217,119,6,.30);
+    --radius:12px; --shadow:0 1px 6px rgba(0,0,0,.09); --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  }
+  html.dark{
+    --header-bg:#0A0F1A; --header-text:#F4CE46;
+    --bg:#0A0F1A; --bg-card:#111827; --bg-subtle:#1F2937;
+    --ink:#E5E7EB; --text:#E5E7EB; --text-2:#9CA3AF; --muted:#8A93A3;
+    --border:#374151; --border-strong:#4B5563;
+    --success:#4ADE80; --success-bg:rgba(74,222,128,.14); --success-border:rgba(74,222,128,.30);
+    --warning:#FBBF24; --warning-bg:rgba(251,191,36,.16); --warning-border:rgba(251,191,36,.32);
+    --gold:#F4CE46;
+    --shadow:0 1px 6px rgba(0,0,0,.45); --shadow-lg:0 8px 30px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.55;font-size:15px;transition:background .3s ease,color .3s ease}
+  header.bar{background:var(--header-bg);color:var(--header-text);text-align:center;padding:18px 20px 13px}
+  header.bar h1{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  header.bar .sub{font-size:11px;opacity:.7;letter-spacing:.6px;margin-top:2px}
+  .subbar{background:var(--navy-dark);color:#fff;text-align:center;padding:9px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  html.dark .subbar{background:#111827}
+  .subbar span{opacity:.65;font-weight:400;text-transform:none;letter-spacing:0}
+  .mode-toggle{position:fixed;top:12px;right:12px;z-index:99;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;backdrop-filter:blur(6px)}
+  .wrap{max-width:920px;margin:0 auto;padding:34px 24px 80px}
+  .mtitle{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:34px;line-height:1.12;font-weight:700;color:var(--text);text-align:center;margin:2px 0 12px}
+  .lede{color:var(--muted);max-width:700px;margin:0 auto;text-align:center}
+  .lede b{color:var(--text)}
+  .states{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .state-pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;padding:7px 15px;border-radius:999px;border:1px solid}
+  .state-pill.ok{color:var(--success);background:var(--success-bg);border-color:var(--success-border)}
+  .state-pill.warn{color:var(--warning);background:var(--warning-bg);border-color:var(--warning-border)}
+  h2.section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;align-items:center;gap:12px;margin:36px 0 18px}
+  h2.section::before,h2.section::after{content:"";flex:1;height:1px;background:var(--border)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+  .mcard{display:block;text-decoration:none;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:18px 20px;transition:transform .18s,border-color .18s,box-shadow .18s;position:relative}
+  .mcard:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:var(--shadow-lg)}
+  .mcard .num{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:700;color:var(--gold)}
+  .mcard .tt{font-size:14px;font-weight:800;color:var(--text);margin-top:2px}
+  .mcard .tx{font-size:12.5px;color:var(--text-2);margin-top:6px;line-height:1.5}
+  .mcard .where{display:inline-block;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);background:var(--bg-subtle);border:1px solid var(--border);border-radius:999px;padding:3px 9px;margin-top:10px}
+  .mcard.rec::after{content:"Escolhido ✓";position:absolute;top:-9px;right:12px;background:var(--gold);color:#1A1A1A;font-size:9px;font-weight:900;letter-spacing:1px;text-transform:uppercase;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow)}
+  .tbl{width:100%;border-collapse:collapse;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);font-size:12.5px}
+  .tbl th{background:var(--navy);color:#fff;text-align:left;padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.8px}
+  html.dark .tbl th{background:#0F2035;color:#F4CE46}
+  .tbl td{padding:9px 12px;border-top:1px solid var(--border);color:var(--text-2);vertical-align:top}
+  .tbl td:first-child{font-weight:800;color:var(--text);white-space:nowrap}
+  .tbl .y{color:var(--success);font-weight:800}
+  .tbl .n{color:var(--muted)}
+  .tblwrap{overflow-x:auto}
+  .diag{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px}
+  .diag ul{list-style:none}
+  .diag li{font-size:13.5px;color:var(--text-2);padding:4px 0 4px 18px;position:relative}
+  .diag li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--navy-light)}
+  html.dark .diag li::before{background:var(--gold)}
+  .diag b{color:var(--text)}
+  footer{margin-top:40px;text-align:center;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<button class="mode-toggle" id="mode">🌙 Escuro</button>
+<header class="bar"><h1>CBC Advogados</h1><div class="sub">Sistema de Contratos · Escolha de design</div></header>
+<div class="subbar">Aviso de Envio WhatsApp &nbsp;<span>— 5 propostas de tela para a equipe acompanhar o disparo automático dos links de assinatura</span></div>
+
+<div class="wrap">
+  <h2 class="mtitle">Como a equipe vai saber se o link foi enviado?</h2>
+  <p class="lede">Com a automação aprovada, o sistema dispara o link de assinatura pelo WhatsApp (Kommo) assim que o contrato vai ao ZapSign. A regra da Meta só permite mensagem automática se o cliente escreveu nas <b>últimas 24h</b>. Estes 5 mockups mostram jeitos diferentes de exibir o resultado. Todos usam os tokens do design system (dark mode incluso; use o botão no canto) e os dois estados abaixo:</p>
+  <div class="states">
+    <span class="state-pill ok">✓ Enviado — cliente estava dentro da janela de 24h</span>
+    <span class="state-pill warn">⚠ Não enviado — fora da janela, ação manual</span>
+  </div>
+
+  <h2 class="section">Os 5 mockups</h2>
+  <div class="grid">
+    <a class="mcard" href="m1-selo-no-envio.html">
+      <div class="num">M1</div>
+      <div class="tt">Selo no Resultado do Envio</div>
+      <div class="tx">Faixa-resumo e selo por signatário dentro do modal do ZapSign, no exato momento do disparo. Feedback imediato para quem enviou.</div>
+      <span class="where">Modal ZapSign</span>
+    </a>
+    <a class="mcard rec" href="m2-faixa-no-contrato.html">
+      <div class="num">M2</div>
+      <div class="tt">Faixa no Contrato</div>
+      <div class="tx">Alerta persistente na expansão do contrato, no mesmo padrão do aviso de pasta do Drive. Visível para a equipe toda até resolver.</div>
+      <span class="where">Contratos Salvos · detalhe</span>
+    </a>
+    <a class="mcard" href="m3-etapa-na-timeline.html">
+      <div class="num">M3</div>
+      <div class="tt">Etapa na Timeline</div>
+      <div class="tx">O WhatsApp vira a 8ª bolinha da régua de automações: verde enviou, âmbar pulsando precisa de ação. Triagem em massa direto na lista.</div>
+      <span class="where">Contratos Salvos · lista</span>
+    </a>
+    <a class="mcard" href="m4-toast-e-central.html">
+      <div class="num">M4</div>
+      <div class="tt">Toast + Central de Notificações</div>
+      <div class="tx">Toast no canto na hora do disparo e item no sino para o que ficou pendente, com histórico para a equipe.</div>
+      <span class="where">Global · toasts e sino</span>
+    </a>
+    <a class="mcard" href="m5-central-de-disparo.html">
+      <div class="num">M5</div>
+      <div class="tt">Central de Disparo</div>
+      <div class="tx">Painel completo por contratante com medidor da janela de 24h, ações e baixa manual. A opção mais rica em controle.</div>
+      <span class="where">Contratos Salvos · detalhe</span>
+    </a>
+  </div>
+
+  <h2 class="section">Comparação rápida</h2>
+  <div class="tblwrap">
+  <table class="tbl">
+    <tr><th>Mockup</th><th>Visível de onde</th><th>Persistente?</th><th>Ações no lugar</th><th>Esforço de implementação</th></tr>
+    <tr><td>M1 · Selo no Envio</td><td>Modal, na hora do envio</td><td class="n">Não (fecha com o modal)</td><td class="y">Sim</td><td>Baixo</td></tr>
+    <tr><td>M2 · Faixa no Contrato</td><td>Detalhe do contrato</td><td class="y">Sim, até resolver</td><td class="y">Sim</td><td>Baixo</td></tr>
+    <tr><td>M3 · Etapa na Timeline</td><td>Lista inteira, sem abrir</td><td class="y">Sim (bolinha âmbar)</td><td class="n">Via hover/expansão</td><td>Médio</td></tr>
+    <tr><td>M4 · Toast + Central</td><td>Qualquer aba + sino</td><td class="y">Sim (no sino)</td><td class="y">Sim (no toast/item)</td><td>Médio</td></tr>
+    <tr><td>M5 · Central de Disparo</td><td>Detalhe do contrato</td><td class="y">Sim, com medidor</td><td class="y">Sim, completas</td><td>Médio-alto</td></tr>
+  </table>
+  </div>
+
+  <h2 class="section">Observações para a escolha</h2>
+  <div class="diag"><ul>
+    <li><b>Escolhido pelo Paulo (02/07): M2</b>, implementado com dois ajustes: mesmo lead = uma única mensagem com os dois links; e <b>sem re-tentativa automática</b> (fora da janela fica só o aviso de envio manual, sem botão "Tentar de novo").</li>
+    <li>Os mockups continuam <b>combináveis</b> no futuro: M1+M2, M3+M4 e M2+M3 funcionam bem juntos.</li>
+    <li>Em todos, os dados vêm do mesmo lugar (coluna <b>kommo_assinatura</b> no contrato). Trocar de aviso depois não muda o backend.</li>
+    <li>Estado "verificando" (2 a 5 segundos entre o envio e a resposta do Kommo) existe em todos, com spinner discreto.</li>
+    <li>Caso raro de erro técnico (Kommo fora do ar, lead excluído) aparece como variação vermelha do estado âmbar, com a mesma ação manual.</li>
+  </ul></div>
+
+  <footer>CBC Contratos · mockups de 02/07/2026 · pasta prototipos/assinatura-whatsapp-aviso/ · nada disto está em produção</footer>
+</div>
+<script>
+  const t=document.getElementById('mode');
+  t.onclick=()=>{const d=document.documentElement.classList.toggle('dark');t.textContent=d?'☀️ Claro':'🌙 Escuro'};
+</script>
+</body>
+</html>

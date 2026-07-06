@@ -143,8 +143,19 @@
   .btn-claro{background:#fff;color:var(--ink);border:1.5px solid var(--hairline)}
   .btn svg{width:17px;height:17px;flex:0 0 auto}
   .secao-pagos{margin-top:26px}
-  .bol.pago-card{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .bol.pago-card{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .bol.pago-card .valor{font-size:1.1875rem}
+  /* ---------- nota fiscal por cobrança (aprovado 2026-07-02) ---------- */
+  .nf-btn{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:8px;border:1.5px solid var(--gold-soft);border-radius:12px;background:var(--paper);font-size:0.8125rem;font-weight:700;color:var(--ink);text-decoration:none}
+  .nf-btn svg{width:17px;height:17px;flex:0 0 auto;color:var(--gold)}
+  .nf-btn .seta{width:15px;height:15px;color:var(--gold-text)}
+  .nf-btn:active{transform:scale(.98)}
+  .nf-aguarde{flex-basis:100%;display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px;margin-top:8px;border:1.5px dashed var(--gold-soft);border-radius:12px;font-size:0.71875rem;font-weight:700;color:var(--ink-faint);text-align:center;padding:4px 10px}
+  .nf-aviso{margin-top:9px;font-size:0.71875rem;color:var(--ink-faint);display:flex;align-items:center;gap:6px}
+  .nf-aviso svg{width:14px;height:14px;flex:0 0 auto}
+  .nf-rodape{font-size:0.6875rem;color:var(--ink-faint);text-align:center;line-height:1.55;margin-top:14px}
+  .nf-ano{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;margin-top:10px;width:100%;border:1.5px solid var(--gold);border-radius:12px;background:#fff;font-size:0.8125rem;font-weight:800;color:var(--ink);text-decoration:none;font-family:Lato}
+  .nf-ano svg{width:17px;height:17px;color:var(--gold);flex:0 0 auto}
   /* ---------- nav inferior ---------- */
   nav{
     position:fixed;left:0;right:0;bottom:0;z-index:50;
@@ -798,6 +809,7 @@
             (b.boleto_url?'<a class="btn btn-claro" href="'+esc(b.boleto_url)+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 5v14M8 5v14M12 5v10m4-10v14m4-14v10"/></svg>Ver boleto</a>':'')+
           '</div>'+
           '<button class="link-cal" data-cal="'+i+'" type="button">+ Adicionar lembrete no calendário do celular</button>'+
+          '<div class="nf-aviso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Nota fiscal sai após o pagamento</div>'+
           '</section>';
       }).join('');
     } else if(state.dados.so_exito){
@@ -813,8 +825,22 @@
         pg.pagos.map(function(b){
           return '<section class="card bol pago-card entra"><div><div class="venc">Pago em <b>'+dataBR(b.pago_em||b.vencimento)+'</b></div>'+
           '<div class="desc" style="margin-top:3px">'+esc(b.descricao)+(b.parcela?' · '+esc(b.parcela):'')+'</div></div>'+
-          '<div style="text-align:right"><div class="valor">'+BRL.format(b.valor)+'</div><span class="pill pago">✓ Pago</span></div></section>';
-        }).join('')+'</div>';
+          '<div style="text-align:right"><div class="valor">'+BRL.format(b.valor)+'</div><span class="pill pago">✓ Pago</span></div>'+
+          (b.nf_url
+            ? '<a class="nf-btn" href="'+esc(b.nf_url)+'" target="_blank" rel="noopener">'+
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>'+
+                'Nota fiscal (PDF)'+
+                '<svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="M12 3v12m-4-4 4 4 4-4"/><path stroke-linecap="round" d="M4 19h16"/></svg>'+
+              '</a>'
+            : '<div class="nf-aguarde">Nota fiscal em emissão — aparece aqui em poucos dias</div>')+
+          '</section>';
+        }).join('')+
+        (pg.pagos.some(function(b){return b.nf_url;})
+          ? '<div class="nf-rodape">Notas fiscais de serviço emitidas junto à Prefeitura de Americana–SP.<br>Autenticidade verificável pelo código impresso na própria nota.</div>'+
+            '<a class="nf-ano" id="btn-nf-ano" href="/.netlify/functions/portal-nfse?t='+encodeURIComponent(token)+'&ano='+(new Date().getFullYear())+'" target="_blank" rel="noopener">'+
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>'+
+              'Baixar todas as notas de '+(new Date().getFullYear())+' (PDF)</a>'
+          : '')+'</div>';
     }
     return h;
   }

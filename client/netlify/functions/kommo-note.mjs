@@ -13,8 +13,31 @@
  *   - text:   corpo da nota (o marker e anexado de forma discreta no fim)
  */
 
+import { supa } from './_lib/supabaseClient.mjs';
+
 const KOMMO_TOKEN = process.env.KOMMO_TOKEN || '';
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/api/v4';
+
+// (auditoria #85) cache de idempotencia no Supabase: evita paginar ate 10k notas do
+// Kommo so p/ checar duplicidade. Fonte de verdade continua sendo a paginacao (fallback
+// em cache-miss). Se a tabela nao existir / sem env -> retorna null (desconhecido) e cai
+// na paginacao — seguro de deployar antes da migracao kommo_note_log.
+async function cacheTemNota(leadId, marker) {
+  if (!supa) return null;
+  try {
+    const { data, error } = await supa.from('kommo_note_log')
+      .select('lead_id').eq('lead_id', String(leadId)).eq('marker', marker).limit(1).maybeSingle();
+    if (error) return null;
+    return !!data;
+  } catch { return null; }
+}
+async function cacheRegistra(leadId, marker) {
+  if (!supa) return;
+  try {
+    await supa.from('kommo_note_log')
+      .upsert({ lead_id: String(leadId), marker, posted_at: new Date().toISOString() }, { onConflict: 'lead_id,marker' });
+  } catch { /* best-effort: se falhar, a paginacao continua sendo a rede de seguranca */ }
+}
 
 function extrairLeadId(input) {
   if (!input) return null;
@@ -75,7 +98,14 @@ export default async (req) => {
     if (!id || !marker || !text) {
       return new Response(JSON.stringify({ ok: false, error: 'leadId/linkKommo, marker e text sao obrigatorios' }), { status: 200, headers: H });
     }
-    // Idempotencia: se ja existe nota com este marker, nao duplica
+    // (auditoria #85) FAST-PATH: se o cache do Supabase ja sabe que a nota foi postada,
+    // pula a paginacao cara no Kommo. Kommo nao deixa apagar nota, entao "posted" no cache
+    // e sempre verdade (nunca gera falso-positivo).
+    const cached = await cacheTemNota(id, marker);
+    if (cached === true) {
+      return new Response(JSON.stringify({ ok: true, posted: false, reason: 'nota ja existe (cache)', leadId: id }), { status: 200, headers: H });
+    }
+    // cache-miss ou indisponivel: pagina como fallback (fonte de verdade).
     let existe = false;
     try { existe = await jaTemNota(id, marker); }
     catch {
@@ -85,9 +115,11 @@ export default async (req) => {
       return new Response(JSON.stringify({ ok: false, posted: false, reason: 'checagem de duplicidade indisponivel — nao postado p/ evitar duplicata' }), { status: 200, headers: H });
     }
     if (existe) {
+      await cacheRegistra(id, marker); // backfill do cache p/ nao paginar de novo
       return new Response(JSON.stringify({ ok: true, posted: false, reason: 'nota ja existe', leadId: id }), { status: 200, headers: H });
     }
     await postNota(id, `${text}\n\n— ${marker}`);
+    await cacheRegistra(id, marker);
     return new Response(JSON.stringify({ ok: true, posted: true, leadId: id }), { status: 200, headers: H });
   } catch (err) {
     return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 200, headers: H });

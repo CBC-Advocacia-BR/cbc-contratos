@@ -81,6 +81,13 @@ export async function kommoGet(path) {
   return kGet(path);
 }
 
+/** POST generico no Kommo (throttle/429-retry). Usado p/ criar campo personalizado (assinatura). */
+export async function kommoPost(path, body) {
+  const r = await kommoFetch(path, { method: 'POST', body: JSON.stringify(body) }, 'POST');
+  if (!r.ok) throw new Error(`Kommo POST ${path} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 200)}`);
+  return r.status === 204 ? null : r.json();
+}
+
 /** Contato com leads vinculados */
 export async function getContact(contactId) {
   return kGet(`/contacts/${contactId}?with=leads`);
@@ -164,7 +171,9 @@ async function opCobrancaSend({ leadId, fieldId, value, botId }) {
   return true;
 }
 
-const OPS = { lead_field: opLeadField, contact_field: opContactField, lead_move: opLeadMove, task: opTask, salesbot: opSalesbot, note: opNote, cobranca_send: opCobrancaSend };
+// (assinatura 02/07) 'assinatura_send' e a MESMA operacao composta da cobranca
+// (campo do lead + Salesbot no mesmo job) — alias p/ rastreabilidade na fila.
+const OPS = { lead_field: opLeadField, contact_field: opContactField, lead_move: opLeadMove, task: opTask, salesbot: opSalesbot, note: opNote, cobranca_send: opCobrancaSend, assinatura_send: opCobrancaSend };
 
 /** Executa a operacao real no Kommo (chamada pelo drain/worker). */
 export async function runKommoOp(kind, payload) {

@@ -280,7 +280,29 @@ export async function processImport({
       if (!resp.ok || json.error) {
         throw new Error(json.error || `HTTP ${resp.status}`);
       }
-      updateStep('asaas', 'ok', `${parcelas} parcela(s) criada(s)`);
+      // (anti-duplicidade 06/07/2026) servidor avisou que o cliente JA tem parcelamento
+      // em aberto no Asaas. No import NAO forcamos: grava so o customer_id (evita orfao) e
+      // marca a etapa como atencao p/ o operador resolver na aba Asaas.
+      if (json.duplicate_warning) {
+        if (json.customer?.id) {
+          try {
+            await supabase.from('contratos').update({ asaas_customer_id: json.customer.id }).eq('id', created.id);
+          } catch { /* best-effort */ }
+        }
+        updateStep('asaas', 'error', 'cliente já tem parcelamento ativo — NÃO lançado (evitar duplicata). Resolver na aba Asaas.');
+      } else {
+        // (bug de origem corrigido 06/07/2026) PERSISTE o lancamento no contrato. Sem isto o
+        // contrato importado ficava com asaas_status=null -> aparecia "Pendente" na aba Asaas e
+        // podia ser lancado de novo (a trava #24 so checa asaas_status) -> DUPLICATA.
+        try {
+          await supabase.from('contratos').update({
+            asaas_status: 'launched',
+            asaas_payments: json.payment,
+            asaas_customer_id: json.customer?.id,
+          }).eq('id', created.id);
+        } catch { /* best-effort: persistencia nao deve esconder o sucesso do lancamento */ }
+        updateStep('asaas', 'ok', `${parcelas} parcela(s) criada(s)`);
+      }
     } catch (err) {
       updateStep('asaas', 'error', err.message || 'erro Asaas');
     }

@@ -36,6 +36,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { heartbeat } from './_lib/botDb.mjs';
 
 const SUPABASE_URL = 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPABASE_KEY =
@@ -571,11 +572,15 @@ export default async (req) => {
       }
     }
 
+    // (auditoria #89) bate ponto p/ o monitor-watchdog vigiar este cron (dinheiro dos
+    // vendedores — se parar no dia 20, ninguem era avisado).
+    await heartbeat('commission-calculator', resumo.erros.length === 0, `${resumo.duplas_processadas} duplas, ${resumo.erros.length} erro(s)`).catch(() => {});
     return new Response(JSON.stringify({ success: true, ...resumo }), {
       status: 200,
       headers: CORS,
     });
   } catch (err) {
+    await heartbeat('commission-calculator', false, String(err.message).slice(0, 120)).catch(() => {}); // (auditoria #89)
     return new Response(
       JSON.stringify({
         success: false,

@@ -1,0 +1,24 @@
+PAINEL CBC — COMO ABRIR (Windows)  [v4 — formato classico]
+===========================================================
+
+1. Copie a PASTA INTEIRA "CBC-Painel" para o computador Windows
+   (se veio no ZIP, extraia TUDO antes — botão direito > Extrair Tudo).
+
+2. Instale/atualize o Power BI Desktop (Microsoft Store, gratuito).
+
+3. Dê dois cliques em  CBC-Painel.pbip
+
+4. O painel abre com os gráficos VAZIOS (o arquivo não carrega dados
+   por segurança). Clique no botão ATUALIZAR (aba Página Inicial).
+
+5. Na janela de credenciais, aba "Banco de dados" (NÃO a aba Windows):
+   Usuário: powerbi_cbc.vygczeepvoyaehfchxko
+   Senha:   (pedir ao Paulo / Claude)
+   Se aparecer aviso de criptografia, aceite conectar sem criptografia.
+
+6. Aguarde 1-3 min. Pronto: 6 páginas nas abas de baixo.
+   Depois: Arquivo > Salvar. Para publicar no navegador e agendar
+   atualização, siga a Etapa 8 do tutorial (docs/POWERBI_PAINEL_TUTORIAL.md).
+
+Qualquer erro: tire um print e mande para o Claude —
+o arquivo é texto e se corrige em minutos.

@@ -1,0 +1,15 @@
+-- ============================================================
+-- MIGRATION: powerbi_fix_vw_contratos (02/07/2026)
+-- Refresh do Power BI falhava em "42501 permission denied for table
+-- contratos": vw_powerbi_contratos estava security_invoker=true e o
+-- usuario powerbi_cbc nao tem (nem deve ter) SELECT na tabela-base
+-- contratos (dados sensiveis/JSONB completo).
+-- Solucao: a view roda como o DONO (postgres) e o powerbi_cbc le apenas
+-- as colunas curadas via grant que ja possui na PROPRIA view.
+-- Validacao: SET ROLE powerbi_cbc -> SELECT count(*) das 10 views do
+-- painel OK (Contratos=201; nenhuma vazia; unica dependencia sem acesso
+-- em toda a arvore era esta — varredura via pg_depend/pg_rewrite).
+-- Obs: GRANT powerbi_cbc TO postgres foi feito para permitir simulacoes
+-- futuras via SET ROLE (inofensivo; postgres ja e superior).
+-- ============================================================
+alter view vw_powerbi_contratos set (security_invoker = false);

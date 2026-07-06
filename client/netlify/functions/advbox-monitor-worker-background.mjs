@@ -16,6 +16,7 @@ import * as adv from './_lib/advbox.mjs';
 import {
   db, markNotePosted, getLawsuitLeadMap, hashKey,
   getVisibilityConfig, isHiddenFromClient, syncCatalog, logAdvbox,
+  bulkUpsertSyncItems,
 } from './_lib/botDb.mjs';
 import { postNote } from './_lib/kommo.mjs';
 
@@ -72,6 +73,7 @@ export default async () => {
 
     // ---------- 1) ANDAMENTOS (last_movements paginado) ----------
     try {
+      let movesCompleto = false;
       for (let off = 0, page = 0; page < MAX_PAGES; off += PAGE, page++) {
         const res = await adv.getLastMovementsPage(start, end, off, PAGE);
         stats.paginas++;
@@ -98,11 +100,23 @@ export default async () => {
           await maybeNote('movement', m.itemKey, m.lawsuitId, `CBC.bot.mov:${hashKey(m.itemKey)}`,
             `⚖️ Novo andamento no processo ${m.mv.process_number || m.lawsuitId} (${m.mv.date}):\n${m.title.slice(0, 600)}\n\nFonte: ${m.mv.header || 'ADVBOX'} — detectado pelo Bot ADVBOX.`);
         }
-        if (res.length < PAGE) break;
+        if (res.length < PAGE) { movesCompleto = true; break; }
+      }
+      // (auditoria #81) avisa quando a paginacao de ANDAMENTOS bate no teto sem esgotar
+      // — a janela desta rodada ficou incompleta (antes so as tarefas ABERTAS avisavam).
+      if (!movesCompleto) {
+        await logAdvbox('monitor', 'aviso', `ANDAMENTOS truncados no teto de paginacao (${MAX_PAGES}x${PAGE}=${MAX_PAGES * PAGE}); itens alem do teto entram na proxima rodada.`, { categoria: 'movements', max_pages: MAX_PAGES });
       }
     } catch (e) { stats.erros.push(`movements: ${e.message}`); }
 
     // ---------- 2) TAREFAS ABERTAS (criadas) — /posts paginado ----------
+    // (reconciliacao 02/07/2026) alem de detectar novas, esta secao agora:
+    //  a) ATUALIZA data agendada/prazo/responsaveis das ja conhecidas (remarcar
+    //     tarefa no ADVBOX passava despercebido — a carga mostrava a data velha);
+    //  b) coleta o RETRATO dos ids abertos AGORA (secao 2b) — a Carga Atual do
+    //     BI so considera esses (excluidas/concluidas-sem-evento somem).
+    const abertas = new Map(); // task_id -> lawsuit_id
+    let abertasCompleto = false;
     try {
       for (let off = 0, page = 0; page < MAX_PAGES; off += PAGE, page++) {
         const { items } = await adv.getPostsPage({ limit: PAGE, offset: off });
@@ -114,13 +128,16 @@ export default async () => {
           // oculta do cliente: ENTRA no banco (BI), mas sem nota e ja "comunicada"
           const oculta = isHiddenFromClient(name, p.task_id || p.tasks_id || null, vis);
           const lawsuitId = p.lawsuits_id || p.lawsuit?.id || null;
+          abertas.set(Number(p.id), lawsuitId ? Number(lawsuitId) : null);
           const itemKey = `task:${p.id}`;
           rows.push({
             kind: 'task_created', item_key: itemKey, lawsuit_id: lawsuitId,
             process_number: p.lawsuit?.process_number || null,
             customer_name: (p.lawsuit?.customers || []).map(c => c.name).join(', ') || null,
             title: String(name).slice(0, 500), event_date: p.date || null,
-            payload: { deadline: p.date_deadline || null, users: (p.users || []).map(u => u.name), oculto: oculta || undefined },
+            // created_at/reward (02/07/2026): base do BI de produtividade (tempo de
+            // ciclo real criacao->conclusao e pontos de gamificacao do ADVBOX)
+            payload: { deadline: p.date_deadline || null, users: (p.users || []).map(u => u.name), created_at: p.created_at || null, reward: p.reward ?? null, oculto: oculta || undefined },
             // (fix 16/06/2026) sempre enviar communicated/communicated_at. Com o spread
             // condicional o lote ficava heterogeneo e o PostgREST injetava NULL na coluna
             // NOT NULL communicated, estourando o erro e perdendo o lote inteiro.
@@ -130,6 +147,15 @@ export default async () => {
           meta.push({ itemKey, lawsuitId, p, name, oculta });
         }
         const novos = await bulkRecordReturning(rows);
+        // (reconciliacao a) refresca as JA conhecidas com linhas SLIM — sem
+        // communicated/communicated_at, senao novidades antigas reapareceriam
+        if (rows.length) {
+          await bulkUpsertSyncItems(rows.map(r => ({
+            kind: r.kind, item_key: r.item_key, lawsuit_id: r.lawsuit_id,
+            process_number: r.process_number, customer_name: r.customer_name,
+            title: r.title, event_date: r.event_date, payload: r.payload,
+          })));
+        }
         for (const m of meta) {
           if (!novos.has(m.itemKey)) continue;
           if (m.oculta) { stats.ocultas = (stats.ocultas || 0) + 1; continue; }
@@ -137,9 +163,34 @@ export default async () => {
           await maybeNote('task_created', m.itemKey, m.lawsuitId, `CBC.bot.tarefa:${m.p.id}`,
             `📋 Tarefa criada no ADVBOX: ${m.name}\nProcesso: ${m.p.lawsuit?.process_number || m.lawsuitId || '-'}\nPrazo: ${m.p.date_deadline || m.p.date || '-'}\nResponsável: ${(m.p.users || []).map(u => u.name).join(', ') || '-'}\n\n— detectado pelo Bot ADVBOX.`);
         }
-        if (items.length < PAGE) break;
+        if (items.length < PAGE) { abertasCompleto = true; break; }
       }
     } catch (e) { stats.erros.push(`posts abertas: ${e.message}`); }
+
+    // ---------- 2b) RETRATO das abertas (reconciliacao) ----------
+    // Upsert com timestamp da rodada + limpeza do que ficou com timestamp velho:
+    // o retrato NUNCA fica vazio no meio do caminho. Se a paginacao truncou em
+    // MAX_PAGES, NAO mexe (marcaria como sumida tarefa que so nao foi paginada).
+    try {
+      if (abertasCompleto && abertas.size) {
+        const ids = [...abertas.entries()].map(([task_id, lawsuit_id]) => ({
+          task_id, lawsuit_id, atualizado_em: new Date().toISOString(),
+        }));
+        for (let i = 0; i < ids.length; i += 500) {
+          const { error } = await db.from('bot_tarefas_abertas_snapshot')
+            .upsert(ids.slice(i, i + 500), { onConflict: 'task_id' });
+          if (error) throw new Error(error.message);
+        }
+        const { error: eDel } = await db.from('bot_tarefas_abertas_snapshot')
+          .delete().lt('atualizado_em', started.toISOString());
+        if (eDel) throw new Error(eDel.message);
+        stats.abertas_snapshot = abertas.size;
+      } else if (!abertasCompleto) {
+        await logAdvbox('monitor', 'aviso',
+          'Retrato de abertas NAO atualizado (paginacao truncada em MAX_PAGES)',
+          { paginas: stats.paginas });
+      }
+    } catch (e) { stats.erros.push(`snapshot abertas: ${e.message}`); }
 
     // ---------- 3) TAREFAS CONCLUIDAS — /posts?completed_* paginado ----------
     try {
@@ -162,7 +213,9 @@ export default async () => {
             process_number: p.lawsuit?.process_number || null,
             customer_name: (p.lawsuit?.customers || []).map(c => c.name).join(', ') || null,
             title: String(name).slice(0, 500), event_date: String(completedAt).slice(0, 10),
-            payload: { completed_by: (p.users || []).filter(u => u.completed).map(u => u.name), oculto: oculta || undefined },
+            // created_at/reward tambem no evento de conclusao: tarefas criadas e
+            // concluidas entre duas rodadas do monitor nunca geram task_created
+            payload: { completed_by: (p.users || []).filter(u => u.completed).map(u => u.name), created_at: p.created_at || null, reward: p.reward ?? null, oculto: oculta || undefined },
             // (fix 16/06/2026) idem secao 2: communicated sempre presente (lote homogeneo).
             communicated: oculta ? true : false,
             communicated_at: oculta ? new Date().toISOString() : null,

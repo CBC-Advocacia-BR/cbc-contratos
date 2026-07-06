@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M1 — Selo no Resultado do Envio · Aviso WhatsApp · CBC Contratos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+    --gold:#C9A84C; --gold-dark:#B8860B;
+    --header-bg:#1B3A5C; --header-text:#FFFFFF;
+    --bg:#F0F4F8; --bg-card:#FFFFFF; --bg-subtle:#F7FAFC;
+    --panel:#EEF4FF; --panel-border:#C0D0E8;
+    --ink:#1A1A1A; --text:#1B3A5C; --text-2:#4A5568; --muted:#5E6675;
+    --border:#E2E8F0; --border-strong:#CBD5E0;
+    --success:#15803D; --success-bg:rgba(22,163,74,.10); --success-border:rgba(22,163,74,.28);
+    --warning:#B45309; --warning-bg:rgba(217,119,6,.12); --warning-border:rgba(217,119,6,.30);
+    --danger:#B91C1C; --info:#1D4ED8; --info-bg:rgba(37,99,235,.10);
+    --radius:12px; --radius-lg:18px;
+    --shadow:0 1px 6px rgba(0,0,0,.09); --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  }
+  html.dark{
+    --header-bg:#0A0F1A; --header-text:#F4CE46;
+    --bg:#0A0F1A; --bg-card:#111827; --bg-subtle:#1F2937;
+    --panel:#16233B; --panel-border:#2C405F;
+    --ink:#E5E7EB; --text:#E5E7EB; --text-2:#9CA3AF; --muted:#8A93A3;
+    --border:#374151; --border-strong:#4B5563;
+    --success:#4ADE80; --success-bg:rgba(74,222,128,.14); --success-border:rgba(74,222,128,.30);
+    --warning:#FBBF24; --warning-bg:rgba(251,191,36,.16); --warning-border:rgba(251,191,36,.32);
+    --danger:#F87171; --info:#60A5FA; --info-bg:rgba(96,165,250,.16);
+    --gold:#F4CE46; --gold-dark:#D4AF37;
+    --shadow:0 1px 6px rgba(0,0,0,.45); --shadow-lg:0 8px 30px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100dvh;line-height:1.55;font-size:15px;transition:background .3s ease,color .3s ease}
+  svg{flex-shrink:0}
+  header.bar{background:var(--header-bg);color:var(--header-text);text-align:center;padding:16px 20px 12px}
+  header.bar h1{font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px}
+  header.bar .sub{font-size:11px;opacity:.7;letter-spacing:.6px;margin-top:2px}
+  .subbar{background:var(--navy-dark);color:#fff;text-align:center;padding:8px 20px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  html.dark .subbar{background:#111827}
+  .subbar span{opacity:.65;font-weight:400;text-transform:none;letter-spacing:0}
+  .mode-toggle{position:fixed;top:12px;right:12px;z-index:99;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-weight:700;backdrop-filter:blur(6px)}
+  .wrap{max-width:860px;margin:0 auto;padding:30px 22px 80px}
+  .mtitle{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-size:31px;line-height:1.15;font-weight:700;color:var(--text);text-align:center;margin:4px 0 12px}
+  .lede{color:var(--muted);max-width:680px;margin:0 auto;text-align:center}
+  .lede b{color:var(--text)}
+  h2.section{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);display:flex;align-items:center;gap:12px;margin:34px 0 16px}
+  h2.section::before,h2.section::after{content:"";flex:1;height:1px;background:var(--border)}
+  .stage{background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:28px 20px;display:flex;justify-content:center;background-image:radial-gradient(circle at 20% 10%,rgba(27,58,92,.05),transparent 55%)}
+  html.dark .stage{background-image:radial-gradient(circle at 20% 10%,rgba(244,206,70,.04),transparent 55%)}
+  .note{font-size:12.5px;color:var(--muted);text-align:center;margin-top:10px;max-width:640px;margin-left:auto;margin-right:auto}
+  .diag{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 24px}
+  .diag ul{list-style:none}
+  .diag li{font-size:13.5px;color:var(--text-2);padding:4px 0 4px 18px;position:relative}
+  .diag li::before{content:"";position:absolute;left:2px;top:13px;width:6px;height:6px;border-radius:50%;background:var(--navy-light)}
+  html.dark .diag li::before{background:var(--gold)}
+  .diag b{color:var(--text)}
+  .procon{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.procon{grid-template-columns:1fr}}
+  .procon .col{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 20px}
+  .procon h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+  .procon .pro h3{color:var(--success)} .procon .con h3{color:var(--warning)}
+  .procon li{font-size:13px;color:var(--text-2);margin-left:16px;padding:2px 0}
+  .mnav{display:flex;justify-content:space-between;gap:10px;margin-top:44px;font-size:13px;flex-wrap:wrap}
+  .mnav a{color:var(--text);font-weight:700;text-decoration:none;background:var(--bg-card);border:1px solid var(--border);padding:8px 16px;border-radius:999px;box-shadow:var(--shadow);transition:border-color .2s}
+  .mnav a:hover{border-color:var(--gold)}
+
+  /* ─── réplica do ZapSignModal ─── */
+  .zmodal{width:100%;max-width:500px;background:var(--bg-card);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;border:1px solid var(--border)}
+  .zhead{background:var(--navy);color:#fff;text-align:center;padding:12px 20px}
+  html.dark .zhead{background:#0F2035;color:#F4CE46}
+  .zhead .t{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+  .zhead .s{font-size:11px;opacity:.7;margin-top:1px}
+  .zbody{padding:18px}
+  .okbox{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:15px}
+  .okrow{display:flex;gap:9px;align-items:center;margin-bottom:12px}
+  .okrow .tt{font-size:14px;font-weight:800;color:var(--text)}
+  .okrow .st{font-size:10px;color:var(--muted)}
+  .signer{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px}
+  .signer .nm{font-size:12px;font-weight:800;color:var(--text)}
+  .signer .url{font-size:10px;color:var(--info);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+  .copy{font-size:10px;font-weight:800;text-transform:uppercase;color:#fff;background:var(--navy);border:0;border-radius:8px;padding:7px 12px;cursor:pointer}
+  html.dark .copy{background:var(--gold);color:#0A0F1A}
+  .btn-all{width:100%;margin-top:12px;padding:10px;border-radius:10px;border:0;background:var(--navy-dark);color:#fff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;cursor:pointer}
+  html.dark .btn-all{background:#1F2937;color:#E5E7EB;border:1px solid var(--border-strong)}
+
+  /* ─── O NOVO: selo + faixa-resumo WhatsApp ─── */
+  .novo-wrap{position:relative}
+  .novo-outline{outline:2px dashed var(--gold);outline-offset:4px;border-radius:12px}
+  .novo-badge{position:absolute;top:-10px;right:8px;background:var(--gold);color:#1A1A1A;font-size:9px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow);z-index:2}
+  .wsummary{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;border-radius:10px;padding:9px 12px;margin-bottom:10px;border:1px solid}
+  .wsummary.ok{color:var(--success);background:var(--success-bg);border-color:var(--success-border)}
+  .wsummary.warn{color:var(--warning);background:var(--warning-bg);border-color:var(--warning-border)}
+  .wsummary .ts{margin-left:auto;font-weight:600;font-size:10.5px;opacity:.85;white-space:nowrap}
+  .wpill{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .wpill.ok{color:var(--success);background:var(--success-bg);border:1px solid var(--success-border)}
+  .wpill.warn{color:var(--warning);background:var(--warning-bg);border:1px solid var(--warning-border)}
+  .sig-meta{display:flex;align-items:center;gap:6px;margin-top:4px}
+  .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .act{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:7px 12px;border-radius:9px;cursor:pointer;border:0;transition:transform .15s}
+  .act:hover{transform:translateY(-1px)}
+  .act.solid{background:var(--warning);color:#fff}
+  html.dark .act.solid{color:#0A0F1A}
+  .act.line{background:transparent;color:var(--text);border:1.5px solid var(--border-strong)}
+</style>
+</head>
+<body>
+<button class="mode-toggle" id="mode">🌙 Escuro</button>
+<header class="bar"><h1>CBC Advogados</h1><div class="sub">Sistema de Contratos · Mockup de funcionalidade</div></header>
+<div class="subbar">M1 · Selo no Resultado do Envio &nbsp;<span>— o aviso aparece dentro do modal do ZapSign, no exato momento do disparo</span></div>
+
+<div class="wrap">
+  <h2 class="mtitle">Selo no Resultado do Envio</h2>
+  <p class="lede">Quando o operador envia o contrato, o modal já mostra hoje "Enviado com sucesso!" com os links. Este mockup adiciona <b>uma faixa-resumo do WhatsApp</b> e <b>um selo por signatário</b>: o operador sabe na hora se o cliente recebeu o link automaticamente ou se precisa agir.</p>
+
+  <h2 class="section">Estado 1 — Enviado (dentro da janela de 24h)</h2>
+  <div class="stage">
+    <div class="zmodal">
+      <div class="zhead"><div class="t">Enviar para ZapSign</div><div class="s">Assinatura Digital com Validade Jurídica</div></div>
+      <div class="zbody">
+        <div class="okbox">
+          <div class="okrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div><div class="tt">Enviado com sucesso!</div><div class="st">Contrato + Procuração</div></div>
+          </div>
+
+          <div class="novo-wrap novo-outline">
+            <span class="novo-badge">Novo</span>
+            <div class="wsummary ok">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg>
+              Links enviados no WhatsApp · 2 de 2 conversas
+              <span class="ts">hoje · 14:32</span>
+            </div>
+          </div>
+
+          <div class="signer">
+            <div style="min-width:0;flex:1">
+              <div class="nm">Maria Aparecida Souza</div>
+              <div class="url">https://app.zapsign.com.br/verificar/7f3a2b8e-91c4-4d5f</div>
+              <div class="sig-meta">
+                <span class="wpill ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> WhatsApp enviado · 14:32</span>
+              </div>
+            </div>
+            <button class="copy">Copiar</button>
+          </div>
+          <div class="signer">
+            <div style="min-width:0;flex:1">
+              <div class="nm">João Carlos Souza</div>
+              <div class="url">https://app.zapsign.com.br/verificar/c19d5e02-33ab-47aa</div>
+              <div class="sig-meta">
+                <span class="wpill ok"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg> WhatsApp enviado · 14:32</span>
+              </div>
+            </div>
+            <button class="copy">Copiar</button>
+          </div>
+          <button class="btn-all">Copiar Todos os Links</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">A faixa verde confirma o disparo nas duas conversas do Kommo. Os selos por signatário mostram o horário exato, e o operador fecha o modal com a certeza de que o cliente já recebeu.</p>
+
+  <h2 class="section">Estado 2 — Não enviado (fora da janela de 24h)</h2>
+  <div class="stage">
+    <div class="zmodal">
+      <div class="zhead"><div class="t">Enviar para ZapSign</div><div class="s">Assinatura Digital com Validade Jurídica</div></div>
+      <div class="zbody">
+        <div class="okbox">
+          <div class="okrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div><div class="tt">Enviado com sucesso!</div><div class="st">Contrato + Procuração</div></div>
+          </div>
+
+          <div class="novo-wrap novo-outline">
+            <span class="novo-badge">Novo</span>
+            <div class="wsummary warn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z"/></svg>
+              WhatsApp não enviado · fora da janela de 24h
+              <span class="ts">envie manualmente ↓</span>
+            </div>
+          </div>
+
+          <div class="signer" style="border-color:var(--warning-border);background:var(--warning-bg)">
+            <div style="min-width:0;flex:1">
+              <div class="nm">João Carlos Souza</div>
+              <div class="url">https://app.zapsign.com.br/verificar/c19d5e02-33ab-47aa</div>
+              <div class="sig-meta">
+                <span class="wpill warn"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5"/><circle cx="12" cy="12" r="9"/></svg> Última msg do cliente: ontem 09:15</span>
+              </div>
+              <div class="acts">
+                <button class="act solid"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"/></svg> Abrir conversa no Kommo</button>
+                <button class="act line">Copiar link</button>
+                <button class="act line"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg> Tentar de novo</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn-all">Copiar Todos os Links</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note">A regra da Meta bloqueia mensagem automática quando o cliente não escreve há mais de 24h. O card do signatário fica âmbar, explica o motivo e oferece as três saídas: abrir a conversa, copiar o link ou re-tentar (caso o cliente tenha acabado de responder).</p>
+
+  <h2 class="section">Comportamento no sistema</h2>
+  <div class="diag"><ul>
+    <li><b>Onde:</b> dentro do resultado do <b>ZapSignModal</b>, o mesmo lugar onde o operador já vê os links hoje.</li>
+    <li><b>Quando:</b> o status chega ~2–5s após o envio (a function verifica a janela na API do Kommo e dispara pela fila).</li>
+    <li><b>Dados:</b> lê a coluna nova <b>contratos.kommo_assinatura</b> (por lead: enviado/fora_janela/erro + horário).</li>
+    <li>Enquanto verifica, a faixa mostra um estado neutro "Verificando janela do WhatsApp…" com spinner.</li>
+    <li>Contratantes na <b>mesma conversa</b> geram 1 selo compartilhado; em conversas separadas, 1 selo por pessoa.</li>
+    <li>Fora da janela, o sistema <b>sempre registra nota interna no lead</b>; o vendedor vê a pendência também no Kommo.</li>
+  </ul></div>
+
+  <h2 class="section">Prós & contras</h2>
+  <div class="procon">
+    <div class="col pro"><h3>Prós</h3><ul>
+      <li>Feedback no <b>exato momento</b> do envio, sem nenhuma navegação extra.</li>
+      <li>Ação corretiva imediata (a janela pode reabrir a qualquer resposta do cliente).</li>
+      <li>Aproveita um modal que a equipe já conhece de cor.</li>
+    </ul></div>
+    <div class="col con"><h3>Contras</h3><ul>
+      <li>Aviso é <b>efêmero</b>: fechou o modal, o alerta some da tela.</li>
+      <li>Quem não fez o envio (resto da equipe) não vê o status depois.</li>
+      <li>Combina melhor quando pareado com um indicador persistente (M2/M3/M5).</li>
+    </ul></div>
+  </div>
+
+  <nav class="mnav">
+    <a href="index.html">← Índice</a>
+    <a href="m2-faixa-no-contrato.html">M2 · Faixa no Contrato →</a>
+  </nav>
+</div>
+<script>
+  const t=document.getElementById('mode');
+  t.onclick=()=>{const d=document.documentElement.classList.toggle('dark');t.textContent=d?'☀️ Claro':'🌙 Escuro'};
+</script>
+</body>
+</html>

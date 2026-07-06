@@ -7,7 +7,7 @@
  * hora; o que escapar (429/erro transitorio) e drenado aqui.
  */
 import { processQueue } from './_lib/kommo.mjs';
-import { logAdvbox } from './_lib/botDb.mjs';
+import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
@@ -23,9 +23,11 @@ export default async (req) => {
     // timeout de funcao comum ~10s -> mantemos a janela em 8s
     const res = await processQueue({ maxMs: 8000, throttleMs: 220 });
     if (res.failed) await logAdvbox('kommo', 'aviso', `fila Kommo: ${res.done} ok, ${res.failed} falha de ${res.processed}`, res).catch(() => {});
+    await heartbeat('kommo-queue-worker', true, `${res.done} ok, ${res.failed} falha`).catch(() => {}); // (auditoria #89)
     return new Response(JSON.stringify({ ok: true, ...res }), { headers: JSONH });
   } catch (e) {
     await logAdvbox('kommo', 'erro', `kommo-queue-worker: ${e.message}`.slice(0, 300), {}).catch(() => {});
+    await heartbeat('kommo-queue-worker', false, String(e.message).slice(0, 120)).catch(() => {}); // (auditoria #89)
     return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: JSONH });
   }
 };

@@ -7,6 +7,7 @@ import { logAdvbox } from './_lib/botDb.mjs';
 // (#9) Mapeamentos ADVBOX (origem + tipo de acao) vem de uma FONTE UNICA compartilhada,
 // testada em vitest — antes havia uma 2a copia no client que divergiu (bug Revisao de Distrato).
 import { getOrigemId, getTipoAcaoId } from './_lib/advboxMaps.mjs';
+import { moveLeadStage, postNote } from './_lib/kommo.mjs';
 
 const ADVBOX_TOKEN = process.env.ADVBOX_TOKEN;
 const ADVBOX_URL = 'https://app.advbox.com.br/api/v1';
@@ -23,11 +24,11 @@ const RESPONSAVEL_PADRAO = 241495;
 // Kommo (CRM) — apos criar cliente + processo no ADVBOX, move o lead para a
 // etapa "ADVBOX" no funil "Venda". Token via env var (server-side, nunca no bundle).
 const KOMMO_TOKEN = process.env.KOMMO_TOKEN || '';
-const KOMMO_BASE = 'https://advocaciacbc.kommo.com/api/v4';
+// (auditoria #84) KOMMO_BASE e SELF_URL removidos — o move do lead e a nota #14 agora
+// passam pela lib _lib/kommo.mjs (fila), que tem suas proprias constantes/URL.
 const KOMMO_PIPELINE_VENDA = 13760367; // funil "Venda"
 const KOMMO_STAGE_ADVBOX = 106388919;  // etapa "ADVBOX" dentro do funil "Venda"
 const KOMMO_FIELD_DRIVE = 2426274;     // campo personalizado "Drive" do lead (texto)
-const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
 function normalizeText(text) {
   if (!text) return '';
@@ -291,28 +292,8 @@ function extrairLeadIdKommo(link) {
   return m ? m[1] : null;
 }
 
-// Move um lead para a etapa ADVBOX do funil Venda (PATCH idempotente)
-async function moverLeadKommo(leadId, linkDrive) {
-  if (!KOMMO_TOKEN) throw new Error('KOMMO_TOKEN nao configurado');
-  const body = { pipeline_id: KOMMO_PIPELINE_VENDA, status_id: KOMMO_STAGE_ADVBOX };
-  // Preenche o campo personalizado "Drive" do lead no mesmo PATCH (sem custo extra)
-  if (linkDrive) {
-    body.custom_fields_values = [{ field_id: KOMMO_FIELD_DRIVE, values: [{ value: String(linkDrive) }] }];
-  }
-  const resp = await fetch(`${KOMMO_BASE}/leads/${leadId}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `Bearer ${KOMMO_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) {
-    const errTxt = await resp.text().catch(() => '');
-    throw new Error(`HTTP ${resp.status} ${errTxt.slice(0, 200)}`);
-  }
-  return resp.json().catch(() => ({}));
-}
+// (auditoria #84) moverLeadKommo REMOVIDO — o move do lead agora passa pela fila
+// via moveLeadStage() de _lib/kommo.mjs (throttle + retry 429 + dedupe).
 
 // Monta o texto da nota de resumo do negocio (#14)
 function montarResumoNota({ resort, tipo, honorarios, escritorioArcaCustas, contratantes, linkGoogleDrive, num }) {
@@ -421,24 +402,29 @@ export default async (req) => {
         const leadId = extrairLeadIdKommo(contratantes?.[i]?.linkKommo);
         if (!leadId || seen.has(leadId)) continue;
         seen.add(leadId);
-        try {
-          await moverLeadKommo(leadId, linkGoogleDrive);
+        // (auditoria #84) move o lead pela FILA do Kommo (throttle global + retry de 429
+        // + dedupe lead_move:{id}) em vez de um fetch direto que furava o rate-limit e nao
+        // re-tentava. opLeadMove cobre pipeline + status + campo Drive no MESMO PATCH.
+        const mv = await moveLeadStage(leadId, {
+          pipelineId: KOMMO_PIPELINE_VENDA, statusId: KOMMO_STAGE_ADVBOX,
+          fieldId: linkGoogleDrive ? KOMMO_FIELD_DRIVE : undefined,
+          value: linkGoogleDrive || undefined,
+        }, { source: 'advbox-sync' });
+        if (mv?.ok || mv?.direct) {
           moved.push(leadId);
-          // #14: nota de resumo do negocio no lead (idempotente via kommo-note)
-          try {
-            await fetch(`${SELF_URL}/.netlify/functions/kommo-note`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ leadId, marker: 'CBC.resumo', text: resumoTexto }),
-            });
-          } catch (e) {
-            // (integ-19) nota best-effort, mas registra a falha p/ aparecer no Monitor
-            await logAdvbox('kommo', 'aviso', `nota resumo lead ${leadId} falhou: ${e.message}`.slice(0, 300), { leadId });
-          }
-        } catch (err) {
-          // (integ-19) falha ao mover o lead no Kommo (token expirado etc.) vira aviso
-          // central no advbox_api_log em vez de so um warning que some na resposta.
-          warnings.push(`Kommo lead ${leadId}: ${err.message}`);
-          await logAdvbox('kommo', 'erro', `mover lead ${leadId} falhou: ${err.message}`.slice(0, 300), { leadId });
+        } else {
+          // drain imediato falhou -> o job fica na fila e o kommo-queue-worker retenta.
+          const motivo = mv?.error || 'falha transitoria';
+          warnings.push(`Kommo lead ${leadId}: na fila p/ retry (${motivo})`);
+          await logAdvbox('kommo', 'erro', `mover lead ${leadId}: enfileirado p/ retry (${motivo})`.slice(0, 300), { leadId });
+        }
+        // #14 (auditoria #83): nota de resumo do negocio pela FILA — idempotente por
+        // marker (CBC.resumo) + retry via worker. Antes era fetch direto SEM retry: se
+        // falhasse por um instante, o resumo daquele contrato se perdia para sempre.
+        try {
+          await postNote(leadId, 'CBC.resumo', resumoTexto, { source: 'advbox-sync' });
+        } catch (e) {
+          await logAdvbox('kommo', 'aviso', `nota resumo lead ${leadId} falhou: ${e.message}`.slice(0, 300), { leadId });
         }
       }
       kommo = { moved, pipeline: 'Venda', stage: 'ADVBOX' };

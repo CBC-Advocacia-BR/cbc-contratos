@@ -1,6 +1,7 @@
 /**
  * Scheduled: advbox-monitor
- * Roda 2x/dia (09:00 e 18:00 BRT) e dispara o worker background que:
+ * Roda 2x/dia, TODOS os dias (06:30 e 17:30 BRT — ver `schedule` abaixo, a
+ * fonte unica da verdade) e dispara o worker background que:
  *   - busca andamentos novos (GET /last_movements) e tarefas criadas/concluidas
  *   - registra tudo em bot_sync_state (alerta de "novidade nao comunicada")
  *   - posta nota automatica no lead do Kommo (via kommo-note, idempotente)

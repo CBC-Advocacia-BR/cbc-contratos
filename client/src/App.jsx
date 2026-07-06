@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef, useLayoutEffect, lazy, Suspense } from 'react';
 import * as Sentry from '@sentry/react';
+import { reportErro } from './utils/reportError';
 import { supabase } from './lib/supabase';
 import { ContractProvider, useContract } from './ContractContext';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -652,10 +653,14 @@ function AppContent() {
               if (prev === next) continue;
               await supabase.from('contratos').update({ zapsign_links: updatedLinks }).eq('id', contract.id);
             }
-          } catch (e) { console.error('ZapSign poll error:', contract.id, e); }
+          } catch (e) { reportErro('zapsign-poll', e, { contractId: contract.id }); }
         }
 
         // === PART 2: Process signed contracts missing ADVBOX or Drive ===
+        // (auditoria #75) A parte ADVBOX agora TAMBEM roda no servidor 24/7 via
+        // netlify/functions/advbox-sweep-cron.mjs (mesmo claim atomico — coexistem sem
+        // duplicar). Este polling do cliente segue como caminho rapido quando o app esta
+        // aberto e continua responsavel pelo Google Drive.
         const { data: needsProcessing } = await supabase
           .from('contratos')
           .select('id, zapsign_doc_token, dados, pdf_page_split, advbox_status, advbox_date, advbox_lawsuit_id, advbox_data, signed_at, drive_file_id, drive_attempts, drive_last_attempt_at, drive_last_error, drive_error_code')
@@ -722,7 +727,7 @@ function AppContent() {
               } catch (e) {
                 await supabase.from('contratos').update({ advbox_status: 'error', advbox_date: new Date().toISOString() }).eq('id', c.id);
                 try { await supabase.from('automation_log').insert({ contract_id: c.id, action: 'advbox', status: 'error', details: { error: e.message }, client_name: c.dados?.contratantes?.[0]?.nome }); } catch { /* log best-effort */ }
-                console.error('ADVBOX error:', c.id, e);
+                reportErro('advbox-sync', e, { contractId: c.id });
               }
             }
           }
@@ -873,12 +878,12 @@ function AppContent() {
                     client_name: c.dados?.contratantes?.[0]?.nome,
                   });
                 } catch { /* log best-effort */ }
-                console.error('Drive error:', c.id, errCode, errMsg);
+                reportErro('drive-upload', e, { contractId: c.id, errCode, errMsg });
               }
             }
           }
         }
-      } catch (e) { console.error('Automation poll error:', e); }
+      } catch (e) { reportErro('automation-poll', e); }
     }
 
     runAutomations();
@@ -1589,10 +1594,21 @@ function AppContent() {
 
       {/* Modals */}
       {showZapSign && <ZapSignModal onClose={() => setShowZapSign(false)} onSaveAfterSend={async (z) => {
-        await handleSaveContract({ status: 'enviado_zapsign', zapsign_doc_token: z?.token, zapsign_links: z?.signers, pdf_page_split: z?.pageSplit });
-        // (chatguru removal 2026-05) envio automatico ChatGuru removido.
-        // Operador agora envia link de assinatura manualmente via conversa Kommo do contratante.
-        setSaveMsg('Contrato enviado para ZapSign. Envie o link de assinatura ao cliente manualmente via Kommo.');
+        const saved = await handleSaveContract({ status: 'enviado_zapsign', zapsign_doc_token: z?.token, zapsign_links: z?.signers, pdf_page_split: z?.pageSplit });
+        // (assinatura 02/07/2026) disparo automatico do link via Kommo/WhatsApp, SO dentro
+        // da janela de 24h da Meta; fora dela a function posta nota no lead e a faixa M2
+        // (ContratosTab) avisa a equipe p/ enviar manualmente. Sem re-tentativa automatica.
+        // Fire-and-forget: function idempotente (lock em kommo_assinatura) + kill-switch
+        // em bot_config.kommo.assinatura.ativo.
+        if (saved?.id) {
+          fetch('/.netlify/functions/kommo-assinatura-send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-bot-key': import.meta.env.VITE_BOT_PANEL_KEY || '' },
+            body: JSON.stringify({ contratoId: saved.id }),
+            keepalive: true,
+          }).catch(() => {});
+        }
+        setSaveMsg('Contrato enviado para ZapSign. Dentro da janela de 24h o link segue automático pelo WhatsApp — confira a faixa no contrato.');
       }} />}
       {/* Global Search (Cmd+K) */}
       {showSearch && <Suspense fallback={null}><GlobalSearch onClose={() => setShowSearch(false)} onSelectContract={(c) => {
