@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, memo } from 'react';
 // detalhe aberto. Mesma decisao ja tomada no BoletosPanel. Por isso NAO importamos
 // react-window aqui (import morto removido — auditoria 06/07/2026, perf #17).
 import { supabase } from '../lib/supabase';
-import { checkZapSignStatus, saveSignedDocToDrive, getSignedFileUrl } from '../utils/zapsignService';
+import { checkZapSignStatus, saveSignedDocToDrive, getSignedFileUrl, resendSignerNotification } from '../utils/zapsignService';
 import { friendlyError } from '../utils/friendlyError';
 import { SkeletonContratosTab } from './Skeleton';
 import ErrorState from './ErrorState';
@@ -415,6 +415,7 @@ function getCompletedSteps(contract) {
 
 const SignerName = memo(function SignerName({ signer, index, kommoLink }) {
   const [copied, setCopied] = useState(false);
+  const [resendState, setResendState] = useState(''); // '' | 'sending' | 'sent' | 'error'
   const signed = signer.status === 'signed';
   const hasUrl = !signed && signer.sign_url;
   const views = signer.times_viewed || 0;
@@ -426,6 +427,22 @@ const SignerName = memo(function SignerName({ signer, index, kommoLink }) {
     navigator.clipboard.writeText(signer.sign_url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  // (#14) reenvia a notificacao de assinatura (e-mail/SMS via ZapSign) ao signatario.
+  // Feedback local (o SignerName e um componente memo isolado, sem acesso ao showToast).
+  const handleResend = async (e) => {
+    e.stopPropagation();
+    if (!signer.token || resendState === 'sending') return;
+    setResendState('sending');
+    try {
+      await resendSignerNotification(signer.token);
+      setResendState('sent');
+      setTimeout(() => setResendState(''), 3000);
+    } catch {
+      setResendState('error');
+      setTimeout(() => setResendState(''), 4000);
+    }
   };
 
   return (
@@ -455,6 +472,22 @@ const SignerName = memo(function SignerName({ signer, index, kommoLink }) {
       )}
       {!signed && views === 0 && (
         <span className="text-[11px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded-full">Não abriu</span>
+      )}
+      {!signed && signer.token && (
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resendState === 'sending'}
+          className="inline-flex items-center gap-0.5 text-[11px] font-bold px-1.5 py-0.5 rounded-full transition-all cursor-pointer shrink-0 hover:opacity-80 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A5C]/40"
+          style={{
+            color: resendState === 'error' ? 'var(--cbc-danger)' : resendState === 'sent' ? 'var(--cbc-success)' : 'var(--cbc-info)',
+            background: 'var(--cbc-info-bg, #eff6ff)',
+          }}
+          title="Reenviar o link de assinatura para este signatário (via ZapSign)"
+        >
+          <ArrowPathIcon className={`w-3 h-3 ${resendState === 'sending' ? 'animate-spin' : ''}`} aria-hidden="true" />
+          {resendState === 'sent' ? 'Reenviado!' : resendState === 'error' ? 'Erro' : resendState === 'sending' ? '...' : 'Reenviar'}
+        </button>
       )}
       {kommoLink && (
         <a href={kommoLink} target="_blank" rel="noopener noreferrer"

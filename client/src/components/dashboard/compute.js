@@ -322,6 +322,12 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
   const metaJanelaCount = janelaEhMesCalendario ? assinadosJanelaList.length : assinadosMesCorrente;
   const metaJanelaLabel = janelaEhMesCalendario ? monthLabelLong(janela.start) : monthLabelLong(now);
 
+  // (#13) Projecao de fechamento do mes corrente pelo ritmo atual (pro-rata dos dias
+  // decorridos). So faz sentido no mes em andamento — some quando ha filtro de periodo.
+  const metaDiaMes = now.getDate();
+  const metaDiasMes = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const projecaoMesCorrente = metaDiaMes > 0 ? Math.round((assinadosMesCorrente / metaDiaMes) * metaDiasMes) : assinadosMesCorrente;
+
   // Top resorts da janela — por data de ASSINATURA efetiva
   const topMap = {};
   assinadosJanelaList.forEach((c) => { if (c.resort) topMap[c.resort] = (topMap[c.resort] || 0) + 1; });
@@ -420,6 +426,10 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
       progress: goal > 0 ? Math.min(100, Math.round((metaJanelaCount / goal) * 100)) : 0,
       sub: goal > 0 ? `${Math.min(100, Math.round((metaJanelaCount / goal) * 100))}% da meta · ${metaJanelaLabel}` : metaJanelaLabel,
       fmt: 'raw',
+      // (#13) projecao do mes (so no mes corrente, sem filtro de periodo)
+      metaGoal: goal,
+      projecao: !hasPeriodo && metaDiaMes > 0 ? projecaoMesCorrente : null,
+      faltam: Math.max(0, goal - metaJanelaCount),
     },
     total_contratos: { label: 'Contratos no escopo', value: total, sub: range.label, fmt: 'int' },
     total_assinados: {

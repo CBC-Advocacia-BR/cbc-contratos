@@ -256,6 +256,13 @@ export function HeroKpi({ kpiKey, item, delay = 0, canCompare = true }) {
                 style={{ width: `${Math.min(100, item.progress)}%`, background: item.progress >= 100 ? 'var(--cbc-success)' : 'var(--cbc-accent)' }}
               />
             </div>
+            {typeof item.projecao === 'number' && (
+              <div className="text-[10px] mt-1 leading-tight" style={{ color: 'var(--cbc-text-muted)' }} title="Projeção de fechamento do mês pelo ritmo atual">
+                Projeção do mês:{' '}
+                <b style={{ color: item.projecao >= (item.metaGoal || 0) ? TONES.success.fg : TONES.warning.fg }}>{item.projecao}</b>
+                {item.faltam > 0 ? ` · faltam ${item.faltam}` : ' · no ritmo 🎯'}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -282,12 +289,20 @@ export function ActionStrip({ acoes, onNavigate }) {
       hint: 'Enviados recentemente — abrir Contratos',
     });
   }
-  if (acoes.driveFailed > 0 || acoes.pendAdvbox > 0) {
+  if (acoes.pendAdvbox > 0) {
     items.push({
       Icon: BoltIcon, tone: TONES.warning, tab: 'monitor',
-      value: acoes.pendAdvbox + acoes.driveFailed,
-      label: 'automações com pendência',
-      hint: `ADVBOX: ${acoes.pendAdvbox} · Drive com falha: ${acoes.driveFailed} — abrir Monitor`,
+      value: acoes.pendAdvbox,
+      label: 'assinados sem ADVBOX',
+      hint: 'Processo ainda não lançado no ADVBOX — abrir Monitor para reprocessar',
+    });
+  }
+  if (acoes.driveFailed > 0) {
+    items.push({
+      Icon: BoltIcon, tone: TONES.danger, tab: 'monitor',
+      value: acoes.driveFailed,
+      label: 'falhas no Drive',
+      hint: 'Arquivo não subiu ao Google Drive — abrir Monitor para reprocessar',
     });
   }
   if (acoes.rascunhosAntigos > 0) {
