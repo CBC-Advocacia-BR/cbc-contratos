@@ -48,7 +48,7 @@ const FAIXAS = [
 const faixaDe = (dias) => (FAIXAS.find((f) => dias >= f.lo && dias <= f.hi) || FAIXAS[3]).key;
 const PADRAO_TPL = { 1: 0, 2: 1, 3: 2, 4: null }; // faixa -> índice de template sugerido
 
-export default function CobrancaPanel({ userEmail = '' }) {
+export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState('');
   const [data, setData] = useState(null);          // cobranca-listar
@@ -57,6 +57,7 @@ export default function CobrancaPanel({ userEmail = '' }) {
   const [view, setView] = useState('cliente');     // cliente | boletos | estagio
   const [filtro, setFiltro] = useState(0);         // faixa de atraso (0 = todas)
   const [fCob, setFCob] = useState('todos');       // cobrança: todos|nunca|cobrado|7|15|30 (cobrado há +Nd)
+  const [fLead, setFLead] = useState('todos');     // (#9) vínculo com lead: todos|com|sem
   const [sel, setSel] = useState(() => new Set()); // cpfs selecionados (digits)
   const [template, setTemplate] = useState('');
   const [expand, setExpand] = useState(() => new Set());
@@ -192,13 +193,15 @@ export default function CobrancaPanel({ userEmail = '' }) {
     const hoje = new Date();
     return devs.filter((d) => {
       if (filtro && faixaDe(Number(d.maior_atraso_dias) || 0) !== filtro) return false;
+      if (fLead === 'sem' && d.match_source !== 'sem_lead') return false;   // (#9) só sem lead (manual)
+      if (fLead === 'com' && d.match_source === 'sem_lead') return false;   // (#9) só com lead
       if (fCob === 'todos') return true;
       const ult = d.ultimo_disparo_em ? Math.floor((hoje - new Date(d.ultimo_disparo_em)) / 86400000) : null;
       if (fCob === 'nunca') return ult == null;
       if (fCob === 'cobrado') return ult != null;
       return ult != null && ult >= Number(fCob); // cobrado há +N dias (passou do cooldown)
     });
-  }, [devs, filtro, fCob]);
+  }, [devs, filtro, fCob, fLead]);
   // boletos filtrados + ordenados por vencimento (mais atrasado primeiro)
   const boletosFiltrados = useMemo(() => {
     const hoje = new Date();
@@ -237,6 +240,14 @@ export default function CobrancaPanel({ userEmail = '' }) {
     const on = cpfsAcionaveis.filter((c) => sel.has(c)).length;
     return on === 0 ? false : (on === cpfsAcionaveis.length ? true : 'mixed');
   }, [cpfsAcionaveis, sel]);
+
+  // (#11) "Cobrar hoje": todos os devedores elegíveis (com lead, fora do cooldown, sem
+  // "não perturbe"), ignorando o filtro de faixa — pré-seleção do lote do dia para revisar.
+  const acionaveisHoje = useMemo(() => devs.filter((d) => d.elegivel).map((d) => digits(d.cpf)), [devs]);
+  const selecionarHoje = useCallback(() => {
+    setSel(new Set(acionaveisHoje));
+    flash(acionaveisHoje.length ? `🎯 ${acionaveisHoje.length} devedor(es) de hoje selecionados` : 'Nenhum devedor elegível hoje.');
+  }, [acionaveisHoje, flash]);
 
   const copy = useCallback(async (txt, msg) => {
     if (!txt) { flash('Sem dado para copiar.'); return; }
@@ -339,6 +350,12 @@ export default function CobrancaPanel({ userEmail = '' }) {
                 {autoEnvio.ultimo_erro ? <span title={String(autoEnvio.ultimo_erro)}> — último erro: {String(autoEnvio.ultimo_erro).slice(0, 70)}</span> : ''}
               </div>
             </div>
+            {!ok && onVerHistorico && (
+              <button onClick={onVerHistorico} className="text-[11px] font-bold px-2.5 py-1 rounded-md cursor-pointer shrink-0 whitespace-nowrap text-white"
+                style={{ background: 'var(--cbc-warning)' }} title="Ver as cobranças que falharam e reenviar (aba Histórico de Cobrança)">
+                Ver falhas →
+              </button>
+            )}
             <button onClick={loadAutoEnvio} className="text-[11px] font-bold px-2 py-1 rounded-md cursor-pointer shrink-0"
               style={{ color: 'var(--cbc-text-secondary)', border: '1px solid var(--cbc-border)' }} title="Atualizar">↻</button>
           </div>
@@ -390,6 +407,14 @@ export default function CobrancaPanel({ userEmail = '' }) {
                   style={{ background: view === k ? 'var(--cbc-navy)' : 'transparent', color: view === k ? '#fff' : 'var(--cbc-text-muted)' }}>{l}</button>
               ))}
             </div>
+            {view !== 'estagio' && acionaveisHoje.length > 0 && (
+              <button onClick={selecionarHoje}
+                title="Seleciona todos os devedores prontos para cobrar hoje (com lead, fora do cooldown, sem 'não perturbe') — ignora o filtro de faixa."
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold rounded-lg cursor-pointer text-white shadow-sm"
+                style={{ background: 'var(--cbc-gold,#C9A84C)' }}>
+                🎯 Cobrar hoje ({acionaveisHoje.length})
+              </button>
+            )}
             {view !== 'estagio' && (
               <select value={fCob} onChange={(e) => setFCob(e.target.value)} title="Filtrar por situação de cobrança"
                 className="rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold cursor-pointer" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)', color: 'var(--cbc-text-secondary)' }}>
@@ -399,6 +424,14 @@ export default function CobrancaPanel({ userEmail = '' }) {
                 <option value="7">Cobrado há +7d</option>
                 <option value="15">Cobrado há +15d</option>
                 <option value="30">Cobrado há +30d</option>
+              </select>
+            )}
+            {view !== 'estagio' && (
+              <select value={fLead} onChange={(e) => setFLead(e.target.value)} title="Filtrar por vínculo com lead no Kommo (sem lead = envio manual pelo Anderson)"
+                className="rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold cursor-pointer" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)', color: 'var(--cbc-text-secondary)' }}>
+                <option value="todos">Vínculo: todos</option>
+                <option value="com">Com lead (automático)</option>
+                <option value="sem">Sem lead (manual)</option>
               </select>
             )}
             <span className="text-[12px] ml-auto" style={{ color: 'var(--cbc-text-muted)' }}>

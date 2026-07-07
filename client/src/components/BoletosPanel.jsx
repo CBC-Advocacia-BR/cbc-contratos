@@ -1219,7 +1219,7 @@ export default function BoletosPanel({ userEmail = '' }) {
       </div>
 
       {view === 'cobranca' ? (
-        <CobrancaPanel userEmail={userEmail} />
+        <CobrancaPanel userEmail={userEmail} onVerHistorico={() => setView('historico')} />
       ) : view === 'historico' ? (
         <CobrancaHistorico userEmail={userEmail} />
       ) : (
