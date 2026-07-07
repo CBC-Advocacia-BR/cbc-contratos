@@ -106,6 +106,25 @@ export default async () => {
     }
   } catch { /* kommo_queue pode nao existir em ambientes antigos */ }
 
+  // 3.5) FALHAS TERMINAIS DE AUTOMACAO DE CONTRATO (#6, 07/07) --------------
+  // ADVBOX/Drive que falharam ao lancar/arquivar um contrato assinado. Sao raras
+  // (retry ate 3x antes de logar 'error'), entao alertar as recentes nao gera spam.
+  out.automacao_falhou = [];
+  try {
+    const desde = new Date(Date.now() - 35 * 60000).toISOString();
+    const { data: falhas } = await db.from('automation_log')
+      .select('action, client_name, details, created_at')
+      .eq('status', 'error').in('action', ['advbox', 'drive'])
+      .gte('created_at', desde).order('created_at', { ascending: false }).limit(20);
+    for (const f of falhas || []) {
+      const motivo = f.details?.error || f.details?.drive_failed_reason || f.details?.message || 'sem detalhe';
+      out.automacao_falhou.push(`${String(f.action).toUpperCase()} falhou p/ ${f.client_name || 'contrato'}: ${String(motivo).slice(0, 90)}`);
+    }
+    if (out.automacao_falhou.length) {
+      await logAdvbox('monitor', 'erro', `Automacao de contrato falhou (${out.automacao_falhou.length}): ${out.automacao_falhou.join(' | ')}`.slice(0, 300), {});
+    }
+  } catch { /* automation_log pode nao existir */ }
+
   // 4) E-MAIL DE ALERTA CRITICO (auditoria #88/#89) ------------------------
   // Decisao do Paulo (06/07): e-mail para paulo@advocaciacbc.com SOMENTE em erro
   // CRITICO — integracao caida, robo parado no prazo, ou jobs Kommo perdidos. Avisos
@@ -115,6 +134,7 @@ export default async () => {
     ...out.caiu.map((s) => `Integracao CAIU: ${s}`),
     ...out.crons_parados.map((j) => `Robo parado (nao rodou no prazo): ${j}`),
     ...(out.kommo_failed ? [`Fila Kommo: ${out.kommo_failed} job(s) FALHARAM (nota/mensagem/lead pode ter se perdido)`] : []),
+    ...out.automacao_falhou,
   ];
   out.email = 'nenhum critico';
   if (criticos.length) {
@@ -122,13 +142,25 @@ export default async () => {
       const { data: cfg } = await db.from('bot_config').select('value').eq('key', 'alert_email_state').maybeSingle();
       const lastSent = cfg?.value?.last_sent_at ? new Date(cfg.value.last_sent_at).getTime() : 0;
       if (Date.now() - lastSent > 2 * 3600 * 1000) {
+        // (#6) notificacao IN-APP p/ o Paulo — aparece no sino do app MESMO sem RESEND_API_KEY
+        // (o e-mail so sai com a chave setada). Uma por rodada de alerta (throttle 2h).
+        try {
+          await db.from('notifications').insert({
+            user_email: 'paulo@advocaciacbc.com',
+            type: 'error',
+            title: `⚠️ ${criticos.length} problema(s) crítico(s) no sistema`,
+            body: criticos.join('\n'),
+            link: null,
+          });
+        } catch { /* notifications pode ter RLS/coluna diferente */ }
+        // marca o throttle JA (vale p/ notificacao + e-mail) — senao, sem RESEND, re-alertaria a cada 30min
+        await db.from('bot_config').upsert({ key: 'alert_email_state', value: { last_sent_at: new Date().toISOString(), ultimos: criticos }, updated_at: new Date().toISOString() });
         const res = await sendCriticalAlert(`${criticos.length} problema(s) critico(s)`, criticos);
         if (res.ok) {
           out.email = 'enviado';
-          await db.from('bot_config').upsert({ key: 'alert_email_state', value: { last_sent_at: new Date().toISOString(), ultimos: criticos }, updated_at: new Date().toISOString() });
         } else {
           out.email = res.skipped || res.error;
-          await logAdvbox('health', 'aviso', `Erro critico detectado, mas e-mail NAO enviado (${res.skipped || res.error}). Configure RESEND_API_KEY no Netlify.`.slice(0, 300), { criticos });
+          await logAdvbox('health', 'aviso', `Erro critico detectado (notificacao in-app criada), mas e-mail NAO enviado (${res.skipped || res.error}). Configure RESEND_API_KEY no Netlify.`.slice(0, 300), { criticos });
         }
       } else {
         out.email = 'throttled (2h)';

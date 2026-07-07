@@ -1465,6 +1465,16 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                         </div>
                       );
                     })}
+                    {/* (#3) atalho para conferir os contratos existentes antes de decidir */}
+                    <button
+                      type="button"
+                      onClick={() => window.dispatchEvent(new CustomEvent('cbc:switchTab', { detail: { tab: 'contratos' } }))}
+                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold underline cursor-pointer"
+                      style={{ color: 'var(--cbc-warning)' }}
+                      title="Abrir a aba Contratos para conferir os contratos existentes deste cliente"
+                    >
+                      Ver em Contratos →
+                    </button>
                   </div>
                 </div>
               </div>
