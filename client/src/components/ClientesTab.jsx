@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao } from '../utils/clientesService';
+import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarDadosBancarios } from '../utils/clientesService';
 import './clientes/clientes.css';
 
 const onlyDigits = (s) => (s || '').replace(/\D/g, '');
@@ -351,12 +351,14 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
   const [info, setInfo] = useState(null);
   const [manualFields, setManualFields] = useState(() => new Set());
   const [prestacao, setPrestacao] = useState([]);
+  const [dadosBanc, setDadosBanc] = useState(null);
   const carregar360 = useCallback(() => { buscar360(row.id).then(setInfo).catch(() => {}); }, [row.id]);
   useEffect(() => {
     let live = true;
     buscar360(row.id).then((d) => { if (live) setInfo(d); }).catch(() => {});
     buscarProveniencia(row.id).then((s) => { if (live) setManualFields(s); }).catch(() => {});
     buscarPrestacao(row.id).then((p) => { if (live) setPrestacao(p); }).catch(() => {});
+    buscarDadosBancarios(row.id).then((b) => { if (live) setDadosBanc(b); }).catch(() => {});
     return () => { live = false; };
   }, [row.id]);
   const [picker, setPicker] = useState(''); const [pickerOpen, setPickerOpen] = useState(false);
@@ -448,6 +450,25 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
                 </div>
               ); })()}
               {info.n_vencidos > 0 && info.boleto_vencido_url && <button className="btn" style={{ marginTop: 4 }} onClick={() => copiar(info.boleto_vencido_url)}>Copiar boleto vencido mais antigo</button>}
+
+              {dadosBanc && (
+                <>
+                  <div className="section-t">Dados Bancários{dadosBanc.fonte === 'conjuge' && <span className="seal">conta do cônjuge</span>}</div>
+                  {dadosBanc.fonte === 'conjuge' && (
+                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>💑 Conta informada em nome do cônjuge <b style={{ color: 'var(--c-navy)' }}>{dadosBanc.conjuge_nome || dadosBanc.titular}</b> (a Prestação usa esta conta no repasse).</div>
+                  )}
+                  <div className="presence">
+                    <div className="pcard"><div className="pl">Banco</div><div className="pv">{dadosBanc.banco || '—'}</div></div>
+                    <div className="pcard"><div className="pl">Agência</div><div className="pv">{dadosBanc.agencia || '—'}</div></div>
+                    <div className="pcard"><div className="pl">Conta</div><div className="pv">{dadosBanc.conta || '—'}</div></div>
+                    <div className="pcard"><div className="pl">Tipo</div><div className="pv">{dadosBanc.tipo_conta || '—'}</div></div>
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                    Titular: <b style={{ color: 'var(--c-navy)' }}>{dadosBanc.titular || '—'}</b>{dadosBanc.chave_pix ? ` · PIX (${dadosBanc.tipo_pix || 'chave'}): ${dadosBanc.chave_pix}` : ''}
+                  </div>
+                  <button className="btn" style={{ marginTop: 4 }} onClick={() => copiar([dadosBanc.banco && ('Banco ' + dadosBanc.banco), dadosBanc.agencia && ('Ag ' + dadosBanc.agencia), dadosBanc.conta && ('Conta ' + dadosBanc.conta), dadosBanc.tipo_conta, dadosBanc.titular && ('Titular ' + dadosBanc.titular)].filter(Boolean).join(' · '))}>Copiar dados bancários</button>
+                </>
+              )}
 
               {Array.isArray(info.contratos_json) && info.contratos_json.length > 0 && (
                 <>

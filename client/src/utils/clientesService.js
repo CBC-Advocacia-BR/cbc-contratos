@@ -110,6 +110,14 @@ export async function buscarPrestacao(uid) {
   return data || [];
 }
 
+// Dados bancarios (espelho da Prestacao) — pela conta do proprio CPF ou, se nao
+// tiver, do conjuge vinculado (retorna { fonte:'proprio'|'conjuge', conjuge_nome, ... } ou null).
+export async function buscarDadosBancarios(uid) {
+  const { data, error } = await supabase.rpc('cliente_dados_bancarios', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  return data || null;
+}
+
 // Lista guiada: correcoes feitas no golden que ainda divergem do AdvBox (corrigir la na mao)
 export async function buscarCorrecoesAdvbox() {
   const { data, error } = await supabase.from('vw_advbox_correcoes_pendentes').select('*').order('cliente_nome');
