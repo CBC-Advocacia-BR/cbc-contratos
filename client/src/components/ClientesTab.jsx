@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarDadosBancarios, buscarAcoesDrive } from '../utils/clientesService';
+import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarPrestacaoFinanceiro, buscarDadosBancarios, buscarAcoesDrive } from '../utils/clientesService';
+import { buildLedgers } from '../utils/prestacaoLedger';
 import './clientes/clientes.css';
 
 const onlyDigits = (s) => (s || '').replace(/\D/g, '');
@@ -32,6 +33,42 @@ const PL_TYPE = {
 const PL_STATUS_TONE = { concluido: 'success', pago: 'success', inadimplente: 'danger', cancelado: 'danger', ativo: 'info', negociacao: 'warning', pendente: 'warning' };
 const PL_TONE_RGB = { success: '21,128,61', danger: '185,28,28', warning: '180,83,9', info: '29,78,216' };
 const PL_TONE_VAR = { success: '--cbc-success', danger: '--cbc-danger', warning: '--cbc-warning', info: '--cbc-info' };
+
+// Detalhamento de verbas (cliente × escritório) de um acordo/cálculo — espelha o
+// documento de Prestação de Contas. `led` vem de buildLedgers (prestacaoLedger.js).
+function PrestacaoBreakdown({ led }) {
+  const linha = (r, i) => (
+    <div key={i} className={'pb-row' + (r.neg ? ' neg' : r.plus ? ' plus' : '')}>
+      <span className="pl">{r.label}</span>
+      <span className="pv">{(r.neg ? '− ' : '') + reais2(r.valor)}</span>
+    </div>
+  );
+  return (
+    <div className="pb">
+      <div className="pb-sum-top">
+        <span className="pb-sum-lbl">{led.valorRefLabel}</span>
+        <span className="pb-sum-val">{reais2(led.valorRef)}</span>
+      </div>
+      <div className="pb-bar"><i className="cli" style={{ width: led.cli.pct + '%' }} /><i className="esc" style={{ width: led.esc.pct + '%' }} /></div>
+      <div className="pb-key">
+        <span className="k kc"><i className="dot cli" />Cliente {led.cli.pct}%</span>
+        <span className="k ke">Escritório {led.esc.pct}%<i className="dot esc" /></span>
+      </div>
+      {led.cli.rows.length > 0 && (
+        <div className="pb-led">
+          <div className="pb-led-h"><span className="pb-led-t cli">A receber — Cliente</span><span className="pb-led-tot">{reais2(led.cli.total)}</span></div>
+          {led.cli.rows.map(linha)}
+        </div>
+      )}
+      {led.esc.rows.length > 0 && (
+        <div className="pb-led">
+          <div className="pb-led-h"><span className="pb-led-t esc">Honorários — Escritório</span><span className="pb-led-tot">{reais2(led.esc.total)}</span></div>
+          {led.esc.rows.map(linha)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // O que importa de fato p/ um cliente: estar no AdvBox e no Kommo.
 // (Contrato e Asaas NAO sao pendencia: gerador e recente; conjuge unico no Asaas; casos so de exito.)
@@ -364,6 +401,8 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
   const [prestacao, setPrestacao] = useState([]);
   const [dadosBanc, setDadosBanc] = useState(null);
   const [acoesDrive, setAcoesDrive] = useState([]);
+  const [finMap, setFinMap] = useState({});
+  const [openFin, setOpenFin] = useState(() => new Set());
   const carregar360 = useCallback(() => { buscar360(row.id).then(setInfo).catch(() => {}); }, [row.id]);
   useEffect(() => {
     let live = true;
@@ -372,6 +411,8 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
     buscarPrestacao(row.id).then((p) => { if (live) setPrestacao(p); }).catch(() => {});
     buscarDadosBancarios(row.id).then((b) => { if (live) setDadosBanc(b); }).catch(() => {});
     buscarAcoesDrive(row.id).then((a) => { if (live) setAcoesDrive(a); }).catch(() => {});
+    setOpenFin(new Set());
+    buscarPrestacaoFinanceiro(row.id).then((m) => { if (live) setFinMap(m); }).catch(() => {});
     return () => { live = false; };
   }, [row.id]);
   const [picker, setPicker] = useState(''); const [pickerOpen, setPickerOpen] = useState(false);
@@ -551,16 +592,28 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
                     p.sistema === 'calculos' && lev,
                     p.sistema === 'peticoes' && d.criado && dataBR(d.criado),
                   ].filter(Boolean).join(' · ');
+                  const fin = (p.sistema === 'acordos' || p.sistema === 'calculos') && d.id_externo ? finMap[`${p.sistema}:${d.id_externo}`] : null;
+                  const led = fin ? buildLedgers(fin) : null;
+                  const fk = `${p.sistema}:${d.id_externo || i}`;
+                  const open = openFin.has(fk);
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 2px', borderBottom: '1px solid #eef2f6' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: meta.accent }}>{meta.label}</span>
-                          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--c-navy, #1B3A5C)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titulo}</span>
-                          {d.status && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', color: chipFg, background: `rgba(${rgb},.10)`, border: `1px solid rgba(${rgb},.28)` }}>{d.status}</span>}
+                    <div key={i} style={{ padding: '8px 2px', borderBottom: '1px solid #eef2f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: meta.accent }}>{meta.label}</span>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--c-navy, #1B3A5C)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titulo}</span>
+                            {d.status && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', color: chipFg, background: `rgba(${rgb},.10)`, border: `1px solid rgba(${rgb},.28)` }}>{d.status}</span>}
+                          </div>
+                          {sub && <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>{sub}</div>}
+                          {led && led.hasBreakdown && (
+                            <button className={'pb-toggle' + (open ? ' open' : '')} aria-expanded={open} onClick={() => setOpenFin((s) => { const ns = new Set(s); if (ns.has(fk)) ns.delete(fk); else ns.add(fk); return ns; })}>
+                              <span className="chev">▶</span>{open ? 'Ocultar detalhamento' : 'Ver detalhamento (cliente × escritório)'}
+                            </button>
+                          )}
                         </div>
-                        {sub && <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>{sub}</div>}
                       </div>
+                      {led && led.hasBreakdown && open && <PrestacaoBreakdown led={led} />}
                     </div>
                   );
                 })}

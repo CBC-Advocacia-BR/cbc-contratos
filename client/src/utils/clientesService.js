@@ -110,12 +110,33 @@ export async function buscarPrestacao(uid) {
   return data || [];
 }
 
+// Detalhamento financeiro (cliente x escritorio, verba a verba) dos acordos/calculos
+// ligados. A RPC ja faz toda a conta (parse BRL + ajuste omitirSucumb) e devolve
+// numeros prontos. Retorna um mapa `${sistema}:${id}` -> item p/ casar com a lista.
+export async function buscarPrestacaoFinanceiro(uid) {
+  const { data, error } = await supabase.rpc('cliente_prestacao_financeiro', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  const m = {};
+  for (const it of (Array.isArray(data) ? data : [])) {
+    if (it && it.sistema && it.id != null) m[`${it.sistema}:${it.id}`] = it;
+  }
+  return m;
+}
+
 // Dados bancarios (espelho da Prestacao) — pela conta do proprio CPF ou, se nao
 // tiver, do conjuge vinculado (retorna { fonte:'proprio'|'conjuge', conjuge_nome, ... } ou null).
 export async function buscarDadosBancarios(uid) {
   const { data, error } = await supabase.rpc('cliente_dados_bancarios', { p_uid: uid });
   if (error) throw new Error(error.message);
   return data || null;
+}
+
+// Acoes mineradas do Google Drive (resort, valor pago da inicial, unidade/cota, link
+// da pasta, vinculo ADVBOX) do proprio cliente + conjuge. Array (pode vir vazio).
+export async function buscarAcoesDrive(uid) {
+  const { data, error } = await supabase.rpc('cliente_acoes_drive_list', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  return Array.isArray(data) ? data : [];
 }
 
 // Lista guiada: correcoes feitas no golden que ainda divergem do AdvBox (corrigir la na mao)
