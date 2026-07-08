@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarDadosBancarios } from '../utils/clientesService';
+import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarDadosBancarios, buscarAcoesDrive } from '../utils/clientesService';
 import './clientes/clientes.css';
 
 const onlyDigits = (s) => (s || '').replace(/\D/g, '');
@@ -9,6 +9,7 @@ const idade = (d) => { if (!d) return null; const dt = new Date(d); if (isNaN(dt
 const diasDesde = (d) => { if (!d) return null; const dt = new Date(d); if (isNaN(dt)) return null; return Math.floor((Date.now() - dt.getTime()) / 86400000); };
 const dataBR = (d) => { if (!d) return null; const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return `${m[3]}/${m[2]}/${m[1]}`; const dt = new Date(d); return isNaN(dt) ? null : dt.toLocaleDateString('pt-BR'); };
 const reais = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+const reais2 = (v) => (v == null ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const rowBtn = { fontSize: 11, padding: '2px 7px', marginRight: 4, border: '1px solid #d8dee6', borderRadius: 6, background: '#fff', color: 'var(--c-navy)', cursor: 'pointer', textDecoration: 'none', display: 'inline-block' };
 // dd/mm do aniversario (parse direto da string YYYY-MM-DD p/ evitar deslocamento de fuso)
 const aniversarioData = (s) => { if (!s) return null; const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[3] + '/' + m[2]; const d = new Date(s); return isNaN(d) ? null : String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
@@ -21,6 +22,16 @@ const bdayOrder = (s) => { const dd = aniversarioData(s); if (!dd) return 99999;
 const completude = (r) => { const c = [r.nome, r.cpf, r.email, r.telefone, r.nascimento, r.cidade, r.uf]; return Math.round(100 * c.filter(Boolean).length / c.length); };
 const normName = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(s a|sa|ltda|me|eireli|epp)\b/g, '').replace(/\s+/g, ' ').trim();
 const isEmailOk = (s) => !s || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+
+// Prestação de Contas / Acordos na ficha — tipo (rótulo+cor de acento) e cor do chip de status
+const PL_TYPE = {
+  acordos: { label: 'Acordo', accent: 'var(--cbc-gold, #C9A84C)' },
+  calculos: { label: 'Cálculo', accent: 'var(--cbc-navy, #1B3A5C)' },
+  peticoes: { label: 'Petição', accent: 'var(--cbc-info, #1D4ED8)' },
+};
+const PL_STATUS_TONE = { concluido: 'success', pago: 'success', inadimplente: 'danger', cancelado: 'danger', ativo: 'info', negociacao: 'warning', pendente: 'warning' };
+const PL_TONE_RGB = { success: '21,128,61', danger: '185,28,28', warning: '180,83,9', info: '29,78,216' };
+const PL_TONE_VAR = { success: '--cbc-success', danger: '--cbc-danger', warning: '--cbc-warning', info: '--cbc-info' };
 
 // O que importa de fato p/ um cliente: estar no AdvBox e no Kommo.
 // (Contrato e Asaas NAO sao pendencia: gerador e recente; conjuge unico no Asaas; casos so de exito.)
@@ -352,6 +363,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
   const [manualFields, setManualFields] = useState(() => new Set());
   const [prestacao, setPrestacao] = useState([]);
   const [dadosBanc, setDadosBanc] = useState(null);
+  const [acoesDrive, setAcoesDrive] = useState([]);
   const carregar360 = useCallback(() => { buscar360(row.id).then(setInfo).catch(() => {}); }, [row.id]);
   useEffect(() => {
     let live = true;
@@ -359,6 +371,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
     buscarProveniencia(row.id).then((s) => { if (live) setManualFields(s); }).catch(() => {});
     buscarPrestacao(row.id).then((p) => { if (live) setPrestacao(p); }).catch(() => {});
     buscarDadosBancarios(row.id).then((b) => { if (live) setDadosBanc(b); }).catch(() => {});
+    buscarAcoesDrive(row.id).then((a) => { if (live) setAcoesDrive(a); }).catch(() => {});
     return () => { live = false; };
   }, [row.id]);
   const [picker, setPicker] = useState(''); const [pickerOpen, setPickerOpen] = useState(false);
@@ -492,19 +505,66 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
             </>
           )}
 
+          {acoesDrive.length > 0 && (
+            <>
+              <div className="section-t">Ações no Drive ({acoesDrive.length})</div>
+              {acoesDrive.map((a) => (
+                <div key={a.id} style={{ padding: '6px 0', borderBottom: '1px solid #eef2f6' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+                    <b style={{ color: 'var(--c-navy)' }}>{a.resort || a.reu_resort || 'Ação'}</b>
+                    <span style={{ fontWeight: 700, color: 'var(--c-navy-dark)', whiteSpace: 'nowrap' }} title={a.valor_pago_texto || ''}>
+                      {a.valor_pago != null ? reais2(a.valor_pago) : (a.is_recurso ? 'recurso' : 'valor a revisar')}
+                    </span>
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 1 }}>
+                    {[a.tipo_acao, a.unidade_cota && `cota ${a.unidade_cota}`, (a.advbox_process_number || a.process_number) && `proc ${a.advbox_process_number || a.process_number}`, a.advbox_etapa && `fase ${a.advbox_etapa}`, a.data_contrato_compra && `compra ${dataBR(a.data_contrato_compra)}`].filter(Boolean).join(' · ') || '—'}
+                  </div>
+                  <div style={{ marginTop: 3, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {a.drive_folder_link && <a style={rowBtn} href={a.drive_folder_link} target="_blank" rel="noreferrer" title="abrir a pasta da ação no Google Drive">Abrir pasta ↗</a>}
+                    {a.needs_review && <span className="badge" style={{ background: '#FBF0DE', color: '#B45309' }} title={a.review_reason || ''}>revisar</span>}
+                    {a.advbox_status === 'multiplas_conferir' && <span className="badge" style={{ background: '#FBF0DE', color: '#B45309' }} title="Nº de pastas no Drive difere do nº de ações no AdvBox — conferir se são ações distintas">conferir nº de ações</span>}
+                    {a.advbox_status === 'sem_processo' && <span className="badge" style={{ background: '#eef2f6', color: 'var(--c-navy)' }} title="Cliente sem processo correspondente no AdvBox (possível pré-protocolo)">pré-protocolo</span>}
+                    {typeof a.advbox_qtd_processos === 'number' && a.advbox_qtd_processos > 0 && <span className="muted" style={{ fontSize: 11 }}>AdvBox: {a.advbox_qtd_processos} ação(ões)</span>}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
           {prestacao.length > 0 && (
             <>
-              <div className="section-t">Prestação de Contas / Petições ({prestacao.length})</div>
-              {prestacao.slice(0, 8).map((p, i) => {
-                const lbl = p.sistema === 'calculos' ? 'Cálculo' : p.sistema === 'acordos' ? 'Acordo' : p.sistema === 'peticoes' ? 'Petição' : p.sistema;
-                const d = p.payload || {};
-                const extra = (p.sistema === 'acordos' && d.valor_total) ? ` · ${reais(d.valor_total)}` : (d.status ? ` · ${d.status}` : '');
-                return (
-                  <div key={i} className="muted" style={{ fontSize: 12, padding: '3px 0', borderBottom: '1px solid #eef2f6' }}>
-                    <b style={{ color: 'var(--c-navy)' }}>{lbl}</b>{p.num_processo ? ` · proc ${p.num_processo}` : ''}{extra}
-                  </div>
-                );
-              })}
+              <div className="section-t">Prestação de Contas &amp; Acordos ({prestacao.length})</div>
+              <div style={{ marginTop: 2 }}>
+                {prestacao.map((p, i) => {
+                  const meta = PL_TYPE[p.sistema] || { label: p.sistema, accent: 'var(--c-navy, #1B3A5C)' };
+                  const d = p.payload || {};
+                  const tone = PL_STATUS_TONE[String(d.status || '').toLowerCase()];
+                  const rgb = PL_TONE_RGB[tone] || '27,58,92';
+                  const chipFg = PL_TONE_VAR[tone] ? `var(${PL_TONE_VAR[tone]})` : 'var(--c-navy, #1B3A5C)';
+                  const titulo = p.sistema === 'acordos' ? (d.empreendimento || 'Acordo')
+                    : p.sistema === 'peticoes' ? (d.modelo || 'Petição') : 'Cálculo';
+                  const lev = d.levantamento ? (/^\d+$/.test(String(d.levantamento).trim()) ? `${String(d.levantamento).trim()}º levant.` : String(d.levantamento).trim()) : '';
+                  const sub = [
+                    p.num_processo && `proc ${p.num_processo}`,
+                    p.sistema === 'acordos' && d.valor_total && reais(d.valor_total),
+                    p.sistema === 'acordos' && d.data_acordo && dataBR(d.data_acordo),
+                    p.sistema === 'calculos' && lev,
+                    p.sistema === 'peticoes' && d.criado && dataBR(d.criado),
+                  ].filter(Boolean).join(' · ');
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 2px', borderBottom: '1px solid #eef2f6' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '.09em', textTransform: 'uppercase', color: meta.accent }}>{meta.label}</span>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--c-navy, #1B3A5C)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titulo}</span>
+                          {d.status && <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.05em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, whiteSpace: 'nowrap', color: chipFg, background: `rgba(${rgb},.10)`, border: `1px solid rgba(${rgb},.28)` }}>{d.status}</span>}
+                        </div>
+                        {sub && <div className="muted" style={{ fontSize: 11, marginTop: 3 }}>{sub}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </>
           )}
 
