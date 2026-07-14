@@ -17,6 +17,14 @@ Alguns números/afirmações mais abaixo estavam defasados e ficam corrigidos aq
 - **`steps/` e `components/Stepper.jsx` já foram REMOVIDOS** (não são mais "candidatos a remoção" — só restam em `backups/`).
 - Maior componente hoje = **VendasPanel.jsx (~2516 linhas)**, depois ContratosTab (~2316) e SociosDashboard (~2043); o FormPanel (~2010) **não** é o maior.
 
+### Leads Meta no funil + endereços distintos (14/07/2026) — EM PRODUÇÃO
+
+Dois deploys em 14/07 (rollbacks: `./rollback.sh 6a566cf085c7714d803db7db` volta ao pré-Meta; `./rollback.sh 6a4e75d250556722a133f11d` volta ao pré-endereços/08-07).
+
+- **Endereços distintos no contrato** (commit `58d5243`): 2 contratantes PF com endereços diferentes = cada um com o próprio endereço embutido na qualificação da caixa PARTES (formato da procuração) e SEM a linha "Residentes e domiciliados em"; endereços iguais/1 contratante = byte-idêntico ao anterior (snapshots passam sem regenerar). Só `contractHtml.js` — procuração e DOCX já eram corretos. Helper `mesmoEndereco()`. Flexão de gênero ("domiciliada") ficou de fora (decisão separada).
+- **1ª etapa do funil = Leads de campanha Meta** (commit `501edbc`): integração real com a **Meta Marketing API** (Graph v23, conta `act_969110338250520` = CA - CBC Distratos). Function **`meta-ads-sync.mjs`** (cron `0 10 * * *` = 07h BRT; backfill manual `GET ?backfill=1&meses=N`, cap 36) grava insights mensais por campanha em **`meta_ads_mensal`** via RPC `meta_ads_upsert` (security definer + `BOT_RPC_SECRET`, padrão asaas_mirror; leitura só authenticated). "Lead" = `onsite_conversion.messaging_conversation_started_7d` (conversas iniciadas click-to-WhatsApp, = "resultados" do Gerenciador) + lead forms. Parser puro em `_lib/metaAds.mjs` (testado). **Saúde do Funil**: barra "Leads de campanha" no topo + investimento/CPL + conversão lead→videochamada; sem dados a seção some. Logs no console do Monitor (origem `meta`). Backfill 24m rodado: **121 linhas, jul/2024→jul/2026** (~700-1000 leads/mês em 2025-26, CPL ~R$ 6-18).
+- **Credenciais Meta**: system user `cbccontratosbi` (id 61591559806238, Admin) no Business Manager Conforto Bergonsi, com as 2 contas de anúncio + app **CBC BI** (id 1013043854834445); token **NUNCA expira**, envs `META_ADS_TOKEN` + `META_AD_ACCOUNT_ID` no Netlify (multi-conta: `META_AD_ACCOUNT_IDS` separado por vírgula). ⚠️ Higiene pendente (não urgente): token saiu com escopo largo (32 permissões, inclui ads_management) — regenerar um dia só com `ads_read`; há 1 token órfão anterior do mesmo user (60d, ninguém possui — inerte, morre sozinho ou some com "Anular tokens" antes de regenerar).
+
 ### 🛑 REGRA DE DEPLOY (incidente 02/07/2026 — NUNCA REPETIR)
 
 Em 02/07 a produção regrediu para o app de **março** (tela antiga + login morto):
