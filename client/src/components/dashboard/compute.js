@@ -210,6 +210,36 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
     funil.pctComparecimento = funil.agendadas > 0 ? Math.round((funil.realizadas / funil.agendadas) * 100) : null;
   }
 
+  // ─── Etapa "Leads de campanha (Meta)" (TOPO do funil, 14/07/2026) ───
+  // Insights mensais por campanha (meta_ads_mensal, via filters.metaAds). Lead = conversa
+  // iniciada click-to-WhatsApp + lead form. Granularidade MENSAL: entram os meses que
+  // INTERSECTAM o período (mês parcial conta inteiro; o mês corrente é atualizado pelo cron
+  // diário). NÃO filtra por resort/tipo (campanha não tem resort). Sem dados no período,
+  // a etapa fica ausente e o widget a oculta.
+  if (Array.isArray(filters.metaAds) && filters.metaAds.length) {
+    const iniMes = (ym) => new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
+    const fimMes = (ym) => new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0, 23, 59, 59, 999);
+    let leads = 0;
+    let gasto = 0;
+    for (const m of filters.metaAds) {
+      if (!m || !m.mes) continue;
+      const ym = String(m.mes).slice(0, 7);
+      if (distRange.start && fimMes(ym) < distRange.start) continue;
+      if (distRange.end && iniMes(ym) > distRange.end) continue;
+      leads += (Number(m.conversas_iniciadas) || 0) + (Number(m.leads_form) || 0);
+      gasto += Number(m.gasto) || 0;
+    }
+    if (leads > 0 || gasto > 0) {
+      funil.leadsMeta = leads;
+      funil.leadsMetaGasto = gasto;
+      funil.leadsMetaCpl = leads > 0 ? Math.round((gasto / leads) * 100) / 100 : null;
+      // conversões lead->agendada são pequenas (2 dígitos de leads p/ 1 de call) — 1 casa decimal
+      funil.pctLeadAgendada = leads > 0 && typeof funil.agendadas === 'number'
+        ? Math.round((funil.agendadas / leads) * 1000) / 10
+        : null;
+    }
+  }
+
   // ─── Janela de indicadores (12/06/2026 — pedido do Paulo) ───
   // SEM filtro de período: indicadores "do mês" usam o mês corrente (como antes).
   // COM filtro de período: os indicadores de assinatura/receita/cancelamento

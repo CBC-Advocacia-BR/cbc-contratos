@@ -367,17 +367,26 @@ export function ActionStrip({ acoes, onNavigate }) {
 export function FunnelCard({ funil, delay = 0 }) {
   // (videochamadas) etapas do TOPO vindas da agenda — contadas por data do evento.
   const temVideo = typeof funil.agendadas === 'number';
+  // (leads Meta 14/07/2026) 1a etapa: leads das campanhas (conversas iniciadas + forms),
+  // mensal, respeitando o período do filtro. Sem dados no período, a etapa some.
+  const temLeads = typeof funil.leadsMeta === 'number';
   const etapas = [
+    ...(temLeads ? [
+      {
+        label: 'Leads de campanha (Meta)', valor: funil.leadsMeta, cor: 'var(--cbc-gold)', pct: null,
+        nota: `${formatCurrency(funil.leadsMetaGasto)} investidos · CPL ${formatCurrency(funil.leadsMetaCpl, { cents: true })}`,
+      },
+    ] : []),
     ...(temVideo ? [
-      { label: 'Videochamada agendada', valor: funil.agendadas, cor: 'var(--cbc-info)', pct: null, nota: funil.futuras > 0 ? `+${funil.futuras} a realizar nos próximos dias` : null },
+      { label: 'Videochamada agendada', valor: funil.agendadas, cor: 'var(--cbc-info)', pct: temLeads ? funil.pctLeadAgendada : null, pctLabel: 'dos leads agendaram', nota: funil.futuras > 0 ? `+${funil.futuras} a realizar nos próximos dias` : null },
       { label: 'Videochamada realizada', valor: funil.realizadas, cor: 'var(--cbc-info)', pct: funil.pctComparecimento, pctLabel: 'compareceram' },
     ] : []),
-    { label: 'Contratos enviados para assinatura', valor: funil.enviados, cor: 'var(--cbc-navy-light)', pct: null, scopeBreak: temVideo },
+    { label: 'Contratos enviados para assinatura', valor: funil.enviados, cor: 'var(--cbc-navy-light)', pct: null, scopeBreak: temVideo || temLeads },
     { label: 'Assinados', valor: funil.assinados, cor: 'var(--cbc-success)', pct: funil.pctAssinatura },
   ];
   // ESCALA ÚNICA p/ TODAS as barras (etapas + Distribuídos + Guia Paga): largura ∝ valor, com o
   // maior valor do funil = 100%. Assim a barra de 62 é sempre maior que a de 52, e assim por diante.
-  const max = Math.max(funil.agendadas || 0, funil.enviados, funil.assinados, funil.distribuidos || 0, funil.guiaPaga || 0, 1);
+  const max = Math.max(funil.leadsMeta || 0, funil.agendadas || 0, funil.enviados, funil.assinados, funil.distribuidos || 0, funil.guiaPaga || 0, 1);
   const pctTone = (p) => (p >= 70 ? TONES.success : p >= 40 ? TONES.warning : TONES.danger);
   return (
     <DashCard
@@ -416,7 +425,7 @@ export function FunnelCard({ funil, delay = 0 }) {
                       ? { background: tone.bg, color: tone.fg }
                       : { color: 'var(--cbc-text-muted)' }}
                   >
-                    {e.pct !== null ? `${e.pct}% ${e.pctLabel || 'avançam'}` : '—'}
+                    {e.pct !== null ? `${Number(e.pct).toLocaleString('pt-BR')}% ${e.pctLabel || 'avançam'}` : '—'}
                   </span>
                 </div>
               ))}

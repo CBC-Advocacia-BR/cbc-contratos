@@ -104,6 +104,7 @@ function horaCurta(date) {
 export default function Dashboard() {
   const [allContratos, setAllContratos] = useState(_cachedContratos || []);
   const [videochamadas, setVideochamadas] = useState([]); // etapas do funil vindas da agenda (vw_funil_videochamadas)
+  const [metaAds, setMetaAds] = useState([]);             // 1a etapa do funil: leads de campanha (meta_ads_mensal)
   const [loading, setLoading] = useState(!_cachedContratos);
   const [refreshing, setRefreshing] = useState(false);
   // (perf-fe-7) true quando o fetch atual ja trouxe o historico completo (sem janela)
@@ -156,10 +157,12 @@ export default function Dashboard() {
       // principal — rodam em PARALELO (Promise.allSettled) em vez de 3 awaits em fila,
       // cortando o tempo de abertura do Dashboard. Cada uma mantem a degradacao
       // graciosa individual (rejeicao/erro => aquela etapa simplesmente vira 0).
-      const [distR, gpR, vcR] = await Promise.allSettled([
+      const [distR, gpR, vcR, maR] = await Promise.allSettled([
         supabase.from('vw_processo_distribuido').select('lawsuit_id'),
         supabase.from('vw_processo_guia_paga').select('lawsuit_id'),
         supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
+        // (etapa "Leads de campanha") insights mensais das campanhas Meta (meta_ads_mensal)
+        supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto'),
       ]);
       // (etapa "Distribuídos") tem nº de processo no ADVBOX. Merge por advbox_lawsuit_id.
       if (distR.status === 'fulfilled' && !distR.value.error) {
@@ -173,6 +176,8 @@ export default function Dashboard() {
       }
       // (etapas "Videochamada agendada/realizada") da agenda do Google, via view sem PII.
       setVideochamadas(vcR.status === 'fulfilled' && !vcR.value.error ? (vcR.value.data || []) : []);
+      // (etapa "Leads de campanha") tabela vazia/erro -> etapa some do funil, sem quebrar.
+      setMetaAds(maR.status === 'fulfilled' && !maR.value.error ? (maR.value.data || []) : []);
       _cachedContratos = normalizados;
       _cachedFull = full;
       setAllContratos(normalizados);
@@ -285,10 +290,10 @@ export default function Dashboard() {
   const dash = useMemo(
     () => computeDashboard(
       allContratos,
-      { periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados, videochamadas },
+      { periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados, videochamadas, metaAds },
       getMonthlyGoal()
     ),
-    [allContratos, videochamadas, periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados]
+    [allContratos, videochamadas, metaAds, periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados]
   );
 
   // (perf #14) Escopo FILTRADO para os widgets pesados (mapa + heatmap temporal).

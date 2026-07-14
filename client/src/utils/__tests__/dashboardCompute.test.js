@@ -154,3 +154,47 @@ describe('computeDashboard — regras de precisao', () => {
     expect(d.assinadosMes).toBe(1);
   });
 });
+
+describe('computeDashboard — etapa "Leads de campanha (Meta)" no funil (14/07/2026)', () => {
+  // meta_ads_mensal e MENSAL: entram os meses que intersectam o periodo selecionado
+  // (mes parcial conta inteiro — granularidade dos insights e por mes-calendario).
+  const metaAds = [
+    { mes: '2026-04-01', conversas_iniciadas: 500, leads_form: 0, gasto: 5000 },
+    { mes: '2026-05-01', conversas_iniciadas: 700, leads_form: 0, gasto: 7000 },
+    { mes: '2026-06-01', conversas_iniciadas: 400, leads_form: 35, gasto: 6960 },
+  ];
+  const vcJunho = [
+    { status: 'realizada', scheduled_at: '2026-06-05T10:00:00Z' },
+    { status: 'agendada', scheduled_at: '2026-06-06T10:00:00Z' },
+  ];
+
+  it('mes_passado (NOW=15/06) = so maio: leads, gasto e CPL', () => {
+    const d = computeDashboard([], { periodo: 'mes_passado', metaAds, videochamadas: [] }, 15, NOW);
+    expect(d.funil.leadsMeta).toBe(700);
+    expect(d.funil.leadsMetaGasto).toBe(7000);
+    expect(d.funil.leadsMetaCpl).toBe(10);
+  });
+
+  it('mes corrente = junho (lead forms incluidos) + conversao lead -> agendada com 1 casa', () => {
+    const d = computeDashboard([], { periodo: 'mes', metaAds, videochamadas: vcJunho }, 15, NOW);
+    expect(d.funil.leadsMeta).toBe(435); // 400 conversas + 35 forms
+    expect(d.funil.pctLeadAgendada).toBe(0.5); // 2/435 = 0,46% -> 1 casa
+  });
+
+  it('tudo = soma dos 3 meses', () => {
+    const d = computeDashboard([], { periodo: 'tudo', metaAds, videochamadas: [] }, 15, NOW);
+    expect(d.funil.leadsMeta).toBe(1635);
+    expect(d.funil.leadsMetaGasto).toBe(18960);
+  });
+
+  it('custom so abril = 500 (maio/junho fora do range)', () => {
+    const d = computeDashboard([], { periodo: 'custom', dataInicio: '2026-04-01', dataFim: '2026-04-30', metaAds, videochamadas: [] }, 15, NOW);
+    expect(d.funil.leadsMeta).toBe(500);
+  });
+
+  it('sem dados Meta -> etapa ausente (undefined), funil intacto', () => {
+    const d = computeDashboard([], { periodo: 'tudo', videochamadas: [] }, 15, NOW);
+    expect(d.funil.leadsMeta).toBeUndefined();
+    expect(d.funil.criados).toBe(0);
+  });
+});
