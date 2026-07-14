@@ -364,17 +364,21 @@ export function ActionStrip({ acoes, onNavigate }) {
 // Funil "de verdade": 3 etapas (criados ⊇ enviados ⊇ assinados) como barras
 // centradas que afunilam. A queda % entre etapas aparece no degrau; a
 // conversão total (criação → assinatura) fica em destaque no rodapé.
-export function FunnelCard({ funil, delay = 0 }) {
+export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false }) {
   // (videochamadas) etapas do TOPO vindas da agenda — contadas por data do evento.
   const temVideo = typeof funil.agendadas === 'number';
   // (leads Meta 14/07/2026) 1a etapa: leads das campanhas (conversas iniciadas + forms),
   // mensal, respeitando o período do filtro. Sem dados no período, a etapa some.
+  // Investimento/CPL na nota só com mostrarInvestimento (sócios + Lorenza) — os demais
+  // veem a contagem de leads sem valores financeiros.
   const temLeads = typeof funil.leadsMeta === 'number';
   const etapas = [
     ...(temLeads ? [
       {
         label: 'Leads de campanha (Meta)', valor: funil.leadsMeta, cor: 'var(--cbc-gold)', pct: null,
-        nota: `${formatCurrency(funil.leadsMetaGasto)} investidos · CPL ${formatCurrency(funil.leadsMetaCpl, { cents: true })}`,
+        nota: mostrarInvestimento
+          ? `${formatCurrency(funil.leadsMetaGasto)} investidos · CPL ${formatCurrency(funil.leadsMetaCpl, { cents: true })}`
+          : null,
       },
     ] : []),
     ...(temVideo ? [

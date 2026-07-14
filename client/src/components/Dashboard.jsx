@@ -65,6 +65,12 @@ let _cachedFull = false;
 // aos sócios — mesma lista do Dashboard Sócios / App.jsx.
 const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com'];
 
+// (leads Meta 14/07/2026) Investimento e custo por lead das campanhas sao dado
+// financeiro sensivel: visiveis SO para socios + Lorenza (pedido do Paulo). Os
+// DEMAIS usuarios veem a contagem de leads no funil, mas nem recebem a coluna
+// `gasto` do banco (select condicional) — nada de esconder so no CSS.
+const ADS_CUSTO_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+
 const JANELA_MESES = 18;
 function inicioJanela(now = new Date()) {
   return new Date(now.getFullYear(), now.getMonth() - JANELA_MESES, 1);
@@ -128,6 +134,8 @@ export default function Dashboard() {
   const kpiPrefs = useKpiPreferences(user?.email || '');
   // (#306) Comparativo mês a mês só para sócios (Paulo e Bruno)
   const canCompare = SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
+  // (leads Meta) investimento/CPL das campanhas: só sócios + Lorenza
+  const canSeeAdsCusto = ADS_CUSTO_EMAILS.includes((user?.email || '').toLowerCase());
 
   // ─── Fetch ───
   // (perf-fe-7) full=true ignora a janela e traz o historico inteiro.
@@ -161,8 +169,10 @@ export default function Dashboard() {
         supabase.from('vw_processo_distribuido').select('lawsuit_id'),
         supabase.from('vw_processo_guia_paga').select('lawsuit_id'),
         supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
-        // (etapa "Leads de campanha") insights mensais das campanhas Meta (meta_ads_mensal)
-        supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto'),
+        // (etapa "Leads de campanha") insights mensais das campanhas Meta (meta_ads_mensal).
+        // A coluna `gasto` só vem para quem pode ver investimento/CPL (sócios + Lorenza)
+        // — os demais nem recebem o dado no navegador.
+        supabase.from('meta_ads_mensal').select(canSeeAdsCusto ? 'mes, conversas_iniciadas, leads_form, gasto' : 'mes, conversas_iniciadas, leads_form'),
       ]);
       // (etapa "Distribuídos") tem nº de processo no ADVBOX. Merge por advbox_lawsuit_id.
       if (distR.status === 'fulfilled' && !distR.value.error) {
@@ -189,7 +199,7 @@ export default function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [canSeeAdsCusto]);
 
   // (perf-fe-7) Se o filtro ativo pede dados mais antigos que a janela
   // carregada (ou "tudo"/"ano"), precisamos do historico completo. Assim os
@@ -538,7 +548,7 @@ export default function Dashboard() {
           {/* ─── Pipeline ─── */}
           <SectionTitle hint={dash.scope.periodoLabel}>Pipeline de contratos</SectionTitle>
           {/* Funil largura total. O Status atual foi mesclado no card herói do topo (Indicadores). */}
-          <FunnelCard funil={dash.funil} delay={40} />
+          <FunnelCard funil={dash.funil} delay={40} mostrarInvestimento={canSeeAdsCusto} />
 
           {/* (12/06) Comparador de meses — independe do filtro de período.
               (#306 · 20/06) Restrito aos sócios (Paulo e Bruno). */}
