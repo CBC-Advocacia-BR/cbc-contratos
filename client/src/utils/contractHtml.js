@@ -32,6 +32,17 @@ function enderecoTexto(endereco, numero, complemento, bairro, cidade, uf, cep) {
   return `${endereco || '___'}${num}${comp}, no bairro ${bairro || '___'}, na cidade ${cidade || '___'}/${uf || '___'}, CEP: ${cep || '___'}`;
 }
 
+// (enderecos distintos 14/07/2026) Compara o endereco de dois contratantes
+// (normalizado) para decidir entre a linha compartilhada "Residente(s) e
+// domiciliado(s) em" e o endereco embutido na qualificacao de cada um.
+function normEnderecoCampo(v) {
+  return String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+function mesmoEndereco(a, b) {
+  const campos = ['endereco', 'numero', 'complemento', 'bairro', 'cidade', 'uf', 'cep'];
+  return campos.every(k => normEnderecoCampo(a && a[k]) === normEnderecoCampo(b && b[k]));
+}
+
 // Qualificacao do representante legal (reaproveita os campos de pessoa do contratante).
 // 'curta' omite o endereco residencial (usada na caixa PARTES do PF).
 function qualificacaoPessoa(c, { curta = false } = {}) {
@@ -254,23 +265,39 @@ export function generateContractHTML(data, forPdf = false) {
   const { fixosText, exitoText } = gerarResumoHonorarios(honorarios);
 
   const num = numContratantes || 1;
+  const c0 = contratantes[0];
+
+  // (enderecos distintos 14/07/2026) A caixa PARTES compacta (qualificacao curta +
+  // linha "Residente(s) e domiciliado(s) em" com o endereco do 1o contratante) so vale
+  // quando TODOS os PF preenchidos moram no mesmo endereco e o 1o contratante e PF.
+  // Caso contrario, cada PF leva o proprio endereco embutido na qualificacao (mesmo
+  // formato da procuracao) e a linha compartilhada e omitida — o contrato nunca pode
+  // declarar domicilio comum para quem mora em enderecos diferentes.
+  // PJ ja embute sede + endereco do representante na propria qualificacao.
+  const pfsAtivos = [];
+  for (let i = 0; i < num; i++) {
+    const c = contratantes[i];
+    if (c && !isPJ(c) && (c.nome || c.endereco)) pfsAtivos.push(c);
+  }
+  const enderecoUnico = pfsAtivos.length > 0 && pfsAtivos.every(c => mesmoEndereco(c, pfsAtivos[0]));
+  const partesCompactas = enderecoUnico && c0 && !isPJ(c0);
 
   // PARTES client list
   const partesItems = [];
   for (let i = 0; i < num; i++) {
     const c = contratantes[i];
     if (c && (c.nome || c.razaoSocial)) {
-      partesItems.push(qualificacaoCurta(c));
+      partesItems.push(partesCompactas ? qualificacaoCurta(c) : qualificacao(c));
     } else {
       partesItems.push(`<strong>[CONTRATANTE ${i + 1}]</strong>`);
     }
   }
 
-  const c0 = contratantes[0];
-  // (PJ 25/06) PF: linha "Residente e domiciliado em" do 1o contratante. PJ ja embute a sede
-  // e o endereco do representante na propria qualificacao, entao essa linha extra e omitida.
-  const enderecoLine = (c0 && c0.endereco && !isPJ(c0))
-    ? ` Residente${num > 1 ? 's' : ''} e domiciliado${num > 1 ? 's' : ''} em: "${c0.endereco}${c0.numero ? ', nº ' + c0.numero : ''}${c0.complemento ? ', ' + c0.complemento : ''}, ${c0.bairro || ''}, ${c0.cidade || ''}/${c0.uf || ''}, CEP: ${c0.cep || '___'}".`
+  // (PJ 25/06) PF: linha "Residente e domiciliado em" do 1o contratante. Plural conforme
+  // o numero de PFs (PJ nao entra na contagem — a sede ja esta na qualificacao dela).
+  const pluralPf = pfsAtivos.length > 1;
+  const enderecoLine = (partesCompactas && c0.endereco)
+    ? ` Residente${pluralPf ? 's' : ''} e domiciliado${pluralPf ? 's' : ''} em: "${c0.endereco}${c0.numero ? ', nº ' + c0.numero : ''}${c0.complemento ? ', ' + c0.complemento : ''}, ${c0.bairro || ''}, ${c0.cidade || ''}/${c0.uf || ''}, CEP: ${c0.cep || '___'}".`
     : '';
 
   // Build clauses

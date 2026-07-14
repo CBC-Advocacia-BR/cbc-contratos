@@ -195,6 +195,73 @@ describe('Cliente Empresa (PJ) — contrato e procuracao', () => {
   });
 });
 
+// (enderecos distintos 14/07/2026) 2 contratantes que NAO moram juntos: cada um
+// leva o proprio endereco na qualificacao (como na procuracao) e o contrato nao
+// pode declarar domicilio compartilhado. Enderecos iguais mantem a linha atual.
+const fixtureContratante2OutroEndereco = {
+  ...fixtureContratante2,
+  endereco: 'Avenida Brasil',
+  numero: '200',
+  complemento: '',
+  bairro: 'Jardim Paulista',
+  cidade: 'Campinas',
+  uf: 'SP',
+  cep: '13010-000',
+};
+
+describe('Enderecos distintos entre contratantes', () => {
+  const dataDistintos = {
+    ...fixtureBase,
+    numContratantes: 2,
+    contratantes: [fixtureContratante1, fixtureContratante2OutroEndereco],
+  };
+
+  it('contrato descreve o endereco proprio de cada contratante quando diferem', () => {
+    const html = generateContractHTML(dataDistintos);
+    expect(html).toContain('residente e domiciliado na Rua das Flores, nº 100, Apto 5, no bairro Centro, na cidade São Paulo/SP, CEP: 01310-100');
+    expect(html).toContain('residente e domiciliado na Avenida Brasil, nº 200, no bairro Jardim Paulista, na cidade Campinas/SP, CEP: 13010-000');
+  });
+
+  it('contrato NAO declara domicilio compartilhado quando os enderecos diferem', () => {
+    const html = generateContractHTML(dataDistintos);
+    expect(html).not.toContain('Residentes e domiciliados em');
+    expect(html).not.toContain('Residente e domiciliado em');
+  });
+
+  it('enderecos iguais mantem a linha compartilhada (sem endereco inline)', () => {
+    const data = { ...fixtureBase, numContratantes: 2, contratantes: [fixtureContratante1, fixtureContratante2] };
+    const html = generateContractHTML(data);
+    expect(html).toContain('Residentes e domiciliados em');
+    expect(html).not.toContain('residente e domiciliado na');
+  });
+
+  it('1 contratante mantem a linha singular atual', () => {
+    const html = generateContractHTML(fixtureBase);
+    expect(html).toContain('Residente e domiciliado em');
+    expect(html).not.toContain('Residentes e domiciliados em');
+  });
+
+  it('PJ em 1o + PF em 2o: endereco residencial do PF aparece na qualificacao', () => {
+    const data = { ...fixtureBase, numContratantes: 2, contratantes: [fixtureContratantePJ, fixtureContratante1] };
+    const html = generateContractHTML(data);
+    expect(html).toContain('residente e domiciliado na Rua das Flores');
+    expect(html).not.toContain('Residentes e domiciliados em');
+  });
+
+  it('PF + PJ: linha compartilhada sai no singular (so ha 1 PF)', () => {
+    const data = { ...fixtureBase, numContratantes: 2, contratantes: [fixtureContratante1, fixtureContratantePJ] };
+    const html = generateContractHTML(data);
+    expect(html).toContain('Residente e domiciliado em');
+    expect(html).not.toContain('Residentes e domiciliados em');
+  });
+
+  it('procuracao segue com o endereco proprio de cada outorgante', () => {
+    const html = generateProcuracaoHTML(dataDistintos);
+    expect(html).toContain('residente e domiciliado na Rua das Flores');
+    expect(html).toContain('residente e domiciliado na Avenida Brasil');
+  });
+});
+
 describe('generateContractHTML — invariantes basicas', () => {
   it('inclui nome do contratante em maiusculas', () => {
     const html = generateContractHTML(fixtureBase);
