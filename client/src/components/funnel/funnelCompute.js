@@ -30,7 +30,7 @@ const pct = (a, b) => (b > 0 ? (a / b) * 100 : 0);
 
 const LIMITE_TRAVADO_DIAS = 7;
 
-export function computeFunnel(contratos, now = new Date(), videochamadas = []) {
+export function computeFunnel(contratos, now = new Date(), videochamadas = [], metaAds = []) {
   const ativos = (contratos || []).filter(ativoNoFunil);
 
   const criados = ativos.length;
@@ -57,6 +57,37 @@ export function computeFunnel(contratos, now = new Date(), videochamadas = []) {
   const vcRealizadas = vcAconteceram.filter((v) => v.status === 'realizada' || v.status === 'fechou').length;
   const vcFuturas = vcValidas.length - vcAconteceram.length;
   const vcExcluidas = (videochamadas || []).filter((v) => v.scheduled_at && v.status === 'excluida').length;
+
+  // (leads Meta 14/07/2026) 1a etapa do funil: leads de campanha = conversas iniciadas
+  // (click-to-WhatsApp) + lead forms, dos insights mensais por campanha (meta_ads_mensal).
+  // ALL-TIME desde o 1o mes com dado. Sem dados (token nao configurado / tabela vazia)
+  // -> null e o painel oculta a etapa, sem quebrar o resto do funil.
+  let leadsMeta = null;
+  const metaRows = (metaAds || []).filter((m) => m && m.mes);
+  if (metaRows.length) {
+    const porMesMeta = {};
+    let totalLeads = 0;
+    let gastoTotal = 0;
+    for (const m of metaRows) {
+      const mes = String(m.mes).slice(0, 7);
+      const leads = (Number(m.conversas_iniciadas) || 0) + (Number(m.leads_form) || 0);
+      const gasto = Number(m.gasto) || 0;
+      const acc = (porMesMeta[mes] = porMesMeta[mes] || { mes, leads: 0, gasto: 0 });
+      acc.leads += leads;
+      acc.gasto += gasto;
+      totalLeads += leads;
+      gastoTotal += gasto;
+    }
+    const mesesMeta = Object.values(porMesMeta).sort((a, b) => a.mes.localeCompare(b.mes));
+    leadsMeta = {
+      total: totalLeads,
+      gasto: gastoTotal,
+      cpl: totalLeads > 0 ? gastoTotal / totalLeads : null,
+      meses: mesesMeta,
+      desde: mesesMeta[0]?.mes || null,
+      pctAgendada: totalLeads > 0 ? pct(vcAconteceram.length, totalLeads) : null,
+    };
+  }
 
   // Tempos por etapa (dias) — coletados e reduzidos por mediana
   const tCriacaoEnvio = [];
@@ -97,6 +128,7 @@ export function computeFunnel(contratos, now = new Date(), videochamadas = []) {
 
   return {
     funil: { criados, enviados, assinados },
+    leadsMeta,
     videochamadas: { agendadas: vcAconteceram.length, realizadas: vcRealizadas, excluidas: vcExcluidas, futuras: vcFuturas, pct: vcAconteceram.length > 0 ? Math.round((vcRealizadas / vcAconteceram.length) * 100) : null },
     distribuidos: { total: distribuidos },
     guiaPaga,

@@ -131,6 +131,44 @@ describe('computeFunnel — videochamada: Pavão conta como realizada, excluída
   });
 });
 
+describe('computeFunnel — leads de campanha Meta (1a etapa do funil, 14/07/2026)', () => {
+  const metaRows = [
+    { mes: '2026-03-01', conversas_iniciadas: 100, leads_form: 5, gasto: 1000 },
+    { mes: '2026-04-01', conversas_iniciadas: 200, leads_form: 0, gasto: 2500.5 },
+    { mes: '2026-04-01', conversas_iniciadas: 50, leads_form: 0, gasto: 500 },   // 2a campanha do mesmo mes
+    { mes: '2026-05-01', conversas_iniciadas: 150, leads_form: 10, gasto: 1999.5 },
+  ];
+  const vc = [
+    { status: 'realizada', scheduled_at: '2026-06-20T10:00:00Z' },
+    { status: 'agendada', scheduled_at: '2026-06-10T10:00:00Z' },
+  ];
+  const r = computeFunnel([], NOW, vc, metaRows);
+
+  it('total = conversas iniciadas + lead forms (all-time)', () => {
+    expect(r.leadsMeta.total).toBe(515); // 500 conversas + 15 forms
+  });
+
+  it('gasto somado e custo por lead', () => {
+    expect(r.leadsMeta.gasto).toBeCloseTo(6000, 2);
+    expect(r.leadsMeta.cpl).toBeCloseTo(6000 / 515, 4);
+  });
+
+  it('agrupa por mes (ordenado), somando campanhas do mesmo mes', () => {
+    expect(r.leadsMeta.meses.map((m) => m.mes)).toEqual(['2026-03', '2026-04', '2026-05']);
+    expect(r.leadsMeta.meses[1].leads).toBe(250); // 200 + 50 no mesmo mes
+    expect(r.leadsMeta.desde).toBe('2026-03');
+  });
+
+  it('conversao lead -> videochamada agendada (sobre as que aconteceram)', () => {
+    expect(r.leadsMeta.pctAgendada).toBeCloseTo((2 / 515) * 100, 5);
+  });
+
+  it('sem dados Meta -> leadsMeta null (painel oculta a etapa)', () => {
+    expect(computeFunnel([], NOW, vc).leadsMeta).toBe(null);
+    expect(computeFunnel([], NOW, vc, []).leadsMeta).toBe(null);
+  });
+});
+
 describe('computeFunnel — etapa Guia Paga/JEC (passou da citação, all-time)', () => {
   const contratos = [
     base({ status: 'assinado', signed_at: '2026-06-20T00:00:00Z', guia_paga: true }),  // conta

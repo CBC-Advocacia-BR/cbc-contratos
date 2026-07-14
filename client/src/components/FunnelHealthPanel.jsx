@@ -12,6 +12,9 @@ const SERIF = "'Cormorant Garamond', Georgia, serif";
 const fmtDias = (d) => (d == null ? '—' : `${(Math.round(d * 10) / 10).toLocaleString('pt-BR')} d`);
 const fmtPct = (p) => `${Math.round(p)}%`;
 const fmtInt = (n) => (n || 0).toLocaleString('pt-BR');
+// (leads Meta 14/07/2026) moeda p/ investimento (inteiro) e custo por lead (2 casas)
+const fmtBRL = (v, casas = 0) => (v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: casas, maximumFractionDigits: casas }));
+const fmtMesCurto = (ym) => (ym ? `${ym.slice(5)}/${ym.slice(2, 4)}` : '—');
 
 // Largura proporcional do funil com piso de 26% (p/ a barra de assinados sempre caber o rotulo)
 const larguraFunil = (valor, base) => `${Math.max(16, base > 0 ? (valor / base) * 100 : 0)}%`;
@@ -52,6 +55,7 @@ function FunilBarra({ rotulo, valor, base, corVar, destaque }) {
 export default function FunnelHealthPanel() {
   const [rows, setRows] = useState(null);
   const [vchamadas, setVchamadas] = useState([]); // etapas Agendada/Realizada (vw_funil_videochamadas)
+  const [metaAds, setMetaAds] = useState([]);     // 1a etapa: leads de campanha (meta_ads_mensal)
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
@@ -81,6 +85,12 @@ export default function FunnelHealthPanel() {
         const { data: vc } = await supabase.from('vw_funil_videochamadas').select('status, scheduled_at');
         setVchamadas(vc || []);
       } catch { setVchamadas([]); }
+      // (leads Meta) 1a etapa do funil — leads de campanha por mes. Tabela vazia/sem
+      // permissao -> etapa some do painel (leadsMeta null), sem quebrar o resto.
+      try {
+        const { data: ma } = await supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto');
+        setMetaAds(ma || []);
+      } catch { setMetaAds([]); }
       setRows(merged);
     } catch (e) {
       setErr(e.message || 'Erro ao carregar');
@@ -91,10 +101,10 @@ export default function FunnelHealthPanel() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const f = useMemo(() => (rows ? computeFunnel(rows, undefined, vchamadas) : null), [rows, vchamadas]);
+  const f = useMemo(() => (rows ? computeFunnel(rows, undefined, vchamadas, metaAds) : null), [rows, vchamadas, metaAds]);
   const maxConv = useMemo(() => (f ? Math.max(1, ...f.tendencia.map((t) => t.conversao)) : 1), [f]);
-  // Escala ÚNICA p/ TODAS as barras do funil (vídeo + contratos): largura ∝ valor, maior = 100%.
-  const baseFunil = useMemo(() => (f ? Math.max(f.videochamadas?.agendadas || 0, f.funil.enviados, 1) : 1), [f]);
+  // Escala ÚNICA p/ TODAS as barras do funil (leads + vídeo + contratos): largura ∝ valor, maior = 100%.
+  const baseFunil = useMemo(() => (f ? Math.max(f.leadsMeta?.total || 0, f.videochamadas?.agendadas || 0, f.funil.enviados, 1) : 1), [f]);
 
   if (loading && !f) {
     return <div className="flex-1 grid place-items-center" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
@@ -130,6 +140,24 @@ export default function FunnelHealthPanel() {
         <section className="rounded-3xl p-7 sm:p-8 flex flex-col gap-5"
           style={{ background: 'var(--cbc-bg-card, #fff)', border: '1px solid var(--cbc-border, #E5E7EB)', boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
           <div className="flex flex-col gap-5">
+            {/* (leads Meta 14/07/2026) 1a etapa do funil — leads das campanhas (conversas
+                iniciadas + lead forms, insights mensais). Sem dados -> secao oculta. */}
+            {f.leadsMeta && (
+              <>
+                <div className="pl-32 text-[10px] font-bold uppercase tracking-[1.5px]" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+                  Campanhas Meta · desde {fmtMesCurto(f.leadsMeta.desde)}
+                </div>
+                <FunilBarra rotulo="Leads de campanha" valor={f.leadsMeta.total} base={baseFunil} corVar="var(--cbc-gold, #C9A84C)" />
+                <div className="pl-32 text-[11px] tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                  {fmtBRL(f.leadsMeta.gasto)} investidos · custo por lead {fmtBRL(f.leadsMeta.cpl, 2)}
+                </div>
+                {f.leadsMeta.pctAgendada != null && (
+                  <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-info, #2563EB)' }}>
+                    ▼ {f.leadsMeta.pctAgendada < 1 ? `${f.leadsMeta.pctAgendada.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : fmtPct(f.leadsMeta.pctAgendada)} viram videochamada agendada
+                  </div>
+                )}
+              </>
+            )}
             {/* (videochamadas) etapas do topo — Agendada/Realizada ALL-TIME (da agenda do Google). */}
             <div className="pl-32 text-[10px] font-bold uppercase tracking-[1.5px]" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
               Videochamadas · total
@@ -242,6 +270,7 @@ export default function FunnelHealthPanel() {
 
         <p className="text-[10px] text-center pb-2" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
           Arquivados e cancelados ficam fora do funil. Tempos usam mediana (robusta a casos extremos).
+          {f.leadsMeta && ' Leads = conversas iniciadas atribuídas às campanhas Meta (+ formulários); orgânico/indicação não entram nessa etapa.'}
         </p>
       </div>
     </div>
