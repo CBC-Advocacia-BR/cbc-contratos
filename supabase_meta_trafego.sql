@@ -170,3 +170,28 @@ where lower(email) in ('paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lore
 -- p_conjuntos/p_breakdown; meta_trafego_series ganha criativos_14d (fadiga p/
 -- alertas). Ver migração no histórico do Supabase para o SQL integral.
 -- ============================================================================
+
+-- ============================================================================
+-- v3 (16/07/2026) — JÁ APLICADA via MCP (migração meta_trafego_v3_espelho_completo).
+-- Pedido Paulo: Supabase como FONTE DE DADOS completa da Meta p/ outras aplicações
+-- (a aba já lia só do espelho; v3 amplia o que o espelho captura):
+--  • meta_campanhas: +criado_em/alterado_em/inicio/fim/buying_type/bid_strategy/
+--    orcamento_total (lifetime) — ciclo de vida e estratégia.
+--  • meta_conjuntos: +criado_em/alterado_em/inicio/fim/otimizacao/evento_cobranca/
+--    publico jsonb (TARGETING completo do conjunto).
+--  • meta_anuncios: +criado_em/alterado_em/titulo/corpo/cta/video_id/imagem_url
+--    (a COPY inteira do criativo) — raw integral em todos os catálogos.
+--  • meta_ads_diario: +qualidade/ranking_engajamento/ranking_conversao
+--    (quality rankings da Meta, só level=ad; upsert preserva com coalesce).
+--  • meta_conta_diaria (NOVA): snapshot diário da conta — gasto_acumulado, saldo,
+--    limite_gasto, status, moeda, raw. PK (dia, account_id).
+--  • meta_atividades (NOVA): trilha do Gerenciador (/activities) — quem alterou
+--    o quê (event_type/ator/objeto/extra jsonb). UNIQUE (account_id, event_time,
+--    event_type, objeto_id); insert com ON CONFLICT DO NOTHING.
+--  • meta_trafego_upsert: assinatura v3 com p_conta e p_atividades (a de 7 args
+--    foi DROPADA p/ não ambiguar o PostgREST).
+--  • Views p/ OUTRAS aplicações (security_invoker=false + GRANT powerbi_cbc):
+--    vw_bi_trafego_mensal (meta_ads_mensal + cpl) e vw_bi_trafego_diario
+--    (diário level=campaign com nome/status/objetivo/flag rh e vídeo).
+-- Dicionário de dados p/ consumo externo: docs/META_ESPELHO.md
+-- ============================================================================

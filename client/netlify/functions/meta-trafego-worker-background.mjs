@@ -8,7 +8,7 @@
  * a chave e recusada). Progresso/resultado no console do Monitor (origem 'meta').
  */
 import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
-import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, fetchBreakdowns, gravar, rodarAlertas } from './_lib/metaTrafego.mjs';
+import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, fetchBreakdowns, fetchConta, fetchAtividades, gravar, rodarAlertas } from './_lib/metaTrafego.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
 
@@ -32,9 +32,9 @@ export default async (req) => {
       until = diaBrt(1);
     }
 
-    let totais = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, removidos: 0 };
+    let totais = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, conta: 0, atividades: 0, removidos: 0 };
     for (const account of ACCOUNTS) {
-      const catalogos = await fetchCatalogos(account); // completo (anuncios/thumbnails + conjuntos)
+      const catalogos = await fetchCatalogos(account); // completo (anuncios/copy + conjuntos/publicos)
       const diario = [];
       const breakdown = [];
       let ini = new Date(since + 'T12:00:00Z');
@@ -50,13 +50,22 @@ export default async (req) => {
         console.log(`trafego-worker ${modo}: janela ${de}..${ate} ok (${diario.length} diario, ${breakdown.length} breakdown)`);
         ini = new Date(fimJanela.getTime() + 86400 * 1000);
       }
-      const t = await gravar(catalogos, diario, modo === 'diario', breakdown);
+      // v3: snapshot da conta + trilha de atividades do Gerenciador — best-effort
+      // (dado acessorio NUNCA derruba o espelho principal)
+      const extras = { conta: [], atividades: [] };
+      try { extras.conta = [await fetchConta(account)]; }
+      catch (e) { console.error('trafego-worker: fetchConta falhou (segue sem)', e.message); }
+      try { extras.atividades = await fetchAtividades(account, since, until); }
+      catch (e) { console.error('trafego-worker: fetchAtividades falhou (segue sem)', e.message); }
+      const t = await gravar(catalogos, diario, modo === 'diario', breakdown, extras);
       totais = {
         campanhas: totais.campanhas + t.campanhas,
         anuncios: totais.anuncios + t.anuncios,
         conjuntos: totais.conjuntos + t.conjuntos,
         diario: totais.diario + t.diario,
         breakdown: totais.breakdown + t.breakdown,
+        conta: totais.conta + t.conta,
+        atividades: totais.atividades + t.atividades,
         removidos: totais.removidos + t.removidos,
       };
     }
@@ -68,7 +77,7 @@ export default async (req) => {
       await heartbeat('meta-trafego-sync').catch(() => {});
     }
 
-    await logAdvbox('meta', 'info', `trafego-worker ${modo} ok: ${totais.diario} linhas diarias, ${totais.campanhas} campanhas, ${totais.anuncios} anuncios (${since} a ${until})`, { totais, alertas });
+    await logAdvbox('meta', 'info', `trafego-worker ${modo} ok: ${totais.diario} linhas diarias, ${totais.campanhas} campanhas, ${totais.anuncios} anuncios, ${totais.atividades} atividades (${since} a ${until})`, { totais, alertas });
     return new Response(JSON.stringify({ success: true, modo, since, until, ...totais, alertas }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
     // console.error tambem: garante rastro nos logs do Netlify mesmo se o insert falhar

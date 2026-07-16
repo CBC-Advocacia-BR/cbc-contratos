@@ -7,7 +7,7 @@
  * das functions sincronas (medido 26.1s p/ 7 dias em 15/07).
  */
 import { db, logAdvbox } from './botDb.mjs';
-import { campaignToRow, adToRow, adsetToRow, insightToDiario, breakdownToLinha, avaliarAlertasTrafego, ALERTAS_DEFAULT } from './metaAds.mjs';
+import { campaignToRow, adToRow, adsetToRow, insightToDiario, breakdownToLinha, contaToRow, atividadeToRow, avaliarAlertasTrafego, ALERTAS_DEFAULT } from './metaAds.mjs';
 import { sendAlertEmail } from './alertEmail.mjs';
 
 export const GRAPH = 'https://graph.facebook.com/v23.0';
@@ -67,24 +67,46 @@ export function diaBrt(menosDias = 0) {
  * completo no cron noturno via worker).
  */
 export async function fetchCatalogos(account, { leve = false } = {}) {
+  // v3 (espelho completo): ciclo de vida + estrategia da campanha
   const campanhas = (await graphAll(
-    `${GRAPH}/${account}/campaigns?fields=id,name,effective_status,objective,daily_budget&limit=200&access_token=${encodeURIComponent(TOKEN)}`
+    `${GRAPH}/${account}/campaigns?fields=id,name,effective_status,objective,daily_budget,lifetime_budget,buying_type,bid_strategy,created_time,updated_time,start_time,stop_time&limit=200&access_token=${encodeURIComponent(TOKEN)}`
   )).map((c) => campaignToRow(c, account));
   if (leve) return { campanhas, anuncios: [], conjuntos: [] };
   // limit BAIXO: ads com creative{...} em paginas de 200 estoura o custo de query da
   // Meta ("Please reduce the amount of data", code 1 — limite DINAMICO: passou 15/07,
-  // recusou 16/07). Com 50 por pagina os 648 anuncios vem em ~13 paginas leves.
+  // recusou 16/07). v3 pede a COPY inteira do creative -> paginas de 25 (ainda mais leves).
   const anuncios = (await graphAll(
-    `${GRAPH}/${account}/ads?fields=id,name,effective_status,campaign_id,creative{thumbnail_url},preview_shareable_link&limit=50&access_token=${encodeURIComponent(TOKEN)}`,
-    60
+    `${GRAPH}/${account}/ads?fields=id,name,effective_status,campaign_id,created_time,updated_time,creative{thumbnail_url,title,body,call_to_action_type,video_id,image_url},preview_shareable_link&limit=25&access_token=${encodeURIComponent(TOKEN)}`,
+    80
   )).map((a) => adToRow(a, account));
   // (v2 #121) conjuntos/publicos — limit BAIXO: com 200 a Meta recusa a query
   // ("Please reduce the amount of data", code 1) e o worker morria no catalogo.
+  // v3 pede o targeting (publico-alvo) inteiro -> paginas de 25.
   const conjuntos = (await graphAll(
-    `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget&limit=50&access_token=${encodeURIComponent(TOKEN)}`,
-    60
+    `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget,optimization_goal,billing_event,targeting,created_time,updated_time,start_time,end_time&limit=25&access_token=${encodeURIComponent(TOKEN)}`,
+    80
   )).map((s) => adsetToRow(s, account));
   return { campanhas, anuncios, conjuntos };
+}
+
+/** (v3) Snapshot de HOJE da conta: gasto acumulado, saldo, teto e status. 1 GET leve. */
+export async function fetchConta(account) {
+  const body = await graphGet(
+    `${GRAPH}/${account}?fields=account_status,amount_spent,balance,spend_cap,currency&access_token=${encodeURIComponent(TOKEN)}`
+  );
+  return contaToRow(body, account, diaBrt(0));
+}
+
+/**
+ * (v3) Trilha de atividades do Gerenciador (quem pausou/alterou o que na conta).
+ * since/until = YYYY-MM-DD. Falha aqui NAO pode derrubar o sync (best-effort no caller).
+ */
+export async function fetchAtividades(account, since, until) {
+  const rows = await graphAll(
+    `${GRAPH}/${account}/activities?fields=event_type,event_time,actor_name,object_name,object_id,extra_data&since=${since}&until=${until}&limit=200&access_token=${encodeURIComponent(TOKEN)}`,
+    20
+  );
+  return rows.map((a) => atividadeToRow(a, account));
 }
 
 // (v2 #56/#58) retencao de video vem em campos proprios dos insights
@@ -95,7 +117,9 @@ export async function fetchDiario(account, since, until, { comAdset = false } = 
   const levels = comAdset ? ['campaign', 'adset', 'ad'] : ['campaign', 'ad'];
   for (const level of levels) {
     const id = level === 'ad' ? ',ad_id' : level === 'adset' ? ',adset_id' : '';
-    const campos = `campaign_id${id},spend,impressions,reach,clicks,inline_link_clicks,frequency,actions,${CAMPOS_VIDEO}`;
+    // v3: rankings de qualidade so existem no level=ad (em outros niveis a API recusa)
+    const qualidade = level === 'ad' ? ',quality_ranking,engagement_rate_ranking,conversion_rate_ranking' : '';
+    const campos = `campaign_id${id},spend,impressions,reach,clicks,inline_link_clicks,frequency,actions,${CAMPOS_VIDEO}${qualidade}`;
     const tr = encodeURIComponent(JSON.stringify({ since, until }));
     const rows = await graphAll(
       `${GRAPH}/${account}/insights?level=${level}&fields=${campos}&time_increment=1&time_range=${tr}&limit=500&access_token=${encodeURIComponent(TOKEN)}`,
@@ -126,15 +150,21 @@ export async function fetchBreakdowns(account, since, until) {
   return linhas;
 }
 
-/** Grava via RPC em blocos (payload jsonb saudavel). Catalogos/breakdown so no 1o bloco. */
-export async function gravar(catalogos, diario, limpar, breakdown = []) {
-  let total = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, removidos: 0 };
+/**
+ * Grava via RPC em blocos (payload jsonb saudavel). Catalogos/conta so no 1o bloco.
+ * v3: `extras` = { conta: [linha], atividades: [linhas] } — ambos opcionais.
+ */
+export async function gravar(catalogos, diario, limpar, breakdown = [], extras = {}) {
+  let total = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, conta: 0, atividades: 0, removidos: 0 };
   const blocos = [];
   for (let i = 0; i < Math.max(diario.length, 1); i += 800) blocos.push(diario.slice(i, i + 800));
-  // breakdown tambem em blocos (backfill 90d ~4-5k linhas)
+  // breakdown/atividades tambem em blocos (backfill 90d ~4-5k linhas)
   const blocosBd = [];
   for (let i = 0; i < breakdown.length; i += 800) blocosBd.push(breakdown.slice(i, i + 800));
-  const rodadas = Math.max(blocos.length, blocosBd.length);
+  const atividades = extras.atividades || [];
+  const blocosAt = [];
+  for (let i = 0; i < atividades.length; i += 800) blocosAt.push(atividades.slice(i, i + 800));
+  const rodadas = Math.max(blocos.length, blocosBd.length, blocosAt.length);
   for (let i = 0; i < rodadas; i++) {
     const { data, error } = await db.rpc('meta_trafego_upsert', {
       p_chave: RPC_SECRET,
@@ -143,6 +173,8 @@ export async function gravar(catalogos, diario, limpar, breakdown = []) {
       p_conjuntos: i === 0 ? (catalogos.conjuntos || []) : [],
       p_diario: blocos[i] || [],
       p_breakdown: blocosBd[i] || [],
+      p_conta: i === 0 ? (extras.conta || []) : [],
+      p_atividades: blocosAt[i] || [],
       p_limpar: limpar && i === rodadas - 1,
     });
     if (error) throw new Error(`RPC meta_trafego_upsert: ${error.message}`);
@@ -152,6 +184,8 @@ export async function gravar(catalogos, diario, limpar, breakdown = []) {
       conjuntos: total.conjuntos + (data?.conjuntos || 0),
       diario: total.diario + (data?.diario || 0),
       breakdown: total.breakdown + (data?.breakdown || 0),
+      conta: total.conta + (data?.conta || 0),
+      atividades: total.atividades + (data?.atividades || 0),
       removidos: total.removidos + (data?.removidos || 0),
     };
   }

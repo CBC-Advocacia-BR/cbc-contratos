@@ -39,7 +39,9 @@ async function graphPost(path, params) {
 }
 
 async function graphGetCampanha(id) {
-  const r = await fetch(`${GRAPH}/${id}?fields=id,name,effective_status,objective,daily_budget,account_id&access_token=${encodeURIComponent(TOKEN)}`, { signal: AbortSignal.timeout(15000) });
+  // campos COMPLETOS (v3): o upsert do espelho substitui a linha inteira — buscar
+  // so o basico aqui apagaria buying_type/datas/raw a cada acao de pausar/orcamento
+  const r = await fetch(`${GRAPH}/${id}?fields=id,name,effective_status,objective,daily_budget,lifetime_budget,buying_type,bid_strategy,created_time,updated_time,start_time,stop_time,account_id&access_token=${encodeURIComponent(TOKEN)}`, { signal: AbortSignal.timeout(15000) });
   const json = await r.json().catch(() => ({}));
   if (!r.ok || json.error) throw new Error(`Meta Graph ${json.error?.code || r.status}: ${json.error?.message || 'campanha nao encontrada'}`);
   return json;

@@ -57,20 +57,38 @@ export function insightRowToLinha(row, accountId) {
 /** 3-second video plays nos insights (action_type video_view). */
 const ACTION_VIDEO_3S = 'video_view';
 
-/** Campanha do Graph (/campaigns) -> linha de meta_campanhas. Budget vem em CENTAVOS. */
+/** Centavos do Graph (string) -> reais; ausente/invalido -> null. */
+function centavos(v) {
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n / 100 : null;
+}
+
+/**
+ * Campanha do Graph (/campaigns) -> linha de meta_campanhas. Budget vem em CENTAVOS.
+ * v3 (16/07/2026, espelho completo): ciclo de vida (created/updated/start/stop),
+ * estrategia (buying_type/bid_strategy/lifetime_budget) e `raw` integral — o
+ * Supabase e a fonte p/ OUTRAS aplicacoes, nao so p/ a aba.
+ */
 export function campaignToRow(c, accountId) {
-  const budget = Number(c?.daily_budget);
   return {
     campaign_id: String(c?.id || ''),
     account_id: accountId,
     nome: c?.name || '',
     status: c?.effective_status || c?.status || null,
     objetivo: c?.objective || null,
-    orcamento_diario: Number.isFinite(budget) && budget > 0 ? budget / 100 : null,
+    orcamento_diario: centavos(c?.daily_budget),
+    criado_em: c?.created_time || null,
+    alterado_em: c?.updated_time || null,
+    inicio: c?.start_time || null,
+    fim: c?.stop_time || null,
+    buying_type: c?.buying_type || null,
+    bid_strategy: c?.bid_strategy || null,
+    orcamento_total: centavos(c?.lifetime_budget),
+    raw: c || {},
   };
 }
 
-/** Anuncio do Graph (/ads com creative) -> linha de meta_anuncios. */
+/** Anuncio do Graph (/ads com creative) -> linha de meta_anuncios. v3: +COPY (titulo/corpo/CTA) e midia. */
 export function adToRow(ad, accountId) {
   return {
     ad_id: String(ad?.id || ''),
@@ -80,6 +98,14 @@ export function adToRow(ad, accountId) {
     status: ad?.effective_status || ad?.status || null,
     thumbnail_url: ad?.creative?.thumbnail_url || null,
     permalink: ad?.preview_shareable_link || null,
+    criado_em: ad?.created_time || null,
+    alterado_em: ad?.updated_time || null,
+    titulo: ad?.creative?.title || null,
+    corpo: ad?.creative?.body || null,
+    cta: ad?.creative?.call_to_action_type || null,
+    video_id: ad?.creative?.video_id || null,
+    imagem_url: ad?.creative?.image_url || null,
+    raw: ad || {},
   };
 }
 
@@ -119,6 +145,10 @@ export function insightToDiario(row, level, accountId) {
     video_p50: videoField(row, 'video_p50_watched_actions'),
     video_p75: videoField(row, 'video_p75_watched_actions'),
     video_p100: videoField(row, 'video_p100_watched_actions'),
+    // v3: rankings de qualidade da Meta (a API so devolve no level=ad)
+    qualidade: row?.quality_ranking || null,
+    ranking_engajamento: row?.engagement_rate_ranking || null,
+    ranking_conversao: row?.conversion_rate_ranking || null,
     raw: { actions: row?.actions || [] },
   };
 }
@@ -137,7 +167,10 @@ export function isCampanhaRh(nome) {
   return /^\[?\s*(vagas?|rh)\b/.test(n);
 }
 
-/** Conjunto (adset) do Graph -> linha de meta_conjuntos. Budget em centavos. */
+/**
+ * Conjunto (adset) do Graph -> linha de meta_conjuntos. Budget em centavos.
+ * v3: +PUBLICO-ALVO completo (targeting -> publico jsonb), otimizacao/cobranca e datas.
+ */
 export function adsetToRow(s, accountId) {
   const budget = Number(s?.daily_budget);
   return {
@@ -147,6 +180,58 @@ export function adsetToRow(s, accountId) {
     nome: s?.name || '',
     status: s?.effective_status || s?.status || null,
     orcamento_diario: Number.isFinite(budget) && budget > 0 ? budget / 100 : null,
+    criado_em: s?.created_time || null,
+    alterado_em: s?.updated_time || null,
+    inicio: s?.start_time || null,
+    fim: s?.end_time || null,
+    otimizacao: s?.optimization_goal || null,
+    evento_cobranca: s?.billing_event || null,
+    publico: s?.targeting || null,
+    raw: s || {},
+  };
+}
+
+/**
+ * (v3) Snapshot da CONTA de anuncio (GET /act_X?fields=...) -> linha de
+ * meta_conta_diaria. amount_spent/balance/spend_cap vem em CENTAVOS (string);
+ * aqui 0 e valor legitimo (sem divida/sem teto), so ausente vira null.
+ */
+export function contaToRow(acc, accountId, dia) {
+  const cent = (v) => {
+    const n = Number(v);
+    return v != null && v !== '' && Number.isFinite(n) ? n / 100 : null;
+  };
+  const st = Number(acc?.account_status);
+  return {
+    dia,
+    account_id: accountId,
+    gasto_acumulado: cent(acc?.amount_spent),
+    saldo: cent(acc?.balance),
+    limite_gasto: cent(acc?.spend_cap),
+    status: Number.isFinite(st) && acc?.account_status != null ? st : null,
+    moeda: acc?.currency || null,
+    raw: acc || {},
+  };
+}
+
+/**
+ * (v3) Evento de /act_X/activities -> linha de meta_atividades (trilha de quem
+ * mexeu no Gerenciador). extra_data chega como STRING JSON — parse defensivo.
+ */
+export function atividadeToRow(a, accountId) {
+  let extra = null;
+  if (a?.extra_data) {
+    try { extra = JSON.parse(a.extra_data); }
+    catch { extra = { texto: String(a.extra_data) }; }
+  }
+  return {
+    account_id: accountId,
+    event_time: a?.event_time || null,
+    event_type: a?.event_type || '',
+    ator: a?.actor_name || null,
+    objeto: a?.object_name || null,
+    objeto_id: a?.object_id != null ? String(a.object_id) : '',
+    extra,
   };
 }
 

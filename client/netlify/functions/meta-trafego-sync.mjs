@@ -15,7 +15,7 @@
  * (upsert idempotente sem exposicao de dados; padrao kommo-leads-sync).
  */
 import { logAdvbox } from './_lib/botDb.mjs';
-import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, gravar } from './_lib/metaTrafego.mjs';
+import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, fetchConta, gravar } from './_lib/metaTrafego.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
@@ -41,7 +41,10 @@ export default async (req) => {
       for (const account of ACCOUNTS) {
         const catalogos = await fetchCatalogos(account, { leve: true });
         const diario = await fetchDiario(account, hoje, hoje);
-        const t = await gravar(catalogos, diario, false);
+        // v3: snapshot da conta (saldo/gasto acumulado) — 1 GET leve, best-effort
+        const extras = { conta: [] };
+        try { extras.conta = [await fetchConta(account)]; } catch { /* segue sem */ }
+        const t = await gravar(catalogos, diario, false, [], extras);
         totais = { campanhas: totais.campanhas + t.campanhas, anuncios: totais.anuncios + t.anuncios, diario: totais.diario + t.diario };
       }
       await logAdvbox('meta', 'info', `trafego-sync hoje ok: ${totais.diario} linhas do dia, ${totais.campanhas} campanhas`, { totais });

@@ -6,6 +6,7 @@ import {
   actionsToCounts, insightRowToLinha, ymFirstDay, ACTION_CONVERSA,
   campaignToRow, adToRow, insightToDiario, avaliarAlertasTrafego,
   isCampanhaRh, adsetToRow, breakdownToLinha, montarResumoSemanal,
+  contaToRow, atividadeToRow,
 } from '../../../netlify/functions/_lib/metaAds.mjs';
 
 describe('actionsToCounts', () => {
@@ -72,13 +73,14 @@ describe('ymFirstDay', () => {
 
 describe('campaignToRow — catalogo de campanhas', () => {
   it('converte campanha do Graph (budget em CENTAVOS) p/ linha meta_campanhas', () => {
-    const l = campaignToRow(
-      { id: '120', name: 'CTWA Distratos', effective_status: 'ACTIVE', objective: 'OUTCOME_ENGAGEMENT', daily_budget: '15000' },
-      'act_1'
-    );
+    const bruto = { id: '120', name: 'CTWA Distratos', effective_status: 'ACTIVE', objective: 'OUTCOME_ENGAGEMENT', daily_budget: '15000' };
+    const l = campaignToRow(bruto, 'act_1');
     expect(l).toEqual({
       campaign_id: '120', account_id: 'act_1', nome: 'CTWA Distratos',
       status: 'ACTIVE', objetivo: 'OUTCOME_ENGAGEMENT', orcamento_diario: 150,
+      criado_em: null, alterado_em: null, inicio: null, fim: null,
+      buying_type: null, bid_strategy: null, orcamento_total: null,
+      raw: bruto,
     });
   });
 
@@ -87,18 +89,33 @@ describe('campaignToRow — catalogo de campanhas', () => {
     expect(l.orcamento_diario).toBe(null);
     expect(l.status).toBe('PAUSED');
   });
+
+  it('v3: ciclo de vida e estrategia (datas, buying_type, bid, lifetime em centavos)', () => {
+    const l = campaignToRow({
+      id: '120', name: 'X', created_time: '2026-03-18T10:00:00-0300', updated_time: '2026-07-10T08:00:00-0300',
+      start_time: '2026-03-19T00:00:00-0300', stop_time: '2026-12-31T00:00:00-0300',
+      buying_type: 'AUCTION', bid_strategy: 'LOWEST_COST_WITHOUT_CAP', lifetime_budget: '900000',
+    }, 'act_1');
+    expect(l.criado_em).toBe('2026-03-18T10:00:00-0300');
+    expect(l.alterado_em).toBe('2026-07-10T08:00:00-0300');
+    expect(l.inicio).toBe('2026-03-19T00:00:00-0300');
+    expect(l.fim).toBe('2026-12-31T00:00:00-0300');
+    expect(l.buying_type).toBe('AUCTION');
+    expect(l.bid_strategy).toBe('LOWEST_COST_WITHOUT_CAP');
+    expect(l.orcamento_total).toBe(9000);
+  });
 });
 
 describe('adToRow — catalogo de criativos', () => {
   it('extrai miniatura e permalink do criativo', () => {
-    const l = adToRow(
-      { id: 'a1', name: 'Video Hook 3', effective_status: 'ACTIVE', campaign_id: '120',
-        creative: { thumbnail_url: 'https://cdn.meta/t.jpg' }, preview_shareable_link: 'https://fb.com/p/a1' },
-      'act_1'
-    );
+    const bruto = { id: 'a1', name: 'Video Hook 3', effective_status: 'ACTIVE', campaign_id: '120',
+      creative: { thumbnail_url: 'https://cdn.meta/t.jpg' }, preview_shareable_link: 'https://fb.com/p/a1' };
+    const l = adToRow(bruto, 'act_1');
     expect(l).toEqual({
       ad_id: 'a1', campaign_id: '120', account_id: 'act_1', nome: 'Video Hook 3',
       status: 'ACTIVE', thumbnail_url: 'https://cdn.meta/t.jpg', permalink: 'https://fb.com/p/a1',
+      criado_em: null, alterado_em: null, titulo: null, corpo: null, cta: null,
+      video_id: null, imagem_url: null, raw: bruto,
     });
   });
 
@@ -106,6 +123,23 @@ describe('adToRow — catalogo de criativos', () => {
     const l = adToRow({ id: 'a2', name: 'Arte', campaign_id: '120' }, 'act_1');
     expect(l.thumbnail_url).toBe(null);
     expect(l.permalink).toBe(null);
+  });
+
+  it('v3: COPY do anuncio (titulo/corpo/CTA) e midia (video_id/imagem)', () => {
+    const l = adToRow({
+      id: 'a3', name: 'Video Prova Social', campaign_id: '120', created_time: '2026-06-02T09:00:00-0300',
+      creative: {
+        thumbnail_url: 'https://cdn.meta/t3.jpg', title: 'Saia do contrato do resort',
+        body: 'Pagou caro e não usa? Fale com a gente no WhatsApp.', call_to_action_type: 'MESSAGE_PAGE',
+        video_id: '778899', image_url: 'https://cdn.meta/full.jpg',
+      },
+    }, 'act_1');
+    expect(l.titulo).toBe('Saia do contrato do resort');
+    expect(l.corpo).toBe('Pagou caro e não usa? Fale com a gente no WhatsApp.');
+    expect(l.cta).toBe('MESSAGE_PAGE');
+    expect(l.video_id).toBe('778899');
+    expect(l.imagem_url).toBe('https://cdn.meta/full.jpg');
+    expect(l.criado_em).toBe('2026-06-02T09:00:00-0300');
   });
 });
 
@@ -128,8 +162,19 @@ describe('insightToDiario — metricas diarias', () => {
       gasto: 250.5, conversas_iniciadas: 12, leads_form: 1, impressoes: 10000, alcance: 8000,
       cliques: 150, cliques_link: 90, frequencia: 1.25, video_3s: 3000,
       video_thruplay: 0, video_p25: 0, video_p50: 0, video_p75: 0, video_p100: 0,
+      qualidade: null, ranking_engajamento: null, ranking_conversao: null,
       raw: { actions: row.actions },
     });
+  });
+
+  it('v3: rankings de qualidade da Meta (nivel anuncio) passam para a linha', () => {
+    const l = insightToDiario({
+      ...row, ad_id: 'a9',
+      quality_ranking: 'ABOVE_AVERAGE', engagement_rate_ranking: 'AVERAGE', conversion_rate_ranking: 'BELOW_AVERAGE_10',
+    }, 'ad', 'act_1');
+    expect(l.qualidade).toBe('ABOVE_AVERAGE');
+    expect(l.ranking_engajamento).toBe('AVERAGE');
+    expect(l.ranking_conversao).toBe('BELOW_AVERAGE_10');
   });
 
   it('nivel anuncio: entity_id = ad_id, mantem campaign_id', () => {
@@ -162,8 +207,67 @@ describe('isCampanhaRh — campanhas de vaga (RH) fora das metricas de captacao'
 
 describe('adsetToRow — catalogo de conjuntos', () => {
   it('converte adset do Graph (budget em centavos)', () => {
-    const l = adsetToRow({ id: 's1', name: 'LAL 3% Distrato', effective_status: 'ACTIVE', campaign_id: '120', daily_budget: '4000' }, 'act_1');
-    expect(l).toEqual({ adset_id: 's1', campaign_id: '120', account_id: 'act_1', nome: 'LAL 3% Distrato', status: 'ACTIVE', orcamento_diario: 40 });
+    const bruto = { id: 's1', name: 'LAL 3% Distrato', effective_status: 'ACTIVE', campaign_id: '120', daily_budget: '4000' };
+    const l = adsetToRow(bruto, 'act_1');
+    expect(l).toEqual({
+      adset_id: 's1', campaign_id: '120', account_id: 'act_1', nome: 'LAL 3% Distrato', status: 'ACTIVE', orcamento_diario: 40,
+      criado_em: null, alterado_em: null, inicio: null, fim: null,
+      otimizacao: null, evento_cobranca: null, publico: null, raw: bruto,
+    });
+  });
+
+  it('v3: PUBLICO-ALVO (targeting) e otimizacao entram inteiros', () => {
+    const targeting = { age_min: 30, age_max: 65, geo_locations: { countries: ['BR'] }, custom_audiences: [{ id: '9', name: 'LAL 3%' }] };
+    const l = adsetToRow({
+      id: 's2', name: 'Aberto BR', campaign_id: '120', optimization_goal: 'CONVERSATIONS',
+      billing_event: 'IMPRESSIONS', targeting, created_time: '2026-05-01T10:00:00-0300',
+      start_time: '2026-05-02T00:00:00-0300', end_time: null,
+    }, 'act_1');
+    expect(l.publico).toEqual(targeting);
+    expect(l.otimizacao).toBe('CONVERSATIONS');
+    expect(l.evento_cobranca).toBe('IMPRESSIONS');
+    expect(l.criado_em).toBe('2026-05-01T10:00:00-0300');
+    expect(l.inicio).toBe('2026-05-02T00:00:00-0300');
+    expect(l.fim).toBe(null);
+  });
+});
+
+describe('contaToRow — snapshot diario da conta (v3)', () => {
+  it('converte campos monetarios de CENTAVOS e mantem raw', () => {
+    const bruto = { id: 'act_969', account_status: 1, amount_spent: '8123456', balance: '45600', spend_cap: '0', currency: 'BRL' };
+    const l = contaToRow(bruto, 'act_969', '2026-07-16');
+    expect(l).toEqual({
+      dia: '2026-07-16', account_id: 'act_969', gasto_acumulado: 81234.56,
+      saldo: 456, limite_gasto: 0, status: 1, moeda: 'BRL', raw: bruto,
+    });
+  });
+
+  it('campos ausentes viram null sem quebrar', () => {
+    const l = contaToRow({}, 'act_1', '2026-07-16');
+    expect(l.gasto_acumulado).toBe(null);
+    expect(l.saldo).toBe(null);
+    expect(l.status).toBe(null);
+  });
+});
+
+describe('atividadeToRow — trilha do Gerenciador (v3)', () => {
+  it('converte evento com extra_data em JSON string', () => {
+    const l = atividadeToRow({
+      event_type: 'update_campaign_budget', event_time: '2026-07-15T14:22:11+0000',
+      actor_name: 'Paulo Conforto', object_name: '[02.06] Geral', object_id: '120248',
+      extra_data: '{"old_value":3000,"new_value":3100}',
+    }, 'act_1');
+    expect(l).toEqual({
+      account_id: 'act_1', event_time: '2026-07-15T14:22:11+0000', event_type: 'update_campaign_budget',
+      ator: 'Paulo Conforto', objeto: '[02.06] Geral', objeto_id: '120248',
+      extra: { old_value: 3000, new_value: 3100 },
+    });
+  });
+
+  it('extra_data invalido nao explode (vira texto) e objeto_id ausente vira string vazia', () => {
+    const l = atividadeToRow({ event_type: 'x', event_time: '2026-07-15T00:00:00+0000', extra_data: 'nao-e-json' }, 'act_1');
+    expect(l.extra).toEqual({ texto: 'nao-e-json' });
+    expect(l.objeto_id).toBe('');
   });
 });
 
