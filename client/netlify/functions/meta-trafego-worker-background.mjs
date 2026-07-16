@@ -8,7 +8,7 @@
  * a chave e recusada). Progresso/resultado no console do Monitor (origem 'meta').
  */
 import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
-import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, gravar, rodarAlertas } from './_lib/metaTrafego.mjs';
+import { TOKEN, ACCOUNTS, diaBrt, fetchCatalogos, fetchDiario, fetchBreakdowns, gravar, rodarAlertas } from './_lib/metaTrafego.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
 
@@ -32,22 +32,28 @@ export default async (req) => {
       until = diaBrt(1);
     }
 
-    let totais = { campanhas: 0, anuncios: 0, diario: 0, removidos: 0 };
+    let totais = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, removidos: 0 };
     for (const account of ACCOUNTS) {
-      const catalogos = await fetchCatalogos(account); // completo (com anuncios/thumbnails)
+      const catalogos = await fetchCatalogos(account); // completo (anuncios/thumbnails + conjuntos)
       const diario = [];
+      const breakdown = [];
       let ini = new Date(since + 'T12:00:00Z');
       const fimTotal = new Date(until + 'T12:00:00Z');
       while (ini <= fimTotal) {
         const fimJanela = new Date(Math.min(ini.getTime() + 29 * 86400 * 1000, fimTotal.getTime()));
-        diario.push(...await fetchDiario(account, ini.toISOString().slice(0, 10), fimJanela.toISOString().slice(0, 10)));
+        const de = ini.toISOString().slice(0, 10);
+        const ate = fimJanela.toISOString().slice(0, 10);
+        diario.push(...await fetchDiario(account, de, ate, { comAdset: true }));
+        breakdown.push(...await fetchBreakdowns(account, de, ate));
         ini = new Date(fimJanela.getTime() + 86400 * 1000);
       }
-      const t = await gravar(catalogos, diario, modo === 'diario');
+      const t = await gravar(catalogos, diario, modo === 'diario', breakdown);
       totais = {
         campanhas: totais.campanhas + t.campanhas,
         anuncios: totais.anuncios + t.anuncios,
+        conjuntos: totais.conjuntos + t.conjuntos,
         diario: totais.diario + t.diario,
+        breakdown: totais.breakdown + t.breakdown,
         removidos: totais.removidos + t.removidos,
       };
     }

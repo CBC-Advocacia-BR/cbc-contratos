@@ -7,7 +7,7 @@
  * das functions sincronas (medido 26.1s p/ 7 dias em 15/07).
  */
 import { db, logAdvbox } from './botDb.mjs';
-import { campaignToRow, adToRow, insightToDiario, avaliarAlertasTrafego, ALERTAS_DEFAULT } from './metaAds.mjs';
+import { campaignToRow, adToRow, adsetToRow, insightToDiario, breakdownToLinha, avaliarAlertasTrafego, ALERTAS_DEFAULT } from './metaAds.mjs';
 import { sendAlertEmail } from './alertEmail.mjs';
 
 export const GRAPH = 'https://graph.facebook.com/v23.0';
@@ -70,19 +70,26 @@ export async function fetchCatalogos(account, { leve = false } = {}) {
   const campanhas = (await graphAll(
     `${GRAPH}/${account}/campaigns?fields=id,name,effective_status,objective,daily_budget&limit=200&access_token=${encodeURIComponent(TOKEN)}`
   )).map((c) => campaignToRow(c, account));
-  if (leve) return { campanhas, anuncios: [] };
+  if (leve) return { campanhas, anuncios: [], conjuntos: [] };
   const anuncios = (await graphAll(
     `${GRAPH}/${account}/ads?fields=id,name,effective_status,campaign_id,creative{thumbnail_url},preview_shareable_link&limit=200&access_token=${encodeURIComponent(TOKEN)}`
   )).map((a) => adToRow(a, account));
-  return { campanhas, anuncios };
+  // (v2 #121) conjuntos/publicos
+  const conjuntos = (await graphAll(
+    `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget&limit=200&access_token=${encodeURIComponent(TOKEN)}`
+  )).map((s) => adsetToRow(s, account));
+  return { campanhas, anuncios, conjuntos };
 }
 
-export async function fetchDiario(account, since, until) {
+// (v2 #56/#58) retencao de video vem em campos proprios dos insights
+const CAMPOS_VIDEO = 'video_thruplay_watched_actions,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p100_watched_actions';
+
+export async function fetchDiario(account, since, until, { comAdset = false } = {}) {
   const linhas = [];
-  for (const level of ['campaign', 'ad']) {
-    const campos = level === 'ad'
-      ? 'campaign_id,ad_id,spend,impressions,reach,clicks,inline_link_clicks,frequency,actions'
-      : 'campaign_id,spend,impressions,reach,clicks,inline_link_clicks,frequency,actions';
+  const levels = comAdset ? ['campaign', 'adset', 'ad'] : ['campaign', 'ad'];
+  for (const level of levels) {
+    const id = level === 'ad' ? ',ad_id' : level === 'adset' ? ',adset_id' : '';
+    const campos = `campaign_id${id},spend,impressions,reach,clicks,inline_link_clicks,frequency,actions,${CAMPOS_VIDEO}`;
     const tr = encodeURIComponent(JSON.stringify({ since, until }));
     const rows = await graphAll(
       `${GRAPH}/${account}/insights?level=${level}&fields=${campos}&time_increment=1&time_range=${tr}&limit=500&access_token=${encodeURIComponent(TOKEN)}`,
@@ -93,24 +100,52 @@ export async function fetchDiario(account, since, until) {
   return linhas;
 }
 
-/** Grava via RPC em blocos (payload jsonb saudavel). Catalogos so no 1o bloco. */
-export async function gravar(catalogos, diario, limpar) {
-  let total = { campanhas: 0, anuncios: 0, diario: 0, removidos: 0 };
+// (v2 #124-#127) breakdowns diarios no NIVEL DA CONTA (demografico, regiao, posicionamento)
+const BREAKDOWNS = {
+  age_gender: 'age,gender',
+  region: 'region',
+  platform_position: 'publisher_platform,platform_position',
+};
+
+export async function fetchBreakdowns(account, since, until) {
+  const linhas = [];
+  const tr = encodeURIComponent(JSON.stringify({ since, until }));
+  for (const [tipo, dims] of Object.entries(BREAKDOWNS)) {
+    const rows = await graphAll(
+      `${GRAPH}/${account}/insights?level=account&fields=spend,impressions,inline_link_clicks,actions&breakdowns=${dims}&time_increment=1&time_range=${tr}&limit=500&access_token=${encodeURIComponent(TOKEN)}`,
+      80
+    );
+    for (const row of rows) linhas.push(breakdownToLinha(row, tipo, account));
+  }
+  return linhas;
+}
+
+/** Grava via RPC em blocos (payload jsonb saudavel). Catalogos/breakdown so no 1o bloco. */
+export async function gravar(catalogos, diario, limpar, breakdown = []) {
+  let total = { campanhas: 0, anuncios: 0, conjuntos: 0, diario: 0, breakdown: 0, removidos: 0 };
   const blocos = [];
   for (let i = 0; i < Math.max(diario.length, 1); i += 800) blocos.push(diario.slice(i, i + 800));
-  for (let i = 0; i < blocos.length; i++) {
+  // breakdown tambem em blocos (backfill 90d ~4-5k linhas)
+  const blocosBd = [];
+  for (let i = 0; i < breakdown.length; i += 800) blocosBd.push(breakdown.slice(i, i + 800));
+  const rodadas = Math.max(blocos.length, blocosBd.length);
+  for (let i = 0; i < rodadas; i++) {
     const { data, error } = await db.rpc('meta_trafego_upsert', {
       p_chave: RPC_SECRET,
       p_campanhas: i === 0 ? catalogos.campanhas : [],
       p_anuncios: i === 0 ? catalogos.anuncios : [],
-      p_diario: blocos[i],
-      p_limpar: limpar && i === blocos.length - 1,
+      p_conjuntos: i === 0 ? (catalogos.conjuntos || []) : [],
+      p_diario: blocos[i] || [],
+      p_breakdown: blocosBd[i] || [],
+      p_limpar: limpar && i === rodadas - 1,
     });
     if (error) throw new Error(`RPC meta_trafego_upsert: ${error.message}`);
     total = {
       campanhas: total.campanhas + (data?.campanhas || 0),
       anuncios: total.anuncios + (data?.anuncios || 0),
+      conjuntos: total.conjuntos + (data?.conjuntos || 0),
       diario: total.diario + (data?.diario || 0),
+      breakdown: total.breakdown + (data?.breakdown || 0),
       removidos: total.removidos + (data?.removidos || 0),
     };
   }
