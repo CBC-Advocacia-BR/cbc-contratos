@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
   actionsToCounts, insightRowToLinha, ymFirstDay, ACTION_CONVERSA,
   campaignToRow, adToRow, insightToDiario, avaliarAlertasTrafego,
+  isCampanhaRh, adsetToRow, breakdownToLinha, montarResumoSemanal,
 } from '../../../netlify/functions/_lib/metaAds.mjs';
 
 describe('actionsToCounts', () => {
@@ -125,7 +126,9 @@ describe('insightToDiario — metricas diarias', () => {
     expect(l).toEqual({
       dia: '2026-07-10', level: 'campaign', entity_id: '120', campaign_id: '120', account_id: 'act_1',
       gasto: 250.5, conversas_iniciadas: 12, leads_form: 1, impressoes: 10000, alcance: 8000,
-      cliques: 150, cliques_link: 90, frequencia: 1.25, video_3s: 3000, raw: { actions: row.actions },
+      cliques: 150, cliques_link: 90, frequencia: 1.25, video_3s: 3000,
+      video_thruplay: 0, video_p25: 0, video_p50: 0, video_p75: 0, video_p100: 0,
+      raw: { actions: row.actions },
     });
   });
 
@@ -141,6 +144,165 @@ describe('insightToDiario — metricas diarias', () => {
     expect(l.gasto).toBe(0);
     expect(l.video_3s).toBe(0);
     expect(l.frequencia).toBe(null);
+  });
+});
+
+// ─── v2 (16/07/2026): RH/vagas fora da captacao, adsets, breakdowns, video ───
+
+describe('isCampanhaRh — campanhas de vaga (RH) fora das metricas de captacao', () => {
+  it('detecta pelo nome, sem falso positivo', () => {
+    expect(isCampanhaRh('[VAGA] Advogado NAC')).toBe(true);
+    expect(isCampanhaRh('Vaga Analista de Marketing')).toBe(true);
+    expect(isCampanhaRh('[VAGAS][RH] Recepcao')).toBe(true);
+    expect(isCampanhaRh('[VD][SOU][LEADS][WPP] - Geral')).toBe(false);
+    expect(isCampanhaRh('Advogado fala de vagas em resort')).toBe(false); // 'vaga' no meio nao marca
+    expect(isCampanhaRh(null)).toBe(false);
+  });
+});
+
+describe('adsetToRow — catalogo de conjuntos', () => {
+  it('converte adset do Graph (budget em centavos)', () => {
+    const l = adsetToRow({ id: 's1', name: 'LAL 3% Distrato', effective_status: 'ACTIVE', campaign_id: '120', daily_budget: '4000' }, 'act_1');
+    expect(l).toEqual({ adset_id: 's1', campaign_id: '120', account_id: 'act_1', nome: 'LAL 3% Distrato', status: 'ACTIVE', orcamento_diario: 40 });
+  });
+});
+
+describe('breakdownToLinha — demografico/regiao/posicionamento (nivel conta)', () => {
+  it('age_gender: chave combinada', () => {
+    const l = breakdownToLinha({ date_start: '2026-07-10', age: '25-34', gender: 'female', spend: '80', impressions: '4000', inline_link_clicks: '30', actions: [{ action_type: ACTION_CONVERSA, value: '6' }] }, 'age_gender', 'act_1');
+    expect(l).toEqual({ dia: '2026-07-10', tipo: 'age_gender', chave: '25-34 · feminino', account_id: 'act_1', gasto: 80, conversas_iniciadas: 6, leads_form: 0, impressoes: 4000, cliques_link: 30 });
+  });
+  it('region e platform_position', () => {
+    expect(breakdownToLinha({ date_start: '2026-07-10', region: 'Sao Paulo', spend: '10' }, 'region', 'act_1').chave).toBe('Sao Paulo');
+    const p = breakdownToLinha({ date_start: '2026-07-10', publisher_platform: 'instagram', platform_position: 'instagram_reels', spend: '10' }, 'platform_position', 'act_1');
+    expect(p.chave).toBe('instagram · instagram_reels');
+  });
+});
+
+describe('insightToDiario v2 — retencao de video', () => {
+  it('extrai thruplay e p25..p100 dos campos proprios', () => {
+    const l = insightToDiario({
+      date_start: '2026-07-10', campaign_id: '1',
+      video_thruplay_watched_actions: [{ action_type: 'video_view', value: '900' }],
+      video_p25_watched_actions: [{ action_type: 'video_view', value: '2000' }],
+      video_p50_watched_actions: [{ action_type: 'video_view', value: '1200' }],
+      video_p75_watched_actions: [{ action_type: 'video_view', value: '700' }],
+      video_p100_watched_actions: [{ action_type: 'video_view', value: '400' }],
+    }, 'campaign', 'act_1');
+    expect(l.video_thruplay).toBe(900);
+    expect(l.video_p25).toBe(2000);
+    expect(l.video_p100).toBe(400);
+  });
+  it('sem os campos -> zeros', () => {
+    const l = insightToDiario({ date_start: '2026-07-10', campaign_id: '1' }, 'campaign', 'act_1');
+    expect(l.video_thruplay).toBe(0);
+    expect(l.video_p25).toBe(0);
+  });
+});
+
+describe('avaliarAlertasTrafego v2 — novos tipos', () => {
+  const cfg = { cpl_mult: 2, cpl_gasto_min_dia: 100, queda_leads_pct: 50, freq_alta: 3, gasto_sem_lead_min: 150 };
+  const diasEstaveis28 = Array.from({ length: 27 }, (_, i) => ({ dia: `2026-06-${String(i + 1).padStart(2, '0')}`, gasto: 100, leads: 10 }));
+
+  it('cpl_campanha: campanha de ontem com CPL >> media da conta (gasto minimo)', () => {
+    const series = {
+      conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 400, leads: 30 }],
+      ontem_campanhas: [
+        { campaign_id: '1', nome: 'Cara', status: 'ACTIVE', gasto: 200, leads: 4 },  // CPL 50 >> 2x media (~10)
+        { campaign_id: '2', nome: 'Ok', status: 'ACTIVE', gasto: 200, leads: 26 },   // CPL ~7.7 ok
+        { campaign_id: '3', nome: '[VAGA] Advogado', status: 'ACTIVE', gasto: 200, leads: 0 }, // RH: fora
+      ],
+    };
+    const a = avaliarAlertasTrafego(series, cfg).filter((x) => x.tipo === 'cpl_campanha');
+    expect(a).toHaveLength(1);
+    expect(a[0].campanha).toBe('Cara');
+  });
+
+  it('entrega_zerada ignora campanhas de RH', () => {
+    const series = {
+      conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 100, leads: 10 }],
+      ontem_campanhas: [{ campaign_id: '9', nome: '[VAGA] Analista', status: 'ACTIVE', gasto: 0, leads: 0 }],
+    };
+    expect(avaliarAlertasTrafego(series, cfg).filter((x) => x.tipo === 'entrega_zerada')).toHaveLength(0);
+  });
+
+  it('zero_leads_gasto: conta gastou acima do minimo ontem sem nenhum lead', () => {
+    const series = { conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 300, leads: 0 }], ontem_campanhas: [] };
+    const a = avaliarAlertasTrafego(series, cfg).find((x) => x.tipo === 'zero_leads_gasto');
+    expect(a).toBeTruthy();
+    expect(a.valor).toBe(300);
+  });
+
+  it('melhor_cpl (positivo): ontem foi o menor CPL da serie', () => {
+    const series = { conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 120, leads: 40 }], ontem_campanhas: [] }; // CPL 3 < todos (10)
+    const a = avaliarAlertasTrafego(series, cfg).find((x) => x.tipo === 'melhor_cpl');
+    expect(a).toBeTruthy();
+    expect(a.positivo).toBe(true);
+  });
+
+  it('queda_leads_campanha: 7d < pct% dos 7d anteriores (so nao-RH, com volume)', () => {
+    const series = {
+      conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 100, leads: 10 }],
+      ontem_campanhas: [],
+      campanhas_14d: [
+        { campaign_id: '1', nome: 'Caiu', status: 'ACTIVE', leads_7d: 10, leads_7d_ant: 60, gasto_7d: 300, gasto_7d_ant: 300 },
+        { campaign_id: '2', nome: 'Estavel', status: 'ACTIVE', leads_7d: 55, leads_7d_ant: 60, gasto_7d: 300, gasto_7d_ant: 300 },
+        { campaign_id: '3', nome: '[VAGA] X', status: 'ACTIVE', leads_7d: 0, leads_7d_ant: 10, gasto_7d: 300, gasto_7d_ant: 300 },
+      ],
+    };
+    const a = avaliarAlertasTrafego(series, cfg).filter((x) => x.tipo === 'queda_leads_campanha');
+    expect(a).toHaveLength(1);
+    expect(a[0].campanha).toBe('Caiu');
+  });
+
+  it('criativo_saturando: freq alta + CTR desabando (via criativos_14d)', () => {
+    const series = {
+      conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 100, leads: 10 }],
+      ontem_campanhas: [],
+      criativos_14d: [
+        { ad_id: 'a1', nome: 'Video X', campanha: 'C1', freq: 4.2, ctr_atual: 0.5, ctr_anterior: 1.4, gasto_7d: 200 },
+        { ad_id: 'a2', nome: 'Video Y', campanha: 'C1', freq: 1.5, ctr_atual: 1.2, ctr_anterior: 1.3, gasto_7d: 200 },
+      ],
+    };
+    const a = avaliarAlertasTrafego(series, cfg).filter((x) => x.tipo === 'criativo_saturando');
+    expect(a).toHaveLength(1);
+    expect(a[0].mensagem).toContain('Video X');
+  });
+
+  it('frequencia_alta: media ponderada dos criativos 7d acima do limite', () => {
+    const series = {
+      conta: [...diasEstaveis28, { dia: '2026-06-28', gasto: 100, leads: 10 }],
+      ontem_campanhas: [],
+      criativos_14d: [
+        { ad_id: 'a1', nome: 'X', campanha: 'C', freq: 3.6, ctr_atual: 1, ctr_anterior: 1, gasto_7d: 500 },
+        { ad_id: 'a2', nome: 'Y', campanha: 'C', freq: 3.4, ctr_atual: 1, ctr_anterior: 1, gasto_7d: 500 },
+      ],
+    };
+    const a = avaliarAlertasTrafego(series, cfg).find((x) => x.tipo === 'frequencia_alta');
+    expect(a).toBeTruthy();
+    expect(a.valor).toBeCloseTo(3.5, 1);
+  });
+});
+
+describe('montarResumoSemanal — e-mail de segunda-feira', () => {
+  it('compara semana vs anterior e lista top campanhas', () => {
+    const dias = [];
+    for (let i = 14; i >= 1; i--) {
+      const semanaAtual = i <= 7;
+      dias.push({ dia: `2026-07-${String(16 - i).padStart(2, '0')}`, gasto: semanaAtual ? 200 : 100, leads: semanaAtual ? 20 : 10 });
+    }
+    const series = {
+      conta: dias,
+      campanhas_14d: [
+        { campaign_id: '1', nome: 'Top', status: 'ACTIVE', leads_7d: 90, leads_7d_ant: 50, gasto_7d: 900, gasto_7d_ant: 700 },
+        { campaign_id: '2', nome: '[VAGA] RH', status: 'ACTIVE', leads_7d: 5, leads_7d_ant: 5, gasto_7d: 100, gasto_7d_ant: 100 },
+      ],
+    };
+    const r = montarResumoSemanal(series);
+    expect(r.linhas.length).toBeGreaterThanOrEqual(3);
+    expect(r.linhas.join(' ')).toContain('140'); // leads da semana (20x7)
+    expect(r.linhas.join(' ')).toContain('Top');
+    expect(r.linhas.join(' ')).not.toContain('[VAGA]'); // RH fora do resumo
   });
 });
 

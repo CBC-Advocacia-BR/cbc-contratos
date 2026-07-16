@@ -83,7 +83,14 @@ export function adToRow(ad, accountId) {
   };
 }
 
-/** Insights diarios (time_increment=1, level campaign|ad) -> linha de meta_ads_diario. */
+/** Soma o value de um campo de video (*_watched_actions vem como array de actions). */
+function videoField(row, campo) {
+  let total = 0;
+  for (const a of row?.[campo] || []) total += Number(a?.value) || 0;
+  return total;
+}
+
+/** Insights diarios (time_increment=1, level campaign|adset|ad) -> linha de meta_ads_diario. */
 export function insightToDiario(row, level, accountId) {
   const { conversas, leadsForm } = actionsToCounts(row?.actions);
   let video3s = 0;
@@ -91,10 +98,11 @@ export function insightToDiario(row, level, accountId) {
     if (a?.action_type === ACTION_VIDEO_3S) video3s += Number(a.value) || 0;
   }
   const freq = Number(row?.frequency);
+  const entity = level === 'ad' ? row?.ad_id : level === 'adset' ? row?.adset_id : row?.campaign_id;
   return {
     dia: String(row?.date_start || '').slice(0, 10),
     level,
-    entity_id: String((level === 'ad' ? row?.ad_id : row?.campaign_id) || ''),
+    entity_id: String(entity || ''),
     campaign_id: String(row?.campaign_id || ''),
     account_id: accountId,
     gasto: Number(row?.spend) || 0,
@@ -106,12 +114,66 @@ export function insightToDiario(row, level, accountId) {
     cliques_link: Number(row?.inline_link_clicks) || 0,
     frequencia: Number.isFinite(freq) && freq > 0 ? freq : null,
     video_3s: video3s,
+    video_thruplay: videoField(row, 'video_thruplay_watched_actions'),
+    video_p25: videoField(row, 'video_p25_watched_actions'),
+    video_p50: videoField(row, 'video_p50_watched_actions'),
+    video_p75: videoField(row, 'video_p75_watched_actions'),
+    video_p100: videoField(row, 'video_p100_watched_actions'),
     raw: { actions: row?.actions || [] },
   };
 }
 
+// ─── v2 (16/07/2026): RH fora da captacao, adsets, breakdowns, video ─────────
+
+/**
+ * Campanhas de VAGA (RH — curriculos p/ o escritorio) nao tem relacao com
+ * vendas/contratos (decisao Paulo 16/07): saem de TODOS os numeros de captacao
+ * (KPIs, serie, rankings, comercial e alertas). Deteccao pelo nome: prefixo
+ * marcado ([VAGA]/[VAGAS]/[RH]) ou nome comecando com "vaga".
+ */
+export function isCampanhaRh(nome) {
+  const n = String(nome || '').trim().toLowerCase();
+  if (!n) return false;
+  return /^\[?\s*(vagas?|rh)\b/.test(n);
+}
+
+/** Conjunto (adset) do Graph -> linha de meta_conjuntos. Budget em centavos. */
+export function adsetToRow(s, accountId) {
+  const budget = Number(s?.daily_budget);
+  return {
+    adset_id: String(s?.id || ''),
+    campaign_id: String(s?.campaign_id || ''),
+    account_id: accountId,
+    nome: s?.name || '',
+    status: s?.effective_status || s?.status || null,
+    orcamento_diario: Number.isFinite(budget) && budget > 0 ? budget / 100 : null,
+  };
+}
+
+const GENERO_PT = { female: 'feminino', male: 'masculino', unknown: 'desconhecido' };
+
+/** Linha de insights com breakdown (age_gender | region | platform_position) -> meta_ads_breakdown. */
+export function breakdownToLinha(row, tipo, accountId) {
+  const { conversas, leadsForm } = actionsToCounts(row?.actions);
+  let chave = '';
+  if (tipo === 'age_gender') chave = `${row?.age || '?'} · ${GENERO_PT[row?.gender] || row?.gender || '?'}`;
+  else if (tipo === 'region') chave = row?.region || '?';
+  else chave = `${row?.publisher_platform || '?'} · ${row?.platform_position || '?'}`;
+  return {
+    dia: String(row?.date_start || '').slice(0, 10),
+    tipo,
+    chave,
+    account_id: accountId,
+    gasto: Number(row?.spend) || 0,
+    conversas_iniciadas: conversas,
+    leads_form: leadsForm,
+    impressoes: Number(row?.impressions) || 0,
+    cliques_link: Number(row?.inline_link_clicks) || 0,
+  };
+}
+
 /** Config default dos alertas (editavel em bot_config['meta_trafego'].alertas). */
-export const ALERTAS_DEFAULT = { ativo: true, cpl_mult: 2, cpl_gasto_min_dia: 100, queda_leads_pct: 50 };
+export const ALERTAS_DEFAULT = { ativo: true, cpl_mult: 2, cpl_gasto_min_dia: 100, queda_leads_pct: 50, freq_alta: 3, gasto_sem_lead_min: 150 };
 
 /**
  * Motor de alertas. `series` = retorno da RPC meta_trafego_series:
@@ -147,8 +209,18 @@ export function avaliarAlertasTrafego(series, config = {}) {
     }
   }
 
-  // 2) Entrega zerada — campanha ATIVA que nao gastou nada ontem
+  // media de CPL da conta (historico sem ontem) — usada nas regras por campanha
+  let mediaCplConta = null;
+  if (conta.length >= 8) {
+    const hist = conta.slice(0, -1);
+    const g = hist.reduce((s, d) => s + (Number(d.gasto) || 0), 0);
+    const l = hist.reduce((s, d) => s + (Number(d.leads) || 0), 0);
+    if (l > 0) mediaCplConta = g / l;
+  }
+
+  // 2) Entrega zerada — campanha ATIVA que nao gastou nada ontem (RH/vagas fora)
   for (const c of series?.ontem_campanhas || []) {
+    if (isCampanhaRh(c?.nome)) continue;
     if (c?.status === 'ACTIVE' && (Number(c.gasto) || 0) === 0) {
       alertas.push({
         tipo: 'entrega_zerada',
@@ -158,6 +230,116 @@ export function avaliarAlertasTrafego(series, config = {}) {
         valor: 0,
         limite: null,
       });
+    }
+  }
+
+  // 2b) (v2 #100) CPL por CAMPANHA ontem >> media da conta (gasto minimo, RH fora)
+  if (mediaCplConta != null) {
+    for (const c of series?.ontem_campanhas || []) {
+      if (isCampanhaRh(c?.nome)) continue;
+      const gasto = Number(c?.gasto) || 0;
+      const leads = Number(c?.leads) || 0;
+      if (gasto >= cfg.cpl_gasto_min_dia && leads > 0) {
+        const cpl = gasto / leads;
+        if (cpl > cfg.cpl_mult * mediaCplConta) {
+          alertas.push({
+            tipo: 'cpl_campanha',
+            campanha: c.nome || c.campaign_id,
+            campaign_id: c.campaign_id,
+            mensagem: `Campanha "${c.nome || c.campaign_id}": CPL de ontem R$ ${cpl.toFixed(2)} — ${cfg.cpl_mult}x acima da média da conta (R$ ${mediaCplConta.toFixed(2)})`,
+            valor: cpl,
+            limite: cfg.cpl_mult * mediaCplConta,
+          });
+        }
+      }
+    }
+  }
+
+  // 2c) (v2 #102) Conta gastou ontem acima do minimo e nao trouxe NENHUM lead
+  if (conta.length >= 1) {
+    const ontem = conta[conta.length - 1];
+    const gastoOntem = Number(ontem?.gasto) || 0;
+    if (gastoOntem >= cfg.gasto_sem_lead_min && (Number(ontem?.leads) || 0) === 0) {
+      alertas.push({
+        tipo: 'zero_leads_gasto',
+        mensagem: `Ontem a conta gastou R$ ${gastoOntem.toFixed(2)} e não registrou NENHUM lead — verificar campanhas/WhatsApp`,
+        valor: gastoOntem,
+        limite: cfg.gasto_sem_lead_min,
+      });
+    }
+  }
+
+  // 2d) (v2 #103) POSITIVO: ontem foi o melhor CPL da serie (com gasto minimo)
+  if (conta.length >= 8) {
+    const cpls = conta
+      .map((d) => ((Number(d.leads) || 0) > 0 && (Number(d.gasto) || 0) >= cfg.cpl_gasto_min_dia ? (Number(d.gasto) || 0) / Number(d.leads) : null));
+    const cplOntem = cpls[cpls.length - 1];
+    const historicos = cpls.slice(0, -1).filter((v) => v != null);
+    if (cplOntem != null && historicos.length >= 5 && cplOntem < Math.min(...historicos)) {
+      alertas.push({
+        tipo: 'melhor_cpl',
+        positivo: true,
+        mensagem: `🎉 Melhor CPL da série: ontem fechou em R$ ${cplOntem.toFixed(2)} — menor custo por lead dos últimos ${conta.length} dias`,
+        valor: cplOntem,
+        limite: Math.min(...historicos),
+      });
+    }
+  }
+
+  // 2e) (v2 #109) Queda de leads POR CAMPANHA: 7d < pct% dos 7d anteriores (volume minimo, RH fora)
+  for (const c of series?.campanhas_14d || []) {
+    if (isCampanhaRh(c?.nome)) continue;
+    const l7 = Number(c?.leads_7d) || 0;
+    const l7ant = Number(c?.leads_7d_ant) || 0;
+    const limite = l7ant * (cfg.queda_leads_pct / 100);
+    if (l7ant >= 20 && l7 < limite) {
+      alertas.push({
+        tipo: 'queda_leads_campanha',
+        campanha: c.nome || c.campaign_id,
+        campaign_id: c.campaign_id,
+        mensagem: `Campanha "${c.nome || c.campaign_id}": leads da semana caíram para ${l7} (semana anterior: ${l7ant})`,
+        valor: l7,
+        limite,
+      });
+    }
+  }
+
+  // 2f) (v2 #73) Criativo saturando: freq alta E CTR desabando na semana (gasto relevante)
+  for (const a of series?.criativos_14d || []) {
+    const freq = Number(a?.freq) || 0;
+    const ctrA = Number(a?.ctr_atual) || 0;
+    const ctrP = Number(a?.ctr_anterior) || 0;
+    if (freq >= 3.5 && ctrP > 0 && ctrA < 0.7 * ctrP && (Number(a?.gasto_7d) || 0) >= 50) {
+      alertas.push({
+        tipo: 'criativo_saturando',
+        campaign_id: a.ad_id,
+        mensagem: `Criativo "${a.nome || a.ad_id}" (${a.campanha || '—'}) saturando: frequência ${freq.toFixed(1)} e CTR caiu de ${ctrP.toFixed(2)}% para ${ctrA.toFixed(2)}% — hora de trocar`,
+        valor: freq,
+        limite: 3.5,
+      });
+    }
+  }
+
+  // 2g) (v2 #101) Frequencia media da conta (ponderada por gasto 7d) acima do limite
+  const cri = series?.criativos_14d || [];
+  if (cri.length) {
+    let peso = 0;
+    let soma = 0;
+    for (const a of cri) {
+      const g = Number(a?.gasto_7d) || 0;
+      const f = Number(a?.freq) || 0;
+      if (g > 0 && f > 0) { soma += f * g; peso += g; }
+    }
+    if (peso > 0) {
+      const freqMedia = soma / peso;
+      if (freqMedia >= cfg.freq_alta) {
+        alertas.push({
+          tipo: 'frequencia_alta',
+          mensagem: `Frequência média da conta em ${freqMedia.toFixed(1)} (limite ${cfg.freq_alta}) — público começando a saturar; considerar públicos/criativos novos`,
+          valor: freqMedia,
+          limite: cfg.freq_alta,
+        });
+      }
     }
   }
 
@@ -177,4 +359,40 @@ export function avaliarAlertasTrafego(series, config = {}) {
   }
 
   return alertas;
+}
+
+/**
+ * (v2 #104) Resumo semanal (segunda de manha): semana fechada vs anterior +
+ * top campanhas por leads. RH/vagas fora. `series` = meta_trafego_series(14).
+ * Retorna { assunto, linhas[] } pronto p/ sendAlertEmail.
+ */
+export function montarResumoSemanal(series) {
+  const conta = [...(series?.conta || [])].sort((a, b) => String(a.dia).localeCompare(String(b.dia)));
+  const at = conta.slice(-7);
+  const ant = conta.slice(-14, -7);
+  const soma = (arr, k) => arr.reduce((s, d) => s + (Number(d[k]) || 0), 0);
+  const leads = soma(at, 'leads');
+  const leadsAnt = soma(ant, 'leads');
+  const gasto = soma(at, 'gasto');
+  const gastoAnt = soma(ant, 'gasto');
+  const cpl = leads > 0 ? gasto / leads : null;
+  const cplAnt = leadsAnt > 0 ? gastoAnt / leadsAnt : null;
+  const pct = (a, b) => (b > 0 ? Math.round(((a - b) / b) * 100) : null);
+
+  const linhas = [
+    `Leads da semana: ${leads} (${pct(leads, leadsAnt) == null ? 'sem base' : (pct(leads, leadsAnt) >= 0 ? '+' : '') + pct(leads, leadsAnt) + '%'} vs semana anterior: ${leadsAnt})`,
+    `Investimento: R$ ${gasto.toFixed(2)} (semana anterior: R$ ${gastoAnt.toFixed(2)})`,
+    `CPL: ${cpl != null ? 'R$ ' + cpl.toFixed(2) : '—'}${cplAnt != null ? ` (anterior: R$ ${cplAnt.toFixed(2)})` : ''}`,
+  ];
+
+  const top = (series?.campanhas_14d || [])
+    .filter((c) => !isCampanhaRh(c?.nome) && (Number(c?.leads_7d) || 0) > 0)
+    .sort((a, b) => (Number(b.leads_7d) || 0) - (Number(a.leads_7d) || 0))
+    .slice(0, 3);
+  for (const c of top) {
+    const cplC = (Number(c.gasto_7d) || 0) > 0 && (Number(c.leads_7d) || 0) > 0 ? (Number(c.gasto_7d) / Number(c.leads_7d)).toFixed(2) : '—';
+    linhas.push(`• ${c.nome}: ${c.leads_7d} leads · CPL R$ ${cplC}`);
+  }
+
+  return { assunto: `📊 Tráfego da semana: ${leads} leads · R$ ${gasto.toFixed(0)} investidos`, linhas };
 }
