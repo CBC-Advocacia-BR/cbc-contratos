@@ -95,13 +95,16 @@ export default async (req) => {
       const { data: atual } = await db.from('bot_config').select('value').eq('key', 'meta_trafego').maybeSingle();
       const antes = atual?.value?.alertas || ALERTAS_DEFAULT;
       const depois = { ...ALERTAS_DEFAULT, ...antes, ...(body.alertas || {}) };
+      // (v2 #8) metas da aba (ex.: leads_mes) convivem com os alertas na mesma config
+      const metasAntes = atual?.value?.metas || {};
+      const metasDepois = body.metas ? { ...metasAntes, ...body.metas } : metasAntes;
       await db.from('bot_config').upsert({
         key: 'meta_trafego',
-        value: { ...(atual?.value || {}), alertas: depois, atualizado_em: new Date().toISOString(), atualizado_por: userEmail },
+        value: { ...(atual?.value || {}), alertas: depois, metas: metasDepois, atualizado_em: new Date().toISOString(), atualizado_por: userEmail },
         updated_at: new Date().toISOString(),
       });
-      await auditar(userEmail, 'config', { antes, depois });
-      return resp(200, { success: true, alertas: depois });
+      await auditar(userEmail, 'config', { antes, depois, metas: metasDepois });
+      return resp(200, { success: true, alertas: depois, metas: metasDepois });
     }
 
     if (!campaignId) return resp(400, { error: 'campaign_id obrigatorio' });
