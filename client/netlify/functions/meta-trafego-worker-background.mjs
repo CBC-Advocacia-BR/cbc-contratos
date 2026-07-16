@@ -39,12 +39,15 @@ export default async (req) => {
       const breakdown = [];
       let ini = new Date(since + 'T12:00:00Z');
       const fimTotal = new Date(until + 'T12:00:00Z');
+      // janelas de 10 dias: o custo de query da Meta e DINAMICO e janelas de 30-90d
+      // com campos de video/breakdowns levam recusa "reduce the amount of data" (code 1)
       while (ini <= fimTotal) {
-        const fimJanela = new Date(Math.min(ini.getTime() + 29 * 86400 * 1000, fimTotal.getTime()));
+        const fimJanela = new Date(Math.min(ini.getTime() + 9 * 86400 * 1000, fimTotal.getTime()));
         const de = ini.toISOString().slice(0, 10);
         const ate = fimJanela.toISOString().slice(0, 10);
         diario.push(...await fetchDiario(account, de, ate, { comAdset: true }));
         breakdown.push(...await fetchBreakdowns(account, de, ate));
+        console.log(`trafego-worker ${modo}: janela ${de}..${ate} ok (${diario.length} diario, ${breakdown.length} breakdown)`);
         ini = new Date(fimJanela.getTime() + 86400 * 1000);
       }
       const t = await gravar(catalogos, diario, modo === 'diario', breakdown);
