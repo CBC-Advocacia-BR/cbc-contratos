@@ -139,10 +139,29 @@ export default function TrafegoPanel() {
     setErr('');
     try {
       const corte = diaStr(new Date(Date.now() - 200 * 86400000));
-      const [camp, ads, dia, men, vc, ctr, cfg] = await Promise.all([
+      // (fix 16/07) O PostgREST tem teto de linhas POR REQUEST (max_rows do projeto
+      // compartilhado = 1000) — o limit(50000) era CAPADO em silencio e o painel
+      // computava sobre um subconjunto (KPIs baixos e troca de periodo sem efeito;
+      // content-range media 0-999/1590). A diaria e a UNICA tabela do app acima do
+      // teto (contratos=231, anuncios=648) e cresce ~18 linhas/dia -> paginacao.
+      const buscarDiarioCompleto = async () => {
+        const out = [];
+        for (let de = 0; de < 20000; de += 1000) {
+          const { data, error } = await supabase.from('meta_ads_diario')
+            .select('dia, level, entity_id, campaign_id, gasto, conversas_iniciadas, leads_form, impressoes, alcance, cliques, cliques_link, frequencia, video_3s, synced_at')
+            .gte('dia', corte)
+            .order('dia', { ascending: true }).order('level', { ascending: true }).order('entity_id', { ascending: true })
+            .range(de, de + 999);
+          if (error) throw error;
+          out.push(...(data || []));
+          if (!data || data.length < 1000) break;
+        }
+        return out;
+      };
+      const [camp, ads, diario2, men, vc, ctr, cfg] = await Promise.all([
         supabase.from('meta_campanhas').select('*').order('nome'),
         supabase.from('meta_anuncios').select('ad_id, campaign_id, nome, status, thumbnail_url, permalink'),
-        supabase.from('meta_ads_diario').select('dia, level, entity_id, campaign_id, gasto, conversas_iniciadas, leads_form, impressoes, alcance, cliques, cliques_link, frequencia, video_3s').gte('dia', corte).limit(50000),
+        buscarDiarioCompleto(),
         supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto'),
         supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
         supabase.from('contratos').select('id, status, zapsign_sent_at, signed_at, advbox_date, updated_at, arquivado_em').order('created_at', { ascending: false }).limit(20000),
@@ -150,12 +169,12 @@ export default function TrafegoPanel() {
       ]);
       setCampanhas(camp.data || []);
       setAnuncios(ads.data || []);
-      setDiario(dia.data || []);
+      setDiario(diario2);
       setMensal(men.data || []);
       setVideochamadas(vc.data || []);
       setContratos(ctr.data || []);
       setAlertCfg({ ativo: true, cpl_mult: 2, cpl_gasto_min_dia: 100, queda_leads_pct: 50, ...(cfg.data?.value?.alertas || {}) });
-      const maxSync = (dia.data || []).reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '') || null;
+      const maxSync = diario2.reduce((m, r) => (r.synced_at > m ? r.synced_at : m), '') || null;
       setUltimoSync(maxSync);
     } catch (e) {
       setErr(e.message || 'Erro ao carregar');
