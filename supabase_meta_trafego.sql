@@ -161,3 +161,12 @@ grant execute on function public.meta_trafego_series(text, integer) to anon, aut
 update public.user_permissions
 set tabs = coalesce(tabs, '{}'::jsonb) || '{"trafego": true}'::jsonb
 where lower(email) in ('paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com');
+
+-- ============================================================================
+-- v2 (16/07/2026) — JÁ APLICADA via MCP (migração meta_trafego_v2), onda de 64
+-- melhorias: colunas de retenção de vídeo (thruplay/p25..p100) no diário; level
+-- 'adset' aceito; tabela meta_conjuntos; tabela meta_ads_breakdown (age_gender/
+-- region/platform_position no nível da conta); meta_trafego_upsert ganha
+-- p_conjuntos/p_breakdown; meta_trafego_series ganha criativos_14d (fadiga p/
+-- alertas). Ver migração no histórico do Supabase para o SQL integral.
+-- ============================================================================
