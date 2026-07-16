@@ -17,6 +17,16 @@ Alguns números/afirmações mais abaixo estavam defasados e ficam corrigidos aq
 - **`steps/` e `components/Stepper.jsx` já foram REMOVIDOS** (não são mais "candidatos a remoção" — só restam em `backups/`).
 - Maior componente hoje = **VendasPanel.jsx (~2516 linhas)**, depois ContratosTab (~2316) e SociosDashboard (~2043); o FormPanel (~2010) **não** é o maior.
 
+### Aba "Tráfego" (Meta Ads operacional) — 15/07/2026 — EM PRODUÇÃO
+
+Pedido do Paulo com entrevista de requisitos (3 rodadas). **Spec/plano**: `docs/superpowers/{specs,plans}/2026-07-14-aba-trafego-pago*`. Rollbacks: `./rollback.sh 6a56b49767a1ec8fb817bf5c` (pré-aba) · `./rollback.sh 6a582904bd991d9fbde5ffbe` (pré-worker, aba sem background). Backup: `backups/20260715_212630_aba_trafego/`.
+
+- **13ª aba "Tráfego"** (`TrafegoPanel.jsx` + `trafego/{compute,api}.js`, tab key `trafego`): KPIs com comparação de período (7d default), série diária SVG, tabela de campanhas (status/orçamento/CPL/tendência/badge atenção), cards de criativos com **miniatura** e rankings (Top CTR/CPL/leads/**hook rate**) + badge **"saturando"** (freq ≥3,5 e CTR caindo 30%), bloco **"Do anúncio ao contrato"** (mensal: leads→vídeo→enviados→assinados+custo/assinado) e config de alertas. Permissão RBAC `tabs.trafego` (matriz do Admin; seed = Paulo/Bruno/Lorenza).
+- **Espelho diário**: tabelas `meta_campanhas` (27), `meta_anuncios` (**648**, com thumbnail/permalink), `meta_ads_diario` (dia × campanha e dia × anúncio) — migração `meta_trafego` (arquivo `supabase_meta_trafego.sql`), RPCs `meta_trafego_upsert`/`meta_trafego_series` (BOT_RPC_SECRET). Backfill 90d rodado 15/07; **validação cruzada diário×mensal: 0,00% de divergência** em mai/jun (julho difere só pelo frescor do dia corrente).
+- **Functions**: `meta-trafego-sync` (cron 07h10; `?hoje=1` síncrono leve = campanhas+dia; demais modos DESPACHAM) → **`meta-trafego-worker-background`** (15 min; catálogo completo + D-1..D-3 + limpeza 400d + **alertas**; ⚠️ lição: functions síncronas deste site estouram em ~26s — catálogo de 648 anúncios não cabe) → `meta-trafego-action` (**pausar/reativar/orçamento/config**; dupla trava JWT `db.auth.getUser` + lista trio; auditoria em `activity_log` + espelho imediato). Travas 401/403 testadas em produção; mutação Graph validada em campanha PAUSADA (orçamento 30→31→30, revertido).
+- **Alertas** (1×/dia por tipo+campanha, config em `bot_config.meta_trafego`): CPL ontem >2× média 28d (gasto mín. R$100), campanha ACTIVE com entrega zerada, leads 7d <50% dos 7d anteriores → sino in-app do trio + e-mail via Resend (`sendAlertEmail` novo em `_lib/alertEmail.mjs`; sem `RESEND_API_KEY` só sino).
+- **Pendências**: Paulo abrir a aba (visual) e dar 1 clique de ação real in-app (o caminho JWT completo só o trio consegue); parsers/alertas/compute com 29 testes novos (suíte 292/292).
+
 ### Leads Meta no funil + endereços distintos (14/07/2026) — EM PRODUÇÃO
 
 Dois deploys em 14/07 (rollbacks: `./rollback.sh 6a566cf085c7714d803db7db` volta ao pré-Meta; `./rollback.sh 6a4e75d250556722a133f11d` volta ao pré-endereços/08-07).
