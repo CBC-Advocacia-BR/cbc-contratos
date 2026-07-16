@@ -86,7 +86,34 @@ export async function fetchCatalogos(account, { leve = false } = {}) {
     `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget,optimization_goal,billing_event,targeting,created_time,updated_time,start_time,end_time&limit=25&access_token=${encodeURIComponent(TOKEN)}`,
     80
   )).map((s) => adsetToRow(s, account));
+  // v3.1: quality rankings da Meta (atributo ATUAL, janela 30d) — 1 chamada leve
+  // agregada, mesclada no catalogo. Best-effort: falha nao derruba o catalogo.
+  try {
+    const quality = await fetchQuality(account);
+    for (const a of anuncios) {
+      const q = quality.get(a.ad_id);
+      if (q) Object.assign(a, q);
+    }
+  } catch (e) { console.error('fetchQuality falhou (segue sem)', e.message); }
   return { campanhas, anuncios, conjuntos };
+}
+
+/** (v3.1) Rankings de qualidade por anuncio (agregado last_30d, SEM time_increment — leve). */
+export async function fetchQuality(account) {
+  const rows = await graphAll(
+    `${GRAPH}/${account}/insights?level=ad&fields=ad_id,quality_ranking,engagement_rate_ranking,conversion_rate_ranking&date_preset=last_30d&limit=500&access_token=${encodeURIComponent(TOKEN)}`,
+    10
+  );
+  const mapa = new Map();
+  for (const r of rows) {
+    if (!r?.ad_id) continue;
+    mapa.set(String(r.ad_id), {
+      qualidade: r.quality_ranking || null,
+      ranking_engajamento: r.engagement_rate_ranking || null,
+      ranking_conversao: r.conversion_rate_ranking || null,
+    });
+  }
+  return mapa;
 }
 
 /** (v3) Snapshot de HOJE da conta: gasto acumulado, saldo, teto e status. 1 GET leve. */
@@ -117,9 +144,10 @@ export async function fetchDiario(account, since, until, { comAdset = false } = 
   const levels = comAdset ? ['campaign', 'adset', 'ad'] : ['campaign', 'ad'];
   for (const level of levels) {
     const id = level === 'ad' ? ',ad_id' : level === 'adset' ? ',adset_id' : '';
-    // v3: rankings de qualidade so existem no level=ad (em outros niveis a API recusa)
-    const qualidade = level === 'ad' ? ',quality_ranking,engagement_rate_ranking,conversion_rate_ranking' : '';
-    const campos = `campaign_id${id},spend,impressions,reach,clicks,inline_link_clicks,frequency,actions,${CAMPOS_VIDEO}${qualidade}`;
+    // ⚠️ NAO pedir quality_ranking aqui: com time_increment=1 a query ad-level fica
+    // pesada demais e a Graph TRAVA (timeout 25s, medido 16/07). Quality e atributo
+    // ATUAL do anuncio -> vem numa chamada leve separada (fetchQuality, no catalogo).
+    const campos = `campaign_id${id},spend,impressions,reach,clicks,inline_link_clicks,frequency,actions,${CAMPOS_VIDEO}`;
     const tr = encodeURIComponent(JSON.stringify({ since, until }));
     const rows = await graphAll(
       `${GRAPH}/${account}/insights?level=${level}&fields=${campos}&time_increment=1&time_range=${tr}&limit=500&access_token=${encodeURIComponent(TOKEN)}`,

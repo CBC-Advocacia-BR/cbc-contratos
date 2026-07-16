@@ -115,7 +115,9 @@ describe('adToRow — catalogo de criativos', () => {
       ad_id: 'a1', campaign_id: '120', account_id: 'act_1', nome: 'Video Hook 3',
       status: 'ACTIVE', thumbnail_url: 'https://cdn.meta/t.jpg', permalink: 'https://fb.com/p/a1',
       criado_em: null, alterado_em: null, titulo: null, corpo: null, cta: null,
-      video_id: null, imagem_url: null, raw: bruto,
+      video_id: null, imagem_url: null,
+      qualidade: null, ranking_engajamento: null, ranking_conversao: null,
+      raw: bruto,
     });
   });
 

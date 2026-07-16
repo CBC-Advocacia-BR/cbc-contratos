@@ -105,6 +105,10 @@ export function adToRow(ad, accountId) {
     cta: ad?.creative?.call_to_action_type || null,
     video_id: ad?.creative?.video_id || null,
     imagem_url: ad?.creative?.image_url || null,
+    // v3.1: preenchidos por merge do fetchQuality (insights last_30d, atributo atual)
+    qualidade: null,
+    ranking_engajamento: null,
+    ranking_conversao: null,
     raw: ad || {},
   };
 }

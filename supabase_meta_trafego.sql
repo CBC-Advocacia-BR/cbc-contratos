@@ -195,3 +195,11 @@ where lower(email) in ('paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lore
 --    (diário level=campaign com nome/status/objetivo/flag rh e vídeo).
 -- Dicionário de dados p/ consumo externo: docs/META_ESPELHO.md
 -- ============================================================================
+
+-- v3.1 (16/07/2026) — JÁ APLICADA (migração meta_trafego_v3_1_quality_no_catalogo):
+-- quality rankings mudaram de lugar. Pedi-los no insights DIÁRIO ad-level travava a
+-- Graph (timeout 25s — query pesada demais com time_increment=1). São atributo ATUAL
+-- do anúncio (janela ~30d da Meta): agora vivem em meta_anuncios (colunas qualidade/
+-- ranking_engajamento/ranking_conversao, coalesce no upsert), preenchidos por 1
+-- chamada leve (level=ad, date_preset=last_30d, SEM time_increment — 4,7s medido).
+-- As colunas homônimas de meta_ads_diario ficam mas não são alimentadas.

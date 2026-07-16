@@ -42,7 +42,9 @@ interesses) — v3.
 ### `meta_anuncios` — catálogo de anúncios/criativos
 `ad_id` PK, `campaign_id`, `nome`, `status`, `thumbnail_url` (miniatura), `permalink`
 (preview), e a **copy inteira** (v3): `titulo`, `corpo`, `cta` (call_to_action_type),
-`video_id`, `imagem_url`, `criado_em`/`alterado_em`, `raw`.
+`video_id`, `imagem_url`, `criado_em`/`alterado_em`, `raw`. Também os **quality
+rankings ATUAIS da Meta** (janela ~30d): `qualidade`, `ranking_engajamento`,
+`ranking_conversao` (`ABOVE_AVERAGE`/`AVERAGE`/`BELOW_AVERAGE_X`; null = sem volume).
 
 ### `meta_ads_diario` — métricas por DIA (a tabela principal)
 PK `(dia, level, entity_id)`. **`level`** = `campaign` | `adset` | `ad`; `entity_id` é o id
@@ -50,9 +52,9 @@ do nível (⚠️ ao agregar, filtre UM level — somar os três triplica).
 Métricas: `gasto`, `conversas_iniciadas` (click-to-WhatsApp = "resultados" do Gerenciador),
 `leads_form`, `impressoes`, `alcance`, `cliques`, `cliques_link`, `frequencia`,
 `video_3s`, `video_thruplay`, `video_p25/p50/p75/p100` (retenção),
-`qualidade`/`ranking_engajamento`/`ranking_conversao` (quality rankings da Meta — **só
-level=ad**; preservados por coalesce), `raw.actions` (todas as actions brutas).
-**Lead = conversas_iniciadas + leads_form.** Retenção: 400 dias.
+`raw.actions` (todas as actions brutas). As colunas `qualidade`/`ranking_*` existem
+mas **não são alimentadas** (pedi-las por dia travava a Graph — os rankings atuais
+vivem em `meta_anuncios`). **Lead = conversas_iniciadas + leads_form.** Retenção: 400 dias.
 
 ### `meta_ads_breakdown` — recortes diários no nível da CONTA
 PK `(dia, tipo, chave)`. `tipo` = `age_gender` (`"25-34 · feminino"`), `region` (UF/cidade),
