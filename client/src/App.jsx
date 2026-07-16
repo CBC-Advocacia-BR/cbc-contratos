@@ -34,6 +34,7 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 // (#306) Dashboard Socios — lazy, restrito por email
 const SociosDashboard = lazy(() => import('./components/SociosDashboard'));
 const FunnelHealthPanel = lazy(() => import('./components/FunnelHealthPanel'));
+const TrafegoPanel = lazy(() => import('./components/TrafegoPanel'));
 // Vendas Fase 2 — painel do vendedor/assistente e parametrizacao (admin)
 const VendasPanel = lazy(() => import('./components/VendasPanel'));
 const VendasParametrizacaoPanel = lazy(() => import('./components/VendasParametrizacaoPanel'));
@@ -55,6 +56,7 @@ const TAB_PREFETCH = {
   admin: () => import('./components/AdminPanel'),
   socios: () => import('./components/SociosDashboard'),
   funil: () => import('./components/FunnelHealthPanel'),
+  trafego: () => import('./components/TrafegoPanel'),
   vendas: () => import('./components/VendasPanel'),
   parametrizacao_vendas: () => import('./components/VendasParametrizacaoPanel'),
   bot: () => import('./components/BotAdvboxPanel'),
@@ -123,6 +125,7 @@ import {
   MagnifyingGlassIcon,
   Squares2X2Icon,
   FunnelIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 // (mobile 06/2026) Sheet de navegação do dock — abas além das 3 fixas
 import MobileNavSheet from './components/MobileNavSheet';
@@ -135,6 +138,7 @@ const MOBILE_TAB_LABELS = {
   dashboard: 'Dashboard',
   socios: 'Sócios',
   funil: 'Saúde do Funil',
+  trafego: 'Tráfego',
   asaas: 'Asaas',
   boletos: 'Boletos',
   bot: 'Bot ADVBOX',
@@ -157,6 +161,7 @@ const TAB_ICONS = {
   novo: PlusIcon,
   socios: BriefcaseIcon,
   funil: FunnelIcon,
+  trafego: MegaphoneIcon,
   vendas: BanknotesIcon,
   parametrizacao_vendas: DocumentCheckIcon,
   bot: ChatBubbleLeftRightIcon,
@@ -1204,7 +1209,7 @@ function AppContent() {
     if (!userPerms?.tabs) return ['novo', 'contratos', 'dashboard'].includes(tab);
     return userPerms.tabs[tab];
   };
-  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
+  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
 
   // Auth loading
   if (authLoading) {
@@ -1397,6 +1402,7 @@ function AppContent() {
                     mainTab === 'admin' ? 'Admin' :
                     mainTab === 'socios' ? 'Dashboard Socios' :
                     mainTab === 'funil' ? 'Saúde do Funil' :
+                    mainTab === 'trafego' ? 'Tráfego' :
                     mainTab === 'vendas' ? 'Minhas Vendas' :
                     mainTab === 'parametrizacao_vendas' ? 'Parametrizacao Vendas' :
                     mainTab === 'bot' ? 'Bot ADVBOX' :
@@ -1437,6 +1443,7 @@ function AppContent() {
               : tab === 'admin' ? 'Admin'
               : tab === 'socios' ? 'Socios'
               : tab === 'funil' ? 'Saúde do Funil'
+              : tab === 'trafego' ? 'Tráfego'
               : tab === 'vendas' ? 'Minhas Vendas'
               : tab === 'parametrizacao_vendas' ? 'Param. Vendas'
               : tab === 'bot' ? 'Bot ADVBOX'
@@ -1567,6 +1574,8 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="vendas" className="flex-1 overflow-hidden page-enter"><div className="page-enter" key="tab-vendas"><VendasPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'parametrizacao_vendas' && userPerms?.tabs?.parametrizacao_vendas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAdmin />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="parametrizacao_vendas" className="flex-1 overflow-hidden bg-white page-enter"><div className="page-enter" key="tab-parametrizacao-vendas"><VendasParametrizacaoPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
+      ) : mainTab === 'trafego' && userPerms?.tabs?.trafego ? (
+        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="trafego" className="flex-1 overflow-hidden page-enter"><TrafegoPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'asaas' && userPerms?.tabs?.asaas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAsaas />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="asaas" className="flex-1 overflow-hidden bg-white page-enter"><AsaasPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'boletos' && userPerms?.tabs?.boletos ? (

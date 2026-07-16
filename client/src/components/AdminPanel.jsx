@@ -18,6 +18,7 @@ import {
   ChatBubbleLeftRightIcon,
   LinkIcon,
   UserGroupIcon,
+  MegaphoneIcon,
 } from '@heroicons/react/24/outline';
 
 // (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios
@@ -26,6 +27,7 @@ const TAB_LIST = [
   { key: 'contratos', label: 'Contratos Salvos', Icon: DocumentTextIcon },
   { key: 'clientes', label: 'Clientes', Icon: UserGroupIcon },
   { key: 'dashboard', label: 'Dashboard', Icon: ChartBarIcon },
+  { key: 'trafego', label: 'Tráfego', Icon: MegaphoneIcon },
   { key: 'asaas', label: 'Asaas', Icon: CreditCardIcon },
   { key: 'boletos', label: 'Boletos', Icon: DocumentIcon },
   // (chatguru removal 2026-05) Aba ChatGuru removida
