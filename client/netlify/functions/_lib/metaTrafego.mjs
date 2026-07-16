@@ -71,12 +71,18 @@ export async function fetchCatalogos(account, { leve = false } = {}) {
     `${GRAPH}/${account}/campaigns?fields=id,name,effective_status,objective,daily_budget&limit=200&access_token=${encodeURIComponent(TOKEN)}`
   )).map((c) => campaignToRow(c, account));
   if (leve) return { campanhas, anuncios: [], conjuntos: [] };
+  // limit BAIXO: ads com creative{...} em paginas de 200 estoura o custo de query da
+  // Meta ("Please reduce the amount of data", code 1 — limite DINAMICO: passou 15/07,
+  // recusou 16/07). Com 50 por pagina os 648 anuncios vem em ~13 paginas leves.
   const anuncios = (await graphAll(
-    `${GRAPH}/${account}/ads?fields=id,name,effective_status,campaign_id,creative{thumbnail_url},preview_shareable_link&limit=200&access_token=${encodeURIComponent(TOKEN)}`
+    `${GRAPH}/${account}/ads?fields=id,name,effective_status,campaign_id,creative{thumbnail_url},preview_shareable_link&limit=50&access_token=${encodeURIComponent(TOKEN)}`,
+    60
   )).map((a) => adToRow(a, account));
-  // (v2 #121) conjuntos/publicos
+  // (v2 #121) conjuntos/publicos — limit BAIXO: com 200 a Meta recusa a query
+  // ("Please reduce the amount of data", code 1) e o worker morria no catalogo.
   const conjuntos = (await graphAll(
-    `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget&limit=200&access_token=${encodeURIComponent(TOKEN)}`
+    `${GRAPH}/${account}/adsets?fields=id,name,effective_status,campaign_id,daily_budget&limit=50&access_token=${encodeURIComponent(TOKEN)}`,
+    60
   )).map((s) => adsetToRow(s, account));
   return { campanhas, anuncios, conjuntos };
 }

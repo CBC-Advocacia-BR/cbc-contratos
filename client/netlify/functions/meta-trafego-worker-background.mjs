@@ -68,6 +68,8 @@ export default async (req) => {
     await logAdvbox('meta', 'info', `trafego-worker ${modo} ok: ${totais.diario} linhas diarias, ${totais.campanhas} campanhas, ${totais.anuncios} anuncios (${since} a ${until})`, { totais, alertas });
     return new Response(JSON.stringify({ success: true, modo, since, until, ...totais, alertas }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
+    // console.error tambem: garante rastro nos logs do Netlify mesmo se o insert falhar
+    console.error('trafego-worker falhou:', modo, e);
     await logAdvbox('meta', 'error', `trafego-worker ${modo} falhou: ${e.message}`, { contas: ACCOUNTS });
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
