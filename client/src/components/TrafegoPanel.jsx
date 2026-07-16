@@ -214,15 +214,18 @@ export default function TrafegoPanel() {
   };
 
   if (loading) {
-    return <div className="flex-1 grid place-items-center" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+    return <div className="h-full grid place-items-center" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
       <span className="text-sm font-bold uppercase tracking-wide animate-pulse">Carregando tráfego…</span>
     </div>;
   }
 
   const semDados = !diario.length;
 
+  // (fix scroll 15/07) raiz com h-full (receita do Dashboard): dentro do
+  // TabScrollContainer (div block com overflow-hidden), flex-1 e inerte e o
+  // painel crescia junto com o conteudo — clipava sem rolar.
   return (
-    <div className="flex-1 overflow-y-auto page-enter" style={{ background: 'var(--cbc-bg, #F0F4F8)' }}>
+    <div className="h-full overflow-y-auto page-enter" style={{ background: 'var(--cbc-bg, #F0F4F8)' }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-8 py-6 flex flex-col gap-6">
 
         {/* Cabecalho */}

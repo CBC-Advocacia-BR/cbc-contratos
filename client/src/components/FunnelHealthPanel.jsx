@@ -107,16 +107,19 @@ export default function FunnelHealthPanel() {
   const baseFunil = useMemo(() => (f ? Math.max(f.leadsMeta?.total || 0, f.videochamadas?.agendadas || 0, f.funil.enviados, 1) : 1), [f]);
 
   if (loading && !f) {
-    return <div className="flex-1 grid place-items-center" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+    return <div className="h-full grid place-items-center" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
       <span className="text-sm font-bold uppercase tracking-wide animate-pulse">Carregando funil…</span>
     </div>;
   }
   if (err) {
-    return <div className="flex-1 grid place-items-center text-sm" style={{ color: 'var(--cbc-danger, #DC2626)' }}>{err}</div>;
+    return <div className="h-full grid place-items-center text-sm" style={{ color: 'var(--cbc-danger, #DC2626)' }}>{err}</div>;
   }
 
+  // (fix scroll 15/07, achado via aba Trafego) raiz com h-full (receita do Dashboard):
+  // dentro do TabScrollContainer (div block com overflow-hidden), flex-1 e inerte e o
+  // conteudo abaixo da 1a dobra ficava CLIPADO sem rolagem.
   return (
-    <div className="flex-1 overflow-y-auto page-enter" style={{ background: 'var(--cbc-bg, #F0F4F8)' }}>
+    <div className="h-full overflow-y-auto page-enter" style={{ background: 'var(--cbc-bg, #F0F4F8)' }}>
       <div className="max-w-5xl mx-auto px-5 sm:px-8 py-7 flex flex-col gap-7">
 
         {/* Cabecalho editorial */}
