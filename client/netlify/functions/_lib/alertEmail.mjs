@@ -39,3 +39,30 @@ export async function sendCriticalAlert(subject, linhas = []) {
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 }
+
+/**
+ * (aba Trafego 14/07/2026) E-mail generico de alerta — mesmo Resend, mas com
+ * titulo/copy proprios e destinatarios customizaveis (o critico acima segue
+ * intocado). Sem RESEND_API_KEY e NO-OP (skipped), igual ao sendCriticalAlert.
+ */
+export async function sendAlertEmail(subject, linhas = [], { to = [ALERT_TO], titulo = 'Alerta', rodape = '' } = {}) {
+  if (!RESEND_KEY) return { ok: false, skipped: 'RESEND_API_KEY ausente' };
+  const corpo = (Array.isArray(linhas) ? linhas : [String(linhas)]).filter(Boolean);
+  const dest = (Array.isArray(to) ? to : [to]).filter(Boolean);
+  if (!dest.length) return { ok: false, skipped: 'sem destinatarios' };
+  const html = `<div style="font-family:Arial,sans-serif;max-width:560px">
+    <h2 style="color:#B45309;margin:0 0 8px">${escapeHtml(titulo)}</h2>
+    <ul style="color:#111">${corpo.map((l) => `<li style="margin:4px 0">${escapeHtml(l)}</li>`).join('')}</ul>
+    ${rodape ? `<p style="color:#666;font-size:12px;margin-top:16px">${escapeHtml(rodape)}</p>` : ''}
+  </div>`;
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: ALERT_FROM, to: dest, subject, html }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) return { ok: false, error: `Resend HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 150)}` };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
