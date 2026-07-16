@@ -371,3 +371,30 @@ describe('v2 — comparacao custom e comercial expandido', () => {
     expect(ORIGENS_META).toContain('facebook');
   });
 });
+
+// (v2 #196/#200) Validacao com DADOS REAIS de producao: amostra do espelho
+// (08-12/07/2026) com os totais esperados calculados por SQL independente.
+// Prova de fogo da exclusao RH: a [VAGA] Advogado teve gasto e 6 lead forms
+// no periodo e NAO pode entrar nos KPIs de captacao.
+import fixtureReal from './fixtures/trafego-real.json';
+
+describe('v2 — validacao com dados reais do espelho (fixture 08-12/07/2026)', () => {
+  const r = computeTrafego({
+    diario: fixtureReal.linhas,
+    campanhas: fixtureReal.campanhas,
+    anuncios: [],
+    inicio: '2026-07-08',
+    fim: '2026-07-12',
+  });
+  it('KPIs batem com o SQL independente (sem a campanha de RH)', () => {
+    expect(r.kpis.gasto).toBeCloseTo(fixtureReal.esperado.gasto_capta, 2);
+    expect(r.kpis.leads).toBe(fixtureReal.esperado.leads_capta);
+  });
+  it('a campanha de vaga aparece flagada e sem poluir o donut', () => {
+    expect(r.campanhas.find((c) => c.nome === '[VAGA] Advogado').rh).toBe(true);
+    expect(r.donut.every((x) => x.nome !== '[VAGA] Advogado')).toBe(true);
+  });
+  it('serie cobre os 5 dias reais', () => {
+    expect(r.serie.map((s) => s.dia)).toEqual(['2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12']);
+  });
+});
