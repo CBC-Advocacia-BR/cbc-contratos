@@ -98,6 +98,8 @@ import { API } from './utils/apiEndpoints';
 import { celebrateCBC } from './utils/confetti';
 import { celebrations, getMonthlyGoal } from './utils/celebrations';
 import ConfirmDestructive from './components/ConfirmDestructive';
+import SaveDecisionModal from './components/SaveDecisionModal';
+import { decideSaveMode, SAVE_MODES } from './utils/saveGuard';
 import UndoToast from './components/UndoToast';
 import { useUndo } from './hooks/useUndo';
 import { ToastProvider } from './components/Toast';
@@ -511,6 +513,8 @@ function AppContent() {
 
   // (#16) Confirmacao destrutiva global — permite qualquer tab disparar
   const [destructiveConfirm, setDestructiveConfirm] = useState(null);
+  // (trava 17/07/2026) rascunho carregado com resort trocado: operador decide novo vs corrigir
+  const [saveDecision, setSaveDecision] = useState(null);
   // (#17) Undo system global (10s timeout)
   const undoCtrl = useUndo(10000);
   // (resilience 28/04) Banner global de degradacao do Supabase. Disparado pelo
@@ -1018,7 +1022,7 @@ function AppContent() {
   }, []);
 
   const savingRef = useRef(false);
-  const handleSaveContract = useCallback(async (extraFields = {}) => {
+  const handleSaveContract = useCallback(async (extraFields = {}, forceMode = null) => {
     if (savingRef.current) return null; // Prevent duplicate submissions
     savingRef.current = true;
     setSaving(true); setSaveMsg('');
@@ -1026,7 +1030,31 @@ function AppContent() {
     try {
       const row = buildContratoRow(payload);
       let result;
+      // (trava 17/07/2026) Contrato ja enviado/assinado NUNCA e sobrescrito pelo
+      // formulario — vira contrato NOVO (caso Fernanda 16/07: 3 assinados viraram 1).
+      // Rascunho com resort trocado: modal pergunta (salvar manual) ou vira novo
+      // (fluxo de envio, onde o doc ZapSign ja foi criado e nao da p/ abortar).
+      let saveMode = SAVE_MODES.UPDATE;
       if (savedContractId) {
+        if (forceMode) {
+          saveMode = forceMode;
+        } else {
+          const { data: atualDb } = await supabase.from('contratos')
+            .select('status, resort').eq('id', savedContractId).maybeSingle();
+          const resortNovo = payload.resort === 'outro' ? payload.resortCustom : payload.resort;
+          saveMode = decideSaveMode({
+            statusAtual: atualDb?.status,
+            resortAtual: atualDb?.resort,
+            resortNovo,
+            fluxoEnvio: extraFields?.status === 'enviado_zapsign',
+          });
+          if (saveMode === SAVE_MODES.PERGUNTAR) {
+            setSaveDecision({ resortAntes: atualDb?.resort, resortDepois: resortNovo, extraFields });
+            return null; // nao salva ainda — o modal decide e rechama com forceMode
+          }
+        }
+      }
+      if (savedContractId && saveMode === SAVE_MODES.UPDATE) {
         // Update existing contract instead of creating duplicate
         const { created_by: _created_by, ...updateRow } = row;
         const { data: updated, error } = await supabase.from('contratos')
@@ -1037,12 +1065,15 @@ function AppContent() {
         result = updated;
         setSaveMsg('Contrato atualizado!');
       } else {
-        // First save — insert new
+        // First save OU trava anti-substituicao — insert new
+        const eraTrava = !!savedContractId;
         const { data: inserted, error } = await supabase.from('contratos').insert(row).select().single();
         if (error) throw error;
         result = inserted;
         setSavedContractId(inserted.id);
-        setSaveMsg('Contrato salvo!');
+        setSaveMsg(eraTrava
+          ? 'Contrato NOVO criado — o anterior foi preservado (contratos sao unitarios por resort).'
+          : 'Contrato salvo!');
         // (#23) Celebracoes contextuais — primeiro contrato do dia + novo resort
         try {
           celebrations.firstOfDay();
@@ -1182,7 +1213,7 @@ function AppContent() {
   // (mobile-13) com um modal aberto, o dock aparecia nas bordas atras dele (poluicao
   // visual + toque acidental). Esconde o dock enquanto houver modal de tela cheia.
   const anyModalOpen = showZapSign || showSearch || showChangeLog || showChecklist ||
-    showShortcuts || showNotifPrefs || showPdfPreview || !!destructiveConfirm;
+    showShortcuts || showNotifPrefs || showPdfPreview || !!destructiveConfirm || !!saveDecision;
 
   // (ux-11) ao SAIR da aba Novo com um rascunho ainda nao salvo no banco, avisa de
   // forma discreta (nao bloqueia) que o trabalho so esta neste navegador.
@@ -1701,6 +1732,16 @@ function AppContent() {
         confirmLabel={destructiveConfirm?.confirmLabel}
         onConfirm={destructiveConfirm?.onConfirm}
         onCancel={() => setDestructiveConfirm(null)}
+      />
+
+      {/* (trava 17/07/2026) Rascunho com resort trocado: criar novo vs corrigir */}
+      <SaveDecisionModal
+        isOpen={!!saveDecision}
+        resortAntes={saveDecision?.resortAntes}
+        resortDepois={saveDecision?.resortDepois}
+        onCriarNovo={() => { const ef = saveDecision?.extraFields || {}; setSaveDecision(null); handleSaveContract(ef, SAVE_MODES.INSERT_NOVO); }}
+        onCorrigir={() => { const ef = saveDecision?.extraFields || {}; setSaveDecision(null); handleSaveContract(ef, SAVE_MODES.UPDATE); }}
+        onCancel={() => setSaveDecision(null)}
       />
 
       {/* (#205) Modal de preferencias de notificacao */}
