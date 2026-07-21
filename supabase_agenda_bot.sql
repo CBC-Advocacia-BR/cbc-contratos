@@ -1,6 +1,7 @@
 -- Migração agenda_bot_v1 — bot Ana (spec 2026-07-21). Aditiva; idempotente.
 alter table agenda_videochamadas add column if not exists lead_id bigint;
 alter table agenda_videochamadas add column if not exists telefone text;
+-- origem ('ana'/'manual' = quem criou o agendamento) difere de source ('live'/'backfill' = fonte do sync).
 alter table agenda_videochamadas add column if not exists origem text not null default 'manual';
 alter table agenda_videochamadas add column if not exists lembrete_1h_em timestamptz;
 alter table agenda_videochamadas add column if not exists lembrete_t0_em timestamptz;
@@ -55,6 +56,7 @@ create or replace view vw_agenda_painel as
          lead_id, telefone, origem, lembrete_1h_em, lembrete_t0_em, noshow_msg_em
   from agenda_videochamadas;
 grant select on vw_agenda_painel to authenticated;
+revoke all on vw_agenda_painel from anon, public;
 
 -- Métricas do funil da Ana (contagens; conversas via bot_conversations channel 'agenda:%')
 create or replace function agenda_bot_metricas(p_de date, p_ate date)
@@ -92,6 +94,7 @@ returns jsonb language sql security definer set search_path = public as $$
   );
 $$;
 grant execute on function agenda_bot_metricas(date, date) to authenticated;
+revoke all on function agenda_bot_metricas(date, date) from anon, public;
 
 -- Ajuste pré-voo: agenda_videochamadas_upsert fazia insert/upsert coluna a coluna e não
 -- propagava lead_id/telefone/origem (confirmado via pg_proc.prosrc antes de aplicar esta
