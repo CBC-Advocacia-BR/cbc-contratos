@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
+import * as Sentry from '@sentry/react';
 import { FixedSizeList } from 'react-window';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../AuthContext';
@@ -106,11 +107,14 @@ function LaunchBtn({ contract, onDone }) {
       if (!c?.cpf) throw new Error('CPF não encontrado');
       // (#24) trava atomica antes de criar a cobranca — evita cobranca DUPLICADA no Asaas
       // em duplo-clique ou lancamento concorrente (manual + automatico). Padrao REGRA #3.
-      const { data: claimed } = await supabase.from('contratos')
+      // (fix 21/07/2026) erro do Supabase NAO e mais engolido: sessao expirada/rede caida
+      // virava o aviso enganoso "ja esta sendo lancada" (claimed null) e ninguem lancava.
+      const { data: claimed, error: claimErr } = await supabase.from('contratos')
         .update({ asaas_status: 'launching' })
         .eq('id', contract.id)
         .or('asaas_status.is.null,asaas_status.eq.error')
         .select('id');
+      if (claimErr) throw new Error(`Falha de sessão/conexão ao travar o contrato (${claimErr.message}). Recarregue a página (F5); se persistir, saia e entre no sistema de novo.`);
       if (!claimed || claimed.length === 0) throw new Error('Cobrança já está sendo lançada ou já foi lançada — aguarde/atualize a lista.');
       claimedLock = true;
       const resort = d.resort === 'outro' ? d.resortCustom : d.resort;
@@ -165,6 +169,9 @@ function LaunchBtn({ contract, onDone }) {
       if (onDone) onDone(contract.id, res);
     } catch (e) {
       setErr(e.message);
+      // (fix 21/07/2026) falha de lancamento vai ao Sentry — "clicou e nada aconteceu"
+      // do Lucas era invisivel (icone 14px + tooltip); agora fica rastreavel por usuario.
+      try { Sentry.captureException(e, { tags: { area: 'asaas-launch' }, extra: { contractId: contract.id } }); } catch { /* sentry opcional */ }
       // (#24) libera a trava (volta p/ 'error') SO se nos a pegamos — permite nova tentativa
       // sem reabrir a janela de duplicacao (so reseta o nosso 'launching').
       if (claimedLock) { try { await supabase.from('contratos').update({ asaas_status: 'error' }).eq('id', contract.id).eq('asaas_status', 'launching'); } catch { /* best-effort */ } }
@@ -186,7 +193,15 @@ function LaunchBtn({ contract, onDone }) {
         {loading ? <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" aria-hidden="true" /> : <CreditCardIcon className="w-3.5 h-3.5" aria-hidden="true" />}
         {loading ? '...' : 'Lançar'}
       </button>
-      {err && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-red-500" title={err} aria-label={err} />}
+      {/* (fix 21/07/2026) erro VISIVEL — antes era so um icone de 14px com o texto
+          escondido no tooltip: operador clicava, nada lancava e "nada aparecia". */}
+      {err && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold max-w-[280px] px-1.5 py-1 rounded-md"
+          style={{ color: 'var(--cbc-danger, #DC2626)', background: 'rgba(220, 38, 38, 0.08)' }} title={err} role="alert">
+          <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+          <span className="truncate">{err}</span>
+        </span>
+      )}
 
       {/* (anti-duplicidade 06/07/2026) aviso de parcelamento em aberto — decisao Paulo: avisar e deixar confirmar */}
       {warning && (
