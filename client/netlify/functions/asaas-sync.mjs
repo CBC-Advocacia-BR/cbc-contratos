@@ -105,13 +105,27 @@ async function createPayment(customerId, honorarios, contractId, description) {
 // (anti-duplicidade 06/07/2026) Busca parcelamentos EM ABERTO (PENDING/OVERDUE) do
 // cliente no Asaas e resume por grupo. Usado antes de criar nova cobranca para avisar
 // de possivel duplicata. Ver docs/superpowers/specs/2026-07-06-asaas-anti-duplicidade-design.md
-async function findOpenParcelamentos(customerId) {
-  const [pend, over] = await Promise.all([
-    asaasGet(`/payments?customer=${customerId}&status=PENDING&limit=100`),
-    asaasGet(`/payments?customer=${customerId}&status=OVERDUE&limit=100`),
-  ]);
-  const payments = [...(pend.data || []), ...(over.data || [])];
-  return summarizeOpenParcelamentos(payments);
+// (fix 21/07/2026) O Asaas permite o MESMO CPF em varios cadastros (customers) —
+// o espelho tem 12+ clientes assim. A checagem anti-duplicidade por customer.id
+// (data[0] do findCustomer) nao enxergava cobranca aberta pendurada no OUTRO
+// cadastro e o aviso "cliente ja tem cobranca em aberto" nao disparava.
+// Agora a checagem varre TODOS os customers do CPF (cap 5 por sanidade).
+async function findAllCustomersByCpf(cpf) {
+  const clean = String(cpf || '').replace(/\D/g, '');
+  if (!clean) return [];
+  const result = await asaasGet(`/customers?cpfCnpj=${clean}`);
+  return (result.data || []).slice(0, 5);
+}
+
+async function findOpenParcelamentosByCpf(cpf) {
+  const customers = await findAllCustomersByCpf(cpf);
+  if (customers.length === 0) return { customers: [], existing: [] };
+  const porCustomer = await Promise.all(customers.map(cu => Promise.all([
+    asaasGet(`/payments?customer=${cu.id}&status=PENDING&limit=100`),
+    asaasGet(`/payments?customer=${cu.id}&status=OVERDUE&limit=100`),
+  ])));
+  const payments = porCustomer.flatMap(([pend, over]) => [...(pend.data || []), ...(over.data || [])]);
+  return { customers: customers.map(cu => cu.id), existing: summarizeOpenParcelamentos(payments) };
 }
 
 // Schedule invoice for payment (nota fiscal on payment confirmation)
@@ -157,6 +171,14 @@ export default async (req) => {
         return new Response(JSON.stringify({ success: true, customer }), { headers: CORS });
       }
 
+      // (fix 21/07/2026) checagem read-only de cobranca em aberto por CPF, varrendo
+      // todos os cadastros do cliente — diagnostico/teste da anti-duplicidade sem
+      // criar nada (e futura pre-checagem de UI se precisar).
+      case 'check-open': {
+        const { customers, existing } = await findOpenParcelamentosByCpf(payload.cpf);
+        return new Response(JSON.stringify({ success: true, customers, existing }), { headers: CORS });
+      }
+
       case 'create-customer': {
         let customer = await findCustomer(payload.contratante.cpf);
         if (!customer) {
@@ -177,7 +199,10 @@ export default async (req) => {
         // do Paulo. Falha na checagem NAO trava o lancamento (fail-open, best-effort).
         if (!payload.force) {
           try {
-            const existing = await findOpenParcelamentos(customer.id);
+            // (fix 21/07/2026) checa por CPF (TODOS os cadastros do cliente no Asaas),
+            // nao so o customer usado p/ criar — cobranca aberta em cadastro duplicado
+            // do mesmo CPF tambem dispara o aviso.
+            const { existing } = await findOpenParcelamentosByCpf(c.cpf);
             if (existing.length > 0) {
               return new Response(JSON.stringify({
                 success: false,
