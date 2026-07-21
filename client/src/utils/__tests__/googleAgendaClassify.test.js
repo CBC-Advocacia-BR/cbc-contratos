@@ -18,4 +18,9 @@ describe('classifyEvent', () => {
   it('segue ignorando evento interno sem meet e sem marca da Ana', () => {
     expect(classifyEvent({ ...base, attendees: [{ email: 'x@advocaciacbc.com' }] }, 'v@advocaciacbc.com')).toBe(null);
   });
+  it('contrato explícito: evento da Ana SEM Meet e sem convidados ainda aparece (visibilidade no painel > invisibilidade)', () => {
+    const ev = { ...base, extendedProperties: { private: { cbc_origem: 'ana', cbc_lead_id: '123', cbc_telefone: '5511999998888' } } };
+    const r = classifyEvent(ev, 'v@advocaciacbc.com');
+    expect(r).toMatchObject({ origem: 'ana', tem_meet: false, status: 'agendada' });
+  });
 });

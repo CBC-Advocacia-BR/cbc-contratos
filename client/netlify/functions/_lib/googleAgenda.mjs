@@ -59,7 +59,14 @@ export function classifyEvent(ev, vendedoraEmail) {
   const daAna = priv.cbc_origem === 'ana';
   const externo = (ev.attendees || []).find((a) => a.email && !INTERNO.test(a.email) && !a.resource);
   const temMeet = !!(ev.hangoutLink || (ev.conferenceData && (ev.conferenceData.entryPoints || []).length));
-  if (!daAna && (!externo || !temMeet)) return null; // regra antiga preservada p/ eventos manuais
+  // Contrato explícito (intencional, não é bug): evento da Ana (daAna=true) NUNCA é descartado
+  // aqui, mesmo sem convidado externo e sem Meet — `tem_meet` fica `false` na linha, mas o
+  // atendimento aparece no painel. Visibilidade no painel > invisibilidade: é preferível a
+  // equipe ver um agendamento da Ana sem Meet (ex.: createEventComMeet falhou ao criar a
+  // conferência, ou o campo ainda não propagou) do que ele sumir silenciosamente do funil.
+  // Só eventos manuais (daAna=false) continuam exigindo convidado externo + Meet (regra antiga
+  // preservada, byte a byte, para esse ramo).
+  if (!daAna && (!externo || !temMeet)) return null;
   const scheduledAt = ev.start?.dateTime || (ev.start?.date ? `${ev.start.date}T00:00:00Z` : null);
   return {
     event_id: ev.id, vendedora_email: vendedoraEmail,
@@ -98,7 +105,11 @@ export async function createEventComMeet({ calendarId, inicioISO, fimISO, titulo
     body: JSON.stringify({
       summary: titulo, description: descricao,
       start: { dateTime: inicioISO, timeZone: 'America/Sao_Paulo' }, end: { dateTime: fimISO, timeZone: 'America/Sao_Paulo' },
-      conferenceData: { createRequest: { requestId: `cbc-ana-${leadId}-${Date.parse(inicioISO)}` } },
+      // Nonce (Date.now().toString(36)) evita colisão de requestId quando um slot é cancelado e
+      // recriado em seguida para o mesmo leadId+horário — sem o nonce, o Google trataria o
+      // segundo POST como idempotente ao primeiro (mesmo requestId) e devolveria a conferência
+      // JÁ CANCELADA em vez de criar uma nova.
+      conferenceData: { createRequest: { requestId: `cbc-ana-${leadId}-${Date.parse(inicioISO)}-${Date.now().toString(36)}` } },
       extendedProperties: { private: { cbc_origem: 'ana', cbc_lead_id: String(leadId || ''), cbc_telefone: telefone || '', cbc_nome: nome || '' } },
     }),
     signal: AbortSignal.timeout(20000),

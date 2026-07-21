@@ -133,3 +133,49 @@ begin
   return n;
 end
 $$;
+
+-- agenda_bot_v1_3: CRITICAL sweep×férias — sweep escopado por vendedoras (camada 2 de defesa;
+-- camada 1 = resolverAgendas em agenda-videochamadas-sync.mjs, que resolve a lista de agendas
+-- a consultar SEM filtrar por `ativa`, pois `ativa` governa slots, não o espelho). Sem esta
+-- camada 2, qualquer motivo que reduzisse a lista de agendas consultadas numa rodada (bug,
+-- config malformada, falha parcial) faria o sweep abaixo apagar (status='excluida') TODOS os
+-- atendimentos da janela cujo event_id não veio nesta rodada — inclusive de vendedoras que nem
+-- deveriam ter sido tocadas, não só as que ficaram de fora por engano.
+--
+-- Corpo ATUAL de produção capturado em 21/07 via
+-- `select pg_get_functiondef(oid) from pg_proc where proname='agenda_videochamadas_sweep'`
+-- (esta função não existia em NENHUM .sql do repo até este append — reprodutibilidade).
+-- Validação `_bot_chave_ok` e toda a lógica original preservadas verbatim; único acréscimo é o
+-- parâmetro `p_vendedoras` (default null = comportamento antigo, sem filtro) e o `and` extra no
+-- where. `create or replace` exige a MESMA assinatura da função existente; como `p_vendedoras`
+-- entra com DEFAULT, a assinatura é NOVA (overload de 5 args) e o Postgres a trataria como uma
+-- função distinta da de 4 args — convivendo as duas, uma chamada nomeando só os 4 args originais
+-- ficaria ambígua entre "a de 4 args" e "a de 5 args com o 5º no default". Por isso a de 4 args é
+-- removida explicitamente antes do create.
+drop function if exists agenda_videochamadas_sweep(text, timestamptz, timestamptz, text[]);
+
+create or replace function agenda_videochamadas_sweep(
+  p_chave text, p_win_ini timestamptz, p_win_fim timestamptz, p_event_ids text[],
+  p_vendedoras text[] default null
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n integer;
+begin
+  if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  if p_event_ids is null or array_length(p_event_ids, 1) is null then return 0; end if;
+  update agenda_videochamadas v
+     set status = 'excluida', updated_at = now()
+   where v.source = 'live'
+     and v.scheduled_at >= p_win_ini
+     and v.scheduled_at <= p_win_fim
+     and v.status <> 'excluida'
+     and not (v.event_id = any(p_event_ids))
+     and (p_vendedoras is null or v.vendedora_email = any(p_vendedoras));
+  get diagnostics n = row_count;
+  return n;
+end
+$$;
