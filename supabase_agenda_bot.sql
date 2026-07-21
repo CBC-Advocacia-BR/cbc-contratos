@@ -179,3 +179,50 @@ begin
   return n;
 end
 $$;
+
+-- agenda_bot_v1_4: RPCs do cron de lembretes/no-show (Task 9, agenda-bot-cron.mjs).
+-- Mesmo padrao de todas as RPCs deste arquivo: security definer + validacao _bot_chave_ok,
+-- sem grants extras (default PUBLIC execute — mesmo tratamento de agenda_videochamadas_upsert/
+-- sweep acima), chamadas pelo cron com a anon key + BOT_RPC_SECRET.
+
+-- Videochamadas da Ana ainda 'agendada' na janela de atuacao do cron (roda a cada 5min):
+-- T-30min a T+75min do horario marcado — cobre os 3 gatilhos (lembrete 1h, link T0, no-show
+-- T+10..T+30) com folga para eventuais atrasos/skips de execucao do cron.
+create or replace function agenda_bot_pendencias(p_chave text)
+returns setof agenda_videochamadas
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  return query select * from agenda_videochamadas
+    where origem = 'ana' and status = 'agendada'
+      and scheduled_at between now() - interval '30 minutes' and now() + interval '75 minutes';
+end
+$$;
+
+-- Marca (= now()) o timestamp de um lembrete/no-show ja disparado, p/ o cron nao repetir o
+-- mesmo envio na proxima rodada. p_campo validado por whitelist EXPLICITA e setado por
+-- IF/ELSIF explicito (uma coluna por vez) — NUNCA concatenado em SQL dinamico, o que evitaria
+-- injecao via nome de coluna mas trocaria um risco conhecido/controlado por superficie nova.
+create or replace function agenda_bot_marcar(p_chave text, p_event_id text, p_campo text)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  if p_campo not in ('lembrete_1h_em', 'lembrete_t0_em', 'noshow_msg_em') then
+    raise exception 'campo invalido: %', p_campo;
+  end if;
+  if p_campo = 'lembrete_1h_em' then
+    update agenda_videochamadas set lembrete_1h_em = now() where event_id = p_event_id;
+  elsif p_campo = 'lembrete_t0_em' then
+    update agenda_videochamadas set lembrete_t0_em = now() where event_id = p_event_id;
+  elsif p_campo = 'noshow_msg_em' then
+    update agenda_videochamadas set noshow_msg_em = now() where event_id = p_event_id;
+  end if;
+end
+$$;
