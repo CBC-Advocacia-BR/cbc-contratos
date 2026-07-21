@@ -3,7 +3,7 @@
 // validada no piloto (Task 15). Aqui: parse do payload, allowlist de host do anexo
 // e a decisao do teto de bytes do audio.
 import { describe, it, expect } from 'vitest';
-import { parsePayload, anexoPermitido, tetoBytes, excedeTeto } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
+import { parsePayload, anexoPermitido, tetoBytes, excedeTeto, gatilhoAtende, ETAPAS_TERMINAIS, ehEventoHumano, chaveDedupeFallback } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
 
 describe('parsePayload', () => {
   it('JSON: extrai texto, contato, msgId e anexo de message.add[0]', () => {
@@ -113,5 +113,124 @@ describe('tetoBytes / excedeTeto', () => {
     expect(excedeTeto('abc', cfg)).toBe(false);
     expect(excedeTeto(0, cfg)).toBe(false);
     expect(excedeTeto(-5, cfg)).toBe(false);
+  });
+});
+
+// (pós-review Opus #3) gatilho passa a excluir etapas terminais (ganho/perdido) quando
+// status_ids:'todas'; listas explícitas continuam literais.
+describe('gatilhoAtende (gatilho x etapas terminais)', () => {
+  const lead = (status_id, pipeline_id = 1) => ({ status_id, pipeline_id });
+
+  it("ETAPAS_TERMINAIS exporta [142, 143] (ganho/perdido)", () => {
+    expect(ETAPAS_TERMINAIS).toEqual([142, 143]);
+  });
+
+  it("status_ids:'todas' bate fora das etapas terminais", () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: 'todas' }, lead(10))).toBe(true);
+  });
+
+  it("status_ids:'todas' NÃO bate em etapa terminal (ganho=142)", () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: 'todas' }, lead(142))).toBe(false);
+  });
+
+  it("status_ids:'todas' NÃO bate em etapa terminal (perdido=143)", () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: 'todas' }, lead(143))).toBe(false);
+  });
+
+  it('lista explícita de status_ids continua literal — bate mesmo numa etapa terminal', () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: [142] }, lead(142))).toBe(true);
+  });
+
+  it('lista explícita sem o status do lead => não bate', () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: [10, 20] }, lead(30))).toBe(false);
+  });
+
+  it('pipeline diferente nunca bate, mesmo com "todas"', () => {
+    expect(gatilhoAtende({ pipeline_id: 1, status_ids: 'todas' }, lead(10, 2))).toBe(false);
+  });
+});
+
+// (pós-review Opus #2) auto-pausa cruzando eventos outgoing do Kommo com bot_messages
+// 'out' da própria conversa — substitui a margem cega de 90s por uma correspondência real.
+describe('ehEventoHumano (auto-pausa x bot_messages)', () => {
+  it('evento casado por proximidade de tempo (Δt<=tolMs) conta como da Ana mesmo com texto diferente', () => {
+    const eventoMs = 1753000100 * 1000;
+    const eventos = [{ created_at: 1753000100, text: 'texto do evento (desconhecido no piloto)' }];
+    const mensagensAnaOut = [{ created_at: new Date(eventoMs + 5000).toISOString(), text: 'oi, tudo bem?' }]; // Δt=5s
+    expect(ehEventoHumano(eventos, mensagensAnaOut)).toBe(false);
+  });
+
+  it('evento casado por texto idêntico (trim) mesmo com Δt bem fora da tolerância', () => {
+    const eventos = [{ created_at: 1753000000, text: '  Oi, tudo bem?  ' }];
+    const mensagensAnaOut = [{ created_at: new Date((1753000000 + 999999) * 1000).toISOString(), text: 'Oi, tudo bem?' }];
+    expect(ehEventoHumano(eventos, mensagensAnaOut)).toBe(false);
+  });
+
+  it('evento sem correspondência de tempo nem texto => humano (pausa)', () => {
+    const eventos = [{ created_at: 1753000000, text: 'mensagem manual do atendente' }];
+    const mensagensAnaOut = [{ created_at: new Date(1753000000 * 1000 + 999999000).toISOString(), text: 'oferta de horários da Ana' }];
+    expect(ehEventoHumano(eventos, mensagensAnaOut)).toBe(true);
+  });
+
+  it('lista vazia de mensagens da Ana => qualquer evento outgoing é humano', () => {
+    const eventos = [{ created_at: 1753000000, text: 'qualquer coisa' }];
+    expect(ehEventoHumano(eventos, [])).toBe(true);
+  });
+
+  it('Δt exatamente no limite (120000ms) ainda conta como da Ana (<=, não <)', () => {
+    const eventoMs = 1753000000 * 1000;
+    const eventos = [{ created_at: 1753000000, text: 'x' }];
+    const mensagensAnaOut = [{ created_at: new Date(eventoMs + 120000).toISOString(), text: 'y' }];
+    expect(ehEventoHumano(eventos, mensagensAnaOut)).toBe(false);
+  });
+
+  it('sem eventos outgoing => nunca é humano (nada a avaliar)', () => {
+    expect(ehEventoHumano([], [{ created_at: new Date().toISOString(), text: 'oi' }])).toBe(false);
+  });
+
+  it('tolMs customizado (mais estrito) rejeita Δt que passaria no default', () => {
+    const eventoMs = 1753000000 * 1000;
+    const eventos = [{ created_at: 1753000000, text: 'x' }];
+    const mensagensAnaOut = [{ created_at: new Date(eventoMs + 60000).toISOString(), text: 'y' }]; // Δt=60s
+    expect(ehEventoHumano(eventos, mensagensAnaOut, 120000)).toBe(false);
+    expect(ehEventoHumano(eventos, mensagensAnaOut, 30000)).toBe(true);
+  });
+});
+
+// (pós-review Opus #5) chave composta p/ dedupe quando o Kommo não manda msgId — nunca
+// fica sem dedupe.
+describe('chaveDedupeFallback (dedupe sem msgId)', () => {
+  it('formato: agenda:c:<contactId>:<minuto>:<hash>', () => {
+    const agora = Date.parse('2026-07-21T10:00:05Z');
+    expect(chaveDedupeFallback('123', 'oi tudo bem', agora)).toMatch(/^agenda:c:123:\d+:[0-9a-f]+$/);
+  });
+
+  it('mesmo contactId+texto+minuto => mesma chave (determinístico)', () => {
+    const agora = Date.parse('2026-07-21T10:00:05Z');
+    expect(chaveDedupeFallback('1', 'abc', agora)).toBe(chaveDedupeFallback('1', 'abc', agora));
+  });
+
+  it('textos diferentes => chaves diferentes', () => {
+    const agora = Date.parse('2026-07-21T10:00:05Z');
+    expect(chaveDedupeFallback('1', 'abc', agora)).not.toBe(chaveDedupeFallback('1', 'xyz', agora));
+  });
+
+  it('minutos diferentes => chaves diferentes (mesmo contactId/texto)', () => {
+    const t1 = Date.parse('2026-07-21T10:00:05Z');
+    const t2 = Date.parse('2026-07-21T10:01:05Z');
+    expect(chaveDedupeFallback('1', 'abc', t1)).not.toBe(chaveDedupeFallback('1', 'abc', t2));
+  });
+
+  it('trunca o texto em 80 chars — diferença só depois disso gera a MESMA chave', () => {
+    const agora = Date.parse('2026-07-21T10:00:05Z');
+    const base = 'x'.repeat(80);
+    expect(chaveDedupeFallback('1', base + 'AAAA', agora)).toBe(chaveDedupeFallback('1', base + 'BBBB', agora));
+  });
+
+  it('texto vazio/nulo não lança — ainda produz chave estável', () => {
+    const agora = Date.parse('2026-07-21T10:00:05Z');
+    expect(() => chaveDedupeFallback('1', '', agora)).not.toThrow();
+    expect(() => chaveDedupeFallback('1', null, agora)).not.toThrow();
+    expect(chaveDedupeFallback('1', '', agora)).toBe(chaveDedupeFallback('1', null, agora));
   });
 });
