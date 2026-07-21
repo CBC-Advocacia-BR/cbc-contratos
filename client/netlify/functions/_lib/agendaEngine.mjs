@@ -35,11 +35,18 @@ export function decidir({ estado, interp, cfg, agora, slotsDisponiveis = null })
   if (interp.valor_aprox && !acoes.some((a) => a.tipo === 'salvar_campos'))
     acoes.push({ tipo: 'salvar_campos', campos: { investimento: String(interp.valor_aprox) } });
 
-  // pergunta de preço: deflexão da casa (com slots se houver/na negociação)
+  // pergunta de preço: deflexão da casa (com slots se houver/na negociação). Protocolo
+  // buscar_slots unificado (pós-review): null = ainda não buscou; [] = buscou e não achou
+  // (impasse); array não-vazio = apresenta. Antes, `slotsDisponiveis?.length` tratava null e []
+  // como equivalentes — um [] reemitia buscar_slots (loop) em vez de fechar em impasse.
   if (interp.pergunta_preco) {
     if (e.slots_ofertados.length) { resp('preco', varsSlots(e.slots_ofertados, agora)); return { novoEstado: e, acoes }; }
-    acoes.push({ tipo: 'buscar_slots', proposito: 'preco' });
-    if (slotsDisponiveis?.length) { acoes.pop(); const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta); e.slots_ofertados = s.map(x => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: x.vendedoras })); e.etapa = 'negociacao'; resp('preco', varsSlots(s, agora)); }
+    if (slotsDisponiveis == null) { acoes.push({ tipo: 'buscar_slots', proposito: 'preco' }); return { novoEstado: e, acoes }; }
+    if (!slotsDisponiveis.length) { resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'sem_slots' }); e.etapa = 'handoff'; return { novoEstado: e, acoes }; }
+    const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta);
+    e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
+    e.etapa = 'negociacao';
+    resp('preco', varsSlots(s, agora));
     return { novoEstado: e, acoes };
   }
 
@@ -56,7 +63,7 @@ export function decidir({ estado, interp, cfg, agora, slotsDisponiveis = null })
       if (!slotsDisponiveis) { acoes.push({ tipo: 'buscar_slots' }); return { novoEstado: e, acoes }; }
       if (!slotsDisponiveis.length) { resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'sem_slots' }); e.etapa = 'handoff'; return { novoEstado: e, acoes }; }
       const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta);
-      e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: x.vendedoras }));
+      e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
       const tpl = e.dados.situacao ? 'pitch_oferta' : 'oferta_slots';
       resp(tpl, varsSlots(s, agora)); e.etapa = 'negociacao'; return { novoEstado: e, acoes };
     }
@@ -65,8 +72,17 @@ export function decidir({ estado, interp, cfg, agora, slotsDisponiveis = null })
         acoes.push({ tipo: e.etapa === 'pos_noshow' ? 'reagendar' : 'agendar', slotIdx: interp.horario_aceito_idx });
         return { novoEstado: e, acoes };
       }
+      // protocolo buscar_slots unificado (pós-review): antes, este branch ignorava
+      // slotsDisponiveis por completo e devolvia sempre o mesmo buscar_slots, mesmo na
+      // re-entrada — o worker já reordena por slotMaisProximo(desejado), então o slot mais
+      // próximo do horário pedido é sempre o slot1 aqui.
       if (interp.intencao === 'propoe_horario' && interp.horario_proposto) {
-        acoes.push({ tipo: 'buscar_slots', desejado: interp.horario_proposto }); return { novoEstado: e, acoes };
+        if (!slotsDisponiveis) { acoes.push({ tipo: 'buscar_slots', desejado: interp.horario_proposto }); return { novoEstado: e, acoes }; }
+        if (!slotsDisponiveis.length) { resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'sem_slots' }); e.etapa = 'handoff'; return { novoEstado: e, acoes }; }
+        const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta);
+        e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
+        resp('oferta_slots', varsSlots(s, agora));
+        return { novoEstado: e, acoes };
       }
       if (interp.intencao === 'recusa' || interp.intencao === 'outro') {
         e.recusas += 1;
@@ -75,7 +91,12 @@ export function decidir({ estado, interp, cfg, agora, slotsDisponiveis = null })
           resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'impasse_horario' }); e.etapa = 'handoff';
           return { novoEstado: e, acoes };
         }
-        acoes.push({ tipo: 'buscar_slots' }); return { novoEstado: e, acoes };
+        if (!slotsDisponiveis) { acoes.push({ tipo: 'buscar_slots' }); return { novoEstado: e, acoes }; }
+        if (!slotsDisponiveis.length) { resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'sem_slots' }); e.etapa = 'handoff'; return { novoEstado: e, acoes }; }
+        const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta);
+        e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
+        resp('oferta_slots', varsSlots(s, agora));
+        return { novoEstado: e, acoes };
       }
       resp('oferta_slots', varsSlots(e.slots_ofertados, agora)); return { novoEstado: e, acoes };
     }
@@ -85,7 +106,15 @@ export function decidir({ estado, interp, cfg, agora, slotsDisponiveis = null })
           resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'reagendamentos_esgotados' }); e.etapa = 'handoff';
           return { novoEstado: e, acoes };
         }
-        acoes.push({ tipo: 'buscar_slots', desejado: interp.horario_proposto || null }); e.etapa = 'pos_noshow';
+        // mesmo protocolo unificado do case acima (pós-review) — só muda o destino da etapa
+        // (pos_noshow) e o fato de "desejado" poder vir null (recusa não tem horario_proposto).
+        const desejado = interp.horario_proposto || null;
+        if (!slotsDisponiveis) { acoes.push({ tipo: 'buscar_slots', desejado }); e.etapa = 'pos_noshow'; return { novoEstado: e, acoes }; }
+        if (!slotsDisponiveis.length) { resp('impasse'); acoes.push({ tipo: 'handoff', motivo: 'sem_slots' }); e.etapa = 'handoff'; return { novoEstado: e, acoes }; }
+        const s = slotsDisponiveis.slice(0, cfg.regras.slots_por_oferta);
+        e.slots_ofertados = s.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
+        e.etapa = 'pos_noshow';
+        resp('oferta_slots', varsSlots(s, agora));
         return { novoEstado: e, acoes };
       }
       return { novoEstado: e, acoes }; // "obrigado", "🙏" etc.: silêncio
