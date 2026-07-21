@@ -38,6 +38,47 @@ describe('gerarSlots', () => {
     expect(dias.has('2026-07-26')).toBe(false);
     expect(dias.has('2026-07-27')).toBe(false);
   });
+  // Pós-review — bug crítico: fimJanela = agora + (horizonte+4) dias corridos não escala com
+  // clusters de feriados/fds maiores que a folga fixa de 4 dias. Aqui 6 dias úteis seguidos
+  // (27,28,29,30,31/07 + 03/08) são feriado, então o corte por data fixa (antigo fimJanela)
+  // cai bem antes do primeiro dia útil real (04/08) e a função retornava 0 dias úteis.
+  it('conta horizonte_dias_uteis por dias úteis reais mesmo com cluster de feriados que estouraria a folga fixa antiga', () => {
+    const sexta = new Date('2026-07-24T19:30:00Z'); // sexta 24/07 16h30 local
+    const feriados = ['2026-07-27', '2026-07-28', '2026-07-29', '2026-07-30', '2026-07-31', '2026-08-03'];
+    const regras = { ...REGRAS, horizonte_dias_uteis: 5, feriados };
+    const slots = gerarSlots({ regras, busyPorVendedora: { 'a@x.com': [] }, agora: sexta, limite: 200 });
+    const dias = new Set(slots.map((s) => s.inicio.toISOString().slice(0, 10)));
+    expect(dias.size).toBe(5);
+    for (const esperado of ['2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07', '2026-08-10']) {
+      expect(dias.has(esperado)).toBe(true);
+    }
+  });
+  // Pós-review — bug: antecedencia_min_minutos usava `|| 60`, então 0 (valor legítimo:
+  // "pode agendar imediatamente") virava 60 por ser falsy.
+  it('antecedencia_min_minutos: 0 permite primeiro slot na próxima grade, sem forçar 60min', () => {
+    const agora = new Date('2026-07-21T13:05:00Z'); // terça 21/07 10h05 local
+    const regras = { ...REGRAS, antecedencia_min_minutos: 0 };
+    const slots = gerarSlots({ regras, busyPorVendedora: { 'a@x.com': [] }, agora });
+    expect(slots.length).toBeGreaterThan(0);
+    const primeiro = slots[0].inicio;
+    expect(primeiro.getTime() - agora.getTime()).toBeLessThan(60 * 60000);
+    expect(primeiro.toISOString()).toBe('2026-07-21T13:30:00.000Z'); // 10h30 local = próxima grade
+  });
+});
+
+describe('dentroDoExpediente — almoço considera a duração do evento (pós-review)', () => {
+  // Bug: a checagem antiga só olhava o horário de INÍCIO do slot contra o almoço, então um
+  // evento que começa antes do almoço mas termina depois do início do almoço não era barrado.
+  const regras = { ...REGRAS, almoco: { inicio: '12:00', fim: '13:00' }, duracao_evento_min: 60 };
+  it('rejeita slot que começa antes do almoço mas invade o horário (interseção de intervalos)', () => {
+    expect(dentroDoExpediente(new Date('2026-07-21T14:30:00Z'), regras)).toBe(false); // 11h30 local, termina 12h30
+  });
+  it('aceita slot que termina exatamente no início do almoço (não invade)', () => {
+    expect(dentroDoExpediente(new Date('2026-07-21T14:00:00Z'), regras)).toBe(true); // 11h local, termina 12h00 exato
+  });
+  it('aceita slot que começa exatamente no fim do almoço', () => {
+    expect(dentroDoExpediente(new Date('2026-07-21T16:00:00Z'), regras)).toBe(true); // 13h local
+  });
 });
 
 describe('sortearVendedora', () => {

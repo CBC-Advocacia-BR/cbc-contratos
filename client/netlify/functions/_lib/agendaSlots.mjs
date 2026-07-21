@@ -17,7 +17,10 @@ export function dentroDoExpediente(date, regras) {
   if ((regras.feriados || []).includes(ymd)) return false;
   const min = h * 60 + m;
   if (min < hm(regras.hora_inicio) || min + (regras.duracao_evento_min || 30) > hm(regras.hora_fim)) return false;
-  if (regras.almoco && min >= hm(regras.almoco.inicio) && min < hm(regras.almoco.fim)) return false;
+  if (regras.almoco) {
+    const fimEv = min + (regras.duracao_evento_min || 30);
+    if (min < hm(regras.almoco.fim) && fimEv > hm(regras.almoco.inicio)) return false;
+  }
   return true;
 }
 
@@ -26,12 +29,15 @@ const livre = (busy, ini, fim) => !(busy || []).some((b) => new Date(b.start) < 
 export function gerarSlots({ regras, busyPorVendedora, agora, limite = 10 }) {
   const out = [];
   const passo = (regras.granularidade_min || 30) * 60000;
-  const minIni = new Date(agora.getTime() + (regras.antecedencia_min_minutos || 60) * 60000);
+  const minIni = new Date(agora.getTime() + (regras.antecedencia_min_minutos ?? 60) * 60000);
   // arredonda p/ próxima grade :00/:30 (em UTC funciona: SP tem offset múltiplo de 30min)
   let t = new Date(Math.ceil(minIni.getTime() / passo) * passo);
-  const fimJanela = new Date(agora.getTime() + ((regras.horizonte_dias_uteis || 5) + 4) * 864e5); // folga p/ fds/feriado
+  // trava dura de varredura: nunca conta dia útil por corte de data fixa (fds/feriados em
+  // cluster fazem isso não escalar — ver bug pós-review); só o limite de dias úteis abaixo
+  // decide quando parar, esta trava é só um teto de segurança contra loop indefinido.
+  const capVarredura = new Date(agora.getTime() + 90 * 864e5);
   let diasUteis = new Set();
-  while (t < fimJanela && out.length < limite) {
+  while (t < capVarredura && out.length < limite) {
     if (dentroDoExpediente(t, regras)) {
       diasUteis.add(partesLocais(t).ymd);
       if (diasUteis.size > (regras.horizonte_dias_uteis || 5)) break;
@@ -53,7 +59,7 @@ export function sortearVendedora(vendedoras, emailsLivres, seed) {
   const total = cand.reduce((s, v) => s + v.peso, 0);
   let r = hash(seed) * total;
   for (const v of cand) { r -= v.peso; if (r <= 0) return v.email; }
-  return cand[cand.length - 1].email;
+  return cand[cand.length - 1].email; // guarda de arredondamento float
 }
 
 export function slotMaisProximo(slots, desejadoISO) {
