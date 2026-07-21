@@ -52,8 +52,17 @@ export default async () => {
       excluidas = sw || 0;
     }
 
-    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}`, { atendimentos: rows.length, totalEventos, excluidas }).catch(() => {});
-    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas });
+    // (21/07/2026) Reconciliacao agenda<->Kommo: casa o telefone do TITULO do evento
+    // com o espelho kommo_leads (fone_chave: ignora 55/9o digito) e grava lead_id +
+    // kommo_match nas linhas novas (kommo_match IS NULL). Best-effort: nunca derruba o sync.
+    let match = null;
+    try {
+      const { data: m } = await db.rpc('agenda_kommo_match', { p_chave: RPC_SECRET });
+      match = m;
+    } catch { /* best-effort */ }
+
+    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
+    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `videochamadas sync falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
     return json({ ok: false, error: e.message }, 500);
