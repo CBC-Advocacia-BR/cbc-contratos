@@ -6,7 +6,7 @@
  * Janela: [hoje-180d, hoje+30d], paginado. Upsert idempotente via RPC protegida por
  * BOT_RPC_SECRET (a tabela agenda_videochamadas tem RLS fechada por causa do PII de cliente).
  */
-import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat, getConfig } from './_lib/botDb.mjs';
 import { getAccessToken, listEvents, classifyEvent, VENDEDORAS } from './_lib/googleAgenda.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
@@ -20,9 +20,15 @@ export default async () => {
     const timeMin = new Date(Date.now() - JANELA_ATRAS_DIAS * 864e5).toISOString();
     const timeMax = new Date(Date.now() + JANELA_FRENTE_DIAS * 864e5).toISOString();
 
+    // Config-driven: usa bot_config.agenda_bot.vendedoras (ativas); cai na lista fixa VENDEDORAS
+    // se a config vier vazia/ausente ou a leitura falhar (nunca trava o sync por causa disso).
+    const cfgAll = await getConfig().catch(() => ({}));
+    const vendedorasCfg = (cfgAll.agenda_bot?.vendedoras || []).filter((v) => v.ativa).map((v) => v.email);
+    const agendas = vendedorasCfg.length ? vendedorasCfg : VENDEDORAS;
+
     let totalEventos = 0;
     const rows = [];
-    for (const cal of VENDEDORAS) {
+    for (const cal of agendas) {
       const eventos = await listEvents(cal, timeMin, timeMax, at);
       totalEventos += eventos.length;
       for (const ev of eventos) {
@@ -61,11 +67,11 @@ export default async () => {
       match = m;
     } catch { /* best-effort */ }
 
-    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
+    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${agendas.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
     // (observ 28/07) heartbeat p/ o watchdog enxergar: o token Google que sustenta as
     // agendas ja expirou uma vez (23/07) sem alerta.
     await heartbeat('agenda-videochamadas-sync', true, `${rows.length} atendimentos de ${totalEventos} eventos`);
-    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match });
+    return json({ ok: true, agendas: agendas.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `videochamadas sync falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
     await heartbeat('agenda-videochamadas-sync', false, e.message);
