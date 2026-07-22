@@ -136,11 +136,16 @@ export async function patchEventHorario({ calendarId, eventId, inicioISO, fimISO
 /** Marca o desfecho (PATCH do colorId) de um evento existente. Mesmo padrão de patchEventHorario
  *  (sem checar r.ok — só j.error — e sem tolerância especial de status HTTP). Usado pela ação
  *  'desfecho' de agenda-admin.mjs (10=realizada, 11=no_show, 7=fechou — ver COR_STATUS acima);
- *  o agenda-videochamadas-sync.mjs espelha a cor -> status na próxima rodada (até 45min). */
+ *  o agenda-videochamadas-sync.mjs espelha a cor -> status na próxima rodada (até 45min).
+ *  colorId null/undefined LIMPA a cor do evento (usado ao reagendar — revisão final #2): manda
+ *  `{ colorId: null }` (JSON null de verdade) no corpo. Antes fazia `String(colorId)` sempre —
+ *  com null isso virava a STRING "null", que o Google rejeitaria (não é um colorId válido
+ *  1-11), lançando erro em vez de limpar a cor. */
 export async function setEventColor({ calendarId, eventId, colorId, accessToken }) {
+  const corpo = { colorId: colorId === null || colorId === undefined ? null : String(colorId) };
   const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, {
     method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ colorId: String(colorId) }),
+    body: JSON.stringify(corpo),
     signal: AbortSignal.timeout(20000),
   });
   const j = await r.json();

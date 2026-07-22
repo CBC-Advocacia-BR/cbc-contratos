@@ -95,35 +95,44 @@ export default async () => {
       const acao = decidirLembrete(vc, min);
       if (!acao) continue;
 
-      const canal = `agenda:${(vc.telefone || '').replace(/\D/g, '')}`;
-      const conv = await getConversation(canal);
-      const estado = conv?.context || null;
+      // (RECOMENDADO — revisão final #4) try/catch por item: sem isso, uma falha isolada
+      // (Kommo/Google) num item abortava o `for` inteiro — todos os itens SEGUINTES de
+      // `pend` nesse tick de 5min ficavam sem processar, não só o que falhou.
+      // agenda_bot_pendencias é idempotente (reconsulta do zero a cada tick) — loga e segue
+      // pro próximo item em vez de abortar o lote.
+      try {
+        const canal = `agenda:${(vc.telefone || '').replace(/\D/g, '')}`;
+        const conv = await getConversation(canal);
+        const estado = conv?.context || null;
 
-      if (acao === 'lembrete_1h') {
-        const hora = formatarSlot(new Date(vc.scheduled_at), new Date()).split(' às ')[1] || '';
-        await enviar({ vc, cfg, estado, template: 'ana_lembrete_1h', mensagem: aplicarTemplate(cfg.mensagens.lembrete_1h, { hora }) });
-        await marcar(vc.event_id, 'lembrete_1h_em');
-        n.lembrete1h++;
-      } else if (acao === 'lembrete_t0') {
-        const link = estado?.agendamento?.meet_link || '';
-        await enviar({ vc, cfg, estado, template: 'ana_link_meet', mensagem: aplicarTemplate(cfg.mensagens.lembrete_t0, { link }) });
-        await marcar(vc.event_id, 'lembrete_t0_em');
-        n.t0++;
-      } else if (acao === 'noshow') {
-        // oferta de reagendamento com slots reais (mesmo horizonte curto do worker: 6 dias)
-        const at = await getAccessToken();
-        const emails = cfg.vendedoras.filter((v) => v.ativa).map((v) => v.email);
-        const busy = await freeBusy(emails, new Date().toISOString(), new Date(agora + 6 * 864e5).toISOString(), at);
-        const slots = gerarSlots({ regras: cfg.regras, busyPorVendedora: busy, agora: new Date(), limite: 2 });
-        const vars = Object.fromEntries(slots.map((s, i) => [`slot${i + 1}`, formatarSlot(new Date(s.inicio), new Date())]));
-        await enviar({ vc, cfg, estado, template: 'ana_reagendar', mensagem: aplicarTemplate(cfg.mensagens.noshow, vars) });
-        if (estado) {
-          estado.etapa = 'pos_noshow';
-          estado.slots_ofertados = slots.map((s) => ({ inicio: new Date(s.inicio).toISOString(), vendedoras: s.vendedoras }));
-          await upsertConversation(canal, { context: estado });
+        if (acao === 'lembrete_1h') {
+          const hora = formatarSlot(new Date(vc.scheduled_at), new Date()).split(' às ')[1] || '';
+          await enviar({ vc, cfg, estado, template: 'ana_lembrete_1h', mensagem: aplicarTemplate(cfg.mensagens.lembrete_1h, { hora }) });
+          await marcar(vc.event_id, 'lembrete_1h_em');
+          n.lembrete1h++;
+        } else if (acao === 'lembrete_t0') {
+          const link = estado?.agendamento?.meet_link || '';
+          await enviar({ vc, cfg, estado, template: 'ana_link_meet', mensagem: aplicarTemplate(cfg.mensagens.lembrete_t0, { link }) });
+          await marcar(vc.event_id, 'lembrete_t0_em');
+          n.t0++;
+        } else if (acao === 'noshow') {
+          // oferta de reagendamento com slots reais (mesmo horizonte curto do worker: 6 dias)
+          const at = await getAccessToken();
+          const emails = cfg.vendedoras.filter((v) => v.ativa).map((v) => v.email);
+          const busy = await freeBusy(emails, new Date().toISOString(), new Date(agora + 6 * 864e5).toISOString(), at);
+          const slots = gerarSlots({ regras: cfg.regras, busyPorVendedora: busy, agora: new Date(), limite: 2 });
+          const vars = Object.fromEntries(slots.map((s, i) => [`slot${i + 1}`, formatarSlot(new Date(s.inicio), new Date())]));
+          await enviar({ vc, cfg, estado, template: 'ana_reagendar', mensagem: aplicarTemplate(cfg.mensagens.noshow, vars) });
+          if (estado) {
+            estado.etapa = 'pos_noshow';
+            estado.slots_ofertados = slots.map((s) => ({ inicio: new Date(s.inicio).toISOString(), vendedoras: s.vendedoras }));
+            await upsertConversation(canal, { context: estado });
+          }
+          await marcar(vc.event_id, 'noshow_msg_em');
+          n.noshow++;
         }
-        await marcar(vc.event_id, 'noshow_msg_em');
-        n.noshow++;
+      } catch (e) {
+        await logAdvbox('agenda', 'erro', `cron Ana: item ${vc.event_id} (${acao}) falhou: ${e.message}`.slice(0, 300), { eventId: vc.event_id, acao });
       }
     }
 

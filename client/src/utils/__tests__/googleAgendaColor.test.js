@@ -36,6 +36,24 @@ describe('setEventColor', () => {
     expect(JSON.parse(body)).toEqual({ colorId: '11' });
   });
 
+  // Revisão final #2: colorId null precisa LIMPAR a cor do evento real (usado ao reagendar).
+  // Bug corrigido: `String(colorId)` sempre rodava, e `String(null)` vira a STRING "null" —
+  // não um colorId válido (1-11) — o Google rejeitaria isso em vez de limpar a cor.
+  it('colorId null manda { colorId: null } (JSON null de verdade, nunca a string "null")', async () => {
+    let body;
+    vi.stubGlobal('fetch', vi.fn(async (_url, opts) => { body = opts.body; return { json: async () => ({}) }; }));
+    await setEventColor({ calendarId: 'v@advocaciacbc.com', eventId: 'e3', colorId: null, accessToken: 't' });
+    expect(body).toBe('{"colorId":null}');
+    expect(JSON.parse(body).colorId).toBeNull();
+  });
+
+  it('colorId undefined tambem limpa a cor (mesmo tratamento de null)', async () => {
+    let body;
+    vi.stubGlobal('fetch', vi.fn(async (_url, opts) => { body = opts.body; return { json: async () => ({}) }; }));
+    await setEventColor({ calendarId: 'v@advocaciacbc.com', eventId: 'e4', colorId: undefined, accessToken: 't' });
+    expect(JSON.parse(body)).toEqual({ colorId: null });
+  });
+
   it('lanca erro quando a API do Google retorna { error }', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ error: { message: 'Not Found' } }) })));
     await expect(

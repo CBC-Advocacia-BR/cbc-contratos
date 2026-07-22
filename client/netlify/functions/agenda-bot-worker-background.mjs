@@ -13,7 +13,7 @@ import { getContact, extractPhones, firstLeadId, kommoGet, setLeadField, moveLea
 import { decidir, confirmar, estadoInicial, aplicarTemplate } from './_lib/agendaEngine.mjs';
 import { gerarSlots, sortearVendedora, slotMaisProximo, formatarSlot } from './_lib/agendaSlots.mjs';
 import { interpretar, transcrever } from './_lib/agendaInterprete.mjs';
-import { getAccessToken, freeBusy, createEventComMeet, cancelEvent, patchEventHorario } from './_lib/googleAgenda.mjs';
+import { getAccessToken, freeBusy, createEventComMeet, cancelEvent, patchEventHorario, setEventColor } from './_lib/googleAgenda.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const TIPOS_AUDIO = ['voice', 'audio', 'ptt'];
@@ -206,6 +206,17 @@ async function upsertVC(row) {
   if (error) throw new Error(`upsert vc: ${error.message}`);
 }
 
+// (CRITICAL — revisão final #1) usada SÓ quando o reagendar reaproveita o MESMO event_id
+// (mesma vendedora, patchEventHorario) — em vez do upsert genérico, que não inclui
+// lembrete_1h_em/lembrete_t0_em/noshow_msg_em na lista de colunas (de propósito: o sync de
+// calendário chama o MESMO upsert genérico a cada 45min p/ todo evento; se essas 3 colunas
+// entrassem nele, o sync zeraria os lembretes de qualquer atendimento inalterado a cada
+// rodada). Ver supabase_agenda_bot.sql (agenda_videochamadas_reset_reagendamento).
+async function resetReagendamento(eventId, novoInicioISO) {
+  const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: novoInicioISO });
+  if (error) throw new Error(`reset reagendamento: ${error.message}`);
+}
+
 // upsertConversation ja retorna a linha (.select().single()); fallback defensivo p/ o id
 // via getConversation caso o upsert nao devolva a linha (ajuste obrigatorio #1).
 async function convIdDe(channel, fields) {
@@ -321,7 +332,21 @@ export default async (req) => {
     let slotsCtx = null;
     if (r.acoes.some((a) => a.tipo === 'buscar_slots')) {
       const desejado = r.acoes.find((a) => a.tipo === 'buscar_slots')?.desejado || null;
-      slotsCtx = await montarSlots(cfg, agora, desejado);
+      try {
+        slotsCtx = await montarSlots(cfg, agora, desejado);
+      } catch (e) {
+        // (IMPORTANT — revisão final #3) sem fallback aqui, uma falha do Google (rate limit,
+        // timeout, ou — pertinente agora — o token OAuth hoje só tem escopo de leitura)
+        // deixava o lead sem NENHUMA resposta: a exceção subia até o catch genérico do
+        // handler, que só loga e devolve 200 silencioso. Mesmo padrão de createEventComMeet:
+        // avisa o lead + cria tarefa p/ a equipe assumir manualmente.
+        await logAdvbox('agenda', 'erro', `montarSlots falhou (buscar_slots): ${e.message}`.slice(0, 300), { leadId });
+        await falar(leadId, cfg.mensagens.impasse, cfg);
+        estado.ultima_fala_ana = new Date().toISOString();
+        await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+        await createKommoTask(leadId, 'leads', 'Ana falhou ao buscar horários no Calendar. Combinar horário manualmente.', 1, null);
+        return new Response('google falhou', { status: 200 });
+      }
       r = decidir({ estado, interp, cfg, agora, slotsDisponiveis: slotsCtx.slots });
     }
     let estadoFinal = r.novoEstado;
@@ -336,7 +361,19 @@ export default async (req) => {
         if (acao.campos.preferencia) await setLeadField(leadId, cfg.kommo.campo_preferencia_id, acao.campos.preferencia);
       } else if (acao.tipo === 'agendar' || acao.tipo === 'reagendar') {
         const slot = estadoFinal.slots_ofertados[acao.slotIdx];
-        const { slots, at } = slotsCtx || await montarSlots(cfg, agora);
+        let slots, at;
+        try {
+          ({ slots, at } = slotsCtx || await montarSlots(cfg, agora));
+        } catch (e) {
+          // (IMPORTANT — revisão final #3) mesmo fallback do ponto de buscar_slots acima:
+          // sem try/catch aqui a exceção subia até o catch genérico do handler (200 silencioso,
+          // sem avisar o lead nem abrir tarefa). Mesmo padrão de createEventComMeet abaixo.
+          await logAdvbox('agenda', 'erro', `montarSlots falhou (revalidacao ${acao.tipo}): ${e.message}`.slice(0, 300), { leadId });
+          await falar(leadId, cfg.mensagens.impasse, cfg);
+          estadoFinal.ultima_fala_ana = new Date().toISOString();
+          await createKommoTask(leadId, 'leads', 'Ana falhou ao confirmar horário no Calendar. Combinar horário manualmente.', 1, null);
+          break;
+        }
         // revalida o slot (concorrencia): confere se ainda ha vendedora livre nesse horario
         const aindaLivre = slots.find((s) => new Date(s.inicio).getTime() === new Date(slot.inicio).getTime());
         if (!aindaLivre) {
@@ -361,13 +398,30 @@ export default async (req) => {
         // (pos-review Opus #6a) evento atual capturado ANTES do confirmar() sobrescrever
         // estadoFinal.agendamento.
         const eventoAtual = (acao.tipo === 'reagendar') ? estadoFinal.agendamento : null;
+        // mesma vendedora do evento atual => reaproveita o MESMO event_id. Guardado numa
+        // flag (em vez de só o `if` inline) porque também decide COMO resetar o espelho lá
+        // embaixo (achado CRITICAL da revisão final: o upsert genérico não reseta
+        // lembrete_1h_em/lembrete_t0_em/noshow_msg_em, então o cron nunca mais dispara nada
+        // pro novo horário).
+        const mesmoEvento = !!(eventoAtual?.event_id && eventoAtual.vendedora === vend);
         let eventId, meetLink;
-        if (eventoAtual?.event_id && eventoAtual.vendedora === vend) {
+        if (mesmoEvento) {
           // mesma vendedora do evento atual: reposiciona o MESMO evento (preserva o link
           // do Meet — nao cancela+recria so por causa do horario mudar).
           await patchEventHorario({ calendarId: vend, eventId: eventoAtual.event_id, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: at });
           eventId = eventoAtual.event_id;
           meetLink = eventoAtual.meet_link;
+          // (IMPORTANT — revisão final #2) limpa a cor REAL do evento: se ele já tinha um
+          // desfecho marcado (no_show/realizada/fechou), a cor antiga fica no Calendar e o
+          // sync (até 45min) a releria, revertendo o status que o reset do espelho (abaixo)
+          // acabou de zerar. Não fatal — o reset do espelho é a defesa principal. NOTA: o
+          // token OAuth hoje é readonly, então isso só será exercitado de fato no piloto
+          // (pilot-verify), após o re-consent.
+          try {
+            await setEventColor({ calendarId: vend, eventId: eventoAtual.event_id, colorId: null, accessToken: at });
+          } catch (e) {
+            await logAdvbox('agenda', 'aviso', `setEventColor(null) falhou ao reagendar (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId: eventoAtual.event_id });
+          }
         } else {
           if (eventoAtual?.event_id) {
             // vendedora mudou: cancela o evento anterior. Falha aqui NAO e engolida —
@@ -413,14 +467,22 @@ export default async (req) => {
         estadoFinal.ultima_fala_ana = new Date().toISOString();
         await logMessage(convId, 'out', c.mensagem, 'confirmado', { eventId });
         try {
-          await upsertVC({ event_id: eventId, vendedora_email: vend, cliente_email: null, cliente_nome: estadoFinal.nome || null,
-            status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live',
-            origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
+          if (mesmoEvento) {
+            // (CRITICAL — revisão final #1) RPC dedicada EM VEZ do upsert genérico: reseta
+            // scheduled_at/status/color_id E os 3 timestamps de lembrete/no-show num único
+            // UPDATE. O upsert genérico (branch abaixo) não inclui essas 3 colunas de
+            // propósito — ver comentário de resetReagendamento acima.
+            await resetReagendamento(eventId, ini.toISOString());
+          } else {
+            await upsertVC({ event_id: eventId, vendedora_email: vend, cliente_email: null, cliente_nome: estadoFinal.nome || null,
+              status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live',
+              origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
+          }
         } catch (e) {
           // (pos-review Opus #1) NAO fatal: o Calendar (fonte da verdade) ja tem o evento
           // certo; o espelho agenda_videochamadas e reconciliado pelo agenda-videochamadas-
-          // sync via extendedProperties.cbc_origem mesmo se este upsert falhar agora.
-          await logAdvbox('agenda', 'erro', `upsertVC falhou (nao fatal — calendar-sync reconcilia): ${e.message}`.slice(0, 300), { leadId, eventId });
+          // sync via extendedProperties.cbc_origem mesmo se este upsert/reset falhar agora.
+          await logAdvbox('agenda', 'erro', `upsertVC/reset falhou (nao fatal — calendar-sync reconcilia): ${e.message}`.slice(0, 300), { leadId, eventId });
         }
         const vendCfg = cfg.vendedoras.find((v) => v.email === vend);
         await moveLeadStage(leadId, { pipelineId: cfg.kommo.etapa_agendado.pipeline_id, statusId: cfg.kommo.etapa_agendado.status_id });

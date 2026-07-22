@@ -246,3 +246,32 @@ begin
   return query select * from agenda_videochamadas where event_id = p_event_id;
 end
 $$;
+
+-- agenda_bot_v1_5_reset_reagendamento: CRITICAL (revisao final #1) — reagendar reaproveitando o
+-- MESMO event_id (patchEventHorario, mesma vendedora, worker OU agenda-admin.mjs) atualizava
+-- scheduled_at/status via agenda_videochamadas_upsert, mas essa RPC nao inclui
+-- lembrete_1h_em/lembrete_t0_em/noshow_msg_em na lista de colunas do upsert (de proposito: o
+-- sync de calendario chama a MESMA RPC a cada 45min p/ TODO evento, e se essas 3 colunas
+-- entrassem no upsert generico o sync zeraria os lembretes de qualquer atendimento inalterado
+-- a cada rodada). Por isso uma RPC nova e especifica, chamada SO nos 2 pontos de reagendar
+-- (worker: reagendar mesma vendedora; admin: acao 'reagendar', que sempre reaproveita o event_id
+-- via patchEventHorario), logo apos o patchEventHorario. Sem isso, decidirLembrete
+-- (agenda-bot-cron.mjs) nunca mais dispara nada pro novo horario -- as 3 guardas
+-- (!vc.lembrete_1h_em etc.) ja vem false desde o ciclo anterior — garantido no fluxo
+-- pos-no-show, que e o fluxo principal esperado do bot (~24% de no-show historico).
+-- Verificado via execute_sql (21/07): chave invalida -> 'acesso negado' sem alterar a linha;
+-- chave valida -> scheduled_at atualizado, status='agendada', color_id/os 3 timestamps -> null.
+create or replace function agenda_videochamadas_reset_reagendamento(p_chave text, p_event_id text, p_novo_inicio timestamptz)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  update agenda_videochamadas
+     set scheduled_at = p_novo_inicio, status = 'agendada', color_id = null,
+         lembrete_1h_em = null, lembrete_t0_em = null, noshow_msg_em = null, updated_at = now()
+   where event_id = p_event_id;
+end
+$$;

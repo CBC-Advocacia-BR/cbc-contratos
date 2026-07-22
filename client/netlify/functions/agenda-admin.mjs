@@ -146,6 +146,17 @@ async function upsertVC(row) {
   if (error) throw new Error(`upsert vc: ${error.message}`);
 }
 
+// (CRITICAL — revisão final #1) reagendar aqui SEMPRE reaproveita o MESMO event_id
+// (patchEventHorario nunca cria um evento novo) — por isso usa SEMPRE esta RPC dedicada em
+// vez do upsert genérico + resetDesfechoAoReagendar: o upsert genérico não inclui
+// lembrete_1h_em/lembrete_t0_em/noshow_msg_em na lista de colunas (de propósito — ver
+// supabase_agenda_bot.sql), então esses 3 campos ficavam com os valores do agendamento
+// ANTERIOR e o cron nunca mais disparava nada pro novo horário.
+async function resetReagendamento({ eventId, novoInicio }) {
+  const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: novoInicio });
+  if (error) throw new Error(`reset reagendamento: ${error.message}`);
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
   if (req.method !== 'POST') return resp(405, { error: 'somente POST' });
@@ -203,10 +214,19 @@ export default async (req) => {
 
       const accessToken = await getAccessToken();
       await patchEventHorario({ calendarId, eventId, inicioISO, fimISO, accessToken });
-      // Reset de desfecho (pos-review, item 4): reagendar uma linha ja concluida
-      // (no_show/realizada/fechou) precisa voltar p/ 'agendada' e limpar color_id, senao
-      // agenda_bot_metricas conta esse atendimento como concluido mesmo depois de remarcado.
-      await upsertVC(linhaParaUpsert(atual, { scheduled_at: inicioISO, ...resetDesfechoAoReagendar(atual.status) }));
+      // (CRITICAL — revisão final #1) RPC dedicada EM VEZ do upsert genérico +
+      // resetDesfechoAoReagendar: reseta scheduled_at/status/color_id E os 3 timestamps de
+      // lembrete/no-show num único UPDATE (ver comentário de resetReagendamento acima).
+      await resetReagendamento({ eventId, novoInicio: inicioISO });
+      // (IMPORTANT — revisão final #2) limpa a cor REAL do evento: sem isso, o sync (até
+      // 45min) releria a cor antiga do Calendar e reverteria o status que o reset acima
+      // acabou de zerar. Não fatal — o reset acima é a defesa principal. NOTA: o token OAuth
+      // hoje é readonly, então isso só será exercitado de fato no piloto (pilot-verify).
+      try {
+        await setEventColor({ calendarId, eventId, colorId: null, accessToken });
+      } catch (e) {
+        await logAdvbox('agenda', 'aviso', `reagendar: limpar cor do evento falhou (nao fatal): ${e.message}`.slice(0, 300), { eventId });
+      }
 
       // Mensagem opcional ao lead (só se dá pra falar): reusa o MESMO template/formatação
       // de confirmação que o worker usa (agendaEngine.confirmar), nunca uma string solta.
