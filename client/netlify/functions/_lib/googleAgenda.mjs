@@ -13,7 +13,9 @@ const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const CAL_URL = 'https://www.googleapis.com/calendar/v3';
 
 const INTERNO = /@advocaciacbc\.com$/i;
-const COR_STATUS = { '10': 'realizada', '11': 'no_show', '7': 'fechou' };
+// Exportado (Task 10, agenda-admin.mjs): a acao 'desfecho' deriva o colorId a partir do MESMO
+// mapa (invertido), em vez de duplicar os 3 pares status<->cor em outro arquivo.
+export const COR_STATUS = { '10': 'realizada', '11': 'no_show', '7': 'fechou' };
 
 /** Renova o access token a partir do refresh token (env). */
 export async function getAccessToken() {
@@ -129,6 +131,20 @@ export async function patchEventHorario({ calendarId, eventId, inicioISO, fimISO
   });
   const j = await r.json();
   if (j.error) throw new Error(`patchEvent: ${j.error.message}`);
+}
+
+/** Marca o desfecho (PATCH do colorId) de um evento existente. Mesmo padrão de patchEventHorario
+ *  (sem checar r.ok — só j.error — e sem tolerância especial de status HTTP). Usado pela ação
+ *  'desfecho' de agenda-admin.mjs (10=realizada, 11=no_show, 7=fechou — ver COR_STATUS acima);
+ *  o agenda-videochamadas-sync.mjs espelha a cor -> status na próxima rodada (até 45min). */
+export async function setEventColor({ calendarId, eventId, colorId, accessToken }) {
+  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, {
+    method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ colorId: String(colorId) }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const j = await r.json();
+  if (j.error) throw new Error(`setEventColor: ${j.error.message}`);
 }
 
 /** Cancela (DELETE) um evento. Tolera 404/410 (já não existe/já foi excluído). Lança em outros erros. */

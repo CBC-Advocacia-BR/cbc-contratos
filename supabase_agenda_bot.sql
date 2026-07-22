@@ -226,3 +226,23 @@ begin
   end if;
 end
 $$;
+
+-- agenda_bot_v1_5: RPC de leitura pontual por event_id (Task 10, agenda-admin.mjs). As acoes
+-- reagendar/cancelar precisam buscar a linha ATUAL antes de chamar agenda_videochamadas_upsert
+-- (que SUBSTITUI a linha inteira — ver comentario na funcao acima) para reenviar os campos
+-- inalterados e so trocar scheduled_at/status. Um SELECT direto (`db.from('agenda_videochamadas')`)
+-- NAO funciona aqui: confirmado via pg_class/pg_policy que a tabela tem RLS habilitada e ZERO
+-- policies (fechada de proposito por causa do PII de cliente — mesmo comentario ja presente em
+-- agenda-videochamadas-sync.mjs) — com anon key cai tudo pra 0 linhas, silenciosamente. Mesmo
+-- padrao de TODAS as RPCs deste arquivo: security definer + _bot_chave_ok, sem grants extras.
+create or replace function agenda_videochamadas_get(p_chave text, p_event_id text)
+returns setof agenda_videochamadas
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  return query select * from agenda_videochamadas where event_id = p_event_id;
+end
+$$;
