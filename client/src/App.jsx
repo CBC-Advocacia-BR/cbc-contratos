@@ -36,6 +36,8 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const SociosDashboard = lazy(() => import('./components/SociosDashboard'));
 const FunnelHealthPanel = lazy(() => import('./components/FunnelHealthPanel'));
 const TrafegoPanel = lazy(() => import('./components/TrafegoPanel'));
+// Agenda Ana — bot de agendamento de videochamada (Kommo x Google Calendar) (07/2026)
+const AgendaPanel = lazy(() => import('./components/AgendaPanel'));
 // Vendas Fase 2 — painel do vendedor/assistente e parametrizacao (admin)
 const VendasPanel = lazy(() => import('./components/VendasPanel'));
 const VendasParametrizacaoPanel = lazy(() => import('./components/VendasParametrizacaoPanel'));
@@ -58,6 +60,7 @@ const TAB_PREFETCH = {
   socios: () => import('./components/SociosDashboard'),
   funil: () => import('./components/FunnelHealthPanel'),
   trafego: () => import('./components/TrafegoPanel'),
+  agenda: () => import('./components/AgendaPanel'),
   vendas: () => import('./components/VendasPanel'),
   parametrizacao_vendas: () => import('./components/VendasParametrizacaoPanel'),
   bot: () => import('./components/BotAdvboxPanel'),
@@ -147,6 +150,7 @@ const MOBILE_TAB_LABELS = {
   socios: 'Sócios',
   funil: 'Saúde do Funil',
   trafego: 'Tráfego',
+  agenda: 'Agenda Ana',
   asaas: 'Asaas',
   boletos: 'Boletos',
   bot: 'Bot ADVBOX',
@@ -170,6 +174,7 @@ const TAB_ICONS = {
   socios: BriefcaseIcon,
   funil: FunnelIcon,
   trafego: MegaphoneIcon,
+  agenda: BoltIcon,
   vendas: BanknotesIcon,
   parametrizacao_vendas: DocumentCheckIcon,
   bot: ChatBubbleLeftRightIcon,
@@ -1245,7 +1250,7 @@ function AppContent() {
     if (!userPerms?.tabs) return ['novo', 'contratos', 'dashboard'].includes(tab);
     return userPerms.tabs[tab];
   };
-  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
+  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'trafego', 'agenda', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
 
   // (auditoria 01/08/2026 — item 282) Setas/Home/End andam pelas abas, como manda o
   // padrao WAI-ARIA. Junto com o tabIndex movel dos botoes, o Tab passa a levar direto
@@ -1487,6 +1492,7 @@ function AppContent() {
                     mainTab === 'socios' ? 'Dashboard Socios' :
                     mainTab === 'funil' ? 'Saúde do Funil' :
                     mainTab === 'trafego' ? 'Tráfego' :
+                    mainTab === 'agenda' ? 'Agendamento Videochamada' :
                     mainTab === 'vendas' ? 'Minhas Vendas' :
                     mainTab === 'parametrizacao_vendas' ? 'Parametrizacao Vendas' :
                     mainTab === 'bot' ? 'Bot ADVBOX' :
@@ -1534,6 +1540,7 @@ function AppContent() {
               : tab === 'socios' ? 'Socios'
               : tab === 'funil' ? 'Saúde do Funil'
               : tab === 'trafego' ? 'Tráfego'
+              : tab === 'agenda' ? 'Agenda Ana'
               : tab === 'vendas' ? 'Minhas Vendas'
               : tab === 'parametrizacao_vendas' ? 'Param. Vendas'
               : tab === 'bot' ? 'Bot ADVBOX'
@@ -1691,6 +1698,8 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonAdmin />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="parametrizacao_vendas" className="flex-1 overflow-hidden bg-white page-enter"><div className="page-enter" key="tab-parametrizacao-vendas"><VendasParametrizacaoPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'trafego' && userPerms?.tabs?.trafego ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="trafego" className="flex-1 overflow-hidden page-enter"><TrafegoPanel /></TabScrollContainer></ErrorBoundary></Suspense>
+      ) : mainTab === 'agenda' && userPerms?.tabs?.agenda ? (
+        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="agenda" className="flex-1 overflow-hidden page-enter"><AgendaPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'asaas' && userPerms?.tabs?.asaas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAsaas />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="asaas" className="flex-1 overflow-hidden bg-white page-enter"><AsaasPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'boletos' && userPerms?.tabs?.boletos ? (
