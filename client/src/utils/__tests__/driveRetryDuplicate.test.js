@@ -19,6 +19,28 @@ describe('driveRetry.extractFolderId', () => {
     expect(extractFolderId('')).toBeNull();
     expect(extractFolderId(42)).toBeNull();
   });
+  // Google Drive para Desktop gera links no formato open?id=... e cola o sufixo
+  // "-drive_fs" no id (caso real: pasta da Terezinha, usuaria Maria Emanuelle).
+  it('extrai o id do formato open?id= (Drive Desktop)', () => {
+    expect(extractFolderId('https://drive.google.com/open?id=1XF5R7GzMFhqjH1CMPXkr9WVtoCEasqr'))
+      .toBe('1XF5R7GzMFhqjH1CMPXkr9WVtoCEasqr');
+  });
+  it('remove o sufixo -drive_fs do formato open?id=', () => {
+    expect(extractFolderId('https://drive.google.com/open?id=1XF5R7GzMFhqjH1CMPXkr9WVtoCEasqr-drive_fs'))
+      .toBe('1XF5R7GzMFhqjH1CMPXkr9WVtoCEasqr');
+  });
+  it('remove o sufixo -drive_fs tambem do formato folders/', () => {
+    expect(extractFolderId('https://drive.google.com/drive/folders/1AbC_xYz-drive_fs'))
+      .toBe('1AbC_xYz');
+  });
+  it('funciona com /u/0/folders/ (conta multipla)', () => {
+    expect(extractFolderId('https://drive.google.com/drive/u/0/folders/1AbC?usp=sharing'))
+      .toBe('1AbC');
+  });
+  it('funciona com folderview?id=', () => {
+    expect(extractFolderId('https://drive.google.com/folderview?id=1AbC_xYz'))
+      .toBe('1AbC_xYz');
+  });
 });
 
 describe('duplicateDetector — guardas (sem tocar o banco)', () => {

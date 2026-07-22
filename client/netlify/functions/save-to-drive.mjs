@@ -62,10 +62,15 @@ function bufferToBase64(buffer) {
   return Buffer.from(binary, 'binary').toString('base64');
 }
 
+// Aceita folders/ID, /u/0/folders/ID, open?id=ID, folderview?id=ID e remove o
+// sufixo "-drive_fs" que o Google Drive para Desktop cola no id (artefato).
+// DUPLICADO em save-to-drive-direct.mjs e src/utils/driveRetry.js — manter em sincronia.
 function extractFolderId(driveUrl) {
-  if (!driveUrl) return null;
-  const match = driveUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : null;
+  if (!driveUrl || typeof driveUrl !== 'string') return null;
+  const match = driveUrl.match(/(?:folders\/|[?&]id=)([a-zA-Z0-9_-]+)/);
+  if (!match) return null;
+  const id = match[1].replace(/-drive_fs$/, '');
+  return id || null;
 }
 
 async function splitPdfWithReport(pdfBytes, contractPages, originalTotalPages) {

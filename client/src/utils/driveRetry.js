@@ -87,13 +87,24 @@ export async function updateDriveFolder(id, url) {
 
 /**
  * Extrai o folderId de uma URL do Google Drive.
- * Formato esperado: https://drive.google.com/drive/folders/XXXXX
+ * Aceita os formatos que o Drive gera na pratica:
+ *   - https://drive.google.com/drive/folders/XXXXX
+ *   - https://drive.google.com/drive/u/0/folders/XXXXX (conta multipla)
+ *   - https://drive.google.com/open?id=XXXXX          (Google Drive para Desktop)
+ *   - https://drive.google.com/folderview?id=XXXXX
+ * e remove o sufixo "-drive_fs" que o Drive para Desktop cola no id (artefato,
+ * nunca faz parte do id real — sem isso o Apps Script devolve FOLDER_NOT_FOUND).
+ *
+ * IMPORTANTE: esta logica esta DUPLICADA em netlify/functions/save-to-drive.mjs
+ * e save-to-drive-direct.mjs. Manter as 3 copias em sincronia.
  *
  * @param {string} url
  * @returns {string|null} folderId ou null se formato invalido
  */
 export function extractFolderId(url) {
   if (!url || typeof url !== 'string') return null;
-  const m = url.match(/folders\/([a-zA-Z0-9_-]+)/);
-  return m ? m[1] : null;
+  const m = url.match(/(?:folders\/|[?&]id=)([a-zA-Z0-9_-]+)/);
+  if (!m) return null;
+  const id = m[1].replace(/-drive_fs$/, '');
+  return id || null;
 }
