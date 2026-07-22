@@ -74,3 +74,59 @@ export function resumoNegativacao(candidatos) {
     custoTodosProntos: Math.round(prontos.length * NEGATIVACAO_FEE * 100) / 100,
   };
 }
+
+// Janela (dias) em que um pagamento conta como "recuperado pela negativação".
+export const RECUPERACAO_JANELA_DIAS = 60;
+
+const paidTs = (v) => {
+  if (!v) return null;
+  // aceita 'YYYY-MM-DD' ou datetime ISO
+  const t = new Date(String(v).length <= 10 ? v + 'T12:00:00' : v).getTime();
+  return Number.isNaN(t) ? null : t;
+};
+
+/**
+ * Valor recuperado após negativação (22/07/2026) — lógica PURA.
+ *
+ * "Recuperado" = parcela paga pelo cliente dentro de JANELA dias APÓS a negativação.
+ * Para cada negativação (dunning): janela [requestDate, requestDate+60d]; some as
+ * parcelas do MESMO cliente pagas nessa janela (dedup por boleto — não conta 2×).
+ *
+ * @param {object} p
+ * @param {Array<{payment:string, requestDate?:string}>} p.dunnings negativações (Asaas)
+ * @param {Map<string,string>} p.custByPayment payment id (boleto negativado) -> customer_id
+ * @param {Array<{id:string, customer_id:string, value:number, payment_date:string}>} p.paidBoletos boletos PAGOS dos clientes negativados
+ * @param {number} [p.janelaDias]
+ * @returns {{valorRecuperado:number, boletosRecuperados:number, clientesRecuperados:number}}
+ */
+export function computeRecuperado({ dunnings, custByPayment, paidBoletos, janelaDias = RECUPERACAO_JANELA_DIAS }) {
+  const paidByCust = new Map();
+  for (const b of (paidBoletos || [])) {
+    if (!b || !b.customer_id) continue;
+    const arr = paidByCust.get(b.customer_id) || [];
+    arr.push(b); paidByCust.set(b.customer_id, arr);
+  }
+  const map = custByPayment instanceof Map ? custByPayment : new Map(Object.entries(custByPayment || {}));
+  const contados = new Set(); // ids de boleto já contados (dedup entre dunnings do mesmo cliente)
+  const clientes = new Set();
+  let valor = 0;
+  for (const d of (dunnings || [])) {
+    const cust = d && map.get(d.payment);
+    const ini = paidTs(d && d.requestDate);
+    if (!cust || ini == null) continue;
+    const fim = ini + janelaDias * 86400000;
+    for (const b of (paidByCust.get(cust) || [])) {
+      const pt = paidTs(b.payment_date);
+      if (pt == null || pt < ini || pt > fim) continue;
+      if (contados.has(b.id)) continue;
+      contados.add(b.id);
+      valor += Number(b.value) || 0;
+      clientes.add(cust);
+    }
+  }
+  return {
+    valorRecuperado: Math.round(valor * 100) / 100,
+    boletosRecuperados: contados.size,
+    clientesRecuperados: clientes.size,
+  };
+}

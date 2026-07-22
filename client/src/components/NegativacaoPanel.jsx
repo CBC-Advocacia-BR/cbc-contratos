@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { computeNegativacaoCandidates, resumoNegativacao, NEGATIVACAO_FEE } from '../utils/negativacao';
+import { computeNegativacaoCandidates, resumoNegativacao, NEGATIVACAO_FEE, computeRecuperado, RECUPERACAO_JANELA_DIAS } from '../utils/negativacao';
 
 // Negativação Serasa (22/07/2026) — Mockup B: sub-aba "console" da aba Boletos.
 // Candidatos +90 dias, KPIs (incl. custo R$ 9,90/negativação), e acompanhamento das
@@ -39,11 +39,18 @@ function Badge({ cls, children }) {
   return <span className="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full whitespace-nowrap" style={badgeStyle[cls] || badgeStyle.grey}>{children}</span>;
 }
 
-function Kpi({ value, label, accent }) {
+function Kpi({ value, label, accent, sub, highlight }) {
+  const cor = accent || 'var(--cbc-navy,#1B3A5C)';
   return (
-    <div className="rounded-xl p-4 bg-white border" style={{ borderColor: accent ? 'var(--cbc-danger,#B91C1C)' : 'var(--cbc-border,#E2E8F0)' }}>
-      <div className="text-[22px] font-black leading-none" style={{ color: accent || 'var(--cbc-navy,#1B3A5C)' }}>{value}</div>
+    <div className="rounded-xl p-4 border" style={{
+      borderColor: accent ? cor : 'var(--cbc-border,#E2E8F0)',
+      background: highlight
+        ? 'linear-gradient(160deg, rgba(21,128,61,.07), rgba(255,255,255,0) 60%), var(--cbc-bg-card,#fff)'
+        : 'var(--cbc-bg-card,#fff)',
+    }}>
+      <div className="text-[22px] font-black leading-none" style={{ color: cor }}>{value}</div>
       <div className="text-[10px] font-bold uppercase tracking-wide mt-1.5" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>{label}</div>
+      {sub && <div className="text-[10px] mt-0.5 leading-tight" style={{ color: 'var(--cbc-text-secondary,#4A5568)' }}>{sub}</div>}
     </div>
   );
 }
@@ -58,6 +65,8 @@ export default function NegativacaoPanel({ userEmail = '' }) {
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState(null);            // resumo do último disparo
   const [dunNames, setDunNames] = useState(() => new Map()); // paymentId -> nome (negativados)
+  const [custByPayment, setCustByPayment] = useState(() => new Map()); // paymentId -> customer_id
+  const [paidBoletos, setPaidBoletos] = useState([]);    // boletos pagos dos clientes negativados
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -82,10 +91,22 @@ export default function NegativacaoPanel({ userEmail = '' }) {
       const payIds = [...new Set(duns.map((d) => d.payment).filter(Boolean))];
       if (payIds.length) {
         const { data: dn } = await supabase.from('asaas_boletos')
-          .select('id, customer_name').in('id', payIds);
-        const m = new Map();
-        for (const b of (dn || [])) if (b.id) m.set(b.id, b.customer_name);
-        setDunNames(m);
+          .select('id, customer_name, customer_id').in('id', payIds);
+        const nomes = new Map(); const custMap = new Map(); const custIds = new Set();
+        for (const b of (dn || [])) {
+          if (b.id) { nomes.set(b.id, b.customer_name); if (b.customer_id) { custMap.set(b.id, b.customer_id); custIds.add(b.customer_id); } }
+        }
+        setDunNames(nomes); setCustByPayment(custMap);
+        // (22/07) valor recuperado: parcelas PAGAS dos clientes negativados (a janela
+        // de 60d pós-negativação é aplicada na lógica pura computeRecuperado).
+        if (custIds.size) {
+          const { data: pg } = await supabase.from('asaas_boletos')
+            .select('id, customer_id, value, payment_date, status')
+            .in('customer_id', [...custIds])
+            .in('status', ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED'])
+            .not('payment_date', 'is', null);
+          setPaidBoletos(pg || []);
+        }
       }
     } finally { setLoading(false); }
   }, []);
@@ -96,6 +117,9 @@ export default function NegativacaoPanel({ userEmail = '' }) {
     () => computeNegativacaoCandidates({ boletos }),
     [boletos]);
   const resumo = useMemo(() => resumoNegativacao(candidatos), [candidatos]);
+  const recuperado = useMemo(
+    () => computeRecuperado({ dunnings, custByPayment, paidBoletos }),
+    [dunnings, custByPayment, paidBoletos]);
 
   // negativações já feitas por paymentId (evita re-oferecer quem já está negativado)
   const negatByPayment = useMemo(() => {
@@ -157,12 +181,20 @@ export default function NegativacaoPanel({ userEmail = '' }) {
 
   return (
     <div className="flex-1 overflow-y-auto min-h-0 p-4" style={{ background: 'var(--cbc-bg,#F0F4F8)' }}>
-      {/* KPIs */}
+      {/* KPIs — "Total em aberto" (dívida) ao lado de "Valor recuperado" (o que voltou) */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
         <Kpi value={resumo.total} label="Candidatos +90 dias" accent="var(--cbc-danger,#B91C1C)" />
         <Kpi value={fmt(resumo.totalEmAberto)} label="Total em aberto" accent="var(--cbc-danger,#B91C1C)" />
+        <Kpi
+          value={<span>↑ {fmt(recuperado.valorRecuperado)}</span>}
+          label="Valor recuperado"
+          accent="var(--cbc-success,#15803D)"
+          highlight
+          sub={recuperado.boletosRecuperados > 0
+            ? `${recuperado.boletosRecuperados} parcela(s) · ${recuperado.clientesRecuperados} cliente(s) · até ${RECUPERACAO_JANELA_DIAS} dias`
+            : `pagas até ${RECUPERACAO_JANELA_DIAS} dias após negativar`}
+        />
         <Kpi value={dunAtivas} label="Negativações ativas" />
-        <Kpi value={dunRecup} label="Pagamentos recuperados" accent="var(--cbc-success,#15803D)" />
         <Kpi value={fmt(resumo.custoTodosProntos)} label={`Custo p/ os ${resumo.prontos} · R$ 9,90 c/u`} />
       </div>
 
