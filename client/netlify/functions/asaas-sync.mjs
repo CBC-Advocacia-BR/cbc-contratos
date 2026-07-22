@@ -31,6 +31,9 @@ async function logError(source, message, context = {}) {
 
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
 
+// (negativacao 22/07) normaliza string p/ o corpo da negativacao: trim; vazio -> ''.
+const normStr = (v) => String(v ?? '').trim();
+
 async function asaasGet(path) {
   const resp = await fetch(`${ASAAS_URL}${path}`, { headers: HEADERS });
   return resp.json();
@@ -350,6 +353,67 @@ export default async (req) => {
         const payment = await asaasPost('/payments', body);
         const inv = await scheduleInvoice(payment.id, payload.customerName || 'Cliente');
         return new Response(JSON.stringify({ success: true, payment, invoice: inv }), { headers: CORS });
+      }
+
+      // (negativacao Serasa 22/07/2026) lista as negativacoes existentes (read-only).
+      // A UI cruza `payment` -> nome do cliente pelo espelho asaas_boletos.
+      case 'list-dunnings': {
+        const result = await asaasGet('/paymentDunnings?limit=100');
+        return new Response(JSON.stringify({ success: true, dunnings: result.data || [], total: result.totalCount || 0 }), { headers: CORS });
+      }
+
+      // (negativacao Serasa 22/07/2026) cria uma negativacao (CREDIT_BUREAU) de UMA
+      // cobranca vencida. Busca o cadastro COMPLETO do cliente no Asaas (tem numero e
+      // bairro, que o espelho nao guarda) e valida os campos exigidos pelo Serasa ANTES
+      // de disparar. Acao sensivel (mexe no score + tarifa R$9,90): auditada em activity_log.
+      // Body: { paymentId, customerId, description?, userEmail? }
+      case 'create-dunning': {
+        if (!payload.paymentId || !payload.customerId) {
+          return new Response(JSON.stringify({ error: 'paymentId e customerId obrigatorios' }), { status: 400, headers: CORS });
+        }
+        const cust = await asaasGet(`/customers/${payload.customerId}`);
+        if (!cust || !cust.id) return new Response(JSON.stringify({ error: 'Cliente nao encontrado no Asaas' }), { status: 400, headers: CORS });
+
+        const dun = {
+          name: normStr(cust.name),
+          cpfCnpj: (cust.cpfCnpj || '').replace(/\D/g, ''),
+          phone: (cust.mobilePhone || cust.phone || '').replace(/\D/g, ''),
+          postalCode: (cust.postalCode || '').replace(/\D/g, ''),
+          address: normStr(cust.address),
+          addressNumber: normStr(cust.addressNumber),
+          province: normStr(cust.province),
+        };
+        // Campos exigidos pelo Serasa — se faltar algum, NAO dispara: devolve a lista.
+        const faltando = Object.entries({
+          nome: dun.name, CPF: dun.cpfCnpj, telefone: dun.phone, CEP: dun.postalCode,
+          endereco: dun.address, numero: dun.addressNumber, bairro: dun.province,
+        }).filter(([, v]) => !v || String(v).trim() === '').map(([k]) => k);
+        if (faltando.length) {
+          return new Response(JSON.stringify({ success: false, missingFields: faltando, customer: { id: cust.id, name: cust.name } }), { headers: CORS });
+        }
+
+        const body = {
+          payment: payload.paymentId,
+          type: 'CREDIT_BUREAU',
+          description: payload.description || undefined,
+          customerName: dun.name,
+          customerCpfCnpj: dun.cpfCnpj,
+          customerPrimaryPhone: dun.phone,
+          customerPostalCode: dun.postalCode,
+          customerAddress: dun.address,
+          customerAddressNumber: dun.addressNumber,
+          customerProvince: dun.province,
+        };
+        const dunning = await asaasPost('/paymentDunnings', body);
+        // Auditoria (best-effort — nao derruba a negativacao ja criada no Asaas).
+        try {
+          await supabase.from('activity_log').insert({
+            action: 'asaas_negativacao',
+            user_email: payload.userEmail || 'sistema',
+            details: { paymentId: payload.paymentId, customerId: cust.id, customerName: cust.name, dunningId: dunning.id, feeValue: dunning.feeValue },
+          });
+        } catch { /* log best-effort */ }
+        return new Response(JSON.stringify({ success: true, dunning }), { headers: CORS });
       }
 
       default:

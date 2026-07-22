@@ -7,6 +7,7 @@ import RelatorioBoletosModal from './RelatorioBoletosModal';
 import InadimplenciaStrip from './InadimplenciaStrip';
 import CobrancaPanel from './CobrancaPanel';
 import CobrancaHistorico from './CobrancaHistorico';
+import NegativacaoPanel from './NegativacaoPanel';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
 import { isPaidStatus, isNeutralStatus, isRemovedStatus } from '../lib/statusTokens';
 import StatusPill from './ui/StatusPill';
@@ -809,7 +810,7 @@ export default function BoletosPanel({ userEmail = '' }) {
   const [previewBoleto, setPreviewBoleto] = useState(null);
   const [notesCustomer, setNotesCustomer] = useState(null);
   // sub-aba ativa; lembra a ultima usada (localStorage). 'cobranca' = combinado · 'historico' · 'lista'
-  const [view, setView] = useState(() => { try { const v = localStorage.getItem('cbc_boletos_subtab'); return ['cobranca', 'historico', 'lista'].includes(v) ? v : 'cobranca'; } catch { return 'cobranca'; } });
+  const [view, setView] = useState(() => { try { const v = localStorage.getItem('cbc_boletos_subtab'); return ['cobranca', 'historico', 'lista', 'negativacao'].includes(v) ? v : 'cobranca'; } catch { return 'cobranca'; } });
   useEffect(() => { try { localStorage.setItem('cbc_boletos_subtab', view); } catch { /* ignore */ } }, [view]);
   const [Toast, showToast] = useToast();
 
@@ -1201,7 +1202,7 @@ export default function BoletosPanel({ userEmail = '' }) {
 
       {/* Sub-abas: Boletos | Cobranca de inadimplentes */}
       <div className="flex gap-1 px-4 pt-3 bg-white border-b" role="tablist" aria-label="Visão de boletos">
-        {[['cobranca', 'Cobrança'], ['historico', 'Histórico de Cobrança'], ['lista', 'Todos boletos']].map(([k, l]) => (
+        {[['cobranca', 'Cobrança'], ['historico', 'Histórico de Cobrança'], ['lista', 'Todos boletos'], ['negativacao', 'Negativação · Serasa']].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
             className="px-4 py-2 text-[12px] font-bold uppercase tracking-wide rounded-t-lg cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cbc-navy)]/40"
             style={{
@@ -1215,6 +1216,7 @@ export default function BoletosPanel({ userEmail = '' }) {
       <div className="px-4 py-1.5 bg-white border-b text-[11.5px]" style={{ color: 'var(--cbc-text-secondary)' }}>
         {view === 'cobranca' ? 'Cobrar inadimplentes pelo WhatsApp (Kommo) e acompanhar os boletos em aberto.'
           : view === 'historico' ? 'O que já foi disparado: quem enviou, para quais clientes e o que o Kommo entregou e converteu.'
+          : view === 'negativacao' ? 'Negativar no Serasa (via Asaas) quem está sem pagar há mais de 90 dias. Custo R$ 9,90 por negativação.'
           : 'Toda a carteira de boletos — pendentes, vencidos e pagos — com detalhe por cliente.'}
       </div>
 
@@ -1222,6 +1224,8 @@ export default function BoletosPanel({ userEmail = '' }) {
         <CobrancaPanel userEmail={userEmail} onVerHistorico={() => setView('historico')} />
       ) : view === 'historico' ? (
         <CobrancaHistorico userEmail={userEmail} />
+      ) : view === 'negativacao' ? (
+        <NegativacaoPanel userEmail={userEmail} />
       ) : (
       <>
       {/* Cabecalho + lista rolam JUNTOS num unico container (fix: antes so a lista rolava
