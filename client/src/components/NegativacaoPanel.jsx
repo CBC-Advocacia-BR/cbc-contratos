@@ -57,6 +57,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
   const [running, setRunning] = useState(false);
   const [typed, setTyped] = useState('');
   const [result, setResult] = useState(null);            // resumo do último disparo
+  const [dunNames, setDunNames] = useState(() => new Map()); // paymentId -> nome (negativados)
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,7 +74,19 @@ export default function NegativacaoPanel({ userEmail = '' }) {
       }
       setBoletos(bo);
       const dr = await callAsaas('list-dunnings');
-      setDunnings(dr?.dunnings || []);
+      const duns = dr?.dunnings || [];
+      setDunnings(duns);
+      // (22/07) resolve o nome das negativações: os boletos negativados NÃO são
+      // OVERDUE (viram DUNNING_REQUESTED), então não vêm no load acima. Busco pelos
+      // payment ids das negativações p/ o painel "em andamento" mostrar quem é.
+      const payIds = [...new Set(duns.map((d) => d.payment).filter(Boolean))];
+      if (payIds.length) {
+        const { data: dn } = await supabase.from('asaas_boletos')
+          .select('id, customer_name').in('id', payIds);
+        const m = new Map();
+        for (const b of (dn || [])) if (b.id) m.set(b.id, b.customer_name);
+        setDunNames(m);
+      }
     } finally { setLoading(false); }
   }, []);
 
@@ -91,10 +104,10 @@ export default function NegativacaoPanel({ userEmail = '' }) {
     return m;
   }, [dunnings]);
   const nomePorPayment = useMemo(() => {
-    const m = new Map();
+    const m = new Map(dunNames); // nomes dos boletos negativados (não-OVERDUE)
     for (const b of boletos) if (b.id) m.set(b.id, b.customer_name);
     return m;
-  }, [boletos]);
+  }, [boletos, dunNames]);
 
   const visiveis = candidatos;
 
