@@ -66,7 +66,8 @@ export default function NegativacaoPanel({ userEmail = '' }) {
   const [result, setResult] = useState(null);            // resumo do último disparo
   const [dunNames, setDunNames] = useState(() => new Map()); // paymentId -> nome (negativados)
   const [custByPayment, setCustByPayment] = useState(() => new Map()); // paymentId -> customer_id
-  const [paidBoletos, setPaidBoletos] = useState([]);    // boletos pagos dos clientes negativados
+  const [paidBoletos, setPaidBoletos] = useState([]);    // boletos pagos dos clientes negativados (fallback)
+  const [recuperadoServer, setRecuperadoServer] = useState(null); // valor recuperado autoritativo (API Asaas)
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,6 +109,12 @@ export default function NegativacaoPanel({ userEmail = '' }) {
           setPaidBoletos(pg || []);
         }
       }
+      // valor recuperado AUTORITATIVO (API Asaas — o espelho não tem todos os boletos
+      // negativados). Não bloqueia o load: o card mostra o número do espelho e atualiza
+      // quando o backend responder.
+      callAsaas('recuperado-summary')
+        .then((rs) => { if (rs?.success) setRecuperadoServer(rs); })
+        .catch(() => { /* mantém o fallback do espelho */ });
     } finally { setLoading(false); }
   }, []);
 
@@ -117,9 +124,11 @@ export default function NegativacaoPanel({ userEmail = '' }) {
     () => computeNegativacaoCandidates({ boletos }),
     [boletos]);
   const resumo = useMemo(() => resumoNegativacao(candidatos), [candidatos]);
-  const recuperado = useMemo(
+  const recuperadoMirror = useMemo(
     () => computeRecuperado({ dunnings, custByPayment, paidBoletos }),
     [dunnings, custByPayment, paidBoletos]);
+  // prefere o número autoritativo do backend (API Asaas); espelho como fallback imediato
+  const recuperado = recuperadoServer || recuperadoMirror;
 
   // negativações já feitas por paymentId (evita re-oferecer quem já está negativado)
   const negatByPayment = useMemo(() => {

@@ -362,6 +362,52 @@ export default async (req) => {
         return new Response(JSON.stringify({ success: true, dunnings: result.data || [], total: result.totalCount || 0 }), { headers: CORS });
       }
 
+      // (negativacao 22/07/2026) VALOR RECUPERADO pós-negativação, direto da API do Asaas
+      // (o espelho local nao tem todos os boletos negativados). Recuperado = parcela PAGA
+      // do cliente ate 60 dias APOS a negativacao. Dedup por boleto. So-leitura.
+      case 'recuperado-summary': {
+        const PAID = new Set(['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED']);
+        const janela = 60 * 86400000;
+        const dl = await asaasGet('/paymentDunnings?limit=100');
+        const duns = (dl.data || []).filter((d) => d.payment && d.requestDate);
+        // resolve customer de cada negativacao (via o boleto negativado)
+        const custByPay = {};
+        const custs = new Set();
+        for (const d of duns) {
+          try { const p = await asaasGet(`/payments/${d.payment}`); if (p && p.customer) { custByPay[d.payment] = p.customer; custs.add(p.customer); } }
+          catch { /* pula */ }
+        }
+        // pagamentos pagos por cliente (paginado, cap 300/cliente)
+        const paidByCust = {};
+        for (const c of custs) {
+          const arr = [];
+          for (let off = 0; off < 300; off += 100) {
+            const r = await asaasGet(`/payments?customer=${c}&limit=100&offset=${off}`);
+            arr.push(...(r.data || []));
+            if (!r.hasMore) break;
+          }
+          paidByCust[c] = arr.filter((p) => PAID.has(p.status) && (p.paymentDate || p.clientPaymentDate));
+        }
+        // janela por negativacao; dedup por boleto
+        const contados = new Set(); const clientes = new Set(); let valor = 0;
+        const dayMs = (s) => new Date(String(s).slice(0, 10) + 'T12:00:00').getTime();
+        for (const d of duns) {
+          const c = custByPay[d.payment]; if (!c) continue;
+          const ini = dayMs(d.requestDate); const fim = ini + janela;
+          for (const p of (paidByCust[c] || [])) {
+            const pd = dayMs(p.paymentDate || p.clientPaymentDate);
+            if (pd < ini || pd > fim || contados.has(p.id)) continue;
+            contados.add(p.id); valor += Number(p.value) || 0; clientes.add(c);
+          }
+        }
+        return new Response(JSON.stringify({
+          success: true,
+          valorRecuperado: Math.round(valor * 100) / 100,
+          boletosRecuperados: contados.size,
+          clientesRecuperados: clientes.size,
+        }), { headers: CORS });
+      }
+
       // (negativacao Serasa 22/07/2026) cria uma negativacao (CREDIT_BUREAU) de UMA
       // cobranca vencida. Busca o cadastro COMPLETO do cliente no Asaas (tem numero e
       // bairro, que o espelho nao guarda) e valida os campos exigidos pelo Serasa ANTES
