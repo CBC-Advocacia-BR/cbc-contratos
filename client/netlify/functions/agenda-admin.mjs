@@ -4,9 +4,16 @@
  * Kommo/Google) e pausar/retomar o bot num lead específico.
  *
  * SEGURANCA: JWT do Supabase (Authorization: Bearer) validado via db.auth.getUser(jwt) —
- * mesmo esqueleto de meta-trafego-action.mjs. DIFERENTE de lá: aqui NÃO há trava 2 por lista
- * fixa de e-mails — quem VÊ a aba já passou pelo RBAC do front (permissão tabs.agenda); esta
- * function só confirma que existe uma sessão válida de alguém do domínio da casa.
+ * mesmo esqueleto de meta-trafego-action.mjs. Trava 2 (pos-review, item 3): NÃO é lista fixa
+ * de e-mails feito meta-trafego-action.mjs — é a permissão REAL de `user_permissions` (coluna
+ * `tabs->>'agenda'` OU `is_admin`), verificada no servidor via podeOperar() — a MESMA condição
+ * que faz a aba aparecer no front (App.jsx `tabAllowed`). O RBAC do front só esconde o botão;
+ * sem esta trava, qualquer sessão válida do domínio chamaria a function direto (curl/fetch)
+ * mesmo sem a aba liberada.
+ *
+ * `vendedora_email` no body de reagendar/cancelar/desfecho é só um HINT do front — o calendarId
+ * usado de fato é sempre `atual.vendedora_email` (a linha real, buscada via buscarAtendimento),
+ * nunca o do body (ver resolverCalendarId — pos-review itens 1/2).
  *
  * POST { acao: 'reagendar'|'cancelar'|'desfecho'|'simular'|'pausar_lead', ... }
  *  - reagendar {event_id, vendedora_email, novo_inicio}
@@ -54,6 +61,63 @@ export function amanha10hSP(agora) {
 }
 
 /**
+ * Calendar ID REAL para cancelar/reagendar/desfecho: SEMPRE `atual.vendedora_email` (a linha
+ * já buscada via buscarAtendimento/agenda_videochamadas_get), nunca o `vendedora_email` do
+ * body. Bug corrigido (pos-review, itens 1/2): se o body mandasse um e-mail diferente do dono
+ * real do evento, cancelEvent/patchEventHorario/setEventColor mexiam na agenda ERRADA — e como
+ * `cancelEvent` TOLERA 404 (evento não existe naquela agenda), o cancelamento "funcionava"
+ * silenciosamente (grava status='excluida') sem tocar o evento de verdade, que ficava
+ * esquecido na agenda do dono real. PURA: só decide qual usar e se houve divergência; quem
+ * chama loga o aviso (não bloqueia — o valor real sempre manda).
+ */
+export function resolverCalendarId(atual, vendedoraEmailBody) {
+  const real = atual?.vendedora_email || null;
+  const bodyNorm = String(vendedoraEmailBody || '').toLowerCase().trim();
+  const realNorm = String(real || '').toLowerCase().trim();
+  const divergiu = !!bodyNorm && !!realNorm && bodyNorm !== realNorm;
+  return { calendarId: real, divergiu };
+}
+
+/**
+ * Decide se o usuário pode operar a agenda: mesma condição que faz a aba aparecer no front
+ * (App.jsx `tabAllowed`) — `tabs.agenda === true` OU `is_admin === true`. Comparação via
+ * `String(...) === 'true'` (não só `=== true`) porque o equivalente em SQL seria
+ * `tabs->>'agenda' = 'true'` (extração como texto); cobre tanto o boolean jsonb normal quanto
+ * uma eventual string 'true' gravada por engano. `perms` null (usuário sem linha em
+ * `user_permissions`) = SEM permissão — nunca abre por omissão. Fix pos-review, item 3: antes
+ * a function só exigia domínio @advocaciacbc.com; qualquer sessão válida do domínio podia
+ * chamar a function direto (curl/fetch), mesmo sem a aba liberada — o RBAC do front só
+ * escondia o botão, não travava o servidor.
+ */
+export function podeOperar(perms) {
+  if (!perms) return false;
+  if (perms.is_admin === true) return true;
+  return String(perms.tabs?.agenda) === 'true';
+}
+
+/**
+ * Patch de reset ao reagendar um atendimento que já tinha desfecho marcado (no_show/realizada/
+ * fechou): volta `status` p/ 'agendada' e limpa `color_id`. Sem isso, `agenda_bot_metricas`
+ * continuaria contando um atendimento remarcado como concluído/no-show do agendamento
+ * ANTERIOR, mesmo depois de uma nova data marcada. PURA. Fix pos-review, item 4.
+ */
+export function resetDesfechoAoReagendar(statusAtual) {
+  return ['no_show', 'realizada', 'fechou'].includes(statusAtual) ? { status: 'agendada', color_id: null } : {};
+}
+
+/**
+ * Cross-check do `channel` explícito (pausar_lead) contra o `lead_id` do payload: só retorna
+ * true se o lead_id gravado no contexto do canal bate EXATAMENTE com o lead_id pedido. Fix
+ * pos-review, item 5: antes, `contextLeadId` null/ausente pulava o check inteiro (tratado como
+ * "bate") e pausava a conversa ERRADA quando o channel informado não pertencia de fato a esse
+ * lead. PURA.
+ */
+export function channelPertenceAoLead(contextLeadId, bodyLeadId) {
+  if (contextLeadId === undefined || contextLeadId === null) return false;
+  return String(contextLeadId) === String(bodyLeadId);
+}
+
+/**
  * Busca a linha ATUAL de agenda_videochamadas via RPC (agenda_videochamadas_get, Task 10 —
  * ver supabase_agenda_bot.sql). Um SELECT direto na tabela NÃO funciona: RLS habilitada e
  * zero policies (fechada de propósito por causa do PII de cliente); só passa pela chave.
@@ -86,15 +150,28 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
   if (req.method !== 'POST') return resp(405, { error: 'somente POST' });
 
-  // JWT do Supabase — esqueleto de meta-trafego-action.mjs. Sem trava 2 por lista fixa de
-  // e-mails: quem vê a aba já passou pelo RBAC (permissão tabs.agenda) no front; aqui só
-  // exigimos sessão válida de alguém do domínio da casa.
+  // JWT do Supabase — esqueleto de meta-trafego-action.mjs.
   const jwt = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!jwt) return resp(401, { error: 'sem credencial (Authorization: Bearer)' });
   const { data: userData, error: authErr } = await db.auth.getUser(jwt);
   const userEmail = (userData?.user?.email || '').toLowerCase();
   if (authErr || !userEmail || !userEmail.endsWith('@advocaciacbc.com')) {
     return resp(401, { error: 'sessao invalida — faca login de novo' });
+  }
+
+  // Trava 2 (pos-review, item 3): permissao REAL no servidor — nao so o RBAC cosmetico do
+  // front (que so esconde o botao). Le user_permissions.tabs.agenda (OU is_admin), a mesma
+  // tabela/coluna que App.jsx usa p/ decidir se mostra a aba (RLS "allow all" nessa tabela —
+  // leitura funciona com anon key ou service role key, o que `db` estiver usando).
+  const { data: perms, error: permsErr } = await db.from('user_permissions')
+    .select('tabs, is_admin').eq('email', userEmail).maybeSingle();
+  if (permsErr) {
+    await logAdvbox('agenda', 'error', `agenda-admin: falha ao checar permissao de ${userEmail}: ${permsErr.message}`, { userEmail });
+    return resp(500, { error: 'falha ao verificar permissao' });
+  }
+  if (!podeOperar(perms)) {
+    await logAdvbox('agenda', 'aviso', `agenda-admin NEGADO p/ ${userEmail} (sem tabs.agenda)`, { userEmail });
+    return resp(403, { error: 'sem permissao para operar a agenda' });
   }
 
   const body = await req.json().catch(() => ({}));
@@ -110,6 +187,14 @@ export default async (req) => {
       const atual = await buscarAtendimento(eventId);
       if (!atual) return resp(404, { error: 'atendimento nao encontrado para esse event_id' });
 
+      // Calendar ID SEMPRE o real (atual.vendedora_email) — nunca o do body (ver resolverCalendarId).
+      const { calendarId, divergiu } = resolverCalendarId(atual, vendedoraEmail);
+      if (divergiu) {
+        await logAdvbox('agenda', 'aviso',
+          `reagendar: vendedora_email do body (${vendedoraEmail}) diverge do real (${atual.vendedora_email}) — usando o real`,
+          { eventId, bodyVendedoraEmail: vendedoraEmail, real: atual.vendedora_email });
+      }
+
       const cfgAll = await getConfig();
       const cfg = cfgAll.agenda_bot || {};
       const duracaoMin = cfg.regras?.duracao_evento_min || 30;
@@ -117,8 +202,11 @@ export default async (req) => {
       const fimISO = new Date(new Date(novoInicio).getTime() + duracaoMin * 60000).toISOString();
 
       const accessToken = await getAccessToken();
-      await patchEventHorario({ calendarId: vendedoraEmail, eventId, inicioISO, fimISO, accessToken });
-      await upsertVC(linhaParaUpsert(atual, { scheduled_at: inicioISO }));
+      await patchEventHorario({ calendarId, eventId, inicioISO, fimISO, accessToken });
+      // Reset de desfecho (pos-review, item 4): reagendar uma linha ja concluida
+      // (no_show/realizada/fechou) precisa voltar p/ 'agendada' e limpar color_id, senao
+      // agenda_bot_metricas conta esse atendimento como concluido mesmo depois de remarcado.
+      await upsertVC(linhaParaUpsert(atual, { scheduled_at: inicioISO, ...resetDesfechoAoReagendar(atual.status) }));
 
       // Mensagem opcional ao lead (só se dá pra falar): reusa o MESMO template/formatação
       // de confirmação que o worker usa (agendaEngine.confirmar), nunca uma string solta.
@@ -141,7 +229,7 @@ export default async (req) => {
       }
 
       await logAdvbox('agenda', 'info', `admin ${userEmail} reagendou ${eventId} p/ ${inicioISO}`,
-        { userEmail, eventId, vendedoraEmail, leadId: atual.lead_id, mensagemEnviada });
+        { userEmail, eventId, vendedoraEmail: calendarId, leadId: atual.lead_id, mensagemEnviada });
       return resp(200, { success: true, event_id: eventId, scheduled_at: inicioISO, mensagem_enviada: mensagemEnviada });
     }
 
@@ -153,8 +241,18 @@ export default async (req) => {
       const atual = await buscarAtendimento(eventId);
       if (!atual) return resp(404, { error: 'atendimento nao encontrado para esse event_id' });
 
+      // Calendar ID SEMPRE o real (atual.vendedora_email) — nunca o do body (ver resolverCalendarId).
+      // CRITICO aqui especificamente: cancelEvent TOLERA 404 (agenda errada = evento "nao existe"
+      // ali), entao um calendarId errado gravaria status='excluida' sem cancelar o evento real.
+      const { calendarId, divergiu } = resolverCalendarId(atual, vendedoraEmail);
+      if (divergiu) {
+        await logAdvbox('agenda', 'aviso',
+          `cancelar: vendedora_email do body (${vendedoraEmail}) diverge do real (${atual.vendedora_email}) — usando o real`,
+          { eventId, bodyVendedoraEmail: vendedoraEmail, real: atual.vendedora_email });
+      }
+
       const accessToken = await getAccessToken();
-      await cancelEvent({ calendarId: vendedoraEmail, eventId, accessToken });
+      await cancelEvent({ calendarId, eventId, accessToken });
       await upsertVC(linhaParaUpsert(atual, { status: 'excluida' }));
 
       // Etapa "perdido" é OPCIONAL (cancelar nem sempre significa negócio perdido — pode ser
@@ -175,7 +273,7 @@ export default async (req) => {
       }
 
       await logAdvbox('agenda', 'info', `admin ${userEmail} cancelou ${eventId} (${motivo || 'sem motivo informado'})`,
-        { userEmail, eventId, vendedoraEmail, motivo: motivo || null, leadId: atual.lead_id, movidoPerdido });
+        { userEmail, eventId, vendedoraEmail: calendarId, motivo: motivo || null, leadId: atual.lead_id, movidoPerdido });
       return resp(200, { success: true, event_id: eventId, status: 'excluida', movido_perdido: movidoPerdido });
     }
 
@@ -186,13 +284,26 @@ export default async (req) => {
       const colorId = STATUS_TO_COR[status];
       if (!colorId) return resp(400, { error: 'status invalido (realizada|no_show|fechou)' });
 
+      // Checagem de existencia (pos-review, item 2): antes ia direto ao setEventColor sem
+      // validar que o event_id e um atendimento rastreado — mesma RPC das outras acoes.
+      const atual = await buscarAtendimento(eventId);
+      if (!atual) return resp(404, { error: 'atendimento nao encontrado para esse event_id' });
+
+      // Calendar ID SEMPRE o real (atual.vendedora_email) — nunca o do body (ver resolverCalendarId).
+      const { calendarId, divergiu } = resolverCalendarId(atual, vendedoraEmail);
+      if (divergiu) {
+        await logAdvbox('agenda', 'aviso',
+          `desfecho: vendedora_email do body (${vendedoraEmail}) diverge do real (${atual.vendedora_email}) — usando o real`,
+          { eventId, bodyVendedoraEmail: vendedoraEmail, real: atual.vendedora_email });
+      }
+
       // Só a cor do evento — o sync de calendário (a cada 45min) espelha cor->status na
       // linha; não precisamos (nem devemos) mexer em agenda_videochamadas aqui.
       const accessToken = await getAccessToken();
-      await setEventColor({ calendarId: vendedoraEmail, eventId, colorId, accessToken });
+      await setEventColor({ calendarId, eventId, colorId, accessToken });
 
       await logAdvbox('agenda', 'info', `admin ${userEmail} marcou desfecho ${eventId} = ${status}`,
-        { userEmail, eventId, vendedoraEmail, status, colorId });
+        { userEmail, eventId, vendedoraEmail: calendarId, status, colorId });
       return resp(200, { success: true, event_id: eventId, status, color_id: colorId });
     }
 
@@ -225,9 +336,14 @@ export default async (req) => {
       let channel = body.channel || null;
       let row = null;
       if (channel) {
-        row = await getConversation(channel);
-        if (row && row.context?.lead_id != null && String(row.context.lead_id) !== String(body.lead_id)) {
-          return resp(400, { error: 'channel informado nao pertence a esse lead_id' });
+        // Cross-check OBRIGATORIO (pos-review, item 5): channel explicito so serve se o
+        // lead_id gravado no contexto bate EXATAMENTE com o lead_id do payload. Antes,
+        // context.lead_id null/ausente pulava o check (tratado como "bate") e pausava a
+        // conversa ERRADA quando o channel nao correspondia de fato a esse lead — agora cai
+        // no 404 comum abaixo, igual a qualquer outro "nao encontrei".
+        const candidata = await getConversation(channel);
+        if (candidata && channelPertenceAoLead(candidata.context?.lead_id, body.lead_id)) {
+          row = candidata;
         }
       } else {
         // Não temos o telefone, só o lead_id — busca por context->>lead_id (gravado por
