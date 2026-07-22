@@ -1,0 +1,20 @@
+-- =============================================================================
+-- MIGRACAO: cadastro_sync_autofeed_v1b + cliente_linha_caso_rpc (21/07/2026)
+-- Aplicada em producao via MCP apply_migration. Este arquivo e o registro versionado.
+--
+-- PARTE 1 — Alimentacao automatica do cadastro unico (etapas 1-3, zero tokens):
+--   core.cadastro_genero_aplicar()    genero derivado do 1o nome p/ NULLs (proveniencia 'derivado')
+--   core.cadastro_resort_normalizar() resort_alias contiguo + needs_review p/ nao-canonicos
+--   core.dedup_clientes_nome()        fusao lossless por nome (tier seguro: <=1 CPF + contato compartilhado)
+--   core.cadastro_sync_diario()       ganhou os 3 passos guardados (pg_cron 08h/20h BRT)
+--
+-- PARTE 2 — RPC public.cliente_linha_caso(p_uid) p/ a ficha Linha do Caso:
+--   processos+marcos (bi_processos), etapa atual+permanencia (vw_bi_funil_etapas),
+--   mudancas (bi_processos_log), andamentos (vw_bi_andamentos, 8 ultimos + total),
+--   tarefas visiveis (vw_bi_tarefas + snapshot de abertas), kommo_leads (c/ tel_diverge),
+--   portal (acessos), NFs por CPF, MLEs (prest_mles por nome/cpf), contrato_app (origem/
+--   zapsign/vendido_por). SECURITY DEFINER, grant so authenticated.
+--
+-- Codigo integral das funcoes: ver migrations `cadastro_sync_autofeed_v1b` e
+-- `cliente_linha_caso_rpc` no Supabase (supabase/migrations via dashboard) — fonte da verdade.
+-- =============================================================================

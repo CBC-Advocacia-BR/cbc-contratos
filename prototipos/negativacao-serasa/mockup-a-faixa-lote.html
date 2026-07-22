@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup A — Faixa de alerta + Negativação em lote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cbc-navy:#1B3A5C; --cbc-navy-dark:#0F2035; --cbc-navy-light:#264A72;
+    --cbc-gold:#C9A84C; --cbc-gold-dark:#B8860B; --cbc-cream:#F0F4F8;
+    --cbc-danger:#B91C1C; --cbc-success:#15803D; --cbc-warning:#D97706; --cbc-info:#1D4ED8;
+    --cbc-border:#E2E8F0; --cbc-text-primary:#1B3A5C; --cbc-text-secondary:#4A5568; --cbc-text-muted:#5E6675;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,sans-serif;background:var(--cbc-cream);color:var(--cbc-text-primary);padding:0 0 60px;-webkit-font-smoothing:antialiased}
+  .mock-banner{background:repeating-linear-gradient(45deg,#1B3A5C,#1B3A5C 14px,#264A72 14px,#264A72 28px);color:#fff;text-align:center;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px}
+  .app{max-width:1180px;margin:0 auto;padding:0 24px}
+  /* app chrome */
+  .topbar{background:var(--cbc-navy);border-radius:0 0 16px 16px;padding:14px 22px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 18px rgba(15,32,53,.18)}
+  .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:26px;color:#fff;letter-spacing:.02em}
+  .logo b{color:var(--cbc-gold)}
+  .tabs{display:flex;gap:2px;margin-left:auto}
+  .tab{color:#cdd8e6;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 14px;border-radius:8px}
+  .tab.active{background:rgba(255,255,255,.12);color:#fff}
+  h1.section{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;margin:26px 0 4px}
+  .sub{color:var(--cbc-text-secondary);font-size:13px;margin-bottom:18px}
+  /* subtabs boletos */
+  .subtabs{display:flex;gap:8px;margin:18px 0 10px}
+  .subtab{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:8px 14px;border-radius:9px;color:#fff;cursor:pointer}
+
+  /* THE ALERT STRIP — protagonista */
+  .neg-strip{position:relative;overflow:hidden;background:linear-gradient(120deg,#7f1010,#B91C1C 60%,#a01616);border-radius:16px;padding:20px 22px;margin:20px 0 8px;color:#fff;box-shadow:0 10px 30px rgba(185,28,28,.28)}
+  .neg-strip::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.06)}
+  .neg-strip .row{display:flex;align-items:center;gap:22px;position:relative;z-index:1;flex-wrap:wrap}
+  .neg-ico{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+  .neg-nums{display:flex;gap:28px;flex-wrap:wrap}
+  .neg-num b{display:block;font-size:26px;font-weight:900;line-height:1}
+  .neg-num span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.82}
+  .neg-cta{margin-left:auto;display:flex;gap:10px;align-items:center}
+  .btn{border:none;cursor:pointer;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;border-radius:11px;padding:13px 20px;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+  .btn-white{background:#fff;color:var(--cbc-danger)}
+  .btn-white:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(0,0,0,.2)}
+  .btn-ghost{background:rgba(255,255,255,.14);color:#fff}
+  .strip-foot{position:relative;z-index:1;margin-top:14px;font-size:12px;opacity:.9;display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.18);padding-top:12px}
+  .strip-foot b{font-weight:800}
+
+  /* results context below (the normal boletos content, dimmed to show it stays) */
+  .ctx{margin-top:22px;background:#fff;border:1px solid var(--cbc-border);border-radius:14px;padding:18px;opacity:.55}
+  .ctx h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--cbc-text-muted);margin-bottom:12px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .kpi{background:var(--cbc-cream);border-radius:10px;padding:12px}
+  .kpi b{display:block;font-size:20px;font-weight:900}
+  .kpi span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cbc-text-muted)}
+
+  /* PANEL (overlay) — batch negativação */
+  .overlay{position:fixed;inset:0;background:rgba(15,32,53,.55);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;z-index:50;overflow:auto}
+  .panel{background:#fff;border-radius:18px;width:100%;max-width:860px;box-shadow:0 30px 80px rgba(0,0,0,.35);overflow:hidden}
+  .panel-head{background:var(--cbc-navy);color:#fff;padding:18px 22px;display:flex;align-items:center;gap:14px}
+  .panel-head .t{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700}
+  .panel-head .x{margin-left:auto;font-size:22px;opacity:.7;cursor:pointer}
+  .panel-body{padding:20px 22px;max-height:56vh;overflow:auto}
+  .selbar{display:flex;align-items:center;gap:14px;background:var(--cbc-cream);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--cbc-text-secondary)}
+  .selbar .pill{margin-left:auto;background:var(--cbc-navy);color:#fff;border-radius:20px;padding:5px 12px;font-size:11px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cbc-text-muted);padding:8px 8px;border-bottom:2px solid var(--cbc-border)}
+  tbody td{padding:10px 8px;border-bottom:1px solid #eef2f6}
+  tbody tr:hover{background:#fafcfe}
+  .cli{font-weight:700}
+  .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 8px;border-radius:20px}
+  .b-red{background:#fdecec;color:var(--cbc-danger)}
+  .b-amb{background:#fef3e2;color:var(--cbc-warning)}
+  .b-ok{background:#e7f6ec;color:var(--cbc-success)}
+  .b-grey{background:#eef1f4;color:var(--cbc-text-muted)}
+  .chk{width:17px;height:17px;accent-color:var(--cbc-danger)}
+  .val{font-weight:800;font-variant-numeric:tabular-nums}
+  .panel-foot{border-top:1px solid var(--cbc-border);padding:16px 22px;display:flex;align-items:center;gap:16px;background:#fbfcfe}
+  .foot-sum{font-size:12px;color:var(--cbc-text-secondary)}
+  .foot-sum b{color:var(--cbc-text-primary);font-size:15px}
+  .btn-danger{background:var(--cbc-danger);color:#fff;margin-left:auto}
+  .btn-danger:hover{background:#9c1616}
+  .btn-outline{background:#fff;border:1.5px solid var(--cbc-border);color:var(--cbc-text-secondary)}
+  .note{font-size:11px;color:var(--cbc-text-muted);margin-top:10px;line-height:1.5}
+  .legend{display:flex;gap:16px;font-size:11px;color:var(--cbc-text-muted);margin:14px 2px 2px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="mock-banner">Mockup A · Faixa de alerta + Negativação em lote — não é o sistema real</div>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">CBC<b>·</b>Contratos</div>
+    <div class="tabs">
+      <div class="tab">Dashboard</div><div class="tab">Asaas</div>
+      <div class="tab active">Boletos</div><div class="tab">Monitor</div>
+    </div>
+  </div>
+
+  <h1 class="section">Boletos</h1>
+  <div class="sub">Toda a carteira de boletos — pendentes, vencidos e pagos — com detalhe por cliente.</div>
+  <div class="subtabs">
+    <div class="subtab" style="background:var(--cbc-navy)">Boletos</div>
+    <div class="subtab" style="background:#9aa6b5">Cobrança de inadimplentes</div>
+  </div>
+
+  <!-- PROTAGONISTA: faixa aparece automaticamente quando há 90d+ -->
+  <div class="neg-strip">
+    <div class="row">
+      <div class="neg-ico">⚖️</div>
+      <div class="neg-nums">
+        <div class="neg-num"><b>30</b><span>clientes +90 dias</span></div>
+        <div class="neg-num"><b>R$&nbsp;49.659</b><span>em aberto</span></div>
+        <div class="neg-num"><b>374</b><span>maior atraso (dias)</span></div>
+        <div class="neg-num"><b>28</b><span>prontos p/ negativar</span></div>
+      </div>
+      <div class="neg-cta">
+        <button class="btn btn-ghost">Ver detalhes</button>
+        <button class="btn btn-white">⚡ Negativar no Serasa</button>
+      </div>
+    </div>
+    <div class="strip-foot">
+      <span>💡 A negativação é enviada ao Serasa a partir do 5º dia de atraso · o Serasa notifica o cliente por carta (prazo de 10 dias p/ pagar).</span>
+      <span>Histórico: <b>5 pagamentos já recuperados</b> · 9 ativas · 18 canceladas.</span>
+    </div>
+  </div>
+
+  <!-- contexto: o resto da aba segue igual, só ilustrado -->
+  <div class="ctx">
+    <h3>A carteira normal continua abaixo (inalterada)</h3>
+    <div class="kpis">
+      <div class="kpi"><b>212</b><span>Boletos pendentes</span></div>
+      <div class="kpi" style="color:var(--cbc-danger)"><b>80</b><span>Boletos vencidos</span></div>
+      <div class="kpi" style="color:var(--cbc-success)"><b>1.148</b><span>Pagos</span></div>
+      <div class="kpi"><b>6,4%</b><span>Inadimplência</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY: painel de seleção em lote (estado "aberto") -->
+<div class="overlay">
+  <div class="panel">
+    <div class="panel-head">
+      <span style="font-size:24px">⚖️</span>
+      <div class="t">Negativar inadimplentes no Serasa</div>
+      <div class="x">✕</div>
+    </div>
+    <div class="panel-body">
+      <div class="selbar">
+        <input type="checkbox" class="chk" checked> <span>Selecionar todos os prontos</span>
+        <span class="pill">28 de 30 selecionados</span>
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:34px"></th><th>Cliente</th><th>Atraso</th><th>Parcelas</th><th>Em aberto</th><th>Situação</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Juliana F. da S. Santiago</td><td><span class="badge b-red">374 dias</span></td><td>1</td><td class="val">R$ 759</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Gilney R.</td><td><span class="badge b-red">367 dias</span></td><td>7</td><td class="val">R$ 2.100</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Mauro César de S.</td><td><span class="badge b-red">336 dias</span></td><td>11</td><td class="val">R$ 3.300</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Vera Lúcia B. da S.</td><td><span class="badge b-red">336 dias</span></td><td>10</td><td class="val">R$ 3.000</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Walter C. P.</td><td><span class="badge b-amb">275 dias</span></td><td>10</td><td class="val">R$ 3.000</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr style="opacity:.55"><td><input type="checkbox" class="chk"></td><td class="cli">Kleyton A. L.</td><td><span class="badge b-amb">214 dias</span></td><td>7</td><td class="val">R$ 2.100</td><td><span class="badge b-grey">Falta CEP/endereço</span></td></tr>
+          <tr><td><input type="checkbox" class="chk" checked></td><td class="cli">Elizabeth G. F. de O.</td><td><span class="badge b-amb">214 dias</span></td><td>7</td><td class="val">R$ 2.100</td><td><span class="badge b-ok">Pronto</span></td></tr>
+          <tr style="opacity:.55"><td><input type="checkbox" class="chk"></td><td class="cli">Janaína G. C. S.</td><td><span class="badge b-amb">183 dias</span></td><td>6</td><td class="val">R$ 1.800</td><td><span class="badge b-grey">Falta telefone</span></td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--cbc-text-muted);font-size:12px;padding:14px">＋ mais 22 clientes…</td></tr>
+        </tbody>
+      </table>
+      <div class="legend">
+        <span>🟢 Pronto = temos telefone + endereço + CEP (exigidos pelo Serasa)</span>
+        <span>⚪ Falta dado = corrigir no cadastro antes de negativar</span>
+      </div>
+      <div class="note">Nenhum documento é necessário — para o Serasa, o boleto vencido já comprova a relação. A tarifa da negativação é debitada do saldo Asaas.</div>
+    </div>
+    <div class="panel-foot">
+      <div class="foot-sum">Vai negativar <b>28 clientes</b> · R$ 46.359 em aberto<br><span style="font-size:11px;color:var(--cbc-text-muted)">Saldo Asaas: R$ 138.276,85 (suficiente p/ as tarifas)</span></div>
+      <button class="btn btn-outline">Cancelar</button>
+      <button class="btn btn-danger">⚡ Confirmar negativação (28)</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

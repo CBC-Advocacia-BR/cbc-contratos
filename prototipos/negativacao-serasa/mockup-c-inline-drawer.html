@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup C — Ação inline por cliente + drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cbc-navy:#1B3A5C; --cbc-navy-dark:#0F2035; --cbc-navy-light:#264A72;
+    --cbc-gold:#C9A84C; --cbc-gold-dark:#B8860B; --cbc-cream:#F0F4F8;
+    --cbc-danger:#B91C1C; --cbc-success:#15803D; --cbc-warning:#D97706; --cbc-info:#1D4ED8;
+    --cbc-border:#E2E8F0; --cbc-text-primary:#1B3A5C; --cbc-text-secondary:#4A5568; --cbc-text-muted:#5E6675;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,sans-serif;background:var(--cbc-cream);color:var(--cbc-text-primary);padding:0 0 60px;-webkit-font-smoothing:antialiased}
+  .mock-banner{background:repeating-linear-gradient(45deg,#1B3A5C,#1B3A5C 14px,#264A72 14px,#264A72 28px);color:#fff;text-align:center;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px}
+  .app{max-width:1180px;margin:0 auto;padding:0 24px}
+  .topbar{background:var(--cbc-navy);border-radius:0 0 16px 16px;padding:14px 22px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 18px rgba(15,32,53,.18)}
+  .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:26px;color:#fff}
+  .logo b{color:var(--cbc-gold)}
+  .tabs{display:flex;gap:2px;margin-left:auto}
+  .tab{color:#cdd8e6;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 14px;border-radius:8px}
+  .tab.active{background:rgba(255,255,255,.12);color:#fff}
+  h1.section{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;margin:26px 0 4px}
+  .sub{color:var(--cbc-text-secondary);font-size:13px;margin-bottom:14px}
+  .subtabs{display:flex;gap:8px;margin:16px 0 18px}
+  .subtab{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:9px 15px;border-radius:9px;color:#fff;cursor:pointer}
+
+  .hint{display:flex;gap:11px;align-items:flex-start;background:#eef3fb;border:1px solid #d6e2f5;border-radius:11px;padding:12px 15px;font-size:12px;color:var(--cbc-text-secondary);margin-bottom:16px;line-height:1.55}
+  .hint .hi{flex-shrink:0;font-size:15px;line-height:1.3}
+  .hint b{color:var(--cbc-text-primary)}
+
+  /* client cards (estilo da aba Cobrança) */
+  .card{background:#fff;border:1px solid var(--cbc-border);border-radius:14px;padding:16px 18px;margin-bottom:12px;display:flex;align-items:center;gap:16px}
+  .card.crit{border-color:#f2c6c6}
+  .avatar{width:44px;height:44px;border-radius:12px;background:var(--cbc-navy);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+  .info{min-width:0}
+  .info .name{font-weight:800;font-size:15px}
+  .info .meta{font-size:12px;color:var(--cbc-text-muted);margin-top:2px}
+  .stat{text-align:center;padding:0 6px}
+  .stat b{display:block;font-size:16px;font-weight:900;font-variant-numeric:tabular-nums}
+  .stat span{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--cbc-text-muted)}
+  .grow{flex:1}
+  .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:4px 10px;border-radius:20px;white-space:nowrap}
+  .b-red{background:#fdecec;color:var(--cbc-danger)}
+  .b-amb{background:#fef3e2;color:var(--cbc-warning)}
+  .b-grn{background:#e7f6ec;color:var(--cbc-success)}
+  .actions{display:flex;gap:8px;align-items:center}
+  .btn{border:none;cursor:pointer;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-radius:9px;padding:9px 13px;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .btn-wa{background:#e7f6ec;color:var(--cbc-success)}
+  .btn-neg{background:var(--cbc-danger);color:#fff}
+  .btn-neg:hover{background:#9c1616}
+  /* botão só aparece nos 90d+ — nos outros mostra o gatilho bloqueado */
+  .btn-locked{background:#f5f7f9;color:#9aa6b5;cursor:default;font-size:10px}
+  .tag90{display:inline-flex;align-items:center;gap:5px;background:#7f1010;color:#fff;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:6px;margin-left:8px}
+
+  /* DRAWER lateral */
+  .scrim{position:fixed;inset:0;background:rgba(15,32,53,.5);backdrop-filter:blur(3px);z-index:40}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:430px;max-width:94vw;background:#fff;z-index:50;box-shadow:-16px 0 50px rgba(0,0,0,.3);display:flex;flex-direction:column;animation:slide .25s ease}
+  @keyframes slide{from{transform:translateX(40px);opacity:.5}to{transform:none;opacity:1}}
+  .dh{background:var(--cbc-danger);color:#fff;padding:20px 22px}
+  .dh .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.85}
+  .dh .n{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:700;margin-top:2px}
+  .dh .x{position:absolute;top:18px;right:20px;font-size:20px;opacity:.8;cursor:pointer}
+  .db{padding:20px 22px;overflow:auto;flex:1}
+  .sec{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--cbc-text-muted);font-weight:800;margin:18px 0 8px}
+  .sec:first-child{margin-top:0}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid #eef2f6}
+  .kv b{font-weight:800}
+  .chargebox{background:var(--cbc-cream);border-radius:11px;padding:13px 15px;font-size:13px}
+  .chargebox .big{font-size:22px;font-weight:900;color:var(--cbc-danger)}
+  .addr{background:#fafcfe;border:1px solid var(--cbc-border);border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.6;color:var(--cbc-text-secondary)}
+  .addr .ok{color:var(--cbc-success);font-weight:800}
+  /* timeline serasa */
+  .tl{position:relative;padding-left:22px;margin-top:6px}
+  .tl::before{content:"";position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--cbc-border)}
+  .tl-i{position:relative;font-size:12px;padding:5px 0 5px 4px;color:var(--cbc-text-secondary)}
+  .tl-i::before{content:"";position:absolute;left:-19px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--cbc-danger)}
+  .tl-i b{color:var(--cbc-text-primary)}
+  .df{padding:16px 22px;border-top:1px solid var(--cbc-border);background:#fbfcfe}
+  .df .btn-neg{width:100%;justify-content:center;padding:14px}
+  .fee{font-size:11px;color:var(--cbc-text-muted);text-align:center;margin-top:9px}
+</style>
+</head>
+<body>
+<div class="mock-banner">Mockup C · Botão inline por cliente + drawer de confirmação — não é o sistema real</div>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">CBC<b>·</b>Contratos</div>
+    <div class="tabs"><div class="tab">Dashboard</div><div class="tab">Asaas</div><div class="tab active">Boletos</div><div class="tab">Monitor</div></div>
+  </div>
+
+  <h1 class="section">Cobrança de inadimplentes</h1>
+  <div class="sub">Cobrar pelo WhatsApp (Kommo) e acompanhar os boletos em aberto.</div>
+  <div class="subtabs">
+    <div class="subtab" style="background:#9aa6b5">Boletos</div>
+    <div class="subtab" style="background:var(--cbc-navy)">Cobrança de inadimplentes</div>
+  </div>
+
+  <div class="hint"><span class="hi">💡</span><span>O botão <b>Negativar no Serasa</b> aparece automaticamente ao lado de cada cliente que cruza <b>90 dias de atraso</b>. Nos demais, fica bloqueado com o motivo. Sem tela nova: tudo na régua de cobrança que a equipe já usa.</span></div>
+
+  <!-- cliente 90d+ : botão ativo -->
+  <div class="card crit">
+    <div class="avatar">MC</div>
+    <div class="info"><div class="name">Mauro César de S. <span class="tag90">⚖️ +90 dias</span></div><div class="meta">CPF ***.***.­***-** · Thermas São Pedro · 11 parcelas em aberto</div></div>
+    <div class="grow"></div>
+    <div class="stat"><b style="color:var(--cbc-danger)">336</b><span>dias atraso</span></div>
+    <div class="stat"><b>R$ 3.300</b><span>em aberto</span></div>
+    <div class="actions">
+      <button class="btn btn-wa">💬 Cobrar</button>
+      <button class="btn btn-neg">⚖️ Negativar</button>
+    </div>
+  </div>
+
+  <!-- outro 90d+ -->
+  <div class="card crit">
+    <div class="avatar">GR</div>
+    <div class="info"><div class="name">Gilney R. <span class="tag90">⚖️ +90 dias</span></div><div class="meta">CPF ***.***.­***-** · Hot Beach · 7 parcelas em aberto</div></div>
+    <div class="grow"></div>
+    <div class="stat"><b style="color:var(--cbc-danger)">367</b><span>dias atraso</span></div>
+    <div class="stat"><b>R$ 2.100</b><span>em aberto</span></div>
+    <div class="actions">
+      <button class="btn btn-wa">💬 Cobrar</button>
+      <button class="btn btn-neg">⚖️ Negativar</button>
+    </div>
+  </div>
+
+  <!-- cliente <90d : botão bloqueado com motivo -->
+  <div class="card">
+    <div class="avatar">EN</div>
+    <div class="info"><div class="name">Eberson D. C.</div><div class="meta">CPF ***.***.­***-** · Solar das Águas · 1 parcela em aberto</div></div>
+    <div class="grow"></div>
+    <div class="stat"><b style="color:var(--cbc-warning)">62</b><span>dias atraso</span></div>
+    <div class="stat"><b>R$ 300</b><span>em aberto</span></div>
+    <div class="actions">
+      <button class="btn btn-wa">💬 Cobrar</button>
+      <button class="btn btn-locked" title="Disponível a partir de 90 dias">🔒 Negativar em 28d</button>
+    </div>
+  </div>
+
+  <!-- cliente falta dado -->
+  <div class="card crit">
+    <div class="avatar">KL</div>
+    <div class="info"><div class="name">Kleyton A. L. <span class="tag90">⚖️ +90 dias</span></div><div class="meta">CPF ***.***.­***-** · 7 parcelas · <span style="color:var(--cbc-danger);font-weight:700">⚠ falta CEP e endereço</span></div></div>
+    <div class="grow"></div>
+    <div class="stat"><b style="color:var(--cbc-danger)">214</b><span>dias atraso</span></div>
+    <div class="stat"><b>R$ 2.100</b><span>em aberto</span></div>
+    <div class="actions">
+      <button class="btn btn-wa">💬 Cobrar</button>
+      <button class="btn btn-locked" title="Serasa exige endereço completo">🔒 Completar cadastro</button>
+    </div>
+  </div>
+</div>
+
+<!-- DRAWER aberto (confirmação do Mauro) -->
+<div class="scrim"></div>
+<div class="drawer">
+  <div class="dh">
+    <div class="x">✕</div>
+    <div class="k">Negativar no Serasa</div>
+    <div class="n">Mauro César de S.</div>
+  </div>
+  <div class="db">
+    <div class="sec">Cobrança que será negativada</div>
+    <div class="chargebox">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div>Parcela mais antiga em aberto<br><span class="muted" style="font-size:11px;color:var(--cbc-text-muted)">Venc. 21/08/2025 · Thermas São Pedro</span></div>
+        <div class="big">R$ 300</div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--cbc-text-muted)">Total do cliente em aberto: <b style="color:var(--cbc-text-primary)">R$ 3.300</b> (11 parcelas)</div>
+    </div>
+
+    <div class="sec">Dados exigidos pelo Serasa <span class="addr ok" style="background:none;border:none;padding:0">✓ completos</span></div>
+    <div class="addr">
+      <b>Mauro César de Sá</b> · CPF ***.***.­***-**<br>
+      📱 (19) 9····-··72<br>
+      📍 Rua ······, nº ··· · Jardim ······<br>
+      CEP ·····-··· · São Pedro / SP
+    </div>
+
+    <div class="sec">O que acontece depois</div>
+    <div class="tl">
+      <div class="tl-i"><b>Hoje</b> · pedido enviado ao Asaas</div>
+      <div class="tl-i"><b>Imediato</b> · Serasa registra a solicitação</div>
+      <div class="tl-i"><b>Carta ao cliente</b> · Serasa notifica por correio</div>
+      <div class="tl-i"><b>+10 dias</b> · sem pagamento → nome negativado</div>
+    </div>
+
+    <div class="sec">Registro no sistema</div>
+    <div class="kv"><span>Auditoria (quem negativou)</span><b>Paulo Conforto · hoje</b></div>
+    <div class="kv"><span>Nota no lead (Kommo)</span><b>automática</b></div>
+    <div class="kv"><span>Se o cliente pagar</span><b>baixa automática</b></div>
+  </div>
+  <div class="df">
+    <button class="btn btn-neg">⚖️ Confirmar negativação</button>
+    <div class="fee">Tarifa Serasa debitada do saldo Asaas (R$ 138.276,85 disponível)</div>
+  </div>
+</div>
+</body>
+</html>

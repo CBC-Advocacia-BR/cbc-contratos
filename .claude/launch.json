@@ -18,6 +18,18 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "npx --yes http-server . -p 4188 -c-1 --silent"],
       "port": 4188
+    },
+    {
+      "name": "patrimonio-mockup",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "npx --yes http-server '/Users/pauloconforto/Desktop/Claude Codex/projetos/patrimonio/prototipos' -p 8643 -c-1 --silent"],
+      "port": 8643
+    },
+    {
+      "name": "patrimonio-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd '/Users/pauloconforto/Desktop/Claude Codex/projetos/patrimonio/app' && npx vite --port 5199"],
+      "port": 5199
     }
   ]
 }

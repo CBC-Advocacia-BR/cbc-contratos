@@ -1,0 +1,415 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Ficha Cliente — Mockup C</title></head><body style="margin:0;background:#E8EDF3"><section class="mk-c">
+<style>
+.mk-c{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-dk:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--bad:#B91C1C;--warn:#B45309;--info:#1D4ED8;--bd:#E2E8F0;--t2:#4A5568;--t3:#5E6675;
+  background:var(--cream);font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy);
+  padding:clamp(1rem,2.5vw,2rem);box-sizing:border-box;line-height:1.45;font-size:.8125rem;}
+.mk-c *,.mk-c *::before,.mk-c *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-c a{color:var(--info);text-decoration:none;}
+.mk-c a:hover{text-decoration:underline;}
+.mk-c .wrap{max-width:84rem;margin:0 auto;min-width:0;}
+
+/* ===== header ===== */
+.mk-c .hd{background:#fff;border:1px solid var(--bd);border-radius:.875rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1.125rem 1.375rem 1rem;margin-bottom:1.25rem;}
+.mk-c .hd-top{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:flex-start;justify-content:space-between;}
+.mk-c .hd-id{min-width:0;}
+.mk-c .hd-name{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:700;font-size:1.75rem;line-height:1.15;letter-spacing:.01em;}
+.mk-c .hd-sub{color:var(--t2);font-size:.8125rem;margin-top:.2rem;}
+.mk-c .hd-sub b{color:var(--navy);font-weight:700;}
+.mk-c .hd-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}
+.mk-c .btn{font:inherit;font-size:.75rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid #CBD5E1;border-radius:.5rem;padding:.375rem .75rem;cursor:pointer;transition:background-color .18s,color .18s,border-color .18s;white-space:nowrap;}
+.mk-c .btn:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-c .btn--pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-c .btn--pri:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-c .btn--warn{color:var(--warn);border-color:#F0D5B8;}
+.mk-c .btn--warn:hover{background:var(--warn);border-color:var(--warn);color:#fff;}
+.mk-c .btn--ghost{border-color:transparent;color:var(--t2);}
+.mk-c .btn--ghost:hover{background:var(--cream);color:var(--navy);border-color:transparent;}
+
+.mk-c .chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.75rem;}
+.mk-c .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:700;border-radius:999px;padding:.2rem .625rem;border:1px solid var(--bd);background:var(--cream);color:var(--t2);white-space:nowrap;}
+.mk-c .chip .dot{width:.4rem;height:.4rem;border-radius:50%;background:#94A3B8;flex:none;}
+.mk-c .chip--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-c .chip--ok .dot{background:var(--ok);}
+.mk-c .chip--warn{background:rgba(180,83,9,.07);border-color:rgba(180,83,9,.3);color:var(--warn);}
+.mk-c .chip--warn .dot{background:var(--warn);}
+.mk-c .chip--warn .chip-act{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(180,83,9,.3);color:var(--warn);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
+.mk-c .hd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.625rem .875rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd);}
+.mk-c .fld{min-width:0;}
+.mk-c .fld dt{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.1rem;}
+.mk-c .fld dd{font-size:.8125rem;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.mk-c .fld--wide{grid-column:span 2;}
+
+/* ===== body grid ===== */
+.mk-c .body{display:grid;grid-template-columns:17.5rem minmax(0,1fr) 19rem;gap:1.25rem;align-items:start;}
+.mk-c .sat{min-width:0;}
+@media(min-width:69rem){.mk-c .sat{position:sticky;top:1rem;}}
+
+/* ===== panels ===== */
+.mk-c .pan{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1rem 1.125rem;margin-bottom:1rem;}
+.mk-c .pan h3{font-size:.8125rem;font-weight:900;letter-spacing:.01em;margin-bottom:.75rem;color:var(--navy);}
+.mk-c .pan h3 small{font-weight:400;color:var(--t3);font-size:.6875rem;margin-left:.35rem;}
+
+/* cotas list */
+.mk-c .cota{padding:.75rem 0;border-top:1px solid var(--bd);}
+.mk-c .cota:first-of-type{border-top:0;padding-top:0;}
+.mk-c .cota-nm{font-weight:900;font-size:.8125rem;}
+.mk-c .cota-un{font-size:.71875rem;color:var(--t2);margin-top:.05rem;}
+.mk-c .cota-val{display:flex;justify-content:space-between;align-items:baseline;margin-top:.35rem;font-variant-numeric:tabular-nums;}
+.mk-c .cota-val .dt{font-size:.6875rem;color:var(--t3);}
+.mk-c .cota-val .vl{font-weight:900;font-size:.875rem;}
+.mk-c .cota-meta{font-size:.6875rem;color:var(--t3);margin-top:.3rem;}
+.mk-c .cota-links{display:flex;gap:.75rem;margin-top:.4rem;font-size:.71875rem;font-weight:700;flex-wrap:wrap;align-items:center;}
+.mk-c .tag-ok{display:inline-block;font-size:.625rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:999px;padding:.075rem .45rem;}
+.mk-c .total{margin-top:.5rem;padding:.75rem .875rem;background:var(--navy-d);border-radius:.625rem;color:#fff;}
+.mk-c .total .lb{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.mk-c .total .vl{font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2;}
+.mk-c .total .ex{font-size:.71875rem;color:rgba(255,255,255,.75);margin-top:.35rem;padding-top:.35rem;border-top:1px solid rgba(255,255,255,.15);}
+.mk-c .total .ex b{color:#fff;font-variant-numeric:tabular-nums;}
+
+/* note cards */
+.mk-c .note{background:#fff;border:1px solid var(--bd);border-radius:.75rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.75rem;color:var(--t2);}
+.mk-c .note h4{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.4rem;}
+.mk-c .note .nm{font-weight:900;color:var(--navy);font-size:.8125rem;}
+.mk-c .note p{margin-top:.15rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.mk-c .note .btn{margin-top:.55rem;}
+.mk-c .note--warn{background:#FFF9F1;border-color:#F0D5B8;}
+
+/* honorarios / financeiro */
+.mk-c .hon-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;padding:.3rem 0;font-variant-numeric:tabular-nums;}
+.mk-c .hon-line .l{color:var(--t2);}
+.mk-c .hon-line .v{font-weight:900;text-align:right;}
+.mk-c .hon-sep{border:0;border-top:1px solid var(--bd);margin:.6rem 0;}
+.mk-c .fin-big{display:flex;align-items:baseline;gap:.4rem;font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-c .fin-big .a{font-size:1.25rem;font-weight:900;color:var(--ok);}
+.mk-c .fin-big .b{font-size:.75rem;color:var(--t3);}
+.mk-c .seg{display:flex;gap:2px;margin:.55rem 0 .3rem;}
+.mk-c .seg i{flex:1 1 0;height:.55rem;border-radius:2px;background:var(--ok);}
+.mk-c .seg i.pend{background:#fff;border:1px dashed #B8C4D2;}
+.mk-c .seg-cap{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mk-c .fin-rows{margin-top:.6rem;border-top:1px solid var(--bd);padding-top:.5rem;}
+.mk-c .adimp{display:inline-flex;align-items:center;gap:.35rem;margin-top:.6rem;font-size:.71875rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:.5rem;padding:.35rem .625rem;}
+
+/* ===== timeline ===== */
+.mk-c .tl{--dw:6rem;position:relative;min-width:0;}
+.mk-c .tl::before{content:'';position:absolute;top:.75rem;bottom:2.25rem;left:calc(var(--dw) + 1.35rem);width:2px;background:#B9C6D6;}
+.mk-c .tl-row{display:grid;grid-template-columns:var(--dw) 1.25rem minmax(0,1fr);column-gap:.75rem;margin-bottom:.875rem;position:relative;}
+.mk-c .tl-date{text-align:right;font-size:.71875rem;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;padding-top:.55rem;line-height:1.3;}
+.mk-c .tl-date b{display:block;color:var(--navy);}
+.mk-c .tl-dot{display:flex;justify-content:center;padding-top:.6rem;}
+.mk-c .tl-dot span{width:.75rem;height:.75rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);z-index:1;}
+.mk-c .tl-dot--tick span{width:.45rem;height:.45rem;border-width:2px;border-color:#B9C6D6;margin-top:.15rem;}
+.mk-c .tl-dot--big span{width:1.05rem;height:1.05rem;background:var(--navy-d);border:3px solid var(--gold);margin-top:-.1rem;}
+.mk-c .tl-dot--ok span{border-color:var(--ok);background:var(--ok);}
+.mk-c .tl-card{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:.75rem .875rem;min-width:0;}
+.mk-c .tl-card h4{font-size:.8125rem;font-weight:900;}
+.mk-c .tl-card .m{font-size:.71875rem;color:var(--t2);margin-top:.15rem;overflow-wrap:anywhere;}
+.mk-c .tl-card .money{font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);}
+.mk-c .tl-kind{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+
+/* prescricao ruler */
+.mk-c .ruler{background:transparent;border:0;box-shadow:none;padding:.15rem 0 .15rem .125rem;}
+.mk-c .ruler .rl{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-c .ruler .rl b{color:var(--t2);}
+.mk-c .track{height:.3rem;background:#E2E8F0;border-radius:999px;margin-top:.25rem;overflow:hidden;max-width:24rem;}
+.mk-c .track i{display:block;height:100%;background:var(--navy-l);border-radius:999px;}
+
+/* ajuizamento node */
+.mk-c .tl-card--aj{border-color:rgba(21,128,61,.45);}
+.mk-c .proc{font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere;}
+
+/* HOJE node */
+.mk-c .tl-card--now{background:var(--navy-d);border-color:var(--navy-d);color:#fff;padding:1.125rem 1.25rem;border-radius:1rem;}
+.mk-c .tl-card--now .now-lb{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+.mk-c .tl-card--now h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:.25rem;}
+.mk-c .tl-card--now .m{color:rgba(255,255,255,.72);}
+.mk-c .tl-card--now .proc{color:#fff;}
+.mk-c .now-grid{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;margin-top:.6rem;font-size:.71875rem;}
+.mk-c .now-grid .fld dt{color:rgba(255,255,255,.55);}
+.mk-c .now-grid .fld dd{color:#fff;}
+.mk-c .trilha{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-top:.8rem;}
+.mk-c .trilha .st{font-size:.71875rem;font-weight:900;border-radius:999px;padding:.25rem .7rem;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.6);}
+.mk-c .trilha .st--on{background:var(--gold);border-color:var(--gold);color:var(--navy-d);}
+.mk-c .trilha .sep{color:rgba(255,255,255,.35);font-size:.71875rem;}
+.mk-c .jorn{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.6875rem;}
+.mk-c .jorn .q{color:rgba(255,255,255,.5);}
+.mk-c .jorn .q--past{color:rgba(255,255,255,.72);}
+.mk-c .jorn .q--now{background:rgba(201,168,76,.18);border:1px solid var(--gold);color:var(--gold);font-weight:900;border-radius:.375rem;padding:.1rem .45rem;}
+.mk-c .jorn .sep{color:rgba(255,255,255,.3);}
+.mk-c .jorn-obs{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;}
+.mk-c .aviso{display:flex;gap:.5rem;align-items:flex-start;margin-top:.8rem;background:rgba(180,83,9,.22);border:1px solid rgba(217,119,6,.55);border-radius:.5rem;padding:.5rem .7rem;font-size:.71875rem;color:#FDE9D2;}
+.mk-c .aviso b{white-space:nowrap;background:#B45309;color:#fff;font-size:.625rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;border-radius:.3rem;padding:.15rem .4rem;margin-top:.05rem;}
+
+/* future node */
+.mk-c .tl-card--fut{border:1px dashed #B8C4D2;background:transparent;box-shadow:none;color:var(--t2);}
+.mk-c .tl-row--fut .tl-dot span{border-style:dashed;border-color:#94A3B8;}
+
+/* footer of spine */
+.mk-c .tl-end{grid-column:3;font-size:.6875rem;color:var(--t3);padding-left:.125rem;}
+
+/* ===== responsive ===== */
+@media(max-width:69rem){
+  .mk-c .body{grid-template-columns:minmax(0,1fr);}
+  .mk-c .col-tl{order:1;}
+  .mk-c .col-inv{order:2;}
+  .mk-c .col-fin{order:3;}
+}
+@media(max-width:36rem){
+  .mk-c{padding:.75rem;}
+  .mk-c .tl{--dw:4.4rem;}
+  .mk-c .tl-date{font-size:.65625rem;}
+  .mk-c .hd-name{font-size:1.4rem;}
+  .mk-c .hd-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .mk-c .fld--wide{grid-column:span 2;}
+  .mk-c .tl-card--now{padding:.875rem;}
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ CABECALHO ============ -->
+  <header class="hd">
+    <div class="hd-top">
+      <div class="hd-id">
+        <h1 class="hd-name">Ana Paula Damasceno de Matos</h1>
+        <p class="hd-sub"><b>51 anos</b> · Professora · Casado(a) · Brasileira · Belo Horizonte/MG · <span class="tag-ok" title="Todos os campos de qualificação preenchidos">Cadastro completo</span></p>
+      </div>
+      <div class="hd-actions">
+        <button class="btn btn--pri" type="button" title="Edição manual vence a sincronização automática">Editar dados</button>
+        <button class="btn" type="button">Copiar dados</button>
+        <button class="btn btn--ghost" type="button" title="Ação de administrador">⚑ Marcar parte contrária</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip--ok"><i class="dot"></i>ADVBOX #13365977</span>
+      <span class="chip chip--ok"><i class="dot"></i>Asaas cus_000123151447</span>
+      <span class="chip chip--ok"><i class="dot"></i>Portal do Cliente ativo</span>
+      <span class="chip chip--warn"><i class="dot"></i>Kommo sem vínculo<span class="chip-act" role="button">Vincular lead</span></span>
+      <span class="chip"><i class="dot" style="background:#15803D"></i>Último pagamento 20/07/2026 (ontem)</span>
+      <span class="chip">0 alertas de risco</span>
+    </div>
+
+    <dl class="hd-fields">
+      <div class="fld"><dt>CPF</dt><dd>029.039.366-33</dd></div>
+      <div class="fld"><dt>RG</dt><dd>MG8182819 SSP/MG</dd></div>
+      <div class="fld"><dt>Nascimento</dt><dd>19/11/1974</dd></div>
+      <div class="fld"><dt>Gênero</dt><dd>F</dd></div>
+      <div class="fld"><dt>Telefone</dt><dd>(31) 98907-2567</dd></div>
+      <div class="fld"><dt>E-mail</dt><dd>ana.matos@pbh.gov.br</dd></div>
+      <div class="fld fld--wide"><dt>Endereço</dt><dd>Rua João Lemos, 439, Acaiaca — Belo Horizonte/MG · CEP 31995-150</dd></div>
+    </dl>
+  </header>
+
+  <!-- ============ CORPO ============ -->
+  <div class="body">
+
+    <!-- ===== satelite esquerdo: INVESTIMENTO ===== -->
+    <aside class="sat col-inv">
+      <section class="pan">
+        <h3>Investimento <small>2 cotas</small></h3>
+
+        <article class="cota">
+          <div class="cota-nm">Ondas Praia</div>
+          <div class="cota-un">Apartamento 014, Bloco A, Cota 18</div>
+          <div class="cota-val"><span class="dt">Compra 08/10/2019</span><span class="vl">R$ 46.091,46</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição de valores (Distrato por Atraso)<br>Réu: SPE Porto Seguro 02 / WAM Comercialização / WAM Multipropriedade</div>
+          <div class="cota-links">
+            <a href="https://drive.google.com/drive/folders/1KfPfdXmkyy1xiRKRF6cHK7skWIYjrl34">Abrir pasta ↗</a>
+            <span class="tag-ok" title="6,2 de 10 anos · interrompida em 06/01/2026">Prescrição 62% · interrompida</span>
+          </div>
+        </article>
+
+        <article class="cota">
+          <div class="cota-nm">Terra Nova Ondas</div>
+          <div class="cota-un">Apartamento 016, Bloco A, Cota 43</div>
+          <div class="cota-val"><span class="dt">Compra 27/12/2021</span><span class="vl">R$ 10.337,01</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição + tutela de urgência (Distrato por Atraso)<br>Réu: W30 Empreendimentos / WAM Comercialização / WAM Multipropriedade</div>
+          <div class="cota-links">
+            <a href="https://drive.google.com/drive/folders/1yNPRjJSd8eW7FeTpa-_DEJKeB2PDtkWr">Abrir pasta ↗</a>
+            <span class="tag-ok" title="4,0 de 10 anos · interrompida em 06/01/2026">Prescrição 40% · interrompida</span>
+          </div>
+        </article>
+
+        <div class="total">
+          <div class="lb">Total investido</div>
+          <div class="vl">R$ 56.428,47</div>
+          <div class="ex">Êxito potencial (20%): <b>R$ 11.285,69</b></div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h4>Cônjuge — vínculo familiar</h4>
+        <div class="nm">Afonso Peixoto de Matos</div>
+        <p>51 anos · CPF 030.189.646-16</p>
+        <p>(31) 99935-3747 · mvafonso2010@hotmail.com</p>
+        <p>Sem cobranças próprias</p>
+        <button class="btn" type="button">Abrir ficha do cônjuge</button>
+      </section>
+    </aside>
+
+    <!-- ===== espinha central: LINHA DO CASO ===== -->
+    <main class="tl col-tl" aria-label="Linha do caso">
+
+      <!-- compra 1 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>08/10/2019</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Compra da cota</div>
+          <h4>Ondas Praia — Apartamento 014, Bloco A, Cota 18</h4>
+          <p class="m">Valor pago: <span class="money">R$ 46.091,46</span></p>
+        </div>
+      </div>
+
+      <!-- regua prescricao 1 -->
+      <div class="tl-row">
+        <div class="tl-date"></div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <div class="tl-card ruler">
+          <div class="rl"><span>Prescrição — Ondas Praia · <b>6,2 de 10 anos (62%)</b></span><span class="tag-ok">Interrompida em 06/01/2026</span></div>
+          <div class="track"><i style="width:62%"></i></div>
+        </div>
+      </div>
+
+      <!-- compra 2 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>27/12/2021</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Compra da cota</div>
+          <h4>Terra Nova Ondas — Apartamento 016, Bloco A, Cota 43</h4>
+          <p class="m">Valor pago: <span class="money">R$ 10.337,01</span></p>
+        </div>
+      </div>
+
+      <!-- regua prescricao 2 -->
+      <div class="tl-row">
+        <div class="tl-date"></div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <div class="tl-card ruler">
+          <div class="rl"><span>Prescrição — Terra Nova Ondas · <b>4,0 de 10 anos (40%)</b></span><span class="tag-ok">Interrompida em 06/01/2026</span></div>
+          <div class="track"><i style="width:40%"></i></div>
+        </div>
+      </div>
+
+      <!-- contrato CBC -->
+      <div class="tl-row">
+        <div class="tl-date"><b>17/06/2025</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Contrato CBC assinado</div>
+          <h4>Honorários: 20% de êxito + R$ 3.000,00 iniciais por ação</h4>
+          <p class="m">Modo Iniciais + Êxito · 2 ações = <span class="money">R$ 6.000,00</span> de iniciais</p>
+        </div>
+      </div>
+
+      <!-- primeira parcela -->
+      <div class="tl-row">
+        <div class="tl-date"><b>20/06/2025</b></div>
+        <div class="tl-dot tl-dot--ok"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Financeiro</div>
+          <h4>Primeira parcela paga</h4>
+          <p class="m">Início da série de 20 parcelas dos honorários iniciais · PIX</p>
+        </div>
+      </div>
+
+      <!-- ajuizamento -->
+      <div class="tl-row">
+        <div class="tl-date"><b>06/01/2026</b></div>
+        <div class="tl-dot tl-dot--ok"><span></span></div>
+        <div class="tl-card tl-card--aj">
+          <div class="tl-kind">Ação ajuizada</div>
+          <h4>Distrato por Atraso · grupo Multipropriedade</h4>
+          <p class="m">Processo <span class="proc">1000794-84.2026.8.13.0024</span></p>
+          <p class="m" style="margin-top:.35rem"><span class="tag-ok">Prescrição interrompida — as réguas param aqui</span></p>
+        </div>
+      </div>
+
+      <!-- HOJE -->
+      <div class="tl-row">
+        <div class="tl-date"><b>21/07/2026</b>hoje</div>
+        <div class="tl-dot tl-dot--big"><span></span></div>
+        <div class="tl-card tl-card--now">
+          <div class="now-lb">Hoje · fase atual</div>
+          <h4>Execução/Cobrança — SISBAJUD Protocolado</h4>
+          <dl class="now-grid">
+            <div class="fld"><dt>Processo</dt><dd class="proc">1000794-84.2026.8.13.0024</dd></div>
+            <div class="fld"><dt>Responsável</dt><dd>Lorenza Tramontina Bergonsi</dd></div>
+            <div class="fld"><dt>Tipo</dt><dd>Distrato por Atraso</dd></div>
+          </dl>
+
+          <div class="trilha" aria-label="Trilha de recuperação">
+            <span class="st st--on">1 · SISBAJUD</span><span class="sep">→</span>
+            <span class="st">2 · Penhora</span><span class="sep">→</span>
+            <span class="st">3 · Levantamento</span>
+          </div>
+
+          <div class="jorn" aria-label="Jornada por quadros ADVBOX">
+            <span class="q q--past">Negociação</span><span class="sep">›</span>
+            <span class="q q--past">Judicial</span><span class="sep">›</span>
+            <span class="q q--past">Recursal</span><span class="sep">›</span>
+            <span class="q q--now">Execução/Cobrança</span><span class="sep">›</span>
+            <span class="q">Arquivamento</span>
+          </div>
+          <p class="jorn-obs">Execução é a fase mais longa · IDPJ→Consultoria quando necessário (não é o caso aqui)</p>
+
+          <div class="aviso">
+            <b>Conferir nº de ações</b>
+            <span>ADVBOX registra 3 ações; 2 pastas vinculadas ao mesmo processo.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- futuro -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date"><b>20/08/2026</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Próximo vencimento</div>
+          <h4 style="color:var(--t2)">Parcela 14 de 20 — honorários iniciais</h4>
+          <p class="m">Cobrança via Asaas · cliente vem pagando por PIX, todas em dia</p>
+        </div>
+      </div>
+
+      <div class="tl-row"><div></div><div></div><div class="tl-end">Fim da linha do caso · atualizada em 21/07/2026</div></div>
+    </main>
+
+    <!-- ===== satelite direito: HONORARIOS ===== -->
+    <aside class="sat col-fin">
+      <section class="pan">
+        <h3>Honorários <small>Iniciais + Êxito</small></h3>
+        <div class="hon-line"><span class="l">Êxito</span><span class="v">20% sobre o recuperado</span></div>
+        <div class="hon-line"><span class="l">Iniciais por ação</span><span class="v">R$ 3.000,00</span></div>
+        <div class="hon-line"><span class="l">Iniciais totais (2 ações)</span><span class="v">R$ 6.000,00</span></div>
+        <div class="hon-line"><span class="l">Êxito potencial</span><span class="v">R$ 11.285,69</span></div>
+        <hr class="hon-sep">
+
+        <div class="fin-big"><span class="a">R$ 3.930,60</span><span class="b">recebidos de R$ 6.030,60 · 65%</span></div>
+
+        <div class="seg" aria-label="13 de 20 parcelas pagas">
+          <i title="Parcela 1 · venc. 20/07/2025 · paga"></i><i title="Parcela 2 · venc. 20/08/2025 · paga"></i><i title="Parcela 3 · venc. 20/09/2025 · paga"></i><i title="Parcela 4 · venc. 20/10/2025 · paga"></i><i title="Parcela 5 · venc. 20/11/2025 · paga"></i><i title="Parcela 6 · venc. 20/12/2025 · paga"></i><i title="Parcela 7 · venc. 20/01/2026 · paga"></i><i title="Parcela 8 · venc. 20/02/2026 · paga"></i><i title="Parcela 9 · venc. 20/03/2026 · paga"></i><i title="Parcela 10 · venc. 20/04/2026 · paga"></i><i title="Parcela 11 · venc. 20/05/2026 · paga"></i><i title="Parcela 12 · venc. 20/06/2026 · paga"></i><i title="Parcela 13 · venc. 20/07/2026 · paga"></i><i class="pend" title="Parcela 14 · venc. 20/08/2026 · pendente"></i><i class="pend" title="Parcela 15 · venc. 20/09/2026 · pendente"></i><i class="pend" title="Parcela 16 · venc. 20/10/2026 · pendente"></i><i class="pend" title="Parcela 17 · venc. 20/11/2026 · pendente"></i><i class="pend" title="Parcela 18 · venc. 20/12/2026 · pendente"></i><i class="pend" title="Parcela 19 · venc. 20/01/2027 · pendente"></i><i class="pend" title="Parcela 20 · venc. 20/02/2027 · pendente"></i>
+        </div>
+        <div class="seg-cap"><span>13/20 pagas</span><span>0 vencidas</span></div>
+
+        <div class="fin-rows">
+          <div class="hon-line"><span class="l">Forma</span><span class="v">PIX (todas em dia)</span></div>
+          <div class="hon-line"><span class="l">Última paga</span><span class="v">20/07/2026 (ontem)</span></div>
+          <div class="hon-line"><span class="l">Próximo vencimento</span><span class="v">20/08/2026</span></div>
+        </div>
+
+        <span class="adimp">✓ Cliente 100% adimplente</span>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Pendência</h4>
+        <div class="nm">Kommo sem vínculo</div>
+        <p>Este cadastro não tem lead vinculado no CRM comercial — notas e movimentações automáticas ficam suspensas.</p>
+        <button class="btn btn--warn" type="button">Vincular lead no Kommo</button>
+      </section>
+    </aside>
+
+  </div>
+</div>
+</section></body></html>

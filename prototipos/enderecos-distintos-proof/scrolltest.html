@@ -1,0 +1,27 @@
+<!DOCTYPE html><html style="height:100%"><head><meta charset="utf-8"><title>scroll test</title>
+<style>
+  html,body{height:100%;margin:0;font-family:Arial}
+  .col{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  .header{background:#1B3A5C;color:#fff;padding:6px;font-size:11px}
+  .wrapA,.wrapB{flex:1 1 0%;overflow:hidden}
+  .wrapB{display:flex;flex-direction:column}
+  .panelA{height:100%;overflow-y:auto;background:#F0F4F8}
+  .panelB{flex:1 1 0%;min-height:0;overflow-y:auto;background:#FDF6E3}
+  .tall{height:2400px;padding:8px}
+  .col{position:relative}
+  .caso{position:absolute;inset:0;display:flex;flex-direction:column}
+  .caso.hide{visibility:hidden}
+</style></head><body>
+<div class="col">
+  <div class="caso" id="cA"><div class="header">A: wrapper block + panel h-full</div><div class="wrapA"><div class="panelA" id="pA"><div class="tall">A</div></div></div></div>
+  <div class="caso hide" id="cB"><div class="header">B: wrapper flex-col + panel flex-1 min-h-0</div><div class="wrapB"><div class="panelB" id="pB"><div class="tall">B</div></div></div></div>
+</div>
+<script>
+  function mede(id){ const p=document.getElementById(id); p.scrollTop=50; return id+': client='+p.clientHeight+' scroll='+p.scrollHeight+' rola='+(p.scrollTop>0); }
+  const rA = mede('pA');
+  document.getElementById('cA').classList.add('hide');
+  document.getElementById('cB').classList.remove('hide');
+  const rB = mede('pB');
+  document.title = rA + ' | ' + rB;
+</script>
+</body></html>

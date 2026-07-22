@@ -1,0 +1,379 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Ficha Cliente — Mockup A</title></head><body style="margin:0;background:#E8EDF3"><section class="mk-a">
+<style>
+.mk-a{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-txt:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--warn:#B45309;--danger:#B91C1C;--info:#1D4ED8;--bd:#E2E8F0;--sec:#4A5568;--mut:#5E6675;
+  font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy-d);background:var(--cream);display:block;padding:28px 16px;box-sizing:border-box;font-size:15px;line-height:1.5;}
+.mk-a *,.mk-a *::before,.mk-a *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-a a{color:var(--info);text-decoration:none;}
+.mk-a a:hover{text-decoration:underline;}
+.mk-a .mk-a-page{max-width:1180px;margin:0 auto;background:#FFFFFF;border:1px solid var(--bd);border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:36px 44px 44px;}
+/* ---------- masthead ---------- */
+.mk-a .mk-a-mast-top{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;}
+.mk-a .mk-a-kicker{font-size:.7333rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);}
+.mk-a .mk-a-ref{font-size:.8rem;color:var(--mut);font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-goldrule{height:0;border-top:1px solid var(--gold);margin:10px 0 0;}
+.mk-a .mk-a-goldrule.mk-a-thin{border-top-color:#E7D9AE;}
+.mk-a .mk-a-idrow{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:22px 0 20px;flex-wrap:wrap;}
+.mk-a h1{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:600;font-size:2.4rem;line-height:1.1;color:var(--navy-d);letter-spacing:.01em;}
+.mk-a .mk-a-subline{margin-top:8px;font-size:.9333rem;color:var(--sec);display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-sep{color:#C3CBD6;}
+.mk-a .mk-a-seal{display:inline-flex;align-items:center;gap:5px;font-size:.7333rem;font-weight:700;letter-spacing:.02em;border:1px solid var(--bd);border-radius:999px;padding:2px 10px;color:var(--sec);background:#FAFBFC;}
+.mk-a .mk-a-seal.mk-a-ok{color:var(--ok);border-color:#BBE3C8;background:#F2FAF5;}
+.mk-a .mk-a-seal.mk-a-goldseal{color:var(--gold-txt);border-color:#E3D5A8;background:#FCF9F0;}
+.mk-a .mk-a-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;}
+.mk-a .mk-a-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.mk-a .mk-a-btn{font:inherit;font-size:.8rem;font-weight:700;color:var(--navy);background:#FFFFFF;border:1px solid #C7D2DE;border-radius:9px;padding:7px 13px;cursor:pointer;transition:background-color 180ms,border-color 180ms,color 180ms;white-space:nowrap;}
+.mk-a .mk-a-btn:hover{background:var(--cream);border-color:var(--navy-l);}
+.mk-a .mk-a-btn.mk-a-primary{background:var(--navy);border-color:var(--navy);color:#FFFFFF;}
+.mk-a .mk-a-btn.mk-a-primary:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-a .mk-a-btn .mk-a-admtag{font-weight:400;font-size:.6667rem;color:var(--mut);margin-left:5px;}
+/* ---------- columns ---------- */
+.mk-a .mk-a-cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:0;margin-top:6px;}
+.mk-a .mk-a-aside{padding:26px 32px 0 0;border-right:1px solid var(--bd);}
+.mk-a .mk-a-main{padding:26px 0 0 36px;min-width:0;}
+/* ---------- section headings (nao-uppercase, com filete) ---------- */
+.mk-a .mk-a-h{display:flex;align-items:baseline;gap:12px;margin:0 0 14px;}
+.mk-a .mk-a-h span{font-size:.9333rem;font-weight:700;color:var(--navy);white-space:nowrap;}
+.mk-a .mk-a-h i{flex:1;border-top:1px solid #EAD9A6;transform:translateY(-3px);}
+.mk-a .mk-a-block{margin-bottom:30px;}
+/* ---------- qualificacao em prosa ---------- */
+.mk-a .mk-a-qual{font-size:.9333rem;line-height:1.75;color:var(--navy-d);}
+.mk-a .mk-a-qual strong{font-weight:700;}
+.mk-a .mk-a-qual .mk-a-num{font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-qualfoot{margin-top:10px;font-size:.8rem;color:var(--mut);}
+/* ---------- field rows ---------- */
+.mk-a .mk-a-frow{display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid #F1F4F8;font-size:.8667rem;}
+.mk-a .mk-a-frow:last-child{border-bottom:0;}
+.mk-a .mk-a-frow dt{font-size:.6933rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);padding-top:2px;flex:none;}
+.mk-a .mk-a-frow dd{text-align:right;color:var(--navy-d);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0;}
+/* ---------- conjuge ---------- */
+.mk-a .mk-a-conj-nome{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.2rem;font-weight:600;color:var(--navy-d);}
+.mk-a .mk-a-conj-meta{font-size:.8rem;color:var(--sec);margin:2px 0 8px;font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-linkbtn{background:none;border:none;font:inherit;font-size:.8rem;font-weight:700;color:var(--info);cursor:pointer;padding:0;transition:color 160ms;}
+.mk-a .mk-a-linkbtn:hover{color:var(--navy);}
+/* ---------- sistemas ---------- */
+.mk-a .mk-a-sys{list-style:none;}
+.mk-a .mk-a-sys li{display:flex;align-items:baseline;gap:9px;padding:7px 0;border-bottom:1px solid #F1F4F8;font-size:.8667rem;}
+.mk-a .mk-a-sys li:last-child{border-bottom:0;}
+.mk-a .mk-a-sysdot{width:7px;height:7px;border-radius:50%;flex:none;transform:translateY(-1px);}
+.mk-a .mk-a-sysdot.mk-a-on{background:var(--ok);}
+.mk-a .mk-a-sysdot.mk-a-off{background:#CBD5E1;}
+.mk-a .mk-a-sysname{font-weight:700;color:var(--navy);width:74px;flex:none;}
+.mk-a .mk-a-sysval{color:var(--sec);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0;}
+.mk-a .mk-a-pend{color:var(--warn);font-weight:700;}
+/* ---------- ultima interacao ---------- */
+.mk-a .mk-a-last{font-size:.8667rem;color:var(--sec);border:1px solid #D9EBDF;background:#F5FBF7;border-radius:10px;padding:10px 14px;}
+.mk-a .mk-a-last strong{color:var(--ok);}
+/* ---------- cotas (lancamentos) ---------- */
+.mk-a .mk-a-cota{padding:16px 0 18px;border-bottom:1px solid #EEF1F5;}
+.mk-a .mk-a-cota-top{display:flex;justify-content:space-between;align-items:baseline;gap:18px;}
+.mk-a .mk-a-cota-resort{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.4667rem;font-weight:600;color:var(--navy);min-width:0;}
+.mk-a .mk-a-cota-resort sup{font-family:'Lato',sans-serif;font-size:.6667rem;color:var(--gold-txt);font-weight:700;margin-left:3px;}
+.mk-a .mk-a-cota-valor{font-size:1.1333rem;font-weight:700;color:var(--navy-d);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.mk-a .mk-a-cota-unid{font-size:.8667rem;color:var(--sec);margin-top:2px;font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-cota-acao{font-size:.8667rem;color:var(--navy-d);margin-top:8px;}
+.mk-a .mk-a-cota-reu{font-size:.8rem;color:var(--mut);margin-top:2px;}
+.mk-a .mk-a-cota-links{margin-top:9px;font-size:.8rem;display:flex;gap:16px;flex-wrap:wrap;}
+.mk-a .mk-a-lbl{font-size:.6933rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);}
+/* total com filete duplo */
+.mk-a .mk-a-total{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:13px 0 4px;border-top:3px double var(--gold);margin-top:14px;}
+.mk-a .mk-a-total .mk-a-tl{font-size:.8667rem;font-weight:700;letter-spacing:.02em;color:var(--navy);}
+.mk-a .mk-a-total .mk-a-tv{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.8667rem;font-weight:700;color:var(--navy-d);font-variant-numeric:tabular-nums;line-height:1;}
+/* honorarios extrato */
+.mk-a .mk-a-hline{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid #F1F4F8;font-size:.8667rem;align-items:baseline;}
+.mk-a .mk-a-hline:last-child{border-bottom:0;}
+.mk-a .mk-a-hline .mk-a-hl{color:var(--sec);min-width:0;}
+.mk-a .mk-a-hline .mk-a-hv{font-weight:700;color:var(--navy-d);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.mk-a .mk-a-hline .mk-a-hv.mk-a-est{color:var(--gold-txt);}
+/* nota de rodape juridica — prescricao */
+.mk-a .mk-a-fnote{margin-top:16px;padding-top:12px;border-top:1px solid var(--bd);font-size:.8rem;color:var(--sec);}
+.mk-a .mk-a-fnote-row{display:grid;grid-template-columns:auto 1fr auto;gap:6px 12px;align-items:center;padding:5px 0;}
+.mk-a .mk-a-fnote-row .mk-a-fn-id{font-weight:700;color:var(--navy);white-space:nowrap;}
+.mk-a .mk-a-meter{height:4px;border-radius:2px;background:#E8EDF3;overflow:hidden;min-width:80px;}
+.mk-a .mk-a-meter i{display:block;height:100%;background:var(--navy-l);border-radius:2px;}
+.mk-a .mk-a-fn-tag{font-size:.6933rem;font-weight:700;letter-spacing:.04em;color:var(--ok);white-space:nowrap;}
+.mk-a .mk-a-fnote p{margin-top:6px;font-size:.7333rem;color:var(--mut);line-height:1.6;}
+/* ---------- processo ---------- */
+.mk-a .mk-a-proc-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;}
+.mk-a .mk-a-proc-num{font-size:1.0667rem;font-weight:700;color:var(--navy-d);font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+.mk-a .mk-a-proc-meta{font-size:.8rem;color:var(--mut);font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-proc-grid{display:flex;gap:28px;flex-wrap:wrap;margin-top:12px;}
+.mk-a .mk-a-proc-grid>div{min-width:0;}
+.mk-a .mk-a-proc-grid .mk-a-pv{font-size:.8667rem;font-weight:700;color:var(--navy-d);margin-top:1px;}
+.mk-a .mk-a-warnnote{margin-top:14px;border:1px solid #F0DCC0;background:#FDF8EF;border-radius:10px;padding:10px 14px;font-size:.8rem;color:#7A4A10;display:flex;gap:10px;align-items:baseline;}
+.mk-a .mk-a-warnnote .mk-a-wbadge{flex:none;font-size:.6933rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn);border:1px solid #EBCB9A;border-radius:999px;padding:1px 9px;background:#FFFFFF;white-space:nowrap;}
+/* jornada tipografica */
+.mk-a .mk-a-jorn{margin-top:18px;font-size:.8667rem;color:var(--mut);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-jorn .mk-a-jsep{color:#C9A84C;}
+.mk-a .mk-a-jorn .mk-a-jdone{color:var(--sec);}
+.mk-a .mk-a-jorn .mk-a-jnow{color:var(--navy-d);font-weight:800;display:inline-flex;align-items:center;gap:7px;}
+.mk-a .mk-a-jorn .mk-a-jnow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold);}
+.mk-a .mk-a-jorn .mk-a-jnext{color:#9AA5B3;}
+.mk-a .mk-a-jobs{margin-top:6px;font-size:.7333rem;color:var(--mut);}
+/* trilha de recuperacao */
+.mk-a .mk-a-trilha{margin-top:16px;border:1px solid var(--bd);border-radius:10px;padding:12px 16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;}
+.mk-a .mk-a-trilha .mk-a-tt{font-size:.6933rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);flex:none;}
+.mk-a .mk-a-steps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:.8667rem;}
+.mk-a .mk-a-step{display:inline-flex;align-items:center;gap:7px;color:#9AA5B3;}
+.mk-a .mk-a-step .mk-a-sn{width:20px;height:20px;border-radius:50%;border:1px solid #CBD5E1;display:inline-flex;align-items:center;justify-content:center;font-size:.6933rem;font-weight:700;color:#9AA5B3;background:#FFFFFF;}
+.mk-a .mk-a-step.mk-a-cur{color:var(--navy-d);font-weight:800;}
+.mk-a .mk-a-step.mk-a-cur .mk-a-sn{background:var(--navy);border-color:var(--navy);color:#F5E9C8;}
+.mk-a .mk-a-sarrow{color:#C3CBD6;}
+/* ---------- financeiro / extrato ---------- */
+.mk-a .mk-a-fin-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap;}
+.mk-a .mk-a-fin-sum{font-size:1.0667rem;font-weight:800;color:var(--navy-d);font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-fin-sum small{font-size:.8rem;font-weight:400;color:var(--mut);}
+.mk-a .mk-a-fin-ok{font-size:.7333rem;font-weight:700;color:var(--ok);border:1px solid #BBE3C8;background:#F2FAF5;border-radius:999px;padding:2px 10px;white-space:nowrap;}
+.mk-a .mk-a-parc{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin-top:12px;}
+.mk-a .mk-a-parc span{height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:.6667rem;font-weight:700;font-variant-numeric:tabular-nums;background:var(--navy);color:#DCE6F1;cursor:default;transition:background-color 160ms;}
+.mk-a .mk-a-parc span:hover{background:var(--navy-l);}
+.mk-a .mk-a-parc span.mk-a-pend2{background:#FFFFFF;border:1px solid #C7D2DE;color:var(--mut);}
+.mk-a .mk-a-parc span.mk-a-pend2:hover{background:var(--cream);}
+.mk-a .mk-a-fin-caption{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:.7333rem;color:var(--mut);flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+.mk-a .mk-a-fin-lines{margin-top:14px;}
+.mk-a .mk-a-legmark{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--navy);transform:translateY(1px);margin-right:5px;}
+.mk-a .mk-a-legmark.mk-a-lg2{background:#FFFFFF;border:1px solid #C7D2DE;}
+/* ---------- responsive ---------- */
+@media (max-width:960px){
+  .mk-a .mk-a-page{padding:26px 22px 32px;}
+  .mk-a .mk-a-cols{grid-template-columns:1fr;}
+  .mk-a .mk-a-aside{border-right:0;border-bottom:1px solid var(--bd);padding:22px 0 26px;}
+  .mk-a .mk-a-main{padding:26px 0 0;}
+  .mk-a h1{font-size:1.9333rem;}
+  .mk-a .mk-a-parc{grid-template-columns:repeat(10,1fr);}
+}
+@media (max-width:480px){
+  .mk-a{padding:12px 8px;}
+  .mk-a .mk-a-page{padding:20px 16px 26px;border-radius:12px;}
+  .mk-a h1{font-size:1.6rem;}
+  .mk-a .mk-a-cota-top{flex-wrap:wrap;}
+  .mk-a .mk-a-total .mk-a-tv{font-size:1.4667rem;}
+  .mk-a .mk-a-parc{grid-template-columns:repeat(5,1fr);}
+  .mk-a .mk-a-actions{width:100%;}
+}
+</style>
+
+<div class="mk-a-page">
+
+  <!-- ============ MASTHEAD ============ -->
+  <header>
+    <div class="mk-a-mast-top">
+      <span class="mk-a-kicker">CBC Advogados · Ficha do Cliente</span>
+      <span class="mk-a-ref">Dossiê ADVBOX #13365977 &nbsp;·&nbsp; atualizado em 21/07/2026</span>
+    </div>
+    <div class="mk-a-goldrule"></div>
+
+    <div class="mk-a-idrow">
+      <div>
+        <h1>Ana Paula Damasceno de Matos</h1>
+        <p class="mk-a-subline">
+          <span>CPF 029.039.366-33</span><span class="mk-a-sep">·</span>
+          <span>51 anos</span><span class="mk-a-sep">·</span>
+          <span>Professora</span><span class="mk-a-sep">·</span>
+          <span>Belo Horizonte/MG</span>
+          <span class="mk-a-seal mk-a-ok"><span class="mk-a-dot"></span>Sem alertas de risco</span>
+          <span class="mk-a-seal mk-a-goldseal">Cadastro completo</span>
+          <span class="mk-a-seal">Portal do Cliente ativo</span>
+        </p>
+      </div>
+      <div class="mk-a-actions">
+        <button class="mk-a-btn mk-a-primary" type="button">Editar dados</button>
+        <button class="mk-a-btn" type="button">Vincular Kommo</button>
+        <button class="mk-a-btn" type="button">Copiar dados</button>
+        <button class="mk-a-btn" type="button">Marcar parte contrária<span class="mk-a-admtag">admin</span></button>
+      </div>
+    </div>
+    <div class="mk-a-goldrule mk-a-thin"></div>
+  </header>
+
+  <div class="mk-a-cols">
+
+    <!-- ============ COLUNA ESQUERDA — QUALIFICACAO ============ -->
+    <aside class="mk-a-aside">
+
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Qualificação</span><i></i></div>
+        <p class="mk-a-qual">
+          <strong>ANA PAULA DAMASCENO DE MATOS</strong>, brasileira, casada, professora,
+          portadora do RG <span class="mk-a-num">MG8182819 SSP/MG</span>, inscrita no CPF sob o
+          nº <span class="mk-a-num">029.039.366-33</span>, nascida em
+          <span class="mk-a-num">19/11/1974</span>, residente e domiciliada na Rua João Lemos, 439,
+          Acaiaca, Belo Horizonte/MG, CEP <span class="mk-a-num">31995-150</span>.
+        </p>
+        <p class="mk-a-qualfoot">Relação: cliente · Gênero F · A edição manual vence a sincronização automática.</p>
+      </div>
+
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Contato</span><i></i></div>
+        <dl>
+          <div class="mk-a-frow"><dt>Telefone</dt><dd>(31) 98907-2567</dd></div>
+          <div class="mk-a-frow"><dt>E-mail</dt><dd>ana.matos@pbh.gov.br</dd></div>
+          <div class="mk-a-frow"><dt>Endereço</dt><dd>Rua João Lemos, 439, Acaiaca<br>Belo Horizonte/MG · 31995-150</dd></div>
+        </dl>
+      </div>
+
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Cônjuge</span><i></i></div>
+        <p class="mk-a-conj-nome">Afonso Peixoto de Matos</p>
+        <p class="mk-a-conj-meta">51 anos · CPF 030.189.646-16 · vínculo familiar, sem cobranças próprias</p>
+        <dl>
+          <div class="mk-a-frow"><dt>Telefone</dt><dd>(31) 99935-3747</dd></div>
+          <div class="mk-a-frow"><dt>E-mail</dt><dd>mvafonso2010@hotmail.com</dd></div>
+        </dl>
+        <p style="margin-top:8px;"><button class="mk-a-linkbtn" type="button">Abrir ficha do cônjuge →</button></p>
+      </div>
+
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Sistemas</span><i></i></div>
+        <ul class="mk-a-sys">
+          <li><span class="mk-a-sysdot mk-a-on"></span><span class="mk-a-sysname">ADVBOX</span><span class="mk-a-sysval">#13365977 · sincronizado</span></li>
+          <li><span class="mk-a-sysdot mk-a-on"></span><span class="mk-a-sysname">Asaas</span><span class="mk-a-sysval">cus_000123151447 · sincronizado</span></li>
+          <li><span class="mk-a-sysdot mk-a-on"></span><span class="mk-a-sysname">Portal</span><span class="mk-a-sysval">acesso ativo</span></li>
+          <li><span class="mk-a-sysdot mk-a-off"></span><span class="mk-a-sysname">Kommo</span><span class="mk-a-sysval"><span class="mk-a-pend">sem vínculo</span> — <button class="mk-a-linkbtn" type="button">vincular lead</button></span></li>
+        </ul>
+      </div>
+
+      <div class="mk-a-block">
+        <div class="mk-a-last">Última interação: <strong>pagamento recebido em 20/07/2026</strong> (ontem), via PIX.</div>
+      </div>
+
+    </aside>
+
+    <!-- ============ COLUNA DIREITA — O CASO ============ -->
+    <main class="mk-a-main">
+
+      <!-- COTAS -->
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Cotas em causa</span><i></i></div>
+
+        <article class="mk-a-cota">
+          <div class="mk-a-cota-top">
+            <h3 class="mk-a-cota-resort">Ondas Praia<sup>1</sup></h3>
+            <span class="mk-a-cota-valor">R$ 46.091,46</span>
+          </div>
+          <p class="mk-a-cota-unid">Apartamento 014, Bloco A, Cota 18 · compra em 08/10/2019 · <span class="mk-a-lbl">valor pago</span></p>
+          <p class="mk-a-cota-acao">Rescisão contratual c/ restituição de valores (Distrato por Atraso)</p>
+          <p class="mk-a-cota-reu">Réu: SPE Porto Seguro 02 / WAM Comercialização / WAM Multipropriedade</p>
+          <div class="mk-a-cota-links"><a href="https://drive.google.com/drive/folders/1KfPfdXmkyy1xiRKRF6cHK7skWIYjrl34">Abrir pasta no Drive ↗</a></div>
+        </article>
+
+        <article class="mk-a-cota">
+          <div class="mk-a-cota-top">
+            <h3 class="mk-a-cota-resort">Terra Nova Ondas<sup>2</sup></h3>
+            <span class="mk-a-cota-valor">R$ 10.337,01</span>
+          </div>
+          <p class="mk-a-cota-unid">Apartamento 016, Bloco A, Cota 43 · compra em 27/12/2021 · <span class="mk-a-lbl">valor pago</span></p>
+          <p class="mk-a-cota-acao">Rescisão contratual c/ restituição + tutela de urgência (Distrato por Atraso)</p>
+          <p class="mk-a-cota-reu">Réu: W30 Empreendimentos / WAM Comercialização / WAM Multipropriedade</p>
+          <div class="mk-a-cota-links"><a href="https://drive.google.com/drive/folders/1yNPRjJSd8eW7FeTpa-_DEJKeB2PDtkWr">Abrir pasta no Drive ↗</a></div>
+        </article>
+
+        <div class="mk-a-total">
+          <span class="mk-a-tl">Total investido pela cliente</span>
+          <span class="mk-a-tv">R$ 56.428,47</span>
+        </div>
+
+        <!-- nota de rodape juridica — prescricao -->
+        <div class="mk-a-fnote">
+          <div class="mk-a-fnote-row">
+            <span class="mk-a-fn-id">¹ Ondas Praia</span>
+            <span class="mk-a-meter" role="img" aria-label="6,2 de 10 anos consumidos"><i style="width:62%"></i></span>
+            <span>6,2 de 10 anos no ajuizamento · <span class="mk-a-fn-tag">prescrição interrompida</span></span>
+          </div>
+          <div class="mk-a-fnote-row">
+            <span class="mk-a-fn-id">² Terra Nova Ondas</span>
+            <span class="mk-a-meter" role="img" aria-label="4,0 de 10 anos consumidos"><i style="width:40%"></i></span>
+            <span>4,0 de 10 anos no ajuizamento · <span class="mk-a-fn-tag">prescrição interrompida</span></span>
+          </div>
+          <p>Prazo prescricional decenal contado da compra; a contagem parou no ajuizamento em 06/01/2026. Ambas as cotas foram ajuizadas com folga.</p>
+        </div>
+      </div>
+
+      <!-- HONORARIOS -->
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Honorários contratados</span><i></i></div>
+        <div class="mk-a-hline"><span class="mk-a-hl">Modalidade</span><span class="mk-a-hv">Iniciais + Êxito</span></div>
+        <div class="mk-a-hline"><span class="mk-a-hl">Iniciais — R$ 3.000,00 por ação × 2 ações</span><span class="mk-a-hv">R$ 6.000,00</span></div>
+        <div class="mk-a-hline"><span class="mk-a-hl">Êxito — 20% sobre o valor restituído (potencial sobre R$ 56.428,47)</span><span class="mk-a-hv mk-a-est">R$ 11.285,69</span></div>
+      </div>
+
+      <!-- PROCESSO -->
+      <div class="mk-a-block">
+        <div class="mk-a-h"><span>Processo</span><i></i></div>
+        <div class="mk-a-proc-head">
+          <span class="mk-a-proc-num">1000794-84.2026.8.13.0024</span>
+          <span class="mk-a-proc-meta">ajuizado em 06/01/2026 · contrato CBC assinado 17/06/2025 · 1ª parcela paga 20/06/2025</span>
+        </div>
+        <div class="mk-a-proc-grid">
+          <div><span class="mk-a-lbl">Grupo</span><p class="mk-a-pv">MULTIPROPRIEDADE</p></div>
+          <div><span class="mk-a-lbl">Tipo</span><p class="mk-a-pv">DISTRATO POR ATRASO</p></div>
+          <div><span class="mk-a-lbl">Quadro</span><p class="mk-a-pv">EXECUÇÃO/COBRANÇA</p></div>
+          <div><span class="mk-a-lbl">Etapa</span><p class="mk-a-pv">SISBAJUD - PROTOCOLADO</p></div>
+          <div><span class="mk-a-lbl">Responsável</span><p class="mk-a-pv">LORENZA TRAMONTINA BERGONSI</p></div>
+        </div>
+
+        <div class="mk-a-warnnote">
+          <span class="mk-a-wbadge">Conferir nº de ações</span>
+          <span>ADVBOX registra 3 ações; há 2 pastas do Drive vinculadas ao mesmo processo — revisar o vínculo das ações.</span>
+        </div>
+
+        <div class="mk-a-jorn">
+          <span class="mk-a-jdone">Negociação</span><span class="mk-a-jsep">—</span>
+          <span class="mk-a-jdone">Judicial</span><span class="mk-a-jsep">—</span>
+          <span class="mk-a-jdone">Recursal</span><span class="mk-a-jsep">—</span>
+          <span class="mk-a-jnow">Execução/Cobrança</span><span class="mk-a-jsep">—</span>
+          <span class="mk-a-jnext">Arquivamento</span>
+        </div>
+        <p class="mk-a-jobs">Execução é a fase mais longa da jornada. IDPJ → Consultoria quando necessário (não é o caso aqui).</p>
+
+        <div class="mk-a-trilha">
+          <span class="mk-a-tt">Trilha de recuperação</span>
+          <div class="mk-a-steps">
+            <span class="mk-a-step mk-a-cur"><span class="mk-a-sn">1</span>SISBAJUD</span>
+            <span class="mk-a-sarrow">→</span>
+            <span class="mk-a-step"><span class="mk-a-sn">2</span>Penhora</span>
+            <span class="mk-a-sarrow">→</span>
+            <span class="mk-a-step"><span class="mk-a-sn">3</span>Levantamento</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FINANCEIRO -->
+      <div class="mk-a-block" style="margin-bottom:8px;">
+        <div class="mk-a-h"><span>Financeiro — honorários iniciais (Asaas)</span><i></i></div>
+        <div class="mk-a-fin-head">
+          <span class="mk-a-fin-sum">R$ 3.930,60 <small>recebidos de R$ 6.030,60 · 65%</small></span>
+          <span class="mk-a-fin-ok">100% adimplente · 0 vencidas · PIX, todas em dia</span>
+        </div>
+
+        <div class="mk-a-parc" role="img" aria-label="13 de 20 parcelas pagas">
+          <span title="Parcela 1 · venc. 20/07/2025 · paga">1</span>
+          <span title="Parcela 2 · venc. 20/08/2025 · paga">2</span>
+          <span title="Parcela 3 · venc. 20/09/2025 · paga">3</span>
+          <span title="Parcela 4 · venc. 20/10/2025 · paga">4</span>
+          <span title="Parcela 5 · venc. 20/11/2025 · paga">5</span>
+          <span title="Parcela 6 · venc. 20/12/2025 · paga">6</span>
+          <span title="Parcela 7 · venc. 20/01/2026 · paga">7</span>
+          <span title="Parcela 8 · venc. 20/02/2026 · paga">8</span>
+          <span title="Parcela 9 · venc. 20/03/2026 · paga">9</span>
+          <span title="Parcela 10 · venc. 20/04/2026 · paga">10</span>
+          <span title="Parcela 11 · venc. 20/05/2026 · paga">11</span>
+          <span title="Parcela 12 · venc. 20/06/2026 · paga">12</span>
+          <span title="Parcela 13 · venc. 20/07/2026 · paga">13</span>
+          <span class="mk-a-pend2" title="Parcela 14 · venc. 20/08/2026 · pendente">14</span>
+          <span class="mk-a-pend2" title="Parcela 15 · venc. 20/09/2026 · pendente">15</span>
+          <span class="mk-a-pend2" title="Parcela 16 · venc. 20/10/2026 · pendente">16</span>
+          <span class="mk-a-pend2" title="Parcela 17 · venc. 20/11/2026 · pendente">17</span>
+          <span class="mk-a-pend2" title="Parcela 18 · venc. 20/12/2026 · pendente">18</span>
+          <span class="mk-a-pend2" title="Parcela 19 · venc. 20/01/2027 · pendente">19</span>
+          <span class="mk-a-pend2" title="Parcela 20 · venc. 20/02/2027 · pendente">20</span>
+        </div>
+        <div class="mk-a-fin-caption">
+          <span><span class="mk-a-legmark"></span>13 pagas &nbsp;&nbsp;<span class="mk-a-legmark mk-a-lg2"></span>7 a vencer</span>
+          <span>última paga 20/07/2026 · próximo vencimento 20/08/2026</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</section></body></html>

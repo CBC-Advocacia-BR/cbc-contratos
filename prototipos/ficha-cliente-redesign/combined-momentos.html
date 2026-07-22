@@ -1,0 +1,1683 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'></head><body style='margin:0'><title>Ficha do Cliente — Linha do Caso em 3 momentos</title>
+<style>
+:root{
+  --pg-bg:#E8EDF3; --pg-ink:#0F2035; --pg-mut:#5E6675; --pg-card:#FFFFFF; --pg-bd:#D5DDE7;
+  --pg-navy:#1B3A5C; --pg-gold:#C9A84C; --pg-gold-ink:#8a6d1f;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --pg-bg:#0A0F1A; --pg-ink:#E5E7EB; --pg-mut:#9CA3AF; --pg-card:#111827; --pg-bd:#2A3648; --pg-navy:#D4AF37; --pg-gold:#D4AF37; --pg-gold-ink:#D4AF37; }
+}
+:root[data-theme="dark"]{ --pg-bg:#0A0F1A; --pg-ink:#E5E7EB; --pg-mut:#9CA3AF; --pg-card:#111827; --pg-bd:#2A3648; --pg-navy:#D4AF37; --pg-gold:#D4AF37; --pg-gold-ink:#D4AF37; }
+:root[data-theme="light"]{ --pg-bg:#E8EDF3; --pg-ink:#0F2035; --pg-mut:#5E6675; --pg-card:#FFFFFF; --pg-bd:#D5DDE7; --pg-navy:#1B3A5C; --pg-gold:#C9A84C; --pg-gold-ink:#8a6d1f; }
+body{ background:var(--pg-bg); margin:0; font-family:'Lato',-apple-system,'Segoe UI',sans-serif; color:var(--pg-ink); }
+.pg-top{ max-width:1240px; margin:0 auto; padding:26px 18px 0; }
+.pg-top h1{ font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif; font-weight:600; font-size:1.7rem; margin:0; letter-spacing:.01em; }
+.pg-top h1 em{ font-style:normal; color:var(--pg-gold-ink); }
+.pg-top p{ margin:6px 0 0; font-size:.85rem; color:var(--pg-mut); max-width:74ch; line-height:1.55; }
+.pg-tabs{ max-width:1240px; margin:18px auto 0; padding:10px 18px; display:flex; gap:8px; flex-wrap:wrap; }
+.pg-tab{ font:inherit; font-size:.85rem; font-weight:700; color:var(--pg-ink); background:var(--pg-card); border:1px solid var(--pg-bd); border-radius:10px; padding:9px 14px; cursor:pointer; transition:border-color 180ms, background 180ms; text-align:left; }
+.pg-tab small{ display:block; font-weight:400; font-size:.72rem; color:var(--pg-mut); margin-top:2px; }
+.pg-tab[aria-selected="true"]{ border-color:var(--pg-gold); box-shadow:inset 0 0 0 1px var(--pg-gold); }
+.pg-tab:hover{ border-color:var(--pg-navy); }
+.pg-tab:focus-visible{ outline:2px solid var(--pg-navy); outline-offset:2px; }
+.pg-stage{ padding:8px 0 60px; }
+.pg-panel{ display:none; }
+.pg-panel.on{ display:block; }
+.pg-note{ max-width:1240px; margin:0 auto; padding:0 18px 30px; font-size:.78rem; color:var(--pg-mut); line-height:1.5; }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+<div class="pg-top">
+  <h1>Linha do Caso — <em>o mesmo layout nos 3 momentos da vida do caso</em></h1>
+  <p>Evolução do mockup escolhido, agora com TODOS os dados do banco: andamentos do tribunal, tarefas da equipe (quem fez), mudanças de etapa com duração, lead Kommo, portal, NFs, prescrição e o dinheiro de volta. Três clientes reais, um por fase.</p>
+</div>
+<div class="pg-tabs" role="tablist">
+  <button class="pg-tab" role="tab" aria-selected="true" data-t="venda">1 · Venda recente<small>Erika — Instagram → assinou em 4 dias → aguardando citação</small></button>
+  <button class="pg-tab" role="tab" aria-selected="false" data-t="execucao">2 · Execução (enriquecido)<small>Ana Paula — SISBAJUD protocolado; tribunal + equipe na espinha</small></button>
+  <button class="pg-tab" role="tab" aria-selected="false" data-t="recuperacao">3 · Recuperação<small>Maria Cristina — R$ 24.085 na conta; repasse pendente</small></button>
+</div>
+<div class="pg-stage">
+  <div class="pg-panel on" id="pg-venda"><section class="mk-v">
+<style>
+.mk-v{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-dk:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--bad:#B91C1C;--warn:#B45309;--info:#1D4ED8;--bd:#E2E8F0;--t2:#4A5568;--t3:#5E6675;
+  background:var(--cream);font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy);
+  padding:clamp(1rem,2.5vw,2rem);box-sizing:border-box;line-height:1.45;font-size:.8125rem;}
+.mk-v *,.mk-v *::before,.mk-v *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-v a{color:var(--info);text-decoration:none;}
+.mk-v a:hover{text-decoration:underline;}
+.mk-v .wrap{max-width:84rem;margin:0 auto;min-width:0;}
+
+/* ===== header ===== */
+.mk-v .hd{background:#fff;border:1px solid var(--bd);border-radius:.875rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1.125rem 1.375rem 1rem;margin-bottom:1.25rem;}
+.mk-v .hd-top{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:flex-start;justify-content:space-between;}
+.mk-v .hd-id{min-width:0;}
+.mk-v .hd-name{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:700;font-size:1.75rem;line-height:1.15;letter-spacing:.01em;}
+.mk-v .hd-sub{color:var(--t2);font-size:.8125rem;margin-top:.2rem;}
+.mk-v .hd-sub b{color:var(--navy);font-weight:700;}
+.mk-v .hd-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}
+.mk-v .btn{font:inherit;font-size:.75rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid #CBD5E1;border-radius:.5rem;padding:.375rem .75rem;cursor:pointer;transition:background-color .18s,color .18s,border-color .18s;white-space:nowrap;}
+.mk-v .btn:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-v .btn--pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-v .btn--pri:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-v .btn--warn{color:var(--warn);border-color:#F0D5B8;}
+.mk-v .btn--warn:hover{background:var(--warn);border-color:var(--warn);color:#fff;}
+.mk-v .btn--ghost{border-color:transparent;color:var(--t2);}
+.mk-v .btn--ghost:hover{background:var(--cream);color:var(--navy);border-color:transparent;}
+
+.mk-v .chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.75rem;}
+.mk-v .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:700;border-radius:999px;padding:.2rem .625rem;border:1px solid var(--bd);background:var(--cream);color:var(--t2);white-space:nowrap;}
+.mk-v .chip .dot{width:.4rem;height:.4rem;border-radius:50%;background:#94A3B8;flex:none;}
+.mk-v .chip--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-v .chip--ok .dot{background:var(--ok);}
+.mk-v .chip--warn{background:rgba(180,83,9,.07);border-color:rgba(180,83,9,.3);color:var(--warn);}
+.mk-v .chip--warn .dot{background:var(--warn);}
+.mk-v .chip--warn .chip-act{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(180,83,9,.3);color:var(--warn);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.mk-v .chip--info{background:rgba(29,78,216,.06);border-color:rgba(29,78,216,.25);color:var(--info);}
+.mk-v .chip--info .dot{background:var(--info);}
+
+.mk-v .hd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.625rem .875rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd);}
+.mk-v .fld{min-width:0;}
+.mk-v .fld dt{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.1rem;}
+.mk-v .fld dd{font-size:.8125rem;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.mk-v .fld--wide{grid-column:span 2;}
+.mk-v .fld dd .miss{color:var(--t3);font-style:italic;}
+
+/* ===== body grid ===== */
+.mk-v .body{display:grid;grid-template-columns:17.5rem minmax(0,1fr) 19rem;gap:1.25rem;align-items:start;}
+.mk-v .sat{min-width:0;}
+@media(min-width:69rem){.mk-v .sat{position:sticky;top:1rem;}}
+
+/* ===== panels ===== */
+.mk-v .pan{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1rem 1.125rem;margin-bottom:1rem;}
+.mk-v .pan h3{font-size:.8125rem;font-weight:900;letter-spacing:.01em;margin-bottom:.75rem;color:var(--navy);}
+.mk-v .pan h3 small{font-weight:400;color:var(--t3);font-size:.6875rem;margin-left:.35rem;}
+
+.mk-v .cota{padding:.75rem 0 .1rem;}
+.mk-v .cota-nm{font-weight:900;font-size:.8125rem;}
+.mk-v .cota-un{font-size:.71875rem;color:var(--t2);margin-top:.05rem;}
+.mk-v .cota-meta{font-size:.6875rem;color:var(--t3);margin-top:.3rem;}
+.mk-v .pend-box{margin-top:.55rem;border:1px dashed #B8C4D2;border-radius:.5rem;padding:.5rem .625rem;font-size:.71875rem;color:var(--t3);}
+.mk-v .pend-box b{color:var(--t2);font-weight:700;}
+.mk-v .tag-ok{display:inline-block;font-size:.625rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:999px;padding:.075rem .45rem;}
+.mk-v .tag-mut{display:inline-block;font-size:.625rem;font-weight:900;color:var(--t3);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.075rem .45rem;}
+.mk-v .total{margin-top:.75rem;padding:.75rem .875rem;background:var(--navy-d);border-radius:.625rem;color:#fff;}
+.mk-v .total .lb{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.mk-v .total .vl{font-size:1.05rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.25;}
+.mk-v .total .ex{font-size:.71875rem;color:rgba(255,255,255,.75);margin-top:.35rem;padding-top:.35rem;border-top:1px solid rgba(255,255,255,.15);}
+
+/* note cards */
+.mk-v .note{background:#fff;border:1px solid var(--bd);border-radius:.75rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.75rem;color:var(--t2);}
+.mk-v .note h4{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.4rem;}
+.mk-v .note .nm{font-weight:900;color:var(--navy);font-size:.8125rem;}
+.mk-v .note p{margin-top:.15rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.mk-v .note .btn{margin-top:.55rem;}
+.mk-v .note--warn{background:#FFF9F1;border-color:#F0D5B8;}
+
+/* honorarios */
+.mk-v .hon-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;padding:.3rem 0;font-variant-numeric:tabular-nums;}
+.mk-v .hon-line .l{color:var(--t2);}
+.mk-v .hon-line .v{font-weight:900;text-align:right;}
+.mk-v .hon-sep{border:0;border-top:1px solid var(--bd);margin:.6rem 0;}
+.mk-v .fin-big{display:flex;align-items:baseline;gap:.4rem;font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-v .fin-big .a{font-size:1.25rem;font-weight:900;color:var(--ok);}
+.mk-v .fin-big .b{font-size:.75rem;color:var(--t3);}
+.mk-v .seg{display:flex;gap:2px;margin:.55rem 0 .3rem;}
+.mk-v .seg i{flex:1 1 0;height:.55rem;border-radius:2px;background:var(--ok);}
+.mk-v .seg i.pend{background:#fff;border:1px dashed #B8C4D2;}
+.mk-v .seg-cap{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mk-v .fin-rows{margin-top:.6rem;border-top:1px solid var(--bd);padding-top:.5rem;}
+.mk-v .adimp{display:inline-flex;align-items:center;gap:.35rem;margin-top:.6rem;font-size:.71875rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:.5rem;padding:.35rem .625rem;}
+.mk-v .nf-chip{display:inline-block;font-size:.625rem;font-weight:900;color:var(--info);background:rgba(29,78,216,.06);border:1px solid rgba(29,78,216,.25);border-radius:999px;padding:.075rem .45rem;}
+
+/* ===== timeline ===== */
+.mk-v .tl{--dw:6rem;position:relative;min-width:0;}
+.mk-v .tl::before{content:'';position:absolute;top:.75rem;bottom:2.25rem;left:calc(var(--dw) + 1.35rem);width:2px;background:#B9C6D6;}
+.mk-v .tl-row{display:grid;grid-template-columns:var(--dw) 1.25rem minmax(0,1fr);column-gap:.75rem;margin-bottom:.875rem;position:relative;}
+.mk-v .tl-date{text-align:right;font-size:.71875rem;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;padding-top:.55rem;line-height:1.3;}
+.mk-v .tl-date b{display:block;color:var(--navy);}
+.mk-v .tl-dot{display:flex;justify-content:center;padding-top:.6rem;}
+.mk-v .tl-dot span{width:.75rem;height:.75rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);z-index:1;}
+.mk-v .tl-dot--big span{width:1.05rem;height:1.05rem;background:var(--navy-d);border:3px solid var(--gold);margin-top:-.1rem;}
+/* trilhas: cor do aro do no — discreta */
+.mk-v .tl-dot--rel span{border-color:var(--info);}
+.mk-v .tl-dot--eq span{border-color:var(--gold-dk);}
+.mk-v .tl-dot--fin span{border-color:var(--ok);background:var(--ok);}
+.mk-v .tl-dot--trib span{border-color:var(--ok);background:var(--ok);}
+.mk-v .tl-card{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:.75rem .875rem;min-width:0;}
+.mk-v .tl-card h4{font-size:.8125rem;font-weight:900;}
+.mk-v .tl-card .m{font-size:.71875rem;color:var(--t2);margin-top:.15rem;overflow-wrap:anywhere;}
+.mk-v .tl-card .money{font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);}
+.mk-v .tl-kind{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+.mk-v .k-rel{color:var(--info);}
+.mk-v .k-eq{color:var(--gold-dk);}
+.mk-v .k-fin{color:var(--ok);}
+.mk-v .k-trib{color:var(--ok);}
+.mk-v .quem{display:inline-block;font-size:.625rem;font-weight:700;color:var(--t2);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.075rem .5rem;margin-top:.35rem;margin-right:.3rem;}
+/* trilha ZapSign enviado->aberto->assinado */
+.mk-v .ztrail{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.45rem;font-size:.6875rem;font-variant-numeric:tabular-nums;}
+.mk-v .ztrail .z{border:1px solid var(--bd);background:var(--cream);color:var(--t2);border-radius:999px;padding:.1rem .5rem;font-weight:700;}
+.mk-v .ztrail .z--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-v .ztrail .sep{color:#94A3B8;}
+/* no colapsado (esteira interna) */
+.mk-v .mini{margin-top:.4rem;border-top:1px dashed var(--bd);padding-top:.4rem;}
+.mk-v .mini li{list-style:none;display:flex;gap:.5rem;font-size:.71875rem;color:var(--t2);padding:.12rem 0;font-variant-numeric:tabular-nums;}
+.mk-v .mini li b{color:var(--t3);font-weight:700;min-width:3.2rem;}
+/* ajuizamento */
+.mk-v .tl-card--aj{border-color:rgba(21,128,61,.45);}
+.mk-v .proc{font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere;}
+.mk-v .mov{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:900;color:var(--navy-l);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.1rem .55rem;margin-top:.35rem;}
+/* HOJE */
+.mk-v .tl-card--now{background:var(--navy-d);border-color:var(--navy-d);color:#fff;padding:1.125rem 1.25rem;border-radius:1rem;}
+.mk-v .tl-card--now .now-lb{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+.mk-v .tl-card--now h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:.25rem;}
+.mk-v .tl-card--now .m{color:rgba(255,255,255,.72);}
+.mk-v .tl-card--now .proc{color:#fff;}
+.mk-v .stage-chip{display:inline-flex;align-items:center;gap:.35rem;margin-top:.55rem;font-size:.6875rem;font-weight:900;color:var(--gold);background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.5);border-radius:999px;padding:.2rem .625rem;font-variant-numeric:tabular-nums;}
+.mk-v .now-grid{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;margin-top:.6rem;font-size:.71875rem;}
+.mk-v .now-grid .fld dt{color:rgba(255,255,255,.55);}
+.mk-v .now-grid .fld dd{color:#fff;}
+.mk-v .trilha{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-top:.8rem;}
+.mk-v .trilha .st{font-size:.71875rem;font-weight:900;border-radius:999px;padding:.25rem .7rem;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.6);}
+.mk-v .trilha .st--done{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.85);}
+.mk-v .trilha .st--on{background:var(--gold);border-color:var(--gold);color:var(--navy-d);}
+.mk-v .trilha .sep{color:rgba(255,255,255,.35);font-size:.71875rem;}
+.mk-v .jorn{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.6875rem;}
+.mk-v .jorn .q{color:rgba(255,255,255,.5);}
+.mk-v .jorn .q--past{color:rgba(255,255,255,.72);}
+.mk-v .jorn .q--now{background:rgba(201,168,76,.18);border:1px solid var(--gold);color:var(--gold);font-weight:900;border-radius:.375rem;padding:.1rem .45rem;}
+.mk-v .jorn .sep{color:rgba(255,255,255,.3);}
+.mk-v .jorn-obs{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;}
+/* futuro */
+.mk-v .tl-card--fut{border:1px dashed #B8C4D2;background:transparent;box-shadow:none;color:var(--t2);}
+.mk-v .tl-row--fut .tl-dot span{border-style:dashed;border-color:#94A3B8;background:#fff;}
+.mk-v .tl-end{grid-column:3;font-size:.6875rem;color:var(--t3);padding-left:.125rem;}
+
+/* legenda das trilhas */
+.mk-v .leg{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.65625rem;color:var(--t3);margin:0 0 .75rem calc(var(--dw) + 2rem);}
+.mk-v .leg i{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);margin-right:.3rem;vertical-align:-1px;}
+.mk-v .leg .l-rel i{border-color:var(--info);}
+.mk-v .leg .l-eq i{border-color:var(--gold-dk);}
+.mk-v .leg .l-trib i{border-color:var(--ok);background:var(--ok);}
+.mk-v .leg .l-fin i{border-color:var(--ok);background:var(--ok);}
+
+/* ===== responsive ===== */
+@media(max-width:69rem){
+  .mk-v .body{grid-template-columns:minmax(0,1fr);}
+  .mk-v .col-tl{order:1;}
+  .mk-v .col-inv{order:2;}
+  .mk-v .col-fin{order:3;}
+}
+@media(max-width:36rem){
+  .mk-v{padding:.75rem;}
+  .mk-v .tl{--dw:4.4rem;}
+  .mk-v .tl-date{font-size:.65625rem;}
+  .mk-v .hd-name{font-size:1.4rem;}
+  .mk-v .hd-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .mk-v .fld--wide{grid-column:span 2;}
+  .mk-v .tl-card--now{padding:.875rem;}
+  .mk-v .leg{margin-left:0;}
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ CABECALHO ============ -->
+  <header class="hd">
+    <div class="hd-top">
+      <div class="hd-id">
+        <h1 class="hd-name">Erika Laine Knop de Melo Silva</h1>
+        <p class="hd-sub"><b>38 anos</b> · Do lar · União Estável · Brasileira · Santana de Parnaíba/SP · <span class="tag-mut" title="Contrato assinado em 09/06/2026">Cliente há 42 dias</span></p>
+      </div>
+      <div class="hd-actions">
+        <button class="btn btn--pri" type="button" title="Edição manual vence a sincronização automática">Editar dados</button>
+        <button class="btn" type="button">Copiar dados</button>
+        <button class="btn btn--ghost" type="button">Abrir contrato</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip--ok"><i class="dot"></i>Kommo lead #10690390 · <a href="#" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">abrir conversa</a></span>
+      <span class="chip chip--ok"><i class="dot"></i>Asaas · cobrança 12× ativa</span>
+      <span class="chip chip--ok"><i class="dot"></i>ADVBOX · processo vinculado</span>
+      <span class="chip chip--info"><i class="dot"></i>Origem Instagram · 1ª msg 17/02/2026</span>
+      <span class="chip"><i class="dot" style="background:var(--gold-dk)"></i>Vendido por Ana Cristina</span>
+      <span class="chip chip--warn"><i class="dot"></i>Portal ativo · 0 acessos<span class="chip-act" role="button">Reenviar acesso</span></span>
+    </div>
+
+    <dl class="hd-fields">
+      <div class="fld"><dt>CPF</dt><dd>354.729.968-30</dd></div>
+      <div class="fld"><dt>Nascimento</dt><dd>10/03/1988</dd></div>
+      <div class="fld"><dt>Telefone</dt><dd>(11) 93414-9974</dd></div>
+      <div class="fld"><dt>E-mail</dt><dd>erikalaine_23@yahoo.com.br</dd></div>
+      <div class="fld"><dt>Cidade</dt><dd>Santana de Parnaíba/SP</dd></div>
+      <div class="fld"><dt>RG / Endereço</dt><dd><span class="miss">não sincronizados — completar no cadastro</span></dd></div>
+    </dl>
+  </header>
+
+  <!-- ============ CORPO ============ -->
+  <div class="body">
+
+    <!-- ===== satelite esquerdo: INVESTIMENTO ===== -->
+    <aside class="sat col-inv">
+      <section class="pan">
+        <h3>Investimento <small>1 cota</small></h3>
+
+        <article class="cota">
+          <div class="cota-nm">Thermas São Pedro</div>
+          <div class="cota-un">Cota Quitada sem Matrícula</div>
+          <div class="cota-meta">Ação: outorga de escritura / registro da cota quitada<br>Distribuída em 01/07/2026</div>
+          <div class="pend-box"><b>Valor da cota:</b> aguardando mineração do Drive<br><b>Prescrição:</b> aguarda data de compra para iniciar a régua</div>
+        </article>
+
+        <div class="total">
+          <div class="lb">Total investido</div>
+          <div class="vl">Aguardando mineração</div>
+          <div class="ex">Êxito de 20% será calculado sobre o valor recuperado</div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h4>Vínculo familiar</h4>
+        <div class="nm">Sem cônjuge vinculado</div>
+        <p>União Estável declarada no contrato, mas nenhum companheiro(a) cadastrado.</p>
+        <button class="btn" type="button">Vincular cônjuge</button>
+      </section>
+
+      <section class="note">
+        <h4>Jornada típica — o que vem agora</h4>
+        <div class="nm">Próxima etapa esperada: citação da ré</div>
+        <p>Custas juntadas em 07/07. Em casos deste tipo, a citação costuma ser o próximo andamento do tribunal.</p>
+      </section>
+    </aside>
+
+    <!-- ===== espinha central: LINHA DO CASO ===== -->
+    <main class="tl col-tl" aria-label="Linha do caso">
+
+      <div class="leg" aria-hidden="true">
+        <span class="l-rel"><i></i>Relacionamento</span>
+        <span class="l-eq"><i></i>Equipe</span>
+        <span class="l-trib"><i></i>Tribunal</span>
+        <span class="l-fin"><i></i>Financeiro</span>
+      </div>
+
+      <!-- primeira mensagem -->
+      <div class="tl-row">
+        <div class="tl-date"><b>17/02/2026</b></div>
+        <div class="tl-dot tl-dot--rel"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · ponto zero</div>
+          <h4>Primeira mensagem — via Instagram</h4>
+          <p class="m">Origem de campanha registrada no cadastro · 100 dias de conversa até virar lead</p>
+        </div>
+      </div>
+
+      <!-- lead kommo -->
+      <div class="tl-row">
+        <div class="tl-date"><b>28/05/2026</b></div>
+        <div class="tl-dot tl-dot--rel"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · CRM</div>
+          <h4>Lead criado no Kommo</h4>
+          <p class="m">Lead <span class="proc">#10690390</span> · <a href="#">abrir conversa ↗</a></p>
+        </div>
+      </div>
+
+      <!-- contrato criado -->
+      <div class="tl-row">
+        <div class="tl-date"><b>05/06/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · comercial</div>
+          <h4>Contrato criado — Cota Quitada sem Matrícula · Thermas São Pedro</h4>
+          <p class="m">Honorários: <span class="money">R$ 3.300,00</span> em 12× de R$ 275,00 + 20% de êxito</p>
+          <span class="quem">Vendido por Ana Cristina</span>
+        </div>
+      </div>
+
+      <!-- assinatura -->
+      <div class="tl-row">
+        <div class="tl-date"><b>09/06/2026</b>16h40</div>
+        <div class="tl-dot tl-dot--rel"><span style="border-color:var(--ok);background:var(--ok)"></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · ZapSign</div>
+          <h4>Contrato assinado em 4 dias</h4>
+          <div class="ztrail" aria-label="Trilha ZapSign">
+            <span class="z z--ok">Enviado 05/06</span><span class="sep">→</span>
+            <span class="z z--ok" title="Cliente abriu o documento 9 vezes antes de assinar">Aberto 9×</span><span class="sep">→</span>
+            <span class="z z--ok">Assinado 09/06 16h40</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- esteira interna (colapsada) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>24–30/06</b>3 etapas</div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · preparação da inicial</div>
+          <h4>Esteira interna concluída em 7 dias</h4>
+          <ul class="mini">
+            <li><b>24/06</b><span>Fazer inicial (operacional)</span></li>
+            <li><b>29/06</b><span>Revisão da inicial</span></li>
+            <li><b>30/06</b><span>Distribuir ação</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- distribuicao -->
+      <div class="tl-row">
+        <div class="tl-date"><b>01/07/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--aj">
+          <div class="tl-kind k-trib">Tribunal · marco</div>
+          <h4>Ação distribuída</h4>
+          <p class="m">Processo <span class="proc">4007514-90.2026.8.26.0529</span></p>
+          <span class="mov">Quadro: Negociação → Judicial</span>
+          <div><span class="quem">Tarefa concluída por Juliane Soligo</span></div>
+        </div>
+      </div>
+
+      <!-- tarefas 03/07 (colapsadas) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>03/07/2026</b>2 tarefas</div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · pós-distribuição</div>
+          <h4>Guia de custas gerada e enviada · cliente avisada da distribuição</h4>
+          <span class="quem">Ana Cristina</span>
+        </div>
+      </div>
+
+      <!-- custas juntadas -->
+      <div class="tl-row">
+        <div class="tl-date"><b>07/07/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · processual</div>
+          <h4>Custas juntadas aos autos</h4>
+          <span class="quem">Juliane Soligo</span>
+        </div>
+      </div>
+
+      <!-- parcela 1 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>15/07/2026</b></div>
+        <div class="tl-dot tl-dot--fin"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-fin">Financeiro</div>
+          <h4>Parcela 1 de 12 paga — <span class="money">R$ 302,59</span></h4>
+          <p class="m">Início da série de honorários iniciais via Asaas · <span class="nf-chip">NF emitida</span></p>
+        </div>
+      </div>
+
+      <!-- HOJE -->
+      <div class="tl-row">
+        <div class="tl-date"><b>21/07/2026</b>hoje</div>
+        <div class="tl-dot tl-dot--big"><span></span></div>
+        <div class="tl-card tl-card--now">
+          <div class="now-lb">Hoje · fase atual</div>
+          <h4>Judicial — Aguardando citação</h4>
+          <span class="stage-chip">Há 18 dias nesta etapa</span>
+          <dl class="now-grid">
+            <div class="fld"><dt>Processo</dt><dd class="proc">4007514-90.2026.8.26.0529</dd></div>
+            <div class="fld"><dt>Responsável</dt><dd>Luany Crepaldi</dd></div>
+            <div class="fld"><dt>Tipo</dt><dd>Cota Quitada sem Matrícula</dd></div>
+          </dl>
+
+          <div class="trilha" aria-label="Esteira do caso novo">
+            <span class="st st--done">Distribuída ✓</span><span class="sep">→</span>
+            <span class="st st--on">Aguardando citação</span><span class="sep">→</span>
+            <span class="st">Citação da ré</span>
+          </div>
+
+          <div class="jorn" aria-label="Jornada por quadros ADVBOX">
+            <span class="q q--past">Negociação</span><span class="sep">›</span>
+            <span class="q q--now">Judicial</span><span class="sep">›</span>
+            <span class="q">Recursal</span><span class="sep">›</span>
+            <span class="q">Execução/Cobrança</span><span class="sep">›</span>
+            <span class="q">Arquivamento</span>
+          </div>
+          <p class="jorn-obs">Caso novo e saudável · da assinatura à distribuição em 22 dias · próxima etapa esperada: citação da ré</p>
+        </div>
+      </div>
+
+      <!-- futuro -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date"><b>15/08/2026</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Próximo vencimento</div>
+          <h4 style="color:var(--t2)">Parcela 2 de 12 — honorários iniciais</h4>
+          <p class="m">Cobrança via Asaas · R$ 275,00 · 1ª parcela paga em dia</p>
+        </div>
+      </div>
+
+      <div class="tl-row"><div></div><div></div><div class="tl-end">Fim da linha do caso · atualizada em 21/07/2026</div></div>
+    </main>
+
+    <!-- ===== satelite direito: HONORARIOS ===== -->
+    <aside class="sat col-fin">
+      <section class="pan">
+        <h3>Honorários <small>Iniciais + Êxito</small></h3>
+        <div class="hon-line"><span class="l">Êxito</span><span class="v">20% sobre o recuperado</span></div>
+        <div class="hon-line"><span class="l">Iniciais</span><span class="v">R$ 3.300,00 em 12×</span></div>
+        <div class="hon-line"><span class="l">Parcela</span><span class="v">R$ 275,00 / mês</span></div>
+        <hr class="hon-sep">
+
+        <div class="fin-big"><span class="a">R$ 302,59</span><span class="b">recebidos de R$ 3.327,59 · 9%</span></div>
+
+        <div class="seg" aria-label="1 de 12 parcelas pagas">
+          <i title="Parcela 1 · venc. 15/07/2026 · paga · NF emitida"></i><i class="pend" title="Parcela 2 · venc. 15/08/2026 · pendente"></i><i class="pend" title="Parcela 3 · venc. 15/09/2026 · pendente"></i><i class="pend" title="Parcela 4 · venc. 15/10/2026 · pendente"></i><i class="pend" title="Parcela 5 · venc. 15/11/2026 · pendente"></i><i class="pend" title="Parcela 6 · venc. 15/12/2026 · pendente"></i><i class="pend" title="Parcela 7 · venc. 15/01/2027 · pendente"></i><i class="pend" title="Parcela 8 · venc. 15/02/2027 · pendente"></i><i class="pend" title="Parcela 9 · venc. 15/03/2027 · pendente"></i><i class="pend" title="Parcela 10 · venc. 15/04/2027 · pendente"></i><i class="pend" title="Parcela 11 · venc. 15/05/2027 · pendente"></i><i class="pend" title="Parcela 12 · venc. 15/06/2027 · pendente"></i>
+        </div>
+        <div class="seg-cap"><span>1/12 pagas</span><span>0 vencidas</span></div>
+
+        <div class="fin-rows">
+          <div class="hon-line"><span class="l">Última paga</span><span class="v">15/07/2026</span></div>
+          <div class="hon-line"><span class="l">Próximo vencimento</span><span class="v">15/08/2026</span></div>
+          <div class="hon-line"><span class="l">Notas fiscais</span><span class="v"><span class="nf-chip">1 NF emitida</span></span></div>
+        </div>
+
+        <span class="adimp">✓ Cliente 100% adimplente</span>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Pendência de relacionamento</h4>
+        <div class="nm">Portal ativo, mas nunca acessado</div>
+        <p>O acesso ao Portal do Cliente foi criado e nenhum login foi registrado. Cliente nova — vale reenviar o link com instruções pela conversa do Kommo.</p>
+        <button class="btn btn--warn" type="button">Reenviar acesso ao Portal</button>
+      </section>
+    </aside>
+
+  </div>
+</div>
+</section></div>
+  <div class="pg-panel" id="pg-execucao"><section class="mk-e">
+<style>
+.mk-e{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-dk:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--bad:#B91C1C;--warn:#B45309;--info:#1D4ED8;--bd:#E2E8F0;--t2:#4A5568;--t3:#5E6675;
+  background:var(--cream);font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy);
+  padding:clamp(1rem,2.5vw,2rem);box-sizing:border-box;line-height:1.45;font-size:.8125rem;}
+.mk-e *,.mk-e *::before,.mk-e *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-e a{color:var(--info);text-decoration:none;}
+.mk-e a:hover{text-decoration:underline;}
+.mk-e .wrap{max-width:84rem;margin:0 auto;min-width:0;}
+
+/* ===== header ===== */
+.mk-e .hd{background:#fff;border:1px solid var(--bd);border-radius:.875rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1.125rem 1.375rem 1rem;margin-bottom:1.25rem;}
+.mk-e .hd-top{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:flex-start;justify-content:space-between;}
+.mk-e .hd-id{min-width:0;}
+.mk-e .hd-name{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:700;font-size:1.75rem;line-height:1.15;letter-spacing:.01em;}
+.mk-e .hd-sub{color:var(--t2);font-size:.8125rem;margin-top:.2rem;}
+.mk-e .hd-sub b{color:var(--navy);font-weight:700;}
+.mk-e .hd-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}
+.mk-e .btn{font:inherit;font-size:.75rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid #CBD5E1;border-radius:.5rem;padding:.375rem .75rem;cursor:pointer;transition:background-color .18s,color .18s,border-color .18s;white-space:nowrap;}
+.mk-e .btn:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-e .btn--pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-e .btn--pri:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-e .btn--warn{color:var(--warn);border-color:#F0D5B8;}
+.mk-e .btn--warn:hover{background:var(--warn);border-color:var(--warn);color:#fff;}
+.mk-e .btn--ghost{border-color:transparent;color:var(--t2);}
+.mk-e .btn--ghost:hover{background:var(--cream);color:var(--navy);border-color:transparent;}
+
+.mk-e .chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.75rem;}
+.mk-e .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:700;border-radius:999px;padding:.2rem .625rem;border:1px solid var(--bd);background:var(--cream);color:var(--t2);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.mk-e .chip .dot{width:.4rem;height:.4rem;border-radius:50%;background:#94A3B8;flex:none;}
+.mk-e .chip--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-e .chip--ok .dot{background:var(--ok);}
+.mk-e .chip--warn{background:rgba(180,83,9,.07);border-color:rgba(180,83,9,.3);color:var(--warn);}
+.mk-e .chip--warn .dot{background:var(--warn);}
+.mk-e .chip .chip-act{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(180,83,9,.3);color:var(--warn);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.mk-e .chip--ok .chip-lnk{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(21,128,61,.28);}
+
+.mk-e .hd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.625rem .875rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd);}
+.mk-e .fld{min-width:0;}
+.mk-e .fld dt{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.1rem;}
+.mk-e .fld dd{font-size:.8125rem;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.mk-e .fld--wide{grid-column:span 2;}
+
+/* ===== body grid ===== */
+.mk-e .body{display:grid;grid-template-columns:17.5rem minmax(0,1fr) 19rem;gap:1.25rem;align-items:start;}
+.mk-e .sat{min-width:0;}
+@media(min-width:69rem){.mk-e .sat{position:sticky;top:1rem;}}
+
+/* ===== panels ===== */
+.mk-e .pan{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1rem 1.125rem;margin-bottom:1rem;}
+.mk-e .pan h3{font-size:.8125rem;font-weight:900;letter-spacing:.01em;margin-bottom:.75rem;color:var(--navy);}
+.mk-e .pan h3 small{font-weight:400;color:var(--t3);font-size:.6875rem;margin-left:.35rem;}
+
+.mk-e .cota{padding:.75rem 0;border-top:1px solid var(--bd);}
+.mk-e .cota:first-of-type{border-top:0;padding-top:0;}
+.mk-e .cota-nm{font-weight:900;font-size:.8125rem;}
+.mk-e .cota-un{font-size:.71875rem;color:var(--t2);margin-top:.05rem;}
+.mk-e .cota-val{display:flex;justify-content:space-between;align-items:baseline;margin-top:.35rem;font-variant-numeric:tabular-nums;}
+.mk-e .cota-val .dt{font-size:.6875rem;color:var(--t3);}
+.mk-e .cota-val .vl{font-weight:900;font-size:.875rem;}
+.mk-e .cota-meta{font-size:.6875rem;color:var(--t3);margin-top:.3rem;}
+.mk-e .cota-links{display:flex;gap:.75rem;margin-top:.4rem;font-size:.71875rem;font-weight:700;flex-wrap:wrap;align-items:center;}
+.mk-e .tag-ok{display:inline-block;font-size:.625rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:999px;padding:.075rem .45rem;}
+.mk-e .tag-warn{display:inline-block;font-size:.625rem;font-weight:900;color:var(--warn);background:rgba(180,83,9,.07);border:1px solid rgba(180,83,9,.3);border-radius:999px;padding:.075rem .45rem;}
+.mk-e .total{margin-top:.5rem;padding:.75rem .875rem;background:var(--navy-d);border-radius:.625rem;color:#fff;}
+.mk-e .total .lb{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.mk-e .total .vl{font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2;}
+.mk-e .total .ex{font-size:.71875rem;color:rgba(255,255,255,.75);margin-top:.35rem;padding-top:.35rem;border-top:1px solid rgba(255,255,255,.15);}
+.mk-e .total .ex b{color:#fff;font-variant-numeric:tabular-nums;}
+
+.mk-e .note{background:#fff;border:1px solid var(--bd);border-radius:.75rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.75rem;color:var(--t2);}
+.mk-e .note h4{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.4rem;}
+.mk-e .note .nm{font-weight:900;color:var(--navy);font-size:.8125rem;}
+.mk-e .note p{margin-top:.15rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.mk-e .note .btn{margin-top:.55rem;margin-right:.4rem;}
+.mk-e .note--warn{background:#FFF9F1;border-color:#F0D5B8;}
+.mk-e .note--warn h4{color:var(--warn);}
+
+.mk-e .hon-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;padding:.3rem 0;font-variant-numeric:tabular-nums;}
+.mk-e .hon-line .l{color:var(--t2);}
+.mk-e .hon-line .v{font-weight:900;text-align:right;}
+.mk-e .hon-sep{border:0;border-top:1px solid var(--bd);margin:.6rem 0;}
+.mk-e .fin-big{display:flex;align-items:baseline;gap:.4rem;font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-e .fin-big .a{font-size:1.25rem;font-weight:900;color:var(--ok);}
+.mk-e .fin-big .b{font-size:.75rem;color:var(--t3);}
+.mk-e .seg{display:flex;gap:2px;margin:.55rem 0 .3rem;}
+.mk-e .seg i{flex:1 1 0;height:.55rem;border-radius:2px;background:var(--ok);}
+.mk-e .seg i.pend{background:#fff;border:1px dashed #B8C4D2;}
+.mk-e .seg-cap{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mk-e .fin-rows{margin-top:.6rem;border-top:1px solid var(--bd);padding-top:.5rem;}
+.mk-e .adimp{display:inline-flex;align-items:center;gap:.35rem;margin-top:.6rem;font-size:.71875rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:.5rem;padding:.35rem .625rem;}
+.mk-e .nf-row{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.6rem;}
+.mk-e .diverg{margin-top:.15rem;font-size:.65625rem;color:var(--warn);text-align:right;}
+
+/* ===== timeline ===== */
+.mk-e .tl{--dw:6rem;position:relative;min-width:0;}
+.mk-e .tl::before{content:'';position:absolute;top:2.1rem;bottom:2.25rem;left:calc(var(--dw) + 1.35rem);width:2px;background:#B9C6D6;}
+.mk-e .tl-row{display:grid;grid-template-columns:var(--dw) 1.25rem minmax(0,1fr);column-gap:.75rem;margin-bottom:.875rem;position:relative;}
+.mk-e .tl-date{text-align:right;font-size:.71875rem;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;padding-top:.55rem;line-height:1.3;}
+.mk-e .tl-date b{display:block;color:var(--navy);}
+.mk-e .tl-dot{display:flex;justify-content:center;padding-top:.6rem;}
+.mk-e .tl-dot span{width:.75rem;height:.75rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);z-index:1;}
+.mk-e .tl-dot--tick span{width:.45rem;height:.45rem;border-width:2px;border-color:#B9C6D6;margin-top:.15rem;}
+.mk-e .tl-dot--big span{width:1.05rem;height:1.05rem;background:var(--navy-d);border:3px solid var(--gold);margin-top:-.1rem;}
+.mk-e .tl-dot--ok span{border-color:var(--ok);background:var(--ok);}
+.mk-e .tl-dot--trib span{border-color:#7D96B8;background:#fff;}
+.mk-e .tl-dot--eq span{border-color:var(--gold-dk);background:#fff;}
+.mk-e .tl-dot--fin span{border-color:var(--ok);background:#fff;}
+.mk-e .tl-dot--et span{width:.55rem;height:.55rem;border-radius:2px;transform:rotate(45deg);border:2px solid #94A3B8;background:#fff;margin-top:.1rem;}
+.mk-e .tl-card{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:.75rem .875rem;min-width:0;}
+.mk-e .tl-card h4{font-size:.8125rem;font-weight:900;}
+.mk-e .tl-card .m{font-size:.71875rem;color:var(--t2);margin-top:.15rem;overflow-wrap:anywhere;}
+.mk-e .tl-card .money{font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);}
+.mk-e .tl-kind{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+.mk-e .tl-kind .kx{display:inline-block;margin-right:.2rem;}
+.mk-e .k-trib{color:#3D5A80;}
+.mk-e .k-eq{color:var(--gold-dk);}
+.mk-e .k-fin{color:var(--ok);}
+.mk-e .k-et{color:var(--t3);}
+
+/* legenda das trilhas */
+.mk-e .lg{grid-column:3;display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.625rem;font-weight:700;color:var(--t3);padding:.1rem 0 .35rem .125rem;text-transform:uppercase;letter-spacing:.05em;}
+.mk-e .lg i{display:inline-block;width:.5rem;height:.5rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);margin-right:.3rem;vertical-align:-.05rem;}
+.mk-e .lg .i-trib{border-color:#7D96B8;}
+.mk-e .lg .i-eq{border-color:var(--gold-dk);}
+.mk-e .lg .i-fin{border-color:var(--ok);}
+.mk-e .lg .i-et{border-radius:2px;transform:rotate(45deg);border-color:#94A3B8;}
+
+/* card compacto de andamento do tribunal */
+.mk-e .tl-card--trib{box-shadow:none;background:#F7FAFD;padding:.55rem .875rem;}
+
+/* mudanca de etapa */
+.mk-e .tl-card--et{background:var(--cream);border:1px solid #D3DDE8;box-shadow:none;padding:.5rem .875rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem .75rem;flex-wrap:wrap;}
+.mk-e .tl-card--et .et-nm{font-size:.75rem;font-weight:900;}
+.mk-e .tl-card--et .et-pre{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);display:block;}
+.mk-e .dur{font-size:.625rem;font-weight:900;color:var(--t2);background:#fff;border:1px solid var(--bd);border-radius:999px;padding:.15rem .55rem;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.mk-e .dur--live{color:var(--gold-dk);border-color:#E3D5AC;background:#FDFBF3;}
+
+/* andamentos colapsados */
+.mk-e .fold{border:1px dashed #C4D0DD;border-radius:.75rem;background:transparent;padding:0;}
+.mk-e .fold summary{list-style:none;cursor:pointer;padding:.5rem .875rem;font-size:.71875rem;font-weight:700;color:var(--t2);display:flex;align-items:center;gap:.4rem;}
+.mk-e .fold summary::-webkit-details-marker{display:none;}
+.mk-e .fold summary::before{content:'▸';color:var(--t3);font-size:.625rem;transition:transform .18s;}
+.mk-e .fold[open] summary::before{transform:rotate(90deg);}
+.mk-e .fold ul{list-style:none;padding:.15rem .875rem .65rem 1.6rem;}
+.mk-e .fold li{font-size:.6875rem;color:var(--t3);padding:.15rem 0;font-variant-numeric:tabular-nums;}
+.mk-e .fold li b{color:var(--t2);font-weight:700;}
+
+/* sprint da equipe */
+.mk-e .task{display:flex;justify-content:space-between;gap:.5rem .75rem;font-size:.71875rem;padding:.25rem 0;border-top:1px dashed #E7EDF3;flex-wrap:wrap;font-variant-numeric:tabular-nums;}
+.mk-e .task:first-of-type{border-top:0;}
+.mk-e .task .tn{color:var(--t2);}
+.mk-e .task .tn b{color:var(--navy);font-weight:900;}
+.mk-e .task .tw{font-weight:700;color:var(--t3);white-space:nowrap;}
+.mk-e .task--done .tn b{color:var(--ok);}
+.mk-e .seq{margin-top:.45rem;padding-top:.45rem;border-top:1px solid var(--bd);font-size:.6875rem;color:var(--t3);}
+
+/* ajuizamento */
+.mk-e .tl-card--aj{border-color:rgba(21,128,61,.45);}
+.mk-e .proc{font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere;}
+
+/* regua prescricao */
+.mk-e .ruler{background:transparent;border:0;box-shadow:none;padding:.15rem 0 .15rem .125rem;}
+.mk-e .ruler .rl{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-e .ruler .rl b{color:var(--t2);}
+.mk-e .track{height:.3rem;background:#E2E8F0;border-radius:999px;margin-top:.25rem;overflow:hidden;max-width:24rem;}
+.mk-e .track i{display:block;height:100%;background:var(--navy-l);border-radius:999px;}
+
+/* HOJE */
+.mk-e .tl-card--now{background:var(--navy-d);border-color:var(--navy-d);color:#fff;padding:1.125rem 1.25rem;border-radius:1rem;}
+.mk-e .tl-card--now .now-lb{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+.mk-e .tl-card--now h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:.25rem;}
+.mk-e .tl-card--now .m{color:rgba(255,255,255,.72);}
+.mk-e .tl-card--now .proc{color:#fff;}
+.mk-e .now-top{display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start;flex-wrap:wrap;}
+.mk-e .now-chip{font-size:.625rem;font-weight:900;color:var(--gold);background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.5);border-radius:999px;padding:.2rem .6rem;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.mk-e .now-grid{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;margin-top:.6rem;font-size:.71875rem;}
+.mk-e .now-grid .fld dt{color:rgba(255,255,255,.55);}
+.mk-e .now-grid .fld dd{color:#fff;}
+.mk-e .trilha{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-top:.8rem;}
+.mk-e .trilha .st{font-size:.71875rem;font-weight:900;border-radius:999px;padding:.25rem .7rem;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.6);}
+.mk-e .trilha .st--on{background:var(--gold);border-color:var(--gold);color:var(--navy-d);}
+.mk-e .trilha .st--ghost{border-style:dashed;color:rgba(255,255,255,.45);}
+.mk-e .trilha .sep{color:rgba(255,255,255,.35);font-size:.71875rem;}
+.mk-e .ghost-note{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;font-variant-numeric:tabular-nums;}
+.mk-e .jorn{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.6875rem;}
+.mk-e .jorn .q{color:rgba(255,255,255,.5);}
+.mk-e .jorn .q--past{color:rgba(255,255,255,.72);}
+.mk-e .jorn .q--now{background:rgba(201,168,76,.18);border:1px solid var(--gold);color:var(--gold);font-weight:900;border-radius:.375rem;padding:.1rem .45rem;}
+.mk-e .jorn .sep{color:rgba(255,255,255,.3);}
+.mk-e .jorn-obs{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;}
+.mk-e .aviso{display:flex;gap:.5rem;align-items:flex-start;margin-top:.8rem;background:rgba(180,83,9,.22);border:1px solid rgba(217,119,6,.55);border-radius:.5rem;padding:.5rem .7rem;font-size:.71875rem;color:#FDE9D2;}
+.mk-e .aviso b{white-space:nowrap;background:#B45309;color:#fff;font-size:.625rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;border-radius:.3rem;padding:.15rem .4rem;margin-top:.05rem;}
+
+/* futuro */
+.mk-e .tl-card--fut{border:1px dashed #B8C4D2;background:transparent;box-shadow:none;color:var(--t2);}
+.mk-e .tl-row--fut .tl-dot span{border-style:dashed;border-color:#94A3B8;background:#fff;}
+.mk-e .tl-end{grid-column:3;font-size:.6875rem;color:var(--t3);padding-left:.125rem;}
+
+/* ===== responsive ===== */
+@media(max-width:69rem){
+  .mk-e .body{grid-template-columns:minmax(0,1fr);}
+  .mk-e .col-tl{order:1;}
+  .mk-e .col-inv{order:2;}
+  .mk-e .col-fin{order:3;}
+}
+@media(max-width:36rem){
+  .mk-e{padding:.75rem;}
+  .mk-e .tl{--dw:4.4rem;}
+  .mk-e .tl-date{font-size:.65625rem;}
+  .mk-e .hd-name{font-size:1.4rem;}
+  .mk-e .hd-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .mk-e .fld--wide{grid-column:span 2;}
+  .mk-e .tl-card--now{padding:.875rem;}
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ CABECALHO ============ -->
+  <header class="hd">
+    <div class="hd-top">
+      <div class="hd-id">
+        <h1 class="hd-name">Ana Paula Damasceno de Matos</h1>
+        <p class="hd-sub"><b>51 anos</b> · Professora · Casada · Brasileira · Belo Horizonte/MG · <span class="tag-ok" title="Todos os campos de qualificação preenchidos">Cadastro completo</span></p>
+      </div>
+      <div class="hd-actions">
+        <button class="btn btn--pri" type="button" title="Edição manual vence a sincronização automática">Editar dados</button>
+        <button class="btn" type="button">Copiar dados</button>
+        <button class="btn btn--ghost" type="button" title="Ação de administrador">⚑ Marcar parte contrária</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip--ok"><i class="dot"></i>ADVBOX #13365977</span>
+      <span class="chip chip--ok"><i class="dot"></i>Asaas cus_000123151447</span>
+      <span class="chip chip--ok"><i class="dot"></i>Lead Kommo 12832216 · 01/06/2026<span class="chip-lnk"><a href="#" title="Abrir lead no Kommo">Abrir ↗</a></span></span>
+      <span class="chip chip--warn" title="Kommo registra (31) 8845-2870; a ficha tem (31) 98907-2567"><i class="dot"></i>Telefone divergente no Kommo<span class="chip-act" role="button">Corrigir</span></span>
+      <span class="chip chip--warn" title="Token criado em 14/06/2026 · 0 acessos"><i class="dot"></i>Portal: nunca acessou<span class="chip-act" role="button">Reenviar convite</span></span>
+      <span class="chip" title="Contrato assinado antes do sistema atual; dados importados da pasta do Drive"><i class="dot"></i>Contrato pré-sistema · fonte: Drive</span>
+      <span class="chip"><i class="dot" style="background:#15803D"></i>Último pagamento 20/07/2026 (ontem)</span>
+      <span class="chip" title="Aniversário em 19/11 — faz 52 anos (faltam 121 dias)"><i class="dot"></i>🎂 19/11 · faz 52</span>
+    </div>
+
+    <dl class="hd-fields">
+      <div class="fld"><dt>CPF</dt><dd>029.039.366-33</dd></div>
+      <div class="fld"><dt>RG</dt><dd>MG8182819 SSP/MG</dd></div>
+      <div class="fld"><dt>Nascimento</dt><dd>19/11/1974</dd></div>
+      <div class="fld"><dt>Gênero</dt><dd>F</dd></div>
+      <div class="fld"><dt>Telefone</dt><dd>(31) 98907-2567</dd></div>
+      <div class="fld"><dt>E-mail</dt><dd>ana.matos@pbh.gov.br</dd></div>
+      <div class="fld fld--wide"><dt>Endereço</dt><dd>Rua João Lemos, 439, Acaiaca — Belo Horizonte/MG · CEP 31995-150</dd></div>
+    </dl>
+  </header>
+
+  <!-- ============ CORPO ============ -->
+  <div class="body">
+
+    <!-- ===== satelite esquerdo: INVESTIMENTO ===== -->
+    <aside class="sat col-inv">
+      <section class="pan">
+        <h3>Investimento <small>2 cotas</small></h3>
+
+        <article class="cota">
+          <div class="cota-nm">Ondas Praia</div>
+          <div class="cota-un">Apartamento 014, Bloco A, Cota 18</div>
+          <div class="cota-val"><span class="dt">Compra 08/10/2019</span><span class="vl">R$ 46.091,46</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição de valores (Distrato por Atraso)<br>Réu: SPE Porto Seguro 02 / WAM Comercialização / WAM Multipropriedade</div>
+          <div class="cota-links">
+            <a href="https://drive.google.com/drive/folders/1KfPfdXmkyy1xiRKRF6cHK7skWIYjrl34">Abrir pasta ↗</a>
+            <span class="tag-ok" title="6,2 de 10 anos · interrompida em 06/01/2026">Prescrição 62% · interrompida</span>
+          </div>
+        </article>
+
+        <article class="cota">
+          <div class="cota-nm">Terra Nova Ondas</div>
+          <div class="cota-un">Apartamento 016, Bloco A, Cota 43</div>
+          <div class="cota-val"><span class="dt">Compra 27/12/2021</span><span class="vl">R$ 10.337,01</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição + tutela de urgência (Distrato por Atraso)<br>Réu: W30 Empreendimentos / WAM Comercialização / WAM Multipropriedade</div>
+          <div class="cota-links">
+            <a href="https://drive.google.com/drive/folders/1yNPRjJSd8eW7FeTpa-_DEJKeB2PDtkWr">Abrir pasta ↗</a>
+            <span class="tag-ok" title="4,0 de 10 anos · interrompida em 06/01/2026">Prescrição 40% · interrompida</span>
+          </div>
+        </article>
+
+        <div class="total">
+          <div class="lb">Total investido</div>
+          <div class="vl">R$ 56.428,47</div>
+          <div class="ex">Êxito potencial (20%): <b>R$ 11.285,69</b></div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h4>Cônjuge — vínculo familiar</h4>
+        <div class="nm">Afonso Peixoto de Matos</div>
+        <p>51 anos · CPF 030.189.646-16</p>
+        <p>(31) 99935-3747 · mvafonso2010@hotmail.com</p>
+        <p>Sem cobranças próprias</p>
+        <button class="btn" type="button">Abrir ficha do cônjuge</button>
+      </section>
+
+      <section class="note">
+        <h4>Equipe no caso</h4>
+        <div class="nm">Lorenza Tramontina Bergonsi <span style="font-weight:400;color:var(--t3)">· responsável</span></div>
+        <p>Últimos a atuar: Arthur Suzuki (20/07), Mariana Lacerda (16/07)</p>
+        <p style="margin-top:.35rem"><span class="tag-ok">0 tarefas abertas agora</span></p>
+      </section>
+    </aside>
+
+    <!-- ===== espinha central: LINHA DO CASO ===== -->
+    <main class="tl col-tl" aria-label="Linha do caso">
+
+      <!-- legenda das trilhas -->
+      <div class="tl-row" aria-hidden="true">
+        <div></div><div></div>
+        <div class="lg">
+          <span><i></i>Marco do caso</span>
+          <span><i class="i-trib"></i>Tribunal</span>
+          <span><i class="i-eq"></i>Equipe</span>
+          <span><i class="i-fin"></i>Financeiro</span>
+          <span><i class="i-et"></i>Mudança de etapa</span>
+        </div>
+      </div>
+
+      <!-- compra 1 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>08/10/2019</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Compra da cota</div>
+          <h4>Ondas Praia — Apartamento 014, Bloco A, Cota 18</h4>
+          <p class="m">Valor pago: <span class="money">R$ 46.091,46</span></p>
+        </div>
+      </div>
+
+      <!-- regua prescricao 1 -->
+      <div class="tl-row">
+        <div class="tl-date"></div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <div class="tl-card ruler">
+          <div class="rl"><span>Prescrição — Ondas Praia · <b>6,2 de 10 anos (62%)</b></span><span class="tag-ok">Interrompida em 06/01/2026</span></div>
+          <div class="track"><i style="width:62%"></i></div>
+        </div>
+      </div>
+
+      <!-- compra 2 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>27/12/2021</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Compra da cota</div>
+          <h4>Terra Nova Ondas — Apartamento 016, Bloco A, Cota 43</h4>
+          <p class="m">Valor pago: <span class="money">R$ 10.337,01</span></p>
+        </div>
+      </div>
+
+      <!-- regua prescricao 2 -->
+      <div class="tl-row">
+        <div class="tl-date"></div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <div class="tl-card ruler">
+          <div class="rl"><span>Prescrição — Terra Nova Ondas · <b>4,0 de 10 anos (40%)</b></span><span class="tag-ok">Interrompida em 06/01/2026</span></div>
+          <div class="track"><i style="width:40%"></i></div>
+        </div>
+      </div>
+
+      <!-- contrato CBC -->
+      <div class="tl-row">
+        <div class="tl-date"><b>17/06/2025</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Contrato CBC assinado <span class="tag-warn" style="text-transform:none;letter-spacing:0" title="Assinado antes do sistema atual — dados importados da pasta do Drive">pré-sistema · fonte: Drive</span></div>
+          <h4>Honorários: 20% de êxito + R$ 3.000,00 iniciais por ação</h4>
+          <p class="m">Modo Iniciais + Êxito · 2 ações = <span class="money">R$ 6.000,00</span> de iniciais</p>
+        </div>
+      </div>
+
+      <!-- primeira parcela -->
+      <div class="tl-row">
+        <div class="tl-date"><b>20/06/2025</b></div>
+        <div class="tl-dot tl-dot--fin"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-fin"><span class="kx">R$</span>Financeiro</div>
+          <h4>Primeira parcela paga</h4>
+          <p class="m">Início da série de 20 parcelas dos honorários iniciais · PIX · NF emitida</p>
+        </div>
+      </div>
+
+      <!-- ajuizamento -->
+      <div class="tl-row">
+        <div class="tl-date"><b>06/01/2026</b></div>
+        <div class="tl-dot tl-dot--ok"><span></span></div>
+        <div class="tl-card tl-card--aj">
+          <div class="tl-kind k-trib"><span class="kx">⚖</span>Ação ajuizada</div>
+          <h4>Distrato por Atraso · grupo Multipropriedade</h4>
+          <p class="m">Processo <span class="proc">1000794-84.2026.8.13.0024</span> · TJMG</p>
+          <p class="m" style="margin-top:.35rem"><span class="tag-ok">Prescrição interrompida — as réguas param aqui</span></p>
+        </div>
+      </div>
+
+      <!-- caso criado no ADVBOX -->
+      <div class="tl-row">
+        <div class="tl-date"><b>16/01/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card tl-card--trib">
+          <div class="tl-kind k-eq"><span class="kx">✎</span>Equipe · sistema</div>
+          <h4 style="font-size:.75rem">Caso criado no ADVBOX</h4>
+          <p class="m">10 dias após a distribuição · responsável: Lorenza Tramontina Bergonsi</p>
+        </div>
+      </div>
+
+      <!-- entrou em execucao -->
+      <div class="tl-row">
+        <div class="tl-date"><b>12/02/2026</b></div>
+        <div class="tl-dot tl-dot--et"><span></span></div>
+        <div class="tl-card tl-card--et">
+          <div><span class="et-pre">Quadro</span><span class="et-nm">Entrou em Execução/Cobrança</span></div>
+          <span class="dur">Judicial → Execução · 37 dias no ADVBOX</span>
+        </div>
+      </div>
+
+      <!-- andamentos colapsados -->
+      <div class="tl-row">
+        <div class="tl-date">12/02 – 30/03</div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <details class="fold">
+          <summary>7 andamentos anteriores do tribunal — expandir</summary>
+          <ul>
+            <li><b>12/02</b> · Início do cumprimento de sentença</li>
+            <li><b>18/02</b> · Intimação das executadas expedida</li>
+            <li><b>25/02</b> · Juntada de AR — WAM Multipropriedade</li>
+            <li><b>03/03</b> · Juntada de AR — SPE Porto Seguro 02</li>
+            <li><b>10/03</b> · Certidão — decurso de prazo parcial</li>
+            <li><b>18/03</b> · Despacho de mero expediente</li>
+            <li><b>30/03</b> · Conclusos para despacho</li>
+          </ul>
+        </details>
+      </div>
+
+      <!-- andamentos recentes (5 ultimos) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>31/03/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--trib">
+          <div class="tl-kind k-trib"><span class="kx">⚖</span>Tribunal</div>
+          <p class="m" style="margin-top:.1rem;color:var(--navy);font-weight:700">Petição juntada</p>
+        </div>
+      </div>
+
+      <div class="tl-row">
+        <div class="tl-date"><b>06/04/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--trib">
+          <div class="tl-kind k-trib"><span class="kx">⚖</span>Tribunal</div>
+          <p class="m" style="margin-top:.1rem;color:var(--navy);font-weight:700">Petição <span style="font-weight:400;color:var(--t3)">(ref. eventos 20 e 21)</span></p>
+        </div>
+      </div>
+
+      <div class="tl-row">
+        <div class="tl-date"><b>14/04/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--trib">
+          <div class="tl-kind k-trib"><span class="kx">⚖</span>Tribunal · TJMG</div>
+          <p class="m" style="margin-top:.1rem;color:var(--navy);font-weight:700">Conclusos para decisão</p>
+        </div>
+      </div>
+
+      <!-- etapa: intimacao pagamento -->
+      <div class="tl-row">
+        <div class="tl-date"><b>15/06/2026</b></div>
+        <div class="tl-dot tl-dot--et"><span></span></div>
+        <div class="tl-card tl-card--et">
+          <div><span class="et-pre">Etapa</span><span class="et-nm">Intimação Pagamento</span></div>
+          <span class="dur">permaneceu 23 dias</span>
+        </div>
+      </div>
+
+      <div class="tl-row">
+        <div class="tl-date"><b>07/07/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--trib">
+          <div class="tl-kind k-trib"><span class="kx">⚖</span>Tribunal</div>
+          <p class="m" style="margin-top:.1rem;color:var(--navy);font-weight:700">Decorrido prazo <span style="font-weight:400;color:var(--t3)">(ref. eventos 29–33) — abre caminho para a penhora online</span></p>
+        </div>
+      </div>
+
+      <!-- etapa: sisbajud -->
+      <div class="tl-row">
+        <div class="tl-date"><b>08/07/2026</b></div>
+        <div class="tl-dot tl-dot--et"><span></span></div>
+        <div class="tl-card tl-card--et">
+          <div><span class="et-pre">Etapa</span><span class="et-nm">SISBAJUD</span></div>
+          <span class="dur">permaneceu 12 dias</span>
+        </div>
+      </div>
+
+      <!-- sprint da equipe -->
+      <div class="tl-row">
+        <div class="tl-date"><b>10–16/07</b>2026</div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq"><span class="kx">✎</span>Equipe · sprint SISBAJUD</div>
+          <div class="task"><span class="tn"><b>Fazer cálculo SISBAJUD</b></span><span class="tw">10/07 · equipe</span></div>
+          <div class="task"><span class="tn"><b>Refazer cálculo / petição</b></span><span class="tw">15/07 · Arthur Suzuki</span></div>
+          <div class="task"><span class="tn"><b>Corrigir SISBAJUD</b></span><span class="tw">16/07 · Mariana Lacerda</span></div>
+        </div>
+      </div>
+
+      <!-- 20/07: protocolo + peticao + etapa -->
+      <div class="tl-row">
+        <div class="tl-date"><b>20/07/2026</b>ontem</div>
+        <div class="tl-dot tl-dot--ok"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq"><span class="kx">✎</span>Equipe → Tribunal</div>
+          <h4>SISBAJUD protocolado ✓</h4>
+          <p class="m">Tarefa <b>Protocolar SISBAJUD</b> concluída por <b>Arthur Suzuki</b></p>
+          <div class="seq">
+            <span class="k-trib" style="font-weight:700">⚖ Tribunal registra:</span> Petição — evento 37 &nbsp;·&nbsp;
+            <span class="k-et" style="font-weight:700">◇ Etapa:</span> SISBAJUD → <b style="color:var(--navy)">SISBAJUD - Protocolado</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOJE -->
+      <div class="tl-row">
+        <div class="tl-date"><b>21/07/2026</b>hoje</div>
+        <div class="tl-dot tl-dot--big"><span></span></div>
+        <div class="tl-card tl-card--now">
+          <div class="now-top">
+            <div>
+              <div class="now-lb">Hoje · fase atual</div>
+              <h4>Execução/Cobrança — SISBAJUD Protocolado</h4>
+            </div>
+            <span class="now-chip" title="Etapa mudou em 20/07/2026">há &lt;1 dia nesta etapa</span>
+          </div>
+          <dl class="now-grid">
+            <div class="fld"><dt>Processo</dt><dd class="proc">1000794-84.2026.8.13.0024</dd></div>
+            <div class="fld"><dt>Responsável</dt><dd>Lorenza Tramontina Bergonsi</dd></div>
+            <div class="fld"><dt>Tipo</dt><dd>Distrato por Atraso</dd></div>
+            <div class="fld"><dt>Tarefas abertas</dt><dd>0</dd></div>
+          </dl>
+
+          <div class="trilha" aria-label="Trilha de recuperação">
+            <span class="st st--on">1 · SISBAJUD</span><span class="sep">→</span>
+            <span class="st">2 · Penhora</span><span class="sep">→</span>
+            <span class="st">3 · Levantamento</span><span class="sep">→</span>
+            <span class="st st--ghost">💰 dinheiro de volta</span>
+          </div>
+          <p class="ghost-note">Próximo marco esperado: <b style="color:rgba(255,255,255,.85)">resultado do bloqueio SISBAJUD</b> — prazo típico de resposta bancária ~5 dias úteis após o protocolo.</p>
+
+          <div class="jorn" aria-label="Jornada por quadros ADVBOX">
+            <span class="q q--past">Negociação</span><span class="sep">›</span>
+            <span class="q q--past">Judicial</span><span class="sep">›</span>
+            <span class="q q--past">Recursal</span><span class="sep">›</span>
+            <span class="q q--now">Execução/Cobrança</span><span class="sep">›</span>
+            <span class="q">Arquivamento</span>
+          </div>
+          <p class="jorn-obs">Em Execução desde 12/02/2026 (159 dias) · é a fase mais longa · IDPJ→Consultoria quando necessário (não é o caso aqui)</p>
+
+          <div class="aviso">
+            <b>Conferir nº de ações</b>
+            <span>ADVBOX registra 3 ações; 2 pastas vinculadas ao mesmo processo.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- futuro: resultado do bloqueio -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date">≈ 28/07/2026</div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Marco esperado</div>
+          <h4 style="color:var(--t2)">Resultado do bloqueio SISBAJUD</h4>
+          <p class="m">Se houver saldo bloqueado → Penhora → Levantamento · êxito de 20% incide sobre o recuperado</p>
+        </div>
+      </div>
+
+      <!-- futuro: parcela -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date"><b>20/08/2026</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Próximo vencimento</div>
+          <h4 style="color:var(--t2)">Parcela 14 de 20 — honorários iniciais</h4>
+          <p class="m">Cobrança via Asaas · cliente vem pagando por PIX, todas em dia</p>
+        </div>
+      </div>
+
+      <div class="tl-row"><div></div><div></div><div class="tl-end">Fim da linha do caso · 12 andamentos, 4 tarefas e 3 mudanças de etapa consolidados · atualizada em 21/07/2026</div></div>
+    </main>
+
+    <!-- ===== satelite direito: HONORARIOS ===== -->
+    <aside class="sat col-fin">
+      <section class="pan">
+        <h3>Honorários <small>Iniciais + Êxito</small></h3>
+        <div class="hon-line"><span class="l">Êxito</span><span class="v">20% sobre o recuperado</span></div>
+        <div class="hon-line"><span class="l">Iniciais por ação</span><span class="v">R$ 3.000,00</span></div>
+        <div class="hon-line"><span class="l">Iniciais totais (2 ações)</span><span class="v">R$ 6.000,00</span></div>
+        <div class="hon-line"><span class="l">Êxito potencial</span><span class="v">R$ 11.285,69</span></div>
+        <div class="hon-line" title="Campo fees_money do ADVBOX diverge do contrato"><span class="l">Expectativa no ADVBOX</span><span class="v" style="color:var(--warn)">R$ 900,00</span></div>
+        <div class="diverg">⚠ divergente do contrato (20% = R$ 11.285,69) — <a href="#" style="color:var(--warn);font-weight:900;text-decoration:underline">revisar</a></div>
+        <hr class="hon-sep">
+
+        <div class="fin-big"><span class="a">R$ 3.930,60</span><span class="b">recebidos de R$ 6.030,60 · 65%</span></div>
+
+        <div class="seg" aria-label="13 de 20 parcelas pagas">
+          <i title="Parcela 1 · paga · NF emitida"></i><i title="Parcela 2 · paga · NF emitida"></i><i title="Parcela 3 · paga · NF emitida"></i><i title="Parcela 4 · paga · NF emitida"></i><i title="Parcela 5 · paga · NF emitida"></i><i title="Parcela 6 · paga · NF emitida"></i><i title="Parcela 7 · paga · NF emitida"></i><i title="Parcela 8 · paga · NF emitida"></i><i title="Parcela 9 · paga · NF emitida"></i><i title="Parcela 10 · paga · NF emitida"></i><i title="Parcela 11 · paga · NF emitida"></i><i title="Parcela 12 · paga · NF emitida"></i><i title="Parcela 13 · paga em 20/07 · NF em emissão"></i><i class="pend" title="Parcela 14 · venc. 20/08/2026 · pendente"></i><i class="pend" title="Parcela 15 · venc. 20/09/2026 · pendente"></i><i class="pend" title="Parcela 16 · venc. 20/10/2026 · pendente"></i><i class="pend" title="Parcela 17 · venc. 20/11/2026 · pendente"></i><i class="pend" title="Parcela 18 · venc. 20/12/2026 · pendente"></i><i class="pend" title="Parcela 19 · venc. 20/01/2027 · pendente"></i><i class="pend" title="Parcela 20 · venc. 20/02/2027 · pendente"></i>
+        </div>
+        <div class="seg-cap"><span>13/20 pagas</span><span>0 vencidas</span></div>
+
+        <div class="nf-row">
+          <span class="tag-ok" title="1 NF por parcela paga, emissão automática via Asaas">NF 12/13 emitidas</span>
+          <span class="tag-warn" title="Parcela 13 paga ontem — NF em processamento automático">NF da parcela 13 em emissão</span>
+        </div>
+
+        <div class="fin-rows">
+          <div class="hon-line"><span class="l">Forma</span><span class="v">PIX (todas em dia)</span></div>
+          <div class="hon-line"><span class="l">Última paga</span><span class="v">20/07/2026 (ontem)</span></div>
+          <div class="hon-line"><span class="l">Próximo vencimento</span><span class="v">20/08/2026</span></div>
+        </div>
+
+        <span class="adimp">✓ Cliente 100% adimplente</span>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Telefone divergente</h4>
+        <div class="nm">Kommo ≠ ficha do cliente</div>
+        <p>Lead 12832216 registra <b>(31) 8845-2870</b>; a ficha tem <b>(31) 98907-2567</b>. Notas e o bot WhatsApp podem estar falando com o número errado.</p>
+        <button class="btn btn--warn" type="button">Usar o telefone da ficha no Kommo</button>
+        <button class="btn" type="button">Abrir lead ↗</button>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Portal do Cliente</h4>
+        <div class="nm">Nunca acessou</div>
+        <p>Convite criado em 14/06/2026 · 0 acessos em 37 dias. Com o SISBAJUD protocolado, é um bom momento para reengajar.</p>
+        <button class="btn btn--warn" type="button">Reenviar convite do Portal</button>
+      </section>
+    </aside>
+
+  </div>
+</div>
+</section></div>
+  <div class="pg-panel" id="pg-recuperacao"><section class="mk-r">
+<style>
+.mk-r{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-dk:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--bad:#B91C1C;--warn:#B45309;--info:#1D4ED8;--bd:#E2E8F0;--t2:#4A5568;--t3:#5E6675;
+  background:var(--cream);font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy);
+  padding:clamp(1rem,2.5vw,2rem);box-sizing:border-box;line-height:1.45;font-size:.8125rem;}
+.mk-r *,.mk-r *::before,.mk-r *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-r a{color:var(--info);text-decoration:none;}
+.mk-r a:hover{text-decoration:underline;}
+.mk-r .wrap{max-width:84rem;margin:0 auto;min-width:0;}
+
+/* ===== header ===== */
+.mk-r .hd{background:#fff;border:1px solid var(--bd);border-radius:.875rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1.125rem 1.375rem 1rem;margin-bottom:1.25rem;}
+.mk-r .hd-top{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:flex-start;justify-content:space-between;}
+.mk-r .hd-id{min-width:0;}
+.mk-r .hd-name{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:700;font-size:1.75rem;line-height:1.15;letter-spacing:.01em;}
+.mk-r .hd-sub{color:var(--t2);font-size:.8125rem;margin-top:.2rem;}
+.mk-r .hd-sub b{color:var(--navy);font-weight:700;}
+.mk-r .hd-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}
+.mk-r .btn{font:inherit;font-size:.75rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid #CBD5E1;border-radius:.5rem;padding:.375rem .75rem;cursor:pointer;transition:background-color .18s,color .18s,border-color .18s;white-space:nowrap;}
+.mk-r .btn:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-r .btn--pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-r .btn--pri:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-r .btn--warn{color:var(--warn);border-color:#F0D5B8;}
+.mk-r .btn--warn:hover{background:var(--warn);border-color:var(--warn);color:#fff;}
+.mk-r .btn--ghost{border-color:transparent;color:var(--t2);}
+.mk-r .btn--ghost:hover{background:var(--cream);color:var(--navy);border-color:transparent;}
+.mk-r .btn--gold{background:var(--gold);border-color:var(--gold);color:var(--navy-d);}
+.mk-r .btn--gold:hover{background:#b8963d;border-color:#b8963d;color:var(--navy-d);}
+
+.mk-r .chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.75rem;}
+.mk-r .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:700;border-radius:999px;padding:.2rem .625rem;border:1px solid var(--bd);background:var(--cream);color:var(--t2);white-space:nowrap;}
+.mk-r .chip .dot{width:.4rem;height:.4rem;border-radius:50%;background:#94A3B8;flex:none;}
+.mk-r .chip--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-r .chip--ok .dot{background:var(--ok);}
+.mk-r .chip--warn{background:rgba(180,83,9,.07);border-color:rgba(180,83,9,.3);color:var(--warn);}
+.mk-r .chip--warn .dot{background:var(--warn);}
+.mk-r .chip .chip-act{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(180,83,9,.3);color:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
+.mk-r .hd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.625rem .875rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd);}
+.mk-r .fld{min-width:0;}
+.mk-r .fld dt{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.1rem;}
+.mk-r .fld dd{font-size:.8125rem;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.mk-r .fld--wide{grid-column:span 2;}
+
+/* ===== body grid ===== */
+.mk-r .body{display:grid;grid-template-columns:17.5rem minmax(0,1fr) 19rem;gap:1.25rem;align-items:start;}
+.mk-r .sat{min-width:0;}
+@media(min-width:69rem){.mk-r .sat{position:sticky;top:1rem;}}
+
+/* ===== panels ===== */
+.mk-r .pan{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1rem 1.125rem;margin-bottom:1rem;}
+.mk-r .pan h3{font-size:.8125rem;font-weight:900;letter-spacing:.01em;margin-bottom:.75rem;color:var(--navy);}
+.mk-r .pan h3 small{font-weight:400;color:var(--t3);font-size:.6875rem;margin-left:.35rem;}
+
+/* cotas */
+.mk-r .cota{padding:.75rem 0;border-top:1px solid var(--bd);}
+.mk-r .cota:first-of-type{border-top:0;padding-top:0;}
+.mk-r .cota-nm{font-weight:900;font-size:.8125rem;}
+.mk-r .cota-un{font-size:.71875rem;color:var(--t2);margin-top:.05rem;}
+.mk-r .cota-val{display:flex;justify-content:space-between;align-items:baseline;margin-top:.35rem;font-variant-numeric:tabular-nums;}
+.mk-r .cota-val .dt{font-size:.6875rem;color:var(--t3);}
+.mk-r .cota-val .vl{font-weight:900;font-size:.875rem;}
+.mk-r .cota-meta{font-size:.6875rem;color:var(--t3);margin-top:.3rem;}
+.mk-r .cota-links{display:flex;gap:.75rem;margin-top:.4rem;font-size:.71875rem;font-weight:700;flex-wrap:wrap;align-items:center;}
+.mk-r .tag-ok{display:inline-block;font-size:.625rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:999px;padding:.075rem .45rem;}
+.mk-r .tag-warn{display:inline-block;font-size:.625rem;font-weight:900;color:var(--warn);background:rgba(180,83,9,.07);border:1px solid rgba(180,83,9,.3);border-radius:999px;padding:.075rem .45rem;}
+.mk-r .total{margin-top:.5rem;padding:.75rem .875rem;background:var(--navy-d);border-radius:.625rem;color:#fff;}
+.mk-r .total .lb{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.mk-r .total .vl{font-size:1.25rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2;}
+.mk-r .total .ex{font-size:.71875rem;color:rgba(255,255,255,.75);margin-top:.35rem;padding-top:.35rem;border-top:1px solid rgba(255,255,255,.15);}
+.mk-r .total .ex b{color:#7EE2A8;font-variant-numeric:tabular-nums;}
+
+/* notes */
+.mk-r .note{background:#fff;border:1px solid var(--bd);border-radius:.75rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.75rem;color:var(--t2);}
+.mk-r .note h4{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.4rem;}
+.mk-r .note .nm{font-weight:900;color:var(--navy);font-size:.8125rem;}
+.mk-r .note p{margin-top:.15rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.mk-r .note .btn{margin-top:.55rem;}
+.mk-r .note--warn{background:#FFF9F1;border-color:#F0D5B8;}
+
+/* honorarios / financeiro */
+.mk-r .hon-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;padding:.3rem 0;font-variant-numeric:tabular-nums;}
+.mk-r .hon-line .l{color:var(--t2);}
+.mk-r .hon-line .v{font-weight:900;text-align:right;}
+.mk-r .hon-sep{border:0;border-top:1px solid var(--bd);margin:.6rem 0;}
+.mk-r .fin-big{display:flex;align-items:baseline;gap:.4rem;font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-r .fin-big .a{font-size:1.25rem;font-weight:900;color:var(--ok);}
+.mk-r .fin-big .b{font-size:.75rem;color:var(--t3);}
+.mk-r .seg{display:flex;gap:2px;margin:.55rem 0 .3rem;}
+.mk-r .seg i{flex:1 1 0;height:.55rem;border-radius:2px;background:var(--ok);}
+.mk-r .seg i.pend{background:#fff;border:1px dashed #B8C4D2;}
+.mk-r .seg-cap{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mk-r .fin-rows{margin-top:.6rem;border-top:1px solid var(--bd);padding-top:.5rem;}
+.mk-r .adimp{display:inline-flex;align-items:center;gap:.35rem;margin-top:.6rem;font-size:.71875rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:.5rem;padding:.35rem .625rem;}
+
+/* recuperado (satelite estrela) */
+.mk-r .rec-big{font-size:1.5rem;font-weight:900;color:var(--ok);font-variant-numeric:tabular-nums;line-height:1.15;}
+.mk-r .rec-sub{font-size:.6875rem;color:var(--t3);margin-top:.15rem;font-variant-numeric:tabular-nums;}
+.mk-r .split{display:flex;height:.8rem;border-radius:999px;overflow:hidden;margin-top:.7rem;border:1px solid var(--bd);}
+.mk-r .split .c{background:var(--ok);}
+.mk-r .split .e{background:var(--gold);}
+.mk-r .split-cap{display:flex;flex-direction:column;gap:.2rem;margin-top:.45rem;font-size:.71875rem;font-variant-numeric:tabular-nums;}
+.mk-r .split-cap .row{display:flex;justify-content:space-between;gap:.5rem;}
+.mk-r .split-cap .k{display:inline-flex;align-items:center;gap:.35rem;color:var(--t2);}
+.mk-r .split-cap .k i{width:.55rem;height:.55rem;border-radius:2px;flex:none;}
+.mk-r .split-cap .k i.c{background:var(--ok);}
+.mk-r .split-cap .k i.e{background:var(--gold);}
+.mk-r .split-cap .v{font-weight:900;}
+.mk-r .rec-wait{display:flex;align-items:center;gap:.4rem;margin-top:.7rem;font-size:.71875rem;font-weight:900;color:var(--warn);background:rgba(180,83,9,.07);border:1px solid rgba(180,83,9,.3);border-radius:.5rem;padding:.35rem .625rem;}
+
+/* ===== timeline ===== */
+.mk-r .tl{--dw:6rem;position:relative;min-width:0;}
+.mk-r .tl::before{content:'';position:absolute;top:2.1rem;bottom:2.25rem;left:calc(var(--dw) + 1.35rem);width:2px;background:#B9C6D6;}
+.mk-r .legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.65625rem;color:var(--t3);margin:0 0 .8rem calc(var(--dw) + 2.1rem);}
+.mk-r .legend span{display:inline-flex;align-items:center;gap:.3rem;font-weight:700;}
+.mk-r .legend i{width:.55rem;height:.55rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);flex:none;}
+.mk-r .legend i.lg-trib{background:var(--navy-l);}
+.mk-r .legend i.lg-eq{border-color:var(--gold-dk);}
+.mk-r .legend i.lg-fin{background:var(--ok);border-color:var(--ok);}
+.mk-r .legend i.lg-rel{border-color:var(--info);}
+.mk-r .tl-row{display:grid;grid-template-columns:var(--dw) 1.25rem minmax(0,1fr);column-gap:.75rem;margin-bottom:.875rem;position:relative;}
+.mk-r .tl-date{text-align:right;font-size:.71875rem;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;padding-top:.55rem;line-height:1.3;}
+.mk-r .tl-date b{display:block;color:var(--navy);}
+.mk-r .tl-dot{display:flex;justify-content:center;padding-top:.6rem;}
+.mk-r .tl-dot span{width:.75rem;height:.75rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);z-index:1;}
+.mk-r .tl-dot--tick span{width:.45rem;height:.45rem;border-width:2px;border-color:#B9C6D6;margin-top:.15rem;}
+.mk-r .tl-dot--big span{width:1.05rem;height:1.05rem;background:var(--navy-d);border:3px solid var(--gold);margin-top:-.1rem;}
+.mk-r .tl-dot--trib span{background:var(--navy-l);}
+.mk-r .tl-dot--eq span{border-color:var(--gold-dk);}
+.mk-r .tl-dot--fin span{background:var(--ok);border-color:var(--ok);}
+.mk-r .tl-dot--rel span{border-color:var(--info);}
+.mk-r .tl-card{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:.75rem .875rem;min-width:0;}
+.mk-r .tl-card h4{font-size:.8125rem;font-weight:900;}
+.mk-r .tl-card .m{font-size:.71875rem;color:var(--t2);margin-top:.15rem;overflow-wrap:anywhere;}
+.mk-r .tl-card .money{font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);}
+.mk-r .tl-kind{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+.mk-r .quem{display:inline-block;font-size:.625rem;font-weight:900;color:var(--gold-dk);background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.45);border-radius:999px;padding:.075rem .45rem;}
+
+/* colapsado */
+.mk-r .tl-card--fold{background:transparent;border:1px solid var(--bd);box-shadow:none;padding:.5rem .875rem;color:var(--t3);}
+.mk-r .tl-card--fold .m{color:var(--t3);}
+.mk-r .tl-card--fold .abrir{font-size:.6875rem;font-weight:700;color:var(--info);cursor:pointer;}
+
+/* celebratorio */
+.mk-r .tl-card--win{border-color:rgba(21,128,61,.5);background:#F5FBF7;}
+.mk-r .tl-card--win .win-vl{font-size:1.375rem;font-weight:900;color:var(--ok);font-variant-numeric:tabular-nums;line-height:1.2;margin-top:.15rem;}
+.mk-r .proc{font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere;}
+
+/* HOJE */
+.mk-r .tl-card--now{background:var(--navy-d);border-color:var(--navy-d);color:#fff;padding:1.125rem 1.25rem;border-radius:1rem;}
+.mk-r .tl-card--now .now-lb{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+.mk-r .tl-card--now h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:.25rem;}
+.mk-r .tl-card--now .m{color:rgba(255,255,255,.72);}
+.mk-r .tl-card--now .proc{color:#fff;}
+.mk-r .now-hero{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem 1rem;margin-top:.55rem;}
+.mk-r .now-hero .big{font-size:1.75rem;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1.1;}
+.mk-r .now-hero .cap{font-size:.71875rem;color:rgba(255,255,255,.72);}
+.mk-r .now-chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.6rem;}
+.mk-r .now-chip{font-size:.65625rem;font-weight:900;border-radius:999px;padding:.2rem .6rem;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.8);white-space:nowrap;}
+.mk-r .now-chip--warn{background:rgba(180,83,9,.28);border-color:rgba(217,119,6,.6);color:#FDE9D2;}
+.mk-r .now-split{margin-top:.8rem;border-top:1px solid rgba(255,255,255,.14);padding-top:.7rem;}
+.mk-r .now-split .ttl{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.55);margin-bottom:.35rem;}
+.mk-r .now-split .rw{display:flex;justify-content:space-between;gap:.5rem;font-size:.71875rem;padding:.15rem 0;font-variant-numeric:tabular-nums;}
+.mk-r .now-split .rw .l{color:rgba(255,255,255,.65);}
+.mk-r .now-split .rw .v{font-weight:900;color:#fff;}
+.mk-r .now-split .rw--neg .v{color:#F6C9A8;}
+.mk-r .now-split .rw--tot{border-top:1px solid rgba(255,255,255,.2);margin-top:.3rem;padding-top:.4rem;}
+.mk-r .now-split .rw--tot .v{color:var(--gold);font-size:.875rem;}
+.mk-r .bank{display:flex;flex-wrap:wrap;gap:.25rem 1.25rem;margin-top:.7rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:.5rem;padding:.55rem .75rem;font-size:.71875rem;}
+.mk-r .bank .fld dt{color:rgba(255,255,255,.5);}
+.mk-r .bank .fld dd{color:#fff;}
+.mk-r .now-acts{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem;}
+.mk-r .btn--nowghost{background:transparent;border-color:rgba(255,255,255,.35);color:#fff;}
+.mk-r .btn--nowghost:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.5);color:#fff;}
+.mk-r .now-grid{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.71875rem;}
+.mk-r .now-grid .fld dt{color:rgba(255,255,255,.55);}
+.mk-r .now-grid .fld dd{color:#fff;}
+.mk-r .jorn{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.6875rem;}
+.mk-r .jorn .q{color:rgba(255,255,255,.5);}
+.mk-r .jorn .q--past{color:rgba(255,255,255,.72);}
+.mk-r .jorn .q--now{background:rgba(201,168,76,.18);border:1px solid var(--gold);color:var(--gold);font-weight:900;border-radius:.375rem;padding:.1rem .45rem;}
+.mk-r .jorn .sep{color:rgba(255,255,255,.3);}
+.mk-r .jorn-obs{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;}
+
+/* futuro */
+.mk-r .tl-card--fut{border:1px dashed #B8C4D2;background:transparent;box-shadow:none;color:var(--t2);}
+.mk-r .tl-row--fut .tl-dot span{border-style:dashed;border-color:#94A3B8;background:#fff;}
+.mk-r .tl-end{grid-column:3;font-size:.6875rem;color:var(--t3);padding-left:.125rem;}
+
+/* ===== responsive ===== */
+@media(max-width:69rem){
+  .mk-r .body{grid-template-columns:minmax(0,1fr);}
+  .mk-r .col-tl{order:1;}
+  .mk-r .col-inv{order:2;}
+  .mk-r .col-fin{order:3;}
+}
+@media(max-width:36rem){
+  .mk-r{padding:.75rem;}
+  .mk-r .tl{--dw:4.4rem;}
+  .mk-r .legend{margin-left:0;}
+  .mk-r .tl-date{font-size:.65625rem;}
+  .mk-r .hd-name{font-size:1.4rem;}
+  .mk-r .hd-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .mk-r .fld--wide{grid-column:span 2;}
+  .mk-r .tl-card--now{padding:.875rem;}
+  .mk-r .now-hero .big{font-size:1.4rem;}
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ CABECALHO ============ -->
+  <header class="hd">
+    <div class="hd-top">
+      <div class="hd-id">
+        <h1 class="hd-name">Maria Cristina da Silva Amorim</h1>
+        <p class="hd-sub"><b>37 anos</b> · Gestão de Pessoas · Casada · Brasileira · São Bernardo do Campo/SP · <span class="tag-ok" title="Sentença cumprida, valor levantado">Caso ganho — valor recuperado</span></p>
+      </div>
+      <div class="hd-actions">
+        <button class="btn btn--pri" type="button" title="Edição manual vence a sincronização automática">Editar dados</button>
+        <button class="btn" type="button">Copiar dados</button>
+        <button class="btn btn--ghost" type="button">Exportar ficha</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip--warn"><i class="dot"></i>Repasse pendente há 20 dias<span class="chip-act" role="button">Ir ao repasse</span></span>
+      <span class="chip chip--ok"><i class="dot"></i>MLE recebido 01/07/2026 · R$ 24.085,13</span>
+      <span class="chip chip--ok"><i class="dot"></i>Kommo lead 10691422</span>
+      <span class="chip chip--ok"><i class="dot"></i>ADVBOX vinculado · 2 processos</span>
+      <span class="chip chip--warn"><i class="dot"></i>Portal ativo · nunca acessado<span class="chip-act" role="button">Reenviar convite</span></span>
+      <span class="chip">0 alertas de risco</span>
+    </div>
+
+    <dl class="hd-fields">
+      <div class="fld"><dt>CPF</dt><dd>369.095.408-83</dd></div>
+      <div class="fld"><dt>Nascimento</dt><dd>30/04/1989</dd></div>
+      <div class="fld"><dt>Gênero</dt><dd>F</dd></div>
+      <div class="fld"><dt>Telefone</dt><dd>(11) 96898-6642</dd></div>
+      <div class="fld fld--wide"><dt>E-mail</dt><dd>mcristinaamorim@yahoo.com.br</dd></div>
+      <div class="fld"><dt>Cidade</dt><dd>São Bernardo do Campo/SP</dd></div>
+    </dl>
+  </header>
+
+  <!-- ============ CORPO ============ -->
+  <div class="body">
+
+    <!-- ===== satelite esquerdo: INVESTIMENTO ===== -->
+    <aside class="sat col-inv">
+      <section class="pan">
+        <h3>Investimento <small>2 cotas · compradas no mesmo dia</small></h3>
+
+        <article class="cota">
+          <div class="cota-nm">Solar das Águas</div>
+          <div class="cota-un">Apto 1406, Bloco C, Cota 07</div>
+          <div class="cota-val"><span class="dt">Compra 25/01/2024</span><span class="vl">R$ 12.953,94</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição de valores</div>
+          <div class="cota-links">
+            <a href="#">Abrir pasta ↗</a>
+            <span class="tag-ok" title="Régua parou na distribuição da ação">Prescrição interrompida 10/10/2025</span>
+          </div>
+        </article>
+
+        <article class="cota">
+          <div class="cota-nm">Royal Prime</div>
+          <div class="cota-un">UH 712, Bloco A — Master Ouro</div>
+          <div class="cota-val"><span class="dt">Compra 25/01/2024</span><span class="vl">R$ 16.481,00</span></div>
+          <div class="cota-meta">Rescisão contratual c/ restituição de valores</div>
+          <div class="cota-links">
+            <a href="#">Abrir pasta ↗</a>
+            <span class="tag-ok" title="Régua parou na distribuição da ação">Prescrição interrompida 10/10/2025</span>
+          </div>
+        </article>
+
+        <div class="total">
+          <div class="lb">Total investido</div>
+          <div class="vl">R$ 29.434,94</div>
+          <div class="ex">Recuperado: <b>R$ 24.085,13</b> · 82% do investido<br>Honorários: só iniciais — êxito 0% (não se aplica)</div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h4>Cônjuge — vínculo familiar</h4>
+        <div class="nm">Gideone Lazaro de Amorim dos Santos</div>
+        <p><span class="tag-ok">Vinculado ao cadastro</span></p>
+        <p>Sem cobranças próprias</p>
+        <button class="btn" type="button">Abrir ficha do cônjuge</button>
+      </section>
+    </aside>
+
+    <!-- ===== espinha central: LINHA DO CASO ===== -->
+    <main class="tl col-tl" aria-label="Linha do caso">
+
+      <div class="legend" aria-label="Trilhas da linha do caso">
+        <span><i class="lg-trib"></i>Tribunal</span>
+        <span><i class="lg-eq"></i>Equipe</span>
+        <span><i class="lg-fin"></i>Financeiro</span>
+        <span><i class="lg-rel"></i>Relacionamento</span>
+      </div>
+
+      <!-- compra (colapsada: 2 cotas no mesmo dia) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>25/01/2024</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Compra das cotas · 2 no mesmo dia</div>
+          <h4>Solar das Águas + Royal Prime</h4>
+          <p class="m">Apto 1406C cota 07 (<span class="money">R$ 12.953,94</span>) · UH 712A Master Ouro (<span class="money">R$ 16.481,00</span>) · total <span class="money">R$ 29.434,94</span></p>
+        </div>
+      </div>
+
+      <!-- contrato CBC -->
+      <div class="tl-row">
+        <div class="tl-date"><b>22/06/2025</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Contrato CBC</div>
+          <h4>Honorários: só iniciais — R$ 3.000,00 por ação (×2)</h4>
+          <p class="m">Modo Só Iniciais · 0% de êxito · total contratado <span class="money">R$ 6.000,00</span></p>
+        </div>
+      </div>
+
+      <!-- ajuizamento -->
+      <div class="tl-row">
+        <div class="tl-date"><b>10/10/2025</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Tribunal · Ação distribuída</div>
+          <h4>Fase de conhecimento</h4>
+          <p class="m">Processo <span class="proc">4000620-34.2025.8.26.0400</span></p>
+          <p class="m" style="margin-top:.35rem"><span class="tag-ok">Prescrição interrompida — as réguas param aqui</span></p>
+        </div>
+      </div>
+
+      <!-- andamentos colapsados -->
+      <div class="tl-row">
+        <div class="tl-date">out/2025<br>—jan/2026</div>
+        <div class="tl-dot tl-dot--tick"><span></span></div>
+        <div class="tl-card tl-card--fold">
+          <p class="m">14 andamentos do tribunal colapsados — citação, contestação, sentença procedente · <span class="abrir" role="button">expandir</span></p>
+        </div>
+      </div>
+
+      <!-- entrou em execucao -->
+      <div class="tl-row">
+        <div class="tl-date"><b>29/01/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Equipe · Mudança de quadro</div>
+          <h4>Entrou em Execução/Cobrança</h4>
+          <p class="m">Sentença favorável em fase de cumprimento forçado</p>
+        </div>
+      </div>
+
+      <!-- sentenca cumprida + guia -->
+      <div class="tl-row">
+        <div class="tl-date"><b>02/03/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Equipe · Saiu da Execução</div>
+          <h4>Sentença cumprida — abre o cumprimento de sentença</h4>
+          <p class="m">Novo processo <span class="proc">4000786-32.2026.8.26.0400</span></p>
+          <p class="m" style="margin-top:.35rem">Tarefa: Conversar com cliente (guia cumprimento) · <span class="quem">Maria Emanuele</span></p>
+        </div>
+      </div>
+
+      <!-- MLE protocolado -->
+      <div class="tl-row">
+        <div class="tl-date"><b>29/06/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Tribunal · Levantamento</div>
+          <h4>MLE protocolado — mandado de levantamento eletrônico</h4>
+          <p class="m">Valor bloqueado liberado para transferência</p>
+        </div>
+      </div>
+
+      <!-- DINHEIRO NA CONTA -->
+      <div class="tl-row">
+        <div class="tl-date"><b>01/07/2026</b></div>
+        <div class="tl-dot tl-dot--fin"><span></span></div>
+        <div class="tl-card tl-card--win">
+          <div class="tl-kind" style="color:var(--ok)">Financeiro · Valor recuperado</div>
+          <div class="win-vl">R$ 24.085,13 caíram na conta</div>
+          <p class="m">Recebido via MLE na conta nubank_pj · 82% do que a cliente investiu nas cotas</p>
+        </div>
+      </div>
+
+      <!-- dados bancarios -->
+      <div class="tl-row">
+        <div class="tl-date"><b>06/07/2026</b></div>
+        <div class="tl-dot tl-dot--rel"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind">Relacionamento · Cliente</div>
+          <h4>Cliente cadastrou dados bancários para o repasse</h4>
+          <p class="m">Bradesco · ag 7748 · cc 129158-0 · PIX por CPF</p>
+        </div>
+      </div>
+
+      <!-- HOJE -->
+      <div class="tl-row">
+        <div class="tl-date"><b>21/07/2026</b>hoje</div>
+        <div class="tl-dot tl-dot--big"><span></span></div>
+        <div class="tl-card tl-card--now">
+          <div class="now-lb">Hoje · Repasse pendente</div>
+          <h4>O dinheiro está na conta — falta repassar à cliente</h4>
+
+          <div class="now-hero">
+            <span class="big">R$ 19.927,25</span>
+            <span class="cap">a repassar à cliente · escritório retém R$ 4.157,88</span>
+          </div>
+
+          <div class="now-chips">
+            <span class="now-chip now-chip--warn">Aguardando repasse há 20 dias</span>
+            <span class="now-chip">Há 141 dias na etapa Em Cumprimento</span>
+            <span class="now-chip">Dados bancários prontos desde 06/07</span>
+          </div>
+
+          <div class="now-split">
+            <div class="ttl">Cálculo da prestação de contas</div>
+            <div class="rw"><span class="l">Devolução (principal)</span><span class="v">R$ 16.906,70</span></div>
+            <div class="rw"><span class="l">Multa art. 523 CPC</span><span class="v">R$ 1.859,74</span></div>
+            <div class="rw"><span class="l">Sucumbência (do escritório)</span><span class="v">R$ 1.690,67</span></div>
+            <div class="rw"><span class="l">Custas adiantadas (da cliente)</span><span class="v">R$ 1.725,03</span></div>
+            <div class="rw rw--neg"><span class="l">Honorários iniciais em aberto (descontados)</span><span class="v">− R$ 600,00</span></div>
+            <div class="rw rw--tot"><span class="l">Repasse à cliente</span><span class="v">R$ 19.927,25</span></div>
+          </div>
+
+          <dl class="bank">
+            <div class="fld"><dt>Banco</dt><dd>Bradesco</dd></div>
+            <div class="fld"><dt>Agência</dt><dd>7748</dd></div>
+            <div class="fld"><dt>Conta</dt><dd>129158-0</dd></div>
+            <div class="fld"><dt>PIX</dt><dd>CPF 369.095.408-83</dd></div>
+          </dl>
+
+          <div class="now-acts">
+            <button class="btn btn--gold" type="button">Registrar repasse</button>
+            <button class="btn btn--nowghost" type="button">Copiar dados bancários</button>
+            <button class="btn btn--nowghost" type="button">Avisar cliente no Kommo</button>
+          </div>
+
+          <dl class="now-grid">
+            <div class="fld"><dt>Cumprimento</dt><dd class="proc">4000786-32.2026.8.26.0400</dd></div>
+            <div class="fld"><dt>Responsável</dt><dd>Lorenza Tramontina Bergonsi</dd></div>
+            <div class="fld"><dt>Etapa</dt><dd>Em Cumprimento</dd></div>
+          </dl>
+
+          <div class="jorn" aria-label="Jornada por quadros ADVBOX">
+            <span class="q q--past">Negociação</span><span class="sep">›</span>
+            <span class="q q--past">Judicial</span><span class="sep">›</span>
+            <span class="q q--past">Execução/Cobrança</span><span class="sep">›</span>
+            <span class="q q--now">Arquivamento</span>
+          </div>
+          <p class="jorn-obs">Quadro Arquivamento · o caso encerra após o repasse e a NF</p>
+        </div>
+      </div>
+
+      <!-- futuro: NF -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date">após o<br>repasse</div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Próximo passo</div>
+          <h4 style="color:var(--t2)">Emitir e conferir NF do repasse</h4>
+          <p class="m">Nota fiscal sobre a parcela do escritório (R$ 4.157,88) · conferência na aba Asaas</p>
+        </div>
+      </div>
+
+      <!-- futuro: arquivamento -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date">depois</div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Encerramento</div>
+          <h4 style="color:var(--t2)">Arquivamento definitivo do caso</h4>
+          <p class="m">Restam 10 parcelas de honorários iniciais em cobrança regular até 02/2027</p>
+        </div>
+      </div>
+
+      <div class="tl-row"><div></div><div></div><div class="tl-end">Fim da linha do caso · atualizada em 21/07/2026</div></div>
+    </main>
+
+    <!-- ===== satelite direito: RECUPERADO + HONORARIOS ===== -->
+    <aside class="sat col-fin">
+      <section class="pan">
+        <h3>Recuperado <small>desfecho do caso</small></h3>
+        <div class="rec-big">R$ 24.085,13</div>
+        <div class="rec-sub">Recebido em 01/07/2026 · conta nubank_pj · MLE de 29/06</div>
+
+        <div class="split" role="img" aria-label="Divisão: cliente R$ 19.927,25, escritório R$ 4.157,88">
+          <i class="c" style="flex:19927"></i><i class="e" style="flex:4158"></i>
+        </div>
+        <div class="split-cap">
+          <div class="row"><span class="k"><i class="c"></i>Cliente (83%)</span><span class="v">R$ 19.927,25</span></div>
+          <div class="row"><span class="k"><i class="e"></i>Escritório (17%)</span><span class="v">R$ 4.157,88</span></div>
+        </div>
+
+        <div class="rec-wait">Aguardando repasse há 20 dias — ação no nó Hoje</div>
+      </section>
+
+      <section class="pan">
+        <h3>Honorários <small>Só Iniciais</small></h3>
+        <div class="hon-line"><span class="l">Êxito</span><span class="v">0% — não se aplica</span></div>
+        <div class="hon-line"><span class="l">Iniciais por ação</span><span class="v">R$ 3.000,00 (×2)</span></div>
+        <hr class="hon-sep">
+
+        <div class="fin-big"><span class="a">R$ 3.124,97</span><span class="b">recebidos de R$ 6.124,97 · 51%</span></div>
+
+        <div class="seg" aria-label="10 de 20 parcelas pagas">
+          <i title="Parcela 1 · paga"></i><i title="Parcela 2 · paga"></i><i title="Parcela 3 · paga"></i><i title="Parcela 4 · paga"></i><i title="Parcela 5 · paga"></i><i title="Parcela 6 · paga"></i><i title="Parcela 7 · paga"></i><i title="Parcela 8 · paga"></i><i title="Parcela 9 · paga"></i><i title="Parcela 10 · paga em 07/07/2026"></i><i class="pend" title="Parcela 11 · pendente"></i><i class="pend" title="Parcela 12 · pendente"></i><i class="pend" title="Parcela 13 · pendente"></i><i class="pend" title="Parcela 14 · pendente"></i><i class="pend" title="Parcela 15 · pendente"></i><i class="pend" title="Parcela 16 · pendente"></i><i class="pend" title="Parcela 17 · pendente"></i><i class="pend" title="Parcela 18 · pendente"></i><i class="pend" title="Parcela 19 · pendente"></i><i class="pend" title="Parcela 20 · pendente"></i>
+        </div>
+        <div class="seg-cap"><span>10/20 pagas</span><span>0 vencidas</span></div>
+
+        <div class="fin-rows">
+          <div class="hon-line"><span class="l">Última paga</span><span class="v">07/07/2026</span></div>
+          <div class="hon-line"><span class="l">Próximo vencimento</span><span class="v">20/09/2026</span></div>
+          <div class="hon-line"><span class="l">Em aberto no split</span><span class="v">R$ 600,00 descontados</span></div>
+          <div class="hon-line"><span class="l">NF das parcelas</span><span class="v"><span class="tag-ok">10/10 emitidas</span></span></div>
+        </div>
+
+        <span class="adimp">✓ Cliente adimplente · 0 vencidas</span>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Relacionamento</h4>
+        <div class="nm">Portal ativo, nunca acessado</div>
+        <p>A cliente tem acesso ao Portal do Cliente mas nunca entrou — o aviso do repasse pode passar despercebido por lá.</p>
+        <button class="btn btn--warn" type="button">Reenviar convite do portal</button>
+      </section>
+    </aside>
+
+  </div>
+</div>
+</section></div>
+</div>
+<div class="pg-note">Dados ao vivo do Supabase em 21/07/2026. Fontes novas: vw_bi_andamentos (tribunal), bi_processos_log + vw_bi_funil_etapas (etapas e permanência), vw_bi_tarefas (equipe), kommo_leads, cliente_portal_tokens, NFs do Asaas, prest_mles + cálculo da Prestação (recuperação/repasse), dados bancários. Estados honestos: o que não existe aparece como pendência, nunca inventado.</div>
+<script>
+document.querySelectorAll('.pg-tab').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.pg-tab').forEach(function(x){ x.setAttribute('aria-selected','false'); });
+    b.setAttribute('aria-selected','true');
+    document.querySelectorAll('.pg-panel').forEach(function(p){ p.classList.remove('on'); });
+    document.getElementById('pg-'+b.dataset.t).classList.add('on');
+    window.scrollTo({top:0});
+  });
+});
+</script>
+</body></html>

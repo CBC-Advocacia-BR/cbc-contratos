@@ -1,0 +1,454 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>Linha do Caso — momento-1-venda-erika</title></head><body style="margin:0;background:#E8EDF3"><section class="mk-v">
+<style>
+.mk-v{--navy:#1B3A5C;--navy-l:#264A72;--navy-d:#0F2035;--gold:#C9A84C;--gold-dk:#8a6d1f;--cream:#F0F4F8;--ok:#15803D;--bad:#B91C1C;--warn:#B45309;--info:#1D4ED8;--bd:#E2E8F0;--t2:#4A5568;--t3:#5E6675;
+  background:var(--cream);font-family:'Lato',-apple-system,'Segoe UI',sans-serif;color:var(--navy);
+  padding:clamp(1rem,2.5vw,2rem);box-sizing:border-box;line-height:1.45;font-size:.8125rem;}
+.mk-v *,.mk-v *::before,.mk-v *::after{box-sizing:border-box;margin:0;padding:0;}
+.mk-v a{color:var(--info);text-decoration:none;}
+.mk-v a:hover{text-decoration:underline;}
+.mk-v .wrap{max-width:84rem;margin:0 auto;min-width:0;}
+
+/* ===== header ===== */
+.mk-v .hd{background:#fff;border:1px solid var(--bd);border-radius:.875rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1.125rem 1.375rem 1rem;margin-bottom:1.25rem;}
+.mk-v .hd-top{display:flex;flex-wrap:wrap;gap:.75rem 1.25rem;align-items:flex-start;justify-content:space-between;}
+.mk-v .hd-id{min-width:0;}
+.mk-v .hd-name{font-family:'Cormorant Garamond',Georgia,'Times New Roman',serif;font-weight:700;font-size:1.75rem;line-height:1.15;letter-spacing:.01em;}
+.mk-v .hd-sub{color:var(--t2);font-size:.8125rem;margin-top:.2rem;}
+.mk-v .hd-sub b{color:var(--navy);font-weight:700;}
+.mk-v .hd-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;}
+.mk-v .btn{font:inherit;font-size:.75rem;font-weight:700;color:var(--navy);background:#fff;border:1px solid #CBD5E1;border-radius:.5rem;padding:.375rem .75rem;cursor:pointer;transition:background-color .18s,color .18s,border-color .18s;white-space:nowrap;}
+.mk-v .btn:hover{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-v .btn--pri{background:var(--navy);border-color:var(--navy);color:#fff;}
+.mk-v .btn--pri:hover{background:var(--navy-l);border-color:var(--navy-l);}
+.mk-v .btn--warn{color:var(--warn);border-color:#F0D5B8;}
+.mk-v .btn--warn:hover{background:var(--warn);border-color:var(--warn);color:#fff;}
+.mk-v .btn--ghost{border-color:transparent;color:var(--t2);}
+.mk-v .btn--ghost:hover{background:var(--cream);color:var(--navy);border-color:transparent;}
+
+.mk-v .chips{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:.75rem;}
+.mk-v .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:700;border-radius:999px;padding:.2rem .625rem;border:1px solid var(--bd);background:var(--cream);color:var(--t2);white-space:nowrap;}
+.mk-v .chip .dot{width:.4rem;height:.4rem;border-radius:50%;background:#94A3B8;flex:none;}
+.mk-v .chip--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-v .chip--ok .dot{background:var(--ok);}
+.mk-v .chip--warn{background:rgba(180,83,9,.07);border-color:rgba(180,83,9,.3);color:var(--warn);}
+.mk-v .chip--warn .dot{background:var(--warn);}
+.mk-v .chip--warn .chip-act{margin-left:.25rem;padding-left:.5rem;border-left:1px solid rgba(180,83,9,.3);color:var(--warn);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.mk-v .chip--info{background:rgba(29,78,216,.06);border-color:rgba(29,78,216,.25);color:var(--info);}
+.mk-v .chip--info .dot{background:var(--info);}
+
+.mk-v .hd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.625rem .875rem;margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--bd);}
+.mk-v .fld{min-width:0;}
+.mk-v .fld dt{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.1rem;}
+.mk-v .fld dd{font-size:.8125rem;color:var(--navy);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.mk-v .fld--wide{grid-column:span 2;}
+.mk-v .fld dd .miss{color:var(--t3);font-style:italic;}
+
+/* ===== body grid ===== */
+.mk-v .body{display:grid;grid-template-columns:17.5rem minmax(0,1fr) 19rem;gap:1.25rem;align-items:start;}
+.mk-v .sat{min-width:0;}
+@media(min-width:69rem){.mk-v .sat{position:sticky;top:1rem;}}
+
+/* ===== panels ===== */
+.mk-v .pan{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:1rem 1.125rem;margin-bottom:1rem;}
+.mk-v .pan h3{font-size:.8125rem;font-weight:900;letter-spacing:.01em;margin-bottom:.75rem;color:var(--navy);}
+.mk-v .pan h3 small{font-weight:400;color:var(--t3);font-size:.6875rem;margin-left:.35rem;}
+
+.mk-v .cota{padding:.75rem 0 .1rem;}
+.mk-v .cota-nm{font-weight:900;font-size:.8125rem;}
+.mk-v .cota-un{font-size:.71875rem;color:var(--t2);margin-top:.05rem;}
+.mk-v .cota-meta{font-size:.6875rem;color:var(--t3);margin-top:.3rem;}
+.mk-v .pend-box{margin-top:.55rem;border:1px dashed #B8C4D2;border-radius:.5rem;padding:.5rem .625rem;font-size:.71875rem;color:var(--t3);}
+.mk-v .pend-box b{color:var(--t2);font-weight:700;}
+.mk-v .tag-ok{display:inline-block;font-size:.625rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:999px;padding:.075rem .45rem;}
+.mk-v .tag-mut{display:inline-block;font-size:.625rem;font-weight:900;color:var(--t3);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.075rem .45rem;}
+.mk-v .total{margin-top:.75rem;padding:.75rem .875rem;background:var(--navy-d);border-radius:.625rem;color:#fff;}
+.mk-v .total .lb{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);}
+.mk-v .total .vl{font-size:1.05rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.25;}
+.mk-v .total .ex{font-size:.71875rem;color:rgba(255,255,255,.75);margin-top:.35rem;padding-top:.35rem;border-top:1px solid rgba(255,255,255,.15);}
+
+/* note cards */
+.mk-v .note{background:#fff;border:1px solid var(--bd);border-radius:.75rem;padding:.875rem 1rem;margin-bottom:1rem;font-size:.75rem;color:var(--t2);}
+.mk-v .note h4{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:.4rem;}
+.mk-v .note .nm{font-weight:900;color:var(--navy);font-size:.8125rem;}
+.mk-v .note p{margin-top:.15rem;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.mk-v .note .btn{margin-top:.55rem;}
+.mk-v .note--warn{background:#FFF9F1;border-color:#F0D5B8;}
+
+/* honorarios */
+.mk-v .hon-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.75rem;padding:.3rem 0;font-variant-numeric:tabular-nums;}
+.mk-v .hon-line .l{color:var(--t2);}
+.mk-v .hon-line .v{font-weight:900;text-align:right;}
+.mk-v .hon-sep{border:0;border-top:1px solid var(--bd);margin:.6rem 0;}
+.mk-v .fin-big{display:flex;align-items:baseline;gap:.4rem;font-variant-numeric:tabular-nums;flex-wrap:wrap;}
+.mk-v .fin-big .a{font-size:1.25rem;font-weight:900;color:var(--ok);}
+.mk-v .fin-big .b{font-size:.75rem;color:var(--t3);}
+.mk-v .seg{display:flex;gap:2px;margin:.55rem 0 .3rem;}
+.mk-v .seg i{flex:1 1 0;height:.55rem;border-radius:2px;background:var(--ok);}
+.mk-v .seg i.pend{background:#fff;border:1px dashed #B8C4D2;}
+.mk-v .seg-cap{display:flex;justify-content:space-between;font-size:.6875rem;color:var(--t3);font-variant-numeric:tabular-nums;}
+.mk-v .fin-rows{margin-top:.6rem;border-top:1px solid var(--bd);padding-top:.5rem;}
+.mk-v .adimp{display:inline-flex;align-items:center;gap:.35rem;margin-top:.6rem;font-size:.71875rem;font-weight:900;color:var(--ok);background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.28);border-radius:.5rem;padding:.35rem .625rem;}
+.mk-v .nf-chip{display:inline-block;font-size:.625rem;font-weight:900;color:var(--info);background:rgba(29,78,216,.06);border:1px solid rgba(29,78,216,.25);border-radius:999px;padding:.075rem .45rem;}
+
+/* ===== timeline ===== */
+.mk-v .tl{--dw:6rem;position:relative;min-width:0;}
+.mk-v .tl::before{content:'';position:absolute;top:.75rem;bottom:2.25rem;left:calc(var(--dw) + 1.35rem);width:2px;background:#B9C6D6;}
+.mk-v .tl-row{display:grid;grid-template-columns:var(--dw) 1.25rem minmax(0,1fr);column-gap:.75rem;margin-bottom:.875rem;position:relative;}
+.mk-v .tl-date{text-align:right;font-size:.71875rem;font-weight:700;color:var(--t3);font-variant-numeric:tabular-nums;padding-top:.55rem;line-height:1.3;}
+.mk-v .tl-date b{display:block;color:var(--navy);}
+.mk-v .tl-dot{display:flex;justify-content:center;padding-top:.6rem;}
+.mk-v .tl-dot span{width:.75rem;height:.75rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);z-index:1;}
+.mk-v .tl-dot--big span{width:1.05rem;height:1.05rem;background:var(--navy-d);border:3px solid var(--gold);margin-top:-.1rem;}
+/* trilhas: cor do aro do no — discreta */
+.mk-v .tl-dot--rel span{border-color:var(--info);}
+.mk-v .tl-dot--eq span{border-color:var(--gold-dk);}
+.mk-v .tl-dot--fin span{border-color:var(--ok);background:var(--ok);}
+.mk-v .tl-dot--trib span{border-color:var(--ok);background:var(--ok);}
+.mk-v .tl-card{background:#fff;border:1px solid var(--bd);border-radius:.75rem;box-shadow:0 1px 6px rgba(0,0,0,.09);padding:.75rem .875rem;min-width:0;}
+.mk-v .tl-card h4{font-size:.8125rem;font-weight:900;}
+.mk-v .tl-card .m{font-size:.71875rem;color:var(--t2);margin-top:.15rem;overflow-wrap:anywhere;}
+.mk-v .tl-card .money{font-weight:900;font-variant-numeric:tabular-nums;color:var(--navy);}
+.mk-v .tl-kind{font-size:.625rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);}
+.mk-v .k-rel{color:var(--info);}
+.mk-v .k-eq{color:var(--gold-dk);}
+.mk-v .k-fin{color:var(--ok);}
+.mk-v .k-trib{color:var(--ok);}
+.mk-v .quem{display:inline-block;font-size:.625rem;font-weight:700;color:var(--t2);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.075rem .5rem;margin-top:.35rem;margin-right:.3rem;}
+/* trilha ZapSign enviado->aberto->assinado */
+.mk-v .ztrail{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.45rem;font-size:.6875rem;font-variant-numeric:tabular-nums;}
+.mk-v .ztrail .z{border:1px solid var(--bd);background:var(--cream);color:var(--t2);border-radius:999px;padding:.1rem .5rem;font-weight:700;}
+.mk-v .ztrail .z--ok{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.28);color:var(--ok);}
+.mk-v .ztrail .sep{color:#94A3B8;}
+/* no colapsado (esteira interna) */
+.mk-v .mini{margin-top:.4rem;border-top:1px dashed var(--bd);padding-top:.4rem;}
+.mk-v .mini li{list-style:none;display:flex;gap:.5rem;font-size:.71875rem;color:var(--t2);padding:.12rem 0;font-variant-numeric:tabular-nums;}
+.mk-v .mini li b{color:var(--t3);font-weight:700;min-width:3.2rem;}
+/* ajuizamento */
+.mk-v .tl-card--aj{border-color:rgba(21,128,61,.45);}
+.mk-v .proc{font-variant-numeric:tabular-nums;font-weight:700;overflow-wrap:anywhere;}
+.mk-v .mov{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:900;color:var(--navy-l);background:var(--cream);border:1px solid var(--bd);border-radius:999px;padding:.1rem .55rem;margin-top:.35rem;}
+/* HOJE */
+.mk-v .tl-card--now{background:var(--navy-d);border-color:var(--navy-d);color:#fff;padding:1.125rem 1.25rem;border-radius:1rem;}
+.mk-v .tl-card--now .now-lb{font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);}
+.mk-v .tl-card--now h4{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.375rem;font-weight:700;line-height:1.2;margin-top:.25rem;}
+.mk-v .tl-card--now .m{color:rgba(255,255,255,.72);}
+.mk-v .tl-card--now .proc{color:#fff;}
+.mk-v .stage-chip{display:inline-flex;align-items:center;gap:.35rem;margin-top:.55rem;font-size:.6875rem;font-weight:900;color:var(--gold);background:rgba(201,168,76,.14);border:1px solid rgba(201,168,76,.5);border-radius:999px;padding:.2rem .625rem;font-variant-numeric:tabular-nums;}
+.mk-v .now-grid{display:flex;flex-wrap:wrap;gap:.25rem 1.5rem;margin-top:.6rem;font-size:.71875rem;}
+.mk-v .now-grid .fld dt{color:rgba(255,255,255,.55);}
+.mk-v .now-grid .fld dd{color:#fff;}
+.mk-v .trilha{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;margin-top:.8rem;}
+.mk-v .trilha .st{font-size:.71875rem;font-weight:900;border-radius:999px;padding:.25rem .7rem;border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.6);}
+.mk-v .trilha .st--done{border-color:rgba(255,255,255,.28);color:rgba(255,255,255,.85);}
+.mk-v .trilha .st--on{background:var(--gold);border-color:var(--gold);color:var(--navy-d);}
+.mk-v .trilha .sep{color:rgba(255,255,255,.35);font-size:.71875rem;}
+.mk-v .jorn{display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14);font-size:.6875rem;}
+.mk-v .jorn .q{color:rgba(255,255,255,.5);}
+.mk-v .jorn .q--past{color:rgba(255,255,255,.72);}
+.mk-v .jorn .q--now{background:rgba(201,168,76,.18);border:1px solid var(--gold);color:var(--gold);font-weight:900;border-radius:.375rem;padding:.1rem .45rem;}
+.mk-v .jorn .sep{color:rgba(255,255,255,.3);}
+.mk-v .jorn-obs{font-size:.65625rem;color:rgba(255,255,255,.55);margin-top:.35rem;}
+/* futuro */
+.mk-v .tl-card--fut{border:1px dashed #B8C4D2;background:transparent;box-shadow:none;color:var(--t2);}
+.mk-v .tl-row--fut .tl-dot span{border-style:dashed;border-color:#94A3B8;background:#fff;}
+.mk-v .tl-end{grid-column:3;font-size:.6875rem;color:var(--t3);padding-left:.125rem;}
+
+/* legenda das trilhas */
+.mk-v .leg{display:flex;flex-wrap:wrap;gap:.4rem 1rem;font-size:.65625rem;color:var(--t3);margin:0 0 .75rem calc(var(--dw) + 2rem);}
+.mk-v .leg i{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:#fff;border:2px solid var(--navy-l);margin-right:.3rem;vertical-align:-1px;}
+.mk-v .leg .l-rel i{border-color:var(--info);}
+.mk-v .leg .l-eq i{border-color:var(--gold-dk);}
+.mk-v .leg .l-trib i{border-color:var(--ok);background:var(--ok);}
+.mk-v .leg .l-fin i{border-color:var(--ok);background:var(--ok);}
+
+/* ===== responsive ===== */
+@media(max-width:69rem){
+  .mk-v .body{grid-template-columns:minmax(0,1fr);}
+  .mk-v .col-tl{order:1;}
+  .mk-v .col-inv{order:2;}
+  .mk-v .col-fin{order:3;}
+}
+@media(max-width:36rem){
+  .mk-v{padding:.75rem;}
+  .mk-v .tl{--dw:4.4rem;}
+  .mk-v .tl-date{font-size:.65625rem;}
+  .mk-v .hd-name{font-size:1.4rem;}
+  .mk-v .hd-fields{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .mk-v .fld--wide{grid-column:span 2;}
+  .mk-v .tl-card--now{padding:.875rem;}
+  .mk-v .leg{margin-left:0;}
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ CABECALHO ============ -->
+  <header class="hd">
+    <div class="hd-top">
+      <div class="hd-id">
+        <h1 class="hd-name">Erika Laine Knop de Melo Silva</h1>
+        <p class="hd-sub"><b>38 anos</b> · Do lar · União Estável · Brasileira · Santana de Parnaíba/SP · <span class="tag-mut" title="Contrato assinado em 09/06/2026">Cliente há 42 dias</span></p>
+      </div>
+      <div class="hd-actions">
+        <button class="btn btn--pri" type="button" title="Edição manual vence a sincronização automática">Editar dados</button>
+        <button class="btn" type="button">Copiar dados</button>
+        <button class="btn btn--ghost" type="button">Abrir contrato</button>
+      </div>
+    </div>
+
+    <div class="chips">
+      <span class="chip chip--ok"><i class="dot"></i>Kommo lead #10690390 · <a href="#" style="color:inherit;text-decoration:underline;text-underline-offset:2px;">abrir conversa</a></span>
+      <span class="chip chip--ok"><i class="dot"></i>Asaas · cobrança 12× ativa</span>
+      <span class="chip chip--ok"><i class="dot"></i>ADVBOX · processo vinculado</span>
+      <span class="chip chip--info"><i class="dot"></i>Origem Instagram · 1ª msg 17/02/2026</span>
+      <span class="chip"><i class="dot" style="background:var(--gold-dk)"></i>Vendido por Ana Cristina</span>
+      <span class="chip chip--warn"><i class="dot"></i>Portal ativo · 0 acessos<span class="chip-act" role="button">Reenviar acesso</span></span>
+    </div>
+
+    <dl class="hd-fields">
+      <div class="fld"><dt>CPF</dt><dd>354.729.968-30</dd></div>
+      <div class="fld"><dt>Nascimento</dt><dd>10/03/1988</dd></div>
+      <div class="fld"><dt>Telefone</dt><dd>(11) 93414-9974</dd></div>
+      <div class="fld"><dt>E-mail</dt><dd>erikalaine_23@yahoo.com.br</dd></div>
+      <div class="fld"><dt>Cidade</dt><dd>Santana de Parnaíba/SP</dd></div>
+      <div class="fld"><dt>RG / Endereço</dt><dd><span class="miss">não sincronizados — completar no cadastro</span></dd></div>
+    </dl>
+  </header>
+
+  <!-- ============ CORPO ============ -->
+  <div class="body">
+
+    <!-- ===== satelite esquerdo: INVESTIMENTO ===== -->
+    <aside class="sat col-inv">
+      <section class="pan">
+        <h3>Investimento <small>1 cota</small></h3>
+
+        <article class="cota">
+          <div class="cota-nm">Thermas São Pedro</div>
+          <div class="cota-un">Cota Quitada sem Matrícula</div>
+          <div class="cota-meta">Ação: outorga de escritura / registro da cota quitada<br>Distribuída em 01/07/2026</div>
+          <div class="pend-box"><b>Valor da cota:</b> aguardando mineração do Drive<br><b>Prescrição:</b> aguarda data de compra para iniciar a régua</div>
+        </article>
+
+        <div class="total">
+          <div class="lb">Total investido</div>
+          <div class="vl">Aguardando mineração</div>
+          <div class="ex">Êxito de 20% será calculado sobre o valor recuperado</div>
+        </div>
+      </section>
+
+      <section class="note">
+        <h4>Vínculo familiar</h4>
+        <div class="nm">Sem cônjuge vinculado</div>
+        <p>União Estável declarada no contrato, mas nenhum companheiro(a) cadastrado.</p>
+        <button class="btn" type="button">Vincular cônjuge</button>
+      </section>
+
+      <section class="note">
+        <h4>Jornada típica — o que vem agora</h4>
+        <div class="nm">Próxima etapa esperada: citação da ré</div>
+        <p>Custas juntadas em 07/07. Em casos deste tipo, a citação costuma ser o próximo andamento do tribunal.</p>
+      </section>
+    </aside>
+
+    <!-- ===== espinha central: LINHA DO CASO ===== -->
+    <main class="tl col-tl" aria-label="Linha do caso">
+
+      <div class="leg" aria-hidden="true">
+        <span class="l-rel"><i></i>Relacionamento</span>
+        <span class="l-eq"><i></i>Equipe</span>
+        <span class="l-trib"><i></i>Tribunal</span>
+        <span class="l-fin"><i></i>Financeiro</span>
+      </div>
+
+      <!-- primeira mensagem -->
+      <div class="tl-row">
+        <div class="tl-date"><b>17/02/2026</b></div>
+        <div class="tl-dot tl-dot--rel"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · ponto zero</div>
+          <h4>Primeira mensagem — via Instagram</h4>
+          <p class="m">Origem de campanha registrada no cadastro · 100 dias de conversa até virar lead</p>
+        </div>
+      </div>
+
+      <!-- lead kommo -->
+      <div class="tl-row">
+        <div class="tl-date"><b>28/05/2026</b></div>
+        <div class="tl-dot tl-dot--rel"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · CRM</div>
+          <h4>Lead criado no Kommo</h4>
+          <p class="m">Lead <span class="proc">#10690390</span> · <a href="#">abrir conversa ↗</a></p>
+        </div>
+      </div>
+
+      <!-- contrato criado -->
+      <div class="tl-row">
+        <div class="tl-date"><b>05/06/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · comercial</div>
+          <h4>Contrato criado — Cota Quitada sem Matrícula · Thermas São Pedro</h4>
+          <p class="m">Honorários: <span class="money">R$ 3.300,00</span> em 12× de R$ 275,00 + 20% de êxito</p>
+          <span class="quem">Vendido por Ana Cristina</span>
+        </div>
+      </div>
+
+      <!-- assinatura -->
+      <div class="tl-row">
+        <div class="tl-date"><b>09/06/2026</b>16h40</div>
+        <div class="tl-dot tl-dot--rel"><span style="border-color:var(--ok);background:var(--ok)"></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-rel">Relacionamento · ZapSign</div>
+          <h4>Contrato assinado em 4 dias</h4>
+          <div class="ztrail" aria-label="Trilha ZapSign">
+            <span class="z z--ok">Enviado 05/06</span><span class="sep">→</span>
+            <span class="z z--ok" title="Cliente abriu o documento 9 vezes antes de assinar">Aberto 9×</span><span class="sep">→</span>
+            <span class="z z--ok">Assinado 09/06 16h40</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- esteira interna (colapsada) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>24–30/06</b>3 etapas</div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · preparação da inicial</div>
+          <h4>Esteira interna concluída em 7 dias</h4>
+          <ul class="mini">
+            <li><b>24/06</b><span>Fazer inicial (operacional)</span></li>
+            <li><b>29/06</b><span>Revisão da inicial</span></li>
+            <li><b>30/06</b><span>Distribuir ação</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- distribuicao -->
+      <div class="tl-row">
+        <div class="tl-date"><b>01/07/2026</b></div>
+        <div class="tl-dot tl-dot--trib"><span></span></div>
+        <div class="tl-card tl-card--aj">
+          <div class="tl-kind k-trib">Tribunal · marco</div>
+          <h4>Ação distribuída</h4>
+          <p class="m">Processo <span class="proc">4007514-90.2026.8.26.0529</span></p>
+          <span class="mov">Quadro: Negociação → Judicial</span>
+          <div><span class="quem">Tarefa concluída por Juliane Soligo</span></div>
+        </div>
+      </div>
+
+      <!-- tarefas 03/07 (colapsadas) -->
+      <div class="tl-row">
+        <div class="tl-date"><b>03/07/2026</b>2 tarefas</div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · pós-distribuição</div>
+          <h4>Guia de custas gerada e enviada · cliente avisada da distribuição</h4>
+          <span class="quem">Ana Cristina</span>
+        </div>
+      </div>
+
+      <!-- custas juntadas -->
+      <div class="tl-row">
+        <div class="tl-date"><b>07/07/2026</b></div>
+        <div class="tl-dot tl-dot--eq"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-eq">Equipe · processual</div>
+          <h4>Custas juntadas aos autos</h4>
+          <span class="quem">Juliane Soligo</span>
+        </div>
+      </div>
+
+      <!-- parcela 1 -->
+      <div class="tl-row">
+        <div class="tl-date"><b>15/07/2026</b></div>
+        <div class="tl-dot tl-dot--fin"><span></span></div>
+        <div class="tl-card">
+          <div class="tl-kind k-fin">Financeiro</div>
+          <h4>Parcela 1 de 12 paga — <span class="money">R$ 302,59</span></h4>
+          <p class="m">Início da série de honorários iniciais via Asaas · <span class="nf-chip">NF emitida</span></p>
+        </div>
+      </div>
+
+      <!-- HOJE -->
+      <div class="tl-row">
+        <div class="tl-date"><b>21/07/2026</b>hoje</div>
+        <div class="tl-dot tl-dot--big"><span></span></div>
+        <div class="tl-card tl-card--now">
+          <div class="now-lb">Hoje · fase atual</div>
+          <h4>Judicial — Aguardando citação</h4>
+          <span class="stage-chip">Há 18 dias nesta etapa</span>
+          <dl class="now-grid">
+            <div class="fld"><dt>Processo</dt><dd class="proc">4007514-90.2026.8.26.0529</dd></div>
+            <div class="fld"><dt>Responsável</dt><dd>Luany Crepaldi</dd></div>
+            <div class="fld"><dt>Tipo</dt><dd>Cota Quitada sem Matrícula</dd></div>
+          </dl>
+
+          <div class="trilha" aria-label="Esteira do caso novo">
+            <span class="st st--done">Distribuída ✓</span><span class="sep">→</span>
+            <span class="st st--on">Aguardando citação</span><span class="sep">→</span>
+            <span class="st">Citação da ré</span>
+          </div>
+
+          <div class="jorn" aria-label="Jornada por quadros ADVBOX">
+            <span class="q q--past">Negociação</span><span class="sep">›</span>
+            <span class="q q--now">Judicial</span><span class="sep">›</span>
+            <span class="q">Recursal</span><span class="sep">›</span>
+            <span class="q">Execução/Cobrança</span><span class="sep">›</span>
+            <span class="q">Arquivamento</span>
+          </div>
+          <p class="jorn-obs">Caso novo e saudável · da assinatura à distribuição em 22 dias · próxima etapa esperada: citação da ré</p>
+        </div>
+      </div>
+
+      <!-- futuro -->
+      <div class="tl-row tl-row--fut">
+        <div class="tl-date"><b>15/08/2026</b></div>
+        <div class="tl-dot"><span></span></div>
+        <div class="tl-card tl-card--fut">
+          <div class="tl-kind">Próximo vencimento</div>
+          <h4 style="color:var(--t2)">Parcela 2 de 12 — honorários iniciais</h4>
+          <p class="m">Cobrança via Asaas · R$ 275,00 · 1ª parcela paga em dia</p>
+        </div>
+      </div>
+
+      <div class="tl-row"><div></div><div></div><div class="tl-end">Fim da linha do caso · atualizada em 21/07/2026</div></div>
+    </main>
+
+    <!-- ===== satelite direito: HONORARIOS ===== -->
+    <aside class="sat col-fin">
+      <section class="pan">
+        <h3>Honorários <small>Iniciais + Êxito</small></h3>
+        <div class="hon-line"><span class="l">Êxito</span><span class="v">20% sobre o recuperado</span></div>
+        <div class="hon-line"><span class="l">Iniciais</span><span class="v">R$ 3.300,00 em 12×</span></div>
+        <div class="hon-line"><span class="l">Parcela</span><span class="v">R$ 275,00 / mês</span></div>
+        <hr class="hon-sep">
+
+        <div class="fin-big"><span class="a">R$ 302,59</span><span class="b">recebidos de R$ 3.327,59 · 9%</span></div>
+
+        <div class="seg" aria-label="1 de 12 parcelas pagas">
+          <i title="Parcela 1 · venc. 15/07/2026 · paga · NF emitida"></i><i class="pend" title="Parcela 2 · venc. 15/08/2026 · pendente"></i><i class="pend" title="Parcela 3 · venc. 15/09/2026 · pendente"></i><i class="pend" title="Parcela 4 · venc. 15/10/2026 · pendente"></i><i class="pend" title="Parcela 5 · venc. 15/11/2026 · pendente"></i><i class="pend" title="Parcela 6 · venc. 15/12/2026 · pendente"></i><i class="pend" title="Parcela 7 · venc. 15/01/2027 · pendente"></i><i class="pend" title="Parcela 8 · venc. 15/02/2027 · pendente"></i><i class="pend" title="Parcela 9 · venc. 15/03/2027 · pendente"></i><i class="pend" title="Parcela 10 · venc. 15/04/2027 · pendente"></i><i class="pend" title="Parcela 11 · venc. 15/05/2027 · pendente"></i><i class="pend" title="Parcela 12 · venc. 15/06/2027 · pendente"></i>
+        </div>
+        <div class="seg-cap"><span>1/12 pagas</span><span>0 vencidas</span></div>
+
+        <div class="fin-rows">
+          <div class="hon-line"><span class="l">Última paga</span><span class="v">15/07/2026</span></div>
+          <div class="hon-line"><span class="l">Próximo vencimento</span><span class="v">15/08/2026</span></div>
+          <div class="hon-line"><span class="l">Notas fiscais</span><span class="v"><span class="nf-chip">1 NF emitida</span></span></div>
+        </div>
+
+        <span class="adimp">✓ Cliente 100% adimplente</span>
+      </section>
+
+      <section class="note note--warn">
+        <h4>Pendência de relacionamento</h4>
+        <div class="nm">Portal ativo, mas nunca acessado</div>
+        <p>O acesso ao Portal do Cliente foi criado e nenhum login foi registrado. Cliente nova — vale reenviar o link com instruções pela conversa do Kommo.</p>
+        <button class="btn btn--warn" type="button">Reenviar acesso ao Portal</button>
+      </section>
+    </aside>
+
+  </div>
+</div>
+</section></body></html>

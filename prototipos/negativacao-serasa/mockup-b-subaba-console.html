@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup B — Sub-aba Negativação (console)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cbc-navy:#1B3A5C; --cbc-navy-dark:#0F2035; --cbc-navy-light:#264A72;
+    --cbc-gold:#C9A84C; --cbc-gold-dark:#B8860B; --cbc-cream:#F0F4F8;
+    --cbc-danger:#B91C1C; --cbc-success:#15803D; --cbc-warning:#D97706; --cbc-info:#1D4ED8;
+    --cbc-border:#E2E8F0; --cbc-text-primary:#1B3A5C; --cbc-text-secondary:#4A5568; --cbc-text-muted:#5E6675;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Lato',-apple-system,sans-serif;background:var(--cbc-cream);color:var(--cbc-text-primary);padding:0 0 60px;-webkit-font-smoothing:antialiased}
+  .mock-banner{background:repeating-linear-gradient(45deg,#1B3A5C,#1B3A5C 14px,#264A72 14px,#264A72 28px);color:#fff;text-align:center;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:6px}
+  .app{max-width:1180px;margin:0 auto;padding:0 24px}
+  .topbar{background:var(--cbc-navy);border-radius:0 0 16px 16px;padding:14px 22px;display:flex;align-items:center;gap:20px;box-shadow:0 4px 18px rgba(15,32,53,.18)}
+  .logo{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:26px;color:#fff}
+  .logo b{color:var(--cbc-gold)}
+  .tabs{display:flex;gap:2px;margin-left:auto}
+  .tab{color:#cdd8e6;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:8px 14px;border-radius:8px}
+  .tab.active{background:rgba(255,255,255,.12);color:#fff}
+  h1.section{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;margin:26px 0 4px}
+  .sub{color:var(--cbc-text-secondary);font-size:13px;margin-bottom:14px}
+  /* SUBTABS — nova aba Negativação */
+  .subtabs{display:flex;gap:8px;margin:16px 0 18px;border-bottom:2px solid var(--cbc-border);padding-bottom:0}
+  .subtab{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:11px 16px;cursor:pointer;color:var(--cbc-text-muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+  .subtab.active{color:var(--cbc-danger);border-bottom-color:var(--cbc-danger)}
+  .subtab .dot{display:inline-block;background:var(--cbc-danger);color:#fff;border-radius:20px;font-size:10px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+
+  /* KPI row */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+  .kpi{background:#fff;border:1px solid var(--cbc-border);border-radius:13px;padding:15px 16px;position:relative;overflow:hidden}
+  .kpi b{display:block;font-size:24px;font-weight:900;line-height:1.1}
+  .kpi span{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cbc-text-muted);font-weight:700}
+  .kpi.accent{border-color:var(--cbc-danger)}
+  .kpi.accent b{color:var(--cbc-danger)}
+  .kpi.good b{color:var(--cbc-success)}
+  .kpi .bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+
+  .layout{display:grid;grid-template-columns:1fr;gap:16px}
+  .card{background:#fff;border:1px solid var(--cbc-border);border-radius:14px;overflow:hidden}
+  .card-h{padding:14px 18px;border-bottom:1px solid var(--cbc-border);display:flex;align-items:center;gap:12px}
+  .card-h .t{font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  .filters{margin-left:auto;display:flex;gap:8px}
+  .fpill{font-size:11px;font-weight:700;padding:7px 12px;border-radius:20px;border:1.5px solid var(--cbc-border);color:var(--cbc-text-secondary);cursor:pointer}
+  .fpill.on{background:var(--cbc-navy);color:#fff;border-color:var(--cbc-navy)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--cbc-text-muted);padding:11px 16px;background:#fafcfe;border-bottom:1px solid var(--cbc-border)}
+  tbody td{padding:12px 16px;border-bottom:1px solid #eef2f6}
+  tbody tr:hover{background:#fafcfe}
+  .cli{font-weight:700}
+  .cli small{display:block;font-weight:400;color:var(--cbc-text-muted);font-size:11px}
+  .badge{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .b-red{background:#fdecec;color:var(--cbc-danger)}
+  .b-amb{background:#fef3e2;color:var(--cbc-warning)}
+  .b-ok{background:#e7f6ec;color:var(--cbc-success)}
+  .b-grey{background:#eef1f4;color:var(--cbc-text-muted)}
+  .b-blue{background:#e7effd;color:var(--cbc-info)}
+  .val{font-weight:800;font-variant-numeric:tabular-nums}
+  .btn{border:none;cursor:pointer;font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;border-radius:9px;padding:8px 13px;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+  .btn-danger{background:var(--cbc-danger);color:#fff}
+  .btn-danger:hover{background:#9c1616}
+  .btn-mini{background:#fff;border:1.5px solid var(--cbc-danger);color:var(--cbc-danger);padding:6px 11px}
+  .btn-dis{background:#eef1f4;color:#9aa6b5;cursor:not-allowed}
+  .split{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
+  @media(max-width:900px){.split{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}}
+  .hist-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #eef2f6;font-size:13px}
+  .hist-row:last-child{border-bottom:none}
+  .hist-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  .hist-row .r{margin-left:auto;text-align:right}
+  .muted{color:var(--cbc-text-muted);font-size:11px}
+</style>
+</head>
+<body>
+<div class="mock-banner">Mockup B · Sub-aba "Negativação (Serasa)" — console de gestão — não é o sistema real</div>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">CBC<b>·</b>Contratos</div>
+    <div class="tabs"><div class="tab">Dashboard</div><div class="tab">Asaas</div><div class="tab active">Boletos</div><div class="tab">Monitor</div></div>
+  </div>
+
+  <h1 class="section">Boletos</h1>
+  <div class="sub">Carteira, cobrança de inadimplentes e negativação no Serasa.</div>
+
+  <div class="subtabs">
+    <div class="subtab">Boletos</div>
+    <div class="subtab">Cobrança de inadimplentes</div>
+    <div class="subtab active">Negativação · Serasa <span class="dot">30</span></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi accent"><div class="bar" style="background:var(--cbc-danger)"></div><b>30</b><span>Candidatos +90 dias</span></div>
+    <div class="kpi accent"><b>R$ 49.659</b><span>Total em aberto</span></div>
+    <div class="kpi"><div class="bar" style="background:var(--cbc-info)"></div><b>9</b><span>Negativações ativas</span></div>
+    <div class="kpi good"><div class="bar" style="background:var(--cbc-success)"></div><b>5</b><span>Pagamentos recuperados</span></div>
+    <div class="kpi"><b>R$ 138.276</b><span>Saldo Asaas (tarifas)</span></div>
+  </div>
+
+  <div class="split">
+    <!-- candidatos -->
+    <div class="card">
+      <div class="card-h">
+        <span class="t">Candidatos à negativação</span>
+        <div class="filters">
+          <span class="fpill on">+90 dias</span>
+          <span class="fpill">Prontos (28)</span>
+          <span class="fpill">Falta dado (2)</span>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Cliente</th><th>Atraso</th><th>Aberto</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td class="cli">Juliana F. da S. Santiago<small>1 parcela · Ondas Praia</small></td><td><span class="badge b-red">374 d</span></td><td class="val">R$ 759</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+          <tr><td class="cli">Gilney R.<small>7 parcelas · Hot Beach</small></td><td><span class="badge b-red">367 d</span></td><td class="val">R$ 2.100</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+          <tr><td class="cli">Mauro César de S.<small>11 parcelas · Thermas SP</small></td><td><span class="badge b-red">336 d</span></td><td class="val">R$ 3.300</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+          <tr><td class="cli">Vera Lúcia B. da S.<small>10 parcelas</small></td><td><span class="badge b-red">336 d</span></td><td class="val">R$ 3.000</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+          <tr><td class="cli">Mileny E. T.<small>6 parcelas</small></td><td><span class="badge b-red">336 d</span></td><td class="val">R$ 1.800</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+          <tr style="opacity:.6"><td class="cli">Kleyton A. L.<small style="color:var(--cbc-danger)">⚠ falta CEP e endereço</small></td><td><span class="badge b-amb">214 d</span></td><td class="val">R$ 2.100</td><td><button class="btn btn-dis">Corrigir dados</button></td></tr>
+          <tr><td class="cli">Everson L. L.<small>8 parcelas</small></td><td><span class="badge b-amb">214 d</span></td><td class="val">R$ 2.400</td><td><button class="btn btn-mini">Negativar</button></td></tr>
+        </tbody>
+      </table>
+      <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;background:#fafcfe;border-top:1px solid var(--cbc-border)">
+        <span class="muted">＋ 23 candidatos · selecione vários para negativar em lote</span>
+        <button class="btn btn-danger" style="margin-left:auto">⚡ Negativar selecionados</button>
+      </div>
+    </div>
+
+    <!-- historico / status -->
+    <div class="card">
+      <div class="card-h"><span class="t">Negativações em andamento</span></div>
+      <div class="hist-row"><div class="hist-ico" style="background:#e7effd;color:var(--cbc-info)">⏳</div><div><b>Roberto A. M.</b><div class="muted">Aguardando Serasa notificar</div></div><div class="r"><span class="badge b-blue">Processando</span><div class="muted">há 3 dias</div></div></div>
+      <div class="hist-row"><div class="hist-ico" style="background:#e7f6ec;color:var(--cbc-success)">✓</div><div><b>Marta S. R.</b><div class="muted">Pagou após a carta!</div></div><div class="r"><span class="badge b-ok">Recuperado</span><div class="muted">R$ 1.200</div></div></div>
+      <div class="hist-row"><div class="hist-ico" style="background:#e7f6ec;color:var(--cbc-success)">✓</div><div><b>Jonas P. F.</b><div class="muted">Pagou após a carta!</div></div><div class="r"><span class="badge b-ok">Recuperado</span><div class="muted">R$ 900</div></div></div>
+      <div class="hist-row"><div class="hist-ico" style="background:#fdecec;color:var(--cbc-danger)">⚖️</div><div><b>Carla T. B.</b><div class="muted">Negativado no Serasa</div></div><div class="r"><span class="badge b-red">Ativo</span><div class="muted">há 22 dias</div></div></div>
+      <div class="hist-row"><div class="hist-ico" style="background:#eef1f4;color:var(--cbc-text-muted)">↩</div><div><b>Pedro H. L.</b><div class="muted">Acordo — negativação retirada</div></div><div class="r"><span class="badge b-grey">Cancelado</span></div></div>
+      <div style="padding:12px 16px;background:#fafcfe;border-top:1px solid var(--cbc-border)" class="muted">Sincroniza com o Asaas a cada 6h · 32 negativações no total (9 ativas · 5 recuperadas · 18 canceladas)</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
