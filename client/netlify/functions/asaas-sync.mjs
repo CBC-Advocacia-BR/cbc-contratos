@@ -416,6 +416,32 @@ export default async (req) => {
         return new Response(JSON.stringify({ success: true, dunning }), { headers: CORS });
       }
 
+      // (negativacao Serasa 22/07/2026) cancela uma negativacao ativa. Sem tarifa de
+      // cancelamento (cancellationFeeValue=0). So a negativacao com canBeCancelled=true
+      // aceita; o Asaas devolve erro se nao puder (ja cancelada / paga). Auditada.
+      // Body: { dunningId, userEmail? }
+      case 'cancel-dunning': {
+        if (!payload.dunningId) {
+          return new Response(JSON.stringify({ error: 'dunningId obrigatorio' }), { status: 400, headers: CORS });
+        }
+        // fetch direto (nao asaasPost, que LANCA em !ok) p/ tratar "nao pode cancelar"
+        // (400 com errors[]) como aviso amigavel em vez de erro 500.
+        const cResp = await fetch(`${ASAAS_URL}/paymentDunnings/${payload.dunningId}/cancel`, { method: 'POST', headers: HEADERS, body: '{}' });
+        const cancelled = await cResp.json();
+        if (!cResp.ok || cancelled?.errors) {
+          const msg = ((cancelled?.errors || [])[0] || {}).description || 'nao foi possivel cancelar esta negativacao';
+          return new Response(JSON.stringify({ success: false, error: msg }), { headers: CORS });
+        }
+        try {
+          await supabase.from('activity_log').insert({
+            action: 'asaas_negativacao_cancelada',
+            user_email: payload.userEmail || 'sistema',
+            details: { dunningId: payload.dunningId, status: cancelled?.status, payment: cancelled?.payment },
+          });
+        } catch { /* log best-effort */ }
+        return new Response(JSON.stringify({ success: true, dunning: cancelled }), { headers: CORS });
+      }
+
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), { status: 400, headers: CORS });
     }

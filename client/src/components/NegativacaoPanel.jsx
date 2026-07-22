@@ -126,6 +126,21 @@ export default function NegativacaoPanel({ userEmail = '' }) {
     load();
   };
 
+  // (22/07) cancelar uma negativação ativa (canBeCancelled). Sem tarifa. Confirmação leve.
+  const [cancelAlvo, setCancelAlvo] = useState(null); // { id, nome }
+  const [cancelando, setCancelando] = useState(false);
+  const cancelar = async () => {
+    if (!cancelAlvo) return;
+    setCancelando(true);
+    try {
+      const r = await callAsaas('cancel-dunning', { dunningId: cancelAlvo.id, userEmail });
+      setResult(r?.success
+        ? { ok: 1, falha: 0, faltaDados: 0, erros: [], cancelou: cancelAlvo.nome }
+        : { ok: 0, falha: 1, faltaDados: 0, erros: [`${cancelAlvo.nome}: ${r?.error || 'erro ao cancelar'}`] });
+    } catch (e) { setResult({ ok: 0, falha: 1, faltaDados: 0, erros: [`${cancelAlvo.nome}: ${e.message}`] }); }
+    setCancelando(false); setCancelAlvo(null); load();
+  };
+
   return (
     <div className="flex-1 overflow-y-auto min-h-0 p-4" style={{ background: 'var(--cbc-bg,#F0F4F8)' }}>
       {/* KPIs */}
@@ -138,10 +153,14 @@ export default function NegativacaoPanel({ userEmail = '' }) {
       </div>
 
       {result && (
-        <div className="mb-4 rounded-lg px-4 py-3 text-[13px]" style={{ background: '#e7f6ec', border: '1px solid var(--cbc-success,#15803D)', color: 'var(--cbc-success,#15803D)' }}>
-          <b>Negativação concluída:</b> {result.ok} enviada(s) ao Serasa
-          {result.faltaDados ? ` · ${result.faltaDados} bloqueada(s) por falta de dado` : ''}
-          {result.falha ? ` · ${result.falha} com erro` : ''}.
+        <div className="mb-4 rounded-lg px-4 py-3 text-[13px]" style={result.falha && !result.ok
+          ? { background: '#fdecec', border: '1px solid var(--cbc-danger,#B91C1C)', color: 'var(--cbc-danger,#B91C1C)' }
+          : { background: '#e7f6ec', border: '1px solid var(--cbc-success,#15803D)', color: 'var(--cbc-success,#15803D)' }}>
+          {result.cancelou
+            ? <><b>Negativação cancelada:</b> {result.cancelou} · sem custo.</>
+            : <><b>Negativação concluída:</b> {result.ok} enviada(s) ao Serasa
+                {result.faltaDados ? ` · ${result.faltaDados} bloqueada(s) por falta de dado` : ''}
+                {result.falha ? ` · ${result.falha} com erro` : ''}.</>}
           {result.erros.length > 0 && <div className="mt-1 text-[11px] opacity-90">{result.erros.slice(0, 5).join(' · ')}</div>}
         </div>
       )}
@@ -218,11 +237,19 @@ export default function NegativacaoPanel({ userEmail = '' }) {
             const s = DUN_STATUS[d.status] || { t: d.status, cls: 'grey' };
             return (
               <div key={d.id} className="flex items-center gap-3 px-4 py-2.5 border-t text-[13px]" style={{ borderColor: '#eef2f6' }}>
-                <div>
-                  <div className="font-bold" style={{ color: 'var(--cbc-text-primary,#1B3A5C)' }}>{nomePorPayment.get(d.payment) || 'Cliente'}</div>
+                <div className="min-w-0">
+                  <div className="font-bold truncate" style={{ color: 'var(--cbc-text-primary,#1B3A5C)' }}>{nomePorPayment.get(d.payment) || 'Cliente'}</div>
                   <div className="text-[11px]" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>{fmt(d.value)} · tarifa {fmt(d.feeValue)}</div>
                 </div>
-                <div className="ml-auto text-right"><Badge cls={s.cls}>{s.t}</Badge></div>
+                <div className="ml-auto text-right flex items-center gap-2">
+                  <Badge cls={s.cls}>{s.t}</Badge>
+                  {d.canBeCancelled && (
+                    <button onClick={() => setCancelAlvo({ id: d.id, nome: nomePorPayment.get(d.payment) || 'Cliente' })}
+                      className="text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-lg cursor-pointer border transition-colors"
+                      style={{ color: 'var(--cbc-text-secondary,#4A5568)', borderColor: 'var(--cbc-border,#E2E8F0)' }}
+                      title="Cancelar esta negativação no Serasa (sem custo)">Cancelar</button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -258,6 +285,29 @@ export default function NegativacaoPanel({ userEmail = '' }) {
               <button disabled={running || typed.trim().toUpperCase() !== 'NEGATIVAR'} onClick={dispararLote}
                 className="px-4 py-2 rounded-lg text-white text-sm font-bold cursor-pointer disabled:opacity-40" style={{ background: 'var(--cbc-danger,#B91C1C)' }}>
                 {running ? 'Negativando…' : `⚖️ Confirmar (${fmt(custoSel)})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de cancelamento de negativação (sem custo) */}
+      {cancelAlvo && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" style={{ background: 'rgba(15,32,53,.55)' }} onClick={() => !cancelando && setCancelAlvo(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 text-white flex items-center gap-3" style={{ background: 'var(--cbc-navy,#1B3A5C)' }}>
+              <span className="text-xl">↩️</span><div className="font-bold text-[15px]">Cancelar negativação no Serasa</div>
+            </div>
+            <div className="p-5">
+              <p className="text-[13px]" style={{ color: 'var(--cbc-text-secondary,#4A5568)' }}>
+                Retirar a negativação de <b>{cancelAlvo.nome}</b> do Serasa. O nome deixa de ficar negativado. <b>Sem custo.</b> Use quando o cliente pagou/negociou ou a negativação foi indevida.
+              </p>
+            </div>
+            <div className="px-5 py-4 flex gap-2 justify-end border-t" style={{ borderColor: 'var(--cbc-border,#E2E8F0)', background: 'var(--cbc-bg-subtle,#F7FAFC)' }}>
+              <button onClick={() => !cancelando && setCancelAlvo(null)} className="px-4 py-2 rounded-lg border text-sm font-bold cursor-pointer" style={{ borderColor: 'var(--cbc-border,#E2E8F0)', color: 'var(--cbc-text-secondary,#4A5568)' }}>Voltar</button>
+              <button disabled={cancelando} onClick={cancelar}
+                className="px-4 py-2 rounded-lg text-white text-sm font-bold cursor-pointer disabled:opacity-40" style={{ background: 'var(--cbc-navy,#1B3A5C)' }}>
+                {cancelando ? 'Cancelando…' : '↩️ Confirmar cancelamento'}
               </button>
             </div>
           </div>
