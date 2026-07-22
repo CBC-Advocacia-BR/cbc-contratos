@@ -154,3 +154,20 @@ export async function buscarProveniencia(uid) {
   for (const r of (data || [])) { if (r.sistema === 'manual') manual.add(r.campo); }
   return manual;
 }
+
+// Dados extras da ficha "Linha do Caso" (processos, andamentos, tarefas, kommo, portal,
+// NFs, MLEs, contrato-app) — RPC SECURITY DEFINER, 1 chamada.
+export async function buscarLinhaCaso(uid) {
+  const { data, error } = await supabase.rpc('cliente_linha_caso', { p_uid: uid });
+  if (error) throw new Error(error.message);
+  return data || {};
+}
+
+// Export completo da planilha (so clientes com cota) — RESTRITO a Paulo/Bruno/Lorenza.
+// A RPC cliente_export_planilha confere o e-mail no servidor (SECURITY DEFINER); esconder o
+// botao no front e so a 1a camada. Retorna as linhas prontas p/ o xlsx.
+export async function exportarClientesPlanilha() {
+  const { data, error } = await supabase.rpc('cliente_export_planilha');
+  if (error) throw new Error(error.message);
+  return Array.isArray(data) ? data : [];
+}

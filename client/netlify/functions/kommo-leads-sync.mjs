@@ -56,7 +56,11 @@ export default async (req) => {
     let contatos = 0, leadsGravados = 0, comTel = 0, lastPage = page, fim = false;
 
     for (let i = 0; i < maxPages; i++) {
-      const r = await kommoGet(`/contacts?limit=250&page=${page}&with=leads`);
+      // order[updated_at]=desc: a API v4 do Kommo corta listas em ~10k linhas — com 18k+
+      // contatos em ordem asc os NOVOS nunca eram alcancados (espelho congelou em 18/06/2026).
+      // Em desc, a 1a pagina ja traz os recem-criados/alterados; o teto de 10k so deixa de
+      // fora contatos antigos que JA estao no espelho.
+      const r = await kommoGet(`/contacts?limit=250&page=${page}&with=leads&order[updated_at]=desc`);
       const lista = r?._embedded?.contacts || [];
       if (!lista.length) { fim = true; break; }
 

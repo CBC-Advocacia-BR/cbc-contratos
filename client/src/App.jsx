@@ -1600,7 +1600,7 @@ function AppContent() {
       ) : mainTab === 'contratos' ? (
         <TabScrollContainer key={`tab-${mainTab}`} tabKey="contratos" className="flex-1 overflow-hidden bg-white page-enter"><Suspense fallback={<SkeletonContratosTab />}><ContratosTab onLoadContract={handleLoadContract} onRequestDestructiveConfirm={setDestructiveConfirm} onRegisterUndo={undoCtrl.register} /></Suspense></TabScrollContainer>
       ) : mainTab === 'clientes' && tabAllowed('clientes') ? (
-        <Suspense fallback={<TabFallback skeleton={<SkeletonContratosTab />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="clientes" className="flex-1 overflow-hidden page-enter"><ClientesTab isAdmin={!!userPerms?.is_admin} /></TabScrollContainer></ErrorBoundary></Suspense>
+        <Suspense fallback={<TabFallback skeleton={<SkeletonContratosTab />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="clientes" className="flex-1 overflow-hidden page-enter"><ClientesTab isAdmin={!!userPerms?.is_admin} userEmail={user?.email || ''} /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'vendas' && userPerms?.tabs?.vendas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="vendas" className="flex-1 overflow-hidden page-enter"><div className="page-enter" key="tab-vendas"><VendasPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'parametrizacao_vendas' && userPerms?.tabs?.parametrizacao_vendas ? (

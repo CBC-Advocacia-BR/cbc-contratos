@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarPrestacaoFinanceiro, buscarDadosBancarios, buscarAcoesDrive } from '../utils/clientesService';
+import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClientes, cpfInvalido, buscarFilaRevisao, resolverFila, buscar360, vincularConjuge as svcVincularConjuge, desvincularConjuge as svcDesvincularConjuge, buscarCpfsDevedores, setKommo as svcSetKommo, buscarProveniencia, buscarCorrecoesAdvbox, buscarPrestacao, buscarPrestacaoFinanceiro, buscarDadosBancarios, buscarAcoesDrive, exportarClientesPlanilha } from '../utils/clientesService';
 import { buildLedgers } from '../utils/prestacaoLedger';
+import { exportClientesPlanilha } from '../utils/excelExport';
+import LinhaCasoView from './clientes/LinhaCasoView';
 import './clientes/clientes.css';
+
+// Export completo da planilha: visivel apenas para o trio (a RPC tambem confere o e-mail no servidor)
+const EXPORT_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
 
 const onlyDigits = (s) => (s || '').replace(/\D/g, '');
 const cpfFmt = (s, fmt) => fmt || (() => { const d = onlyDigits(s); if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'); return s || '—'; })();
@@ -80,7 +85,7 @@ function pendencias(r) {
   return p;
 }
 
-export default function ClientesTab({ isAdmin = false }) {
+export default function ClientesTab({ isAdmin = false, userEmail = '' }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
@@ -90,6 +95,10 @@ export default function ClientesTab({ isAdmin = false }) {
   const [sort, setSort] = useState({ col: null, dir: 'asc' });
   const [sel, setSel] = useState(() => new Set());
   const [openId, setOpenId] = useState(null);
+  // Linha do Caso e a visao principal; o drawer antigo (Ficha) vira o modo de edicao.
+  // abrirCliente reseta o modo ao trocar de cliente (sem setState em effect).
+  const [modoEdicao, setModoEdicao] = useState(false);
+  const abrirCliente = useCallback((uid) => { setModoEdicao(false); setOpenId(uid); }, []);
   const [tab, setTab] = useState('lista');
   const [toasts, setToasts] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -100,6 +109,19 @@ export default function ClientesTab({ isAdmin = false }) {
   const [devedorCpfs, setDevedorCpfs] = useState(() => new Set());
 
   const toast = useCallback((msg, err = false) => { const id = Math.random(); setToasts((t) => [...t, { id, msg, err }]); setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 2800); }, []);
+
+  const podeExportar = EXPORT_EMAILS.includes((userEmail || '').toLowerCase());
+  const exportar = useCallback(async () => {
+    try {
+      setBusy(true);
+      toast('Gerando planilha…');
+      const linhas = await exportarClientesPlanilha();
+      if (!linhas.length) { toast('Nenhum cliente com cota para exportar', true); return; }
+      const n = await exportClientesPlanilha(linhas);
+      toast(`Planilha gerada — ${n} clientes`);
+    } catch (e) { toast(e.message || 'Falha ao exportar', true); }
+    finally { setBusy(false); }
+  }, [toast]);
 
   const recarregar = useCallback(async () => {
     try { setLoading(true); const d = await buscarClientes(); setRows(d); setErro(null); }
@@ -238,6 +260,7 @@ export default function ClientesTab({ isAdmin = false }) {
         <button className={'chip' + (tab === 'dup' ? ' active' : '')} onClick={() => setTab('dup')}>Duplicatas ({grupos.length})</button>
         {isAdmin && <button className={'chip' + (tab === 'revisao' ? ' active' : '') + (fila.length ? ' warn' : '')} onClick={() => setTab('revisao')}>Revisão ({fila.length})</button>}
         {isAdmin && <button className={'chip' + (tab === 'advbox' ? ' active' : '') + (correcoes.length ? ' warn' : '')} onClick={() => setTab('advbox')}>Corrigir no AdvBox ({correcoes.length})</button>}
+        {podeExportar && <button className="btn gold btn-press" style={{ marginLeft: 'auto' }} disabled={busy} onClick={exportar} title="Exportar clientes com cota para Excel (Paulo, Bruno e Lorenza)">⬇ Exportar planilha</button>}
       </div>
 
       {tab === 'lista' && <>
@@ -272,7 +295,7 @@ export default function ClientesTab({ isAdmin = false }) {
             </tr></thead>
             <tbody>
               {visiveis.map((r) => (
-                <tr key={r.id} onClick={() => setOpenId(r.id)}>
+                <tr key={r.id} onClick={() => abrirCliente(r.id)}>
                   {isAdmin && <td onClick={(e) => e.stopPropagation()}><input type="checkbox" checked={sel.has(r.id)} onChange={() => toggleSel(r.id)} aria-label={'selecionar ' + r.nome} /></td>}
                   <td><span className="name">{r.nome || '(sem nome)'}</span>{r.eh_pj && <span className="badge pj">PJ</span>}</td>
                   <td className="tnum" style={cpfInvalido(r) ? { color: 'var(--c-danger)', fontWeight: 700 } : undefined}>{cpfFmt(r.cpf, r.cpf_fmt)}{cpfInvalido(r) && <span className="badge bad" title="dígito verificador inválido">CPF inválido</span>}</td>
@@ -308,11 +331,12 @@ export default function ClientesTab({ isAdmin = false }) {
         {grupos.length > 50 && <div className="footnote"><span>Mostrando 50 de {grupos.length} grupos.</span></div>}
       </div>}
 
-      {tab === 'revisao' && <FilaRevisao itens={fila} busy={busy} onResolver={resolver} onAbrirFicha={(uid) => { setOpenId(uid); setTab('lista'); }} />}
+      {tab === 'revisao' && <FilaRevisao itens={fila} busy={busy} onResolver={resolver} onAbrirFicha={(uid) => { abrirCliente(uid); setTab('lista'); }} />}
 
-      {tab === 'advbox' && <CorrecoesAdvbox itens={correcoes} onAbrir={(uid) => { setOpenId(uid); setTab('lista'); }} toast={toast} />}
+      {tab === 'advbox' && <CorrecoesAdvbox itens={correcoes} onAbrir={(uid) => { abrirCliente(uid); setTab('lista'); }} toast={toast} />}
 
-      {open && <Ficha key={open.id} row={open} isAdmin={isAdmin} busy={busy} clientes={rows} onAbrir={(uid) => setOpenId(uid)} onClose={() => setOpenId(null)} onSave={(patch) => editar(open.id, patch)} onRelacao={(rel) => marcarRelacao([open.id], rel)} onVincular={vincularConjuge} onDesvincular={desvincularConjuge} onSetKommo={(lead) => salvarKommo(open.id, lead)} />}
+      {open && !modoEdicao && <LinhaCasoView key={'lc' + open.id} row={open} onClose={() => setOpenId(null)} onEditar={() => setModoEdicao(true)} onAbrir={(uid) => abrirCliente(uid)} />}
+      {open && modoEdicao && <Ficha key={open.id} row={open} isAdmin={isAdmin} busy={busy} clientes={rows} onAbrir={(uid) => abrirCliente(uid)} onClose={() => setModoEdicao(false)} onSave={(patch) => editar(open.id, patch)} onRelacao={(rel) => marcarRelacao([open.id], rel)} onVincular={vincularConjuge} onDesvincular={desvincularConjuge} onSetKommo={(lead) => salvarKommo(open.id, lead)} />}
       <div className="toasts">{toasts.map((t) => <div key={t.id} className={'toast' + (t.err ? ' err' : '')}>{t.msg}</div>)}</div>
     </div>
   );
