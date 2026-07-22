@@ -32,7 +32,7 @@ export function computeNegativacaoCandidates({ boletos, hojeMs = Date.now(), min
     let g = grupos.get(key);
     if (!g) {
       g = { customerId: b.customer_id || null, cpf: b.customer_cpf || null, nome: b.customer_name || '',
-        parcelasVencidas: 0, totalVencido: 0, maisAntigoDue: null, paymentIdMaisAntigo: null };
+        parcelasVencidas: 0, totalVencido: 0, maisAntigoDue: null, paymentIdMaisAntigo: null, valorMaisAntigo: 0 };
       grupos.set(key, g);
     }
     g.parcelasVencidas += 1;
@@ -40,7 +40,8 @@ export function computeNegativacaoCandidates({ boletos, hojeMs = Date.now(), min
     if (!g.nome && b.customer_name) g.nome = b.customer_name;
     if (b.due_date && (!g.maisAntigoDue || b.due_date < g.maisAntigoDue)) {
       g.maisAntigoDue = b.due_date;
-      g.paymentIdMaisAntigo = b.id || null; // cobrança que será negativada (a mais antiga)
+      g.paymentIdMaisAntigo = b.id || null;        // cobrança que será negativada (a mais antiga)
+      g.valorMaisAntigo = Number(b.value) || 0;    // valor dessa parcela (o que vai ao Serasa)
     }
   }
 
@@ -51,7 +52,7 @@ export function computeNegativacaoCandidates({ boletos, hojeMs = Date.now(), min
     out.push({
       customerId: g.customerId, cpf: g.cpf, nome: g.nome,
       diasAtraso: dias, parcelasVencidas: g.parcelasVencidas, totalVencido: g.totalVencido,
-      paymentIdMaisAntigo: g.paymentIdMaisAntigo,
+      paymentIdMaisAntigo: g.paymentIdMaisAntigo, valorMaisAntigo: g.valorMaisAntigo,
       // "pronto" = temos uma cobrança-alvo + o id do cliente; dados do Serasa são
       // validados no backend (autoritativo). Sem customerId/payment não dá p/ negativar.
       pronto: !!(g.customerId && g.paymentIdMaisAntigo),

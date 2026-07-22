@@ -17,6 +17,7 @@ describe('computeNegativacaoCandidates', () => {
     expect(r[0].parcelasVencidas).toBe(2);
     expect(r[0].totalVencido).toBe(600);
     expect(r[0].paymentIdMaisAntigo).toBe('pay_velho');
+    expect(r[0].valorMaisAntigo).toBe(300); // valor da parcela negativada (não o total 600)
     expect(r[0].pronto).toBe(true);
   });
 

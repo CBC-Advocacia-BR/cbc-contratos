@@ -120,6 +120,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
   const selNone = () => setSel(new Set());
   const selCands = candidatos.filter((c) => sel.has(c.customerId) && c.pronto && c.paymentIdMaisAntigo);
   const custoSel = Math.round(selCands.length * NEGATIVACAO_FEE * 100) / 100;
+  const valorNegativado = Math.round(selCands.reduce((s, c) => s + (c.valorMaisAntigo || 0), 0) * 100) / 100;
 
   const dispararLote = async () => {
     setRunning(true);
@@ -185,6 +186,10 @@ export default function NegativacaoPanel({ userEmail = '' }) {
             <span className="text-[13px] font-extrabold uppercase tracking-wide" style={{ color: 'var(--cbc-navy,#1B3A5C)' }}>Candidatos à negativação</span>
             <span className="ml-auto text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: 'var(--cbc-bg-subtle,#F7FAFC)', color: 'var(--cbc-text-secondary,#4A5568)' }}>{candidatos.length} clientes · +90 dias</span>
           </div>
+          <div className="px-4 py-2 text-[11px] flex items-start gap-1.5" style={{ background: '#eef3fb', color: 'var(--cbc-text-secondary,#4A5568)' }}>
+            <span aria-hidden="true">ℹ️</span>
+            <span>A negativação é <b>por parcela</b>: enviamos ao Serasa a <b>parcela vencida mais antiga</b> de cada cliente (não o total). A marca no CPF já pressiona a dívida inteira.</span>
+          </div>
 
           {loading ? (
             <div className="p-8 text-center text-[13px]" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>Carregando candidatos…</div>
@@ -201,7 +206,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
               <table className="w-full text-[13px]">
                 <thead><tr style={{ color: 'var(--cbc-text-muted,#5E6675)' }} className="text-[10px] uppercase tracking-wide">
                   <th className="text-left px-4 py-2 w-8"></th><th className="text-left px-2 py-2">Cliente</th>
-                  <th className="text-left px-2 py-2">Atraso</th><th className="text-right px-2 py-2">Em aberto</th>
+                  <th className="text-left px-2 py-2">Atraso</th><th className="text-right px-2 py-2">Negativa · total</th>
                   <th className="text-left px-2 py-2">Situação</th><th className="px-2 py-2"></th>
                 </tr></thead>
                 <tbody>
@@ -217,7 +222,10 @@ export default function NegativacaoPanel({ userEmail = '' }) {
                           <div className="text-[11px]" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>{c.parcelasVencidas} parcela(s) em aberto</div>
                         </td>
                         <td className="px-2 py-2.5"><Badge cls={c.diasAtraso > 300 ? 'red' : 'amb'}>{c.diasAtraso} d</Badge></td>
-                        <td className="px-2 py-2.5 text-right font-extrabold tabular-nums">{fmt(c.totalVencido)}</td>
+                        <td className="px-2 py-2.5 text-right">
+                          <div className="font-extrabold tabular-nums" style={{ color: 'var(--cbc-text-primary,#1B3A5C)' }}>{fmt(c.valorMaisAntigo)}</div>
+                          <div className="text-[10px] tabular-nums" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>de {fmt(c.totalVencido)} em aberto</div>
+                        </td>
                         <td className="px-2 py-2.5">{jaNeg ? <Badge cls="blue">Já negativado</Badge> : <Badge cls="green">Pronto</Badge>}</td>
                         <td className="px-2 py-2.5 text-right">
                           {podeSel && (
@@ -281,10 +289,11 @@ export default function NegativacaoPanel({ userEmail = '' }) {
             </div>
             <div className="p-5">
               <p className="text-[13px] mb-3" style={{ color: 'var(--cbc-text-secondary,#4A5568)' }}>
-                Você vai negativar <b>{selCands.length} cliente(s)</b> no Serasa. O Serasa notifica cada um por carta (10 dias para pagar). Se pagar, a baixa é automática.
+                Você vai negativar <b>{selCands.length} cliente(s)</b> no Serasa. De cada um, negativa a <b>parcela vencida mais antiga</b> (não o total da dívida). O Serasa notifica por carta (10 dias para pagar); se pagar, a baixa é automática.
               </p>
               <div className="rounded-lg p-3 mb-3 text-[13px]" style={{ background: 'var(--cbc-bg-subtle,#F7FAFC)' }}>
-                <div className="flex justify-between py-1"><span>Negativações</span><b>{selCands.length}</b></div>
+                <div className="flex justify-between py-1"><span>Negativações (1 parcela por cliente)</span><b>{selCands.length}</b></div>
+                <div className="flex justify-between py-1"><span>Valor negativado (parcelas)</span><b>{fmt(valorNegativado)}</b></div>
                 <div className="flex justify-between py-1"><span>Tarifa unitária</span><b>{fmt(NEGATIVACAO_FEE)}</b></div>
                 <div className="flex justify-between py-1 border-t mt-1 pt-2" style={{ borderColor: 'var(--cbc-border,#E2E8F0)' }}><span className="font-bold">Custo total (débito do saldo Asaas)</span><b style={{ color: 'var(--cbc-danger,#B91C1C)' }}>{fmt(custoSel)}</b></div>
               </div>
