@@ -408,19 +408,27 @@ export default async (req) => {
         if (mesmoEvento) {
           // mesma vendedora do evento atual: reposiciona o MESMO evento (preserva o link
           // do Meet — nao cancela+recria so por causa do horario mudar).
-          await patchEventHorario({ calendarId: vend, eventId: eventoAtual.event_id, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: at });
-          eventId = eventoAtual.event_id;
-          meetLink = eventoAtual.meet_link;
-          // (IMPORTANT — revisão final #2) limpa a cor REAL do evento: se ele já tinha um
-          // desfecho marcado (no_show/realizada/fechou), a cor antiga fica no Calendar e o
-          // sync (até 45min) a releria, revertendo o status que o reset do espelho (abaixo)
-          // acabou de zerar. Não fatal — o reset do espelho é a defesa principal. NOTA: o
-          // token OAuth hoje é readonly, então isso só será exercitado de fato no piloto
-          // (pilot-verify), após o re-consent.
           try {
-            await setEventColor({ calendarId: vend, eventId: eventoAtual.event_id, colorId: null, accessToken: at });
+            await patchEventHorario({ calendarId: vend, eventId: eventoAtual.event_id, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: at });
+            eventId = eventoAtual.event_id;
+            meetLink = eventoAtual.meet_link;
+            // (IMPORTANT — revisão final #2) limpa a cor REAL do evento: se ele já tinha um
+            // desfecho marcado (no_show/realizada/fechou), a cor antiga fica no Calendar e o
+            // sync (até 45min) a releria, revertendo o status que o reset do espelho (abaixo)
+            // acabou de zerar. Não fatal — o reset do espelho é a defesa principal. NOTA: o
+            // token OAuth hoje é readonly, então isso só será exercitado de fato no piloto
+            // (pilot-verify), após o re-consent.
+            try {
+              await setEventColor({ calendarId: vend, eventId: eventoAtual.event_id, colorId: null, accessToken: at });
+            } catch (e) {
+              await logAdvbox('agenda', 'aviso', `setEventColor(null) falhou ao reagendar (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId: eventoAtual.event_id });
+            }
           } catch (e) {
-            await logAdvbox('agenda', 'aviso', `setEventColor(null) falhou ao reagendar (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId: eventoAtual.event_id });
+            await logAdvbox('agenda', 'erro', `patchEventHorario falhou ao reagendar: ${e.message}`.slice(0, 300), { leadId });
+            await falar(leadId, cfg.mensagens.impasse, cfg);
+            estadoFinal.ultima_fala_ana = new Date().toISOString();
+            await createKommoTask(leadId, 'leads', 'Ana falhou ao reagendar a videochamada no Calendar. Combinar horário manualmente.', 1, null);
+            break;
           }
         } else {
           if (eventoAtual?.event_id) {
