@@ -32,21 +32,22 @@ begin
   return n;
 end $fn$;
 
--- 3) View reconciliada: o log VENCE a cor; protege so 'excluida'. Mantem as colunas antigas
---    (event_id, vendedora_email, status, color_id, scheduled_at, tem_meet) + status_cor/origem
---    para auditoria. O frontend le 'status' (sem mudanca de codigo).
+-- 3) View reconciliada: o log VENCE a cor; protege so 'excluida'. IMPORTANTE: create or replace
+--    view so permite ANEXAR colunas no fim, entao mantemos as 6 originais na ordem
+--    (event_id, vendedora_email, status, color_id, scheduled_at, tem_meet) e anexamos
+--    status_cor/meet_status/origem_status no final. O frontend le 'status' (sem mudanca de codigo).
 create or replace view public.vw_funil_videochamadas as
 select
   event_id,
   vendedora_email,
   case when status = 'excluida' then 'excluida'
        else coalesce(meet_status, status) end as status,
-  status      as status_cor,
-  meet_status,
-  case when meet_status is not null then 'meet' else 'cor' end as origem_status,
   color_id,
   scheduled_at,
-  tem_meet
+  tem_meet,
+  status      as status_cor,
+  meet_status,
+  case when meet_status is not null then 'meet' else 'cor' end as origem_status
 from agenda_videochamadas;
 
 -- ROLLBACK (se necessario):
