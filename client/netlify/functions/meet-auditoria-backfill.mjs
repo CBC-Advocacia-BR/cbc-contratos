@@ -37,6 +37,7 @@ export default async (req) => {
       event_id,
       cliente_presente: e.cliente_seg > LIMIAR_SEG,
       cliente_seg: e.cliente_seg,
+      cliente_esperou_seg: e.cliente_esperou_seg,
       meet_status: deriveMeetStatus(e),
       participantes: e.participantes,
     }));

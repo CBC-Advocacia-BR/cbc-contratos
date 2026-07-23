@@ -21,10 +21,25 @@ function paramMap(ev) {
   return m;
 }
 
+/** Une intervalos [ini,fim] (epoch s) e devolve o total de segundos cobertos (sem dupla contagem). */
+export function uniaoSegundos(intervalos) {
+  const ivs = (intervalos || []).filter((iv) => iv && iv.length === 2 && iv[1] > iv[0]).sort((a, b) => a[0] - b[0]);
+  let total = 0, curIni = null, curFim = null;
+  for (const [ini, fim] of ivs) {
+    if (curFim === null || ini > curFim) { if (curFim !== null) total += curFim - curIni; curIni = ini; curFim = fim; }
+    else if (fim > curFim) curFim = fim;
+  }
+  if (curFim !== null) total += curFim - curIni;
+  return total;
+}
+
 /**
- * Agrupa os call_ended por calendar_event_id, somando duration_seconds por participante.
- * Retorna { [calId]: { participantes:[{id,interno,seg}], cliente_seg } } onde cliente_seg
- * e a MAIOR soma de duracao entre participantes NAO-internos.
+ * Agrupa os call_ended por calendar_event_id. Retorna { [calId]: {
+ *   participantes:[{id,interno,seg,entrou}], cliente_seg, cliente_esperou_seg } }.
+ * - cliente_seg = UNIAO dos intervalos de presenca dos externos (robusto a re-entradas e a
+ *   varios clientes; se nao houver timestamps, cai para a maior soma por participante).
+ * - cliente_esperou_seg = tempo que o cliente ficou na sala ANTES do 1o interno (vendedor) entrar
+ *   (0 = vendedor entrou primeiro; presenca total do cliente se o vendedor nunca entrou; null = sem externo).
  */
 export function classifyMeetItems(items) {
   const byCal = {};
@@ -36,16 +51,38 @@ export function classifyMeetItems(items) {
       if (!cal) continue;
       const id = m['identifier'] || (it.actor && it.actor.email) || 'anon';
       const seg = parseInt(m['duration_seconds'] || 0, 10) || 0;
+      const ini = parseInt(m['start_timestamp_seconds'] || 0, 10) || 0;
       const interno = (typeof id === 'string' && INTERNO_RE.test(id)) || m['is_external'] === false;
       const bucket = (byCal[cal] = byCal[cal] || { _p: {} });
-      const cur = (bucket._p[id] = bucket._p[id] || { id, interno, seg: 0 });
+      const cur = (bucket._p[id] = bucket._p[id] || { id, interno, seg: 0, sessoes: [] });
       cur.seg += seg;
+      if (ini > 0 && seg > 0) cur.sessoes.push([ini, ini + seg]);
     }
   }
+  const entrada = (p) => (p.sessoes.length ? Math.min(...p.sessoes.map((s) => s[0])) : null);
+  const saida = (p) => (p.sessoes.length ? Math.max(...p.sessoes.map((s) => s[1])) : null);
   for (const cal of Object.keys(byCal)) {
     const parts = Object.values(byCal[cal]._p);
-    const clienteSeg = parts.filter((p) => !p.interno).reduce((a, p) => Math.max(a, p.seg), 0);
-    byCal[cal] = { participantes: parts, cliente_seg: clienteSeg };
+    const externos = parts.filter((p) => !p.interno);
+    const internos = parts.filter((p) => p.interno);
+    // presenca do cliente: uniao dos intervalos dos externos; fallback = maior soma por participante
+    const uniao = uniaoSegundos(externos.flatMap((p) => p.sessoes));
+    const cliente_seg = uniao > 0 ? uniao : externos.reduce((a, p) => Math.max(a, p.seg), 0);
+    // espera do cliente pelo vendedor
+    const extEntradas = externos.map(entrada).filter((x) => x != null);
+    const intEntradas = internos.map(entrada).filter((x) => x != null);
+    const extSaidas = externos.map(saida).filter((x) => x != null);
+    let cliente_esperou_seg = null;
+    if (extEntradas.length) {
+      const primeiroExt = Math.min(...extEntradas);
+      if (intEntradas.length) cliente_esperou_seg = Math.max(0, Math.min(Math.min(...intEntradas), Math.max(...extSaidas)) - primeiroExt);
+      else if (extSaidas.length) cliente_esperou_seg = Math.max(0, Math.max(...extSaidas) - primeiroExt);
+    }
+    byCal[cal] = {
+      participantes: parts.map((p) => ({ id: p.id, interno: p.interno, seg: p.seg, entrou: entrada(p) })),
+      cliente_seg,
+      cliente_esperou_seg,
+    };
   }
   return byCal;
 }
