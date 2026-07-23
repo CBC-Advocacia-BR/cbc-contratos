@@ -56,31 +56,48 @@ Itens 1–3 do runbook (Google + Salesbot) já concluídos em 22/07. Resta:
 
 ## Frentes paralelas ao piloto (investigação; custo ~zero)
 
-- **Spike voz (gate da v2.1)**: o Kommo entrega áudio OGG/opus como *voice note* ao lead?
-  Caminhos a apurar: bloco de anexo no Salesbot × files API × amojo/chat API (o token
-  atual NÃO tem escopo de chat). Sem envio a lead real; só docs + GETs.
-  Saída: `chatguru-export/docs/spike-kommo-audio-2026-07-23.md`.
+- **Spike voz (gate da v2.1)** — ✅ CONCLUÍDA 23/07: veredito **viável com ressalvas**
+  (voice message *canned* via Salesbot; TTS dinâmico por turno NÃO passa no WABA
+  embutido). Detalhes em `chatguru-export/docs/spike-kommo-audio-2026-07-23.md`;
+  desenho da v2.1 abaixo já reflete o resultado.
 - **Mineração da base (insumo v2.1/v2.2)**: nas 13.884 conversas, catalogar (a) objeções
   reais pré-agendamento + as respostas da equipe que converteram; (b) mensagens de
   reativação pós-silêncio (≥3 dias) que trouxeram o lead de volta, com padrões e taxa
   aproximada de resposta. Saída:
   `chatguru-export/docs/mineracao-objecoes-reativacao-2026-07-23.md`.
 
-## v2.1 — voz espelhada (ElevenLabs)
+## v2.1 — voz espelhada híbrida (ElevenLabs) — desenho pós-spike (23/07)
 
-- **Regra determinística** na máquina de estados: a modalidade da ÚLTIMA mensagem do lead
-  define a da resposta. Nenhuma decisão de IA; o conteúdo continua saindo SEMPRE de template.
-- Cada template ganha uma **variante falada** (texto escrito ≠ texto que soa natural
-  falado), editável na aba como hoje, com "restaurar padrão". TTS ElevenLabs pt-BR
-  (voz feminina consistente com a persona), enviado como voice note.
-- **Transparência mantida**: a Ana segue se apresentando como assistente do escritório —
-  com voz sintética, o disclosure é ainda mais importante (OAB/LGPD).
-- **Fallback**: falha de TTS ou de entrega de áudio → responde em texto (nunca trava).
-- **Gate de entrada**: spike positiva. Se o Kommo não entregar voice note de verdade,
-  a camada é repensada (áudio como arquivo comum descaracteriza a experiência).
-- Custo estimado: R$ 30–150/mês no volume atual (assinatura ElevenLabs + geração;
-  mitigável com cache de áudio por template+variáveis).
-- **Fora de escopo**: ligações telefônicas; áudio proativo (abrir em áudio com quem só escreve).
+- **O que a spike provou**: o Salesbot tem passo nativo de *voice message* (canal WACA
+  suportado; OGG/OPUS até 16 MB; o passo de voz NÃO pode ter texto/botão, senão degrada
+  para arquivo baixável). Mas o anexo do passo é **estático** e não há API pública de
+  envio de mídia no WABA embutido → **TTS dinâmico por turno não passa**; o que passa é
+  **biblioteca de áudios canned** pré-gerados.
+- **Desenho v2.1a**: biblioteca canned gerada no ElevenLabs (pt-BR, voz feminina
+  consistente com a persona) para os momentos de script — apresentação com **disclosure
+  gravado dentro do áudio**, transições de qualificação, convite à videochamada, top
+  objeções vindas da mineração. Um bot "Ana - Voz" com um passo de voz por áudio,
+  roteado por campo enum `ana_audio_key` + Condition + `bots/run` (mesmo mecanismo
+  validado do texto; zero escopo/integração nova). Dados variáveis (nome, slots, link)
+  vão em passo de TEXTO logo após o áudio.
+- **Regra do orquestrador (espelhamento adaptado)**: lead mandou áudio E o momento tem
+  canned → responde em voz; senão → texto. **Fora da janela de 24h nunca há áudio**
+  (template Meta não aceita header de áudio) — retomada fria é sempre texto-template.
+  Fallback: qualquer falha → texto (nunca trava).
+- **Serialização de bots**: o Kommo roda um bot por entidade por vez e a conta tem 18
+  bots — o orquestrador serializa voz × texto × demais disparos.
+- **Gate empírico antes de codar (~1h; ENVIA mensagens de teste a número interno —
+  requer go do Paulo)**: bot isolado "ZZ Teste Voz" com OGG/OPUS mono; aprovação =
+  bolha PTT real (waveform/mic) em Android E iPhone; degradou para arquivo → camada
+  repensada. Checklist no §8 do doc da spike.
+- **Métrica extra**: % de turnos espelháveis cobertos pela biblioteca canned (mede
+  quanto a limitação do áudio estático dói de verdade).
+- **v2.1b (condicional)**: TTS 100% dinâmico exige **transporte próprio** (Cloud API
+  direta/BSP + espelho no Kommo via canal Chats API próprio) — só se a v2.1a mover a
+  taxa de resposta; casa com a visão futura do portal do cliente.
+- Custo: geração canned é one-shot + regenerações eventuais — dentro dos R$ 30–150/mês.
+- **Fora de escopo**: ligações telefônicas; áudio proativo (a política da Meta reforça:
+  áudio não abre conversa fria).
 
 ## v2.2 — nutrição longa + objeções ampliadas
 
@@ -123,8 +140,9 @@ Itens 1–3 do runbook (Google + Salesbot) já concluídos em 22/07. Resta:
 
 ## Riscos
 
-1. **Envio de áudio pelo Kommo inviável como voice note** → spike decide antes de
-   qualquer código; sem voice note real, v2.1 é repensada.
+1. **Renderização PTT real não garantida por escrito no WACA** (doc do Kommo ambígua
+   sobre iOS) → gate empírico da v2.1 (Android + iPhone) antes de qualquer código;
+   degradou para arquivo → camada repensada.
 2. **Quality rating do número WABA** (nutrição longa) → guarda-corpos acima; segundo
    número é plano B extremo, não default.
 3. **Meta reprovar templates Marketing** minerados → reescrever mantendo o sentido;
