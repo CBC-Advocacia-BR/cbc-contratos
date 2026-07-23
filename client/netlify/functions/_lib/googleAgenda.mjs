@@ -68,4 +68,4 @@ export function classifyEvent(ev, vendedoraEmail) {
 }
 
 /** Vendedoras monitoradas (lista fixa — decisão do Paulo 26/06). */
-export const VENDEDORAS = ['beatriz@advocaciacbc.com', 'marianamaciel@advocaciacbc.com'];
+export const VENDEDORAS = ['beatriz@advocaciacbc.com', 'marianamaciel@advocaciacbc.com', 'emerson@advocaciacbc.com', 'mizael@advocaciacbc.com'];
