@@ -8,6 +8,7 @@
 //  - Resort auto (tag/cadastro) sempre pede confirmacao.
 import { RESORTS } from '../data/clausulas';
 import { maskPhone, maskCPF, maskCNPJ, maskCEP, maskRG } from './masks';
+import { detectGenderByName } from './genderDetector';
 
 // telefone do Kommo pode vir "55DD+numero" -> padrao do form "(DD) numero".
 // dropa o codigo de pais 55 SO quando ele existe (12-13 digitos), nunca de um
@@ -74,6 +75,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   const proveniencia = {};
   const NUNCA = new Set(['origemCliente']); // nome pode vir do Cadastro Unico (nunca do Kommo)
   const resortAntigo = String(atuais.resort || '').trim();
+  let resortOpcoes = null; // (item 4) cadastro com varios resorts -> usuario escolhe
 
   // vincular e autoritativo: SEMPRE (re)preenche os campos derivados do lead (telefone,
   // resort, endereco/qualificacao do Cadastro, 1a msg). Inserir um lead diferente
@@ -110,6 +112,7 @@ export function montarPreenchimento(raw, atuais = {}) {
       set('profissao', cliente.profissao, 'cadastro');
       set('estadoCivil', normalizeEstadoCivil(cliente.estado_civil), 'cadastro');
       set('sexo', normalizeSexo(cliente.genero), 'cadastro');
+      if (!campos.sexo && cliente.nome) set('sexo', detectGenderByName(cliente.nome), 'auto'); // (item 8) deduz do nome se cadastro sem genero
       set('nacionalidade', cliente.nacionalidade, 'cadastro');
       set('cep', cliente.cep && maskCEP(cliente.cep), 'cadastro');
       set('endereco', cliente.logradouro, 'cadastro');
@@ -120,7 +123,14 @@ export function montarPreenchimento(raw, atuais = {}) {
       set('uf', cliente.uf, 'cadastro');
       set('email', cliente.email, 'cadastro');
     }
-    set('resort', matchResort(cliente.empreendimentos), 'cadastro');
+    // (item 4) o cadastro pode ter VARIOS resorts ("ONDAS PRAIA, SOLAR DAS AGUAS").
+    // 1 -> preenche; 0 -> tenta a linha inteira; 2+ -> nao adivinha, oferece p/ escolher.
+    const resortsCad = [...new Set(
+      String(cliente.empreendimentos || '').split(/[;,]/).map((s) => matchResort(s)).filter(Boolean),
+    )];
+    if (resortsCad.length === 1) set('resort', resortsCad[0], 'cadastro');
+    else if (resortsCad.length === 0) set('resort', matchResort(cliente.empreendimentos), 'cadastro');
+    else resortOpcoes = resortsCad;
     set('telefone', fmtTelefone(cliente.telefone), 'cadastro'); // numero canonico do Cadastro (11 digitos, com o 9)
   }
 
@@ -140,7 +150,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   const resortConfirmar = proveniencia.resort === 'tag' || proveniencia.resort === 'cadastro';
   // resortAlterado = havia um resort diferente e o Kommo trocou -> aviso mais forte
   const resortAlterado = !!(resortAntigo && campos.resort && resortAntigo !== String(campos.resort).trim());
-  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado };
+  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado, resortOpcoes };
 }
 
 // registro da excecao "contrato sem lead no Kommo" (quem/quando/motivo)

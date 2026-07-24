@@ -76,12 +76,18 @@ export default async (req) => {
       }
     }
 
+    // (item 9) transparencia: casou pelo lead ligado ao cadastro, ou so pelo telefone?
+    const matchPor = cliente
+      ? (String(cliente.kommo_lead_id || '') === String(leadId) ? 'lead' : 'telefone')
+      : null;
+
     return resp(200, {
       ok: true,
       contato: { telefone, email: emailContato },
       tags,
       cliente,
       clienteConhecido: !!cliente,
+      matchPor,
       primeiraMsgConversas,
       leadCriadoEm,
       origemSugerida: 'Trafego pago',

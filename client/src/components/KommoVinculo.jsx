@@ -12,7 +12,7 @@ import KommoSemVinculoModal from './KommoSemVinculoModal';
 const DATA_KEYS = new Set(['resort', 'dataPrimeiraMensagem']);
 
 export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
-  const { data, updateData, updateContratante } = useContract();
+  const { data, updateData, updateContratante, aplicarVinculo } = useContract();
   const { user } = useAuth();
   const c0 = data.contratantes?.[0] || {};
   const link = c0.linkKommo || '';
@@ -21,6 +21,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
   const [msg, setMsg] = useState('');
   const [conhecido, setConhecido] = useState(false);
   const [resortConfirmar, setResortConfirmar] = useState(false);
+  const [resortOpcoes, setResortOpcoes] = useState(null); // (item 4) cadastro c/ varios resorts
   const [showSemKommo, setShowSemKommo] = useState(false);
 
   const setLink = (v) => updateContratante(0, { linkKommo: v });
@@ -50,18 +51,20 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
         setEstado('erro'); setMsg(`Não vinculou: ${detalhe}. Você pode preencher sem vincular.`);
         return;
       }
-      const atuais = { ...c0, resort: data.resort, tipoAcao: data.tipoAcao, dataPrimeiraMensagem: data.dataPrimeiraMensagem, origemCliente: data.origemCliente };
-      const { campos, clienteConhecido, resortConfirmar: rc } = montarPreenchimento(j, atuais);
+      const { campos, clienteConhecido, resortConfirmar: rc, resortOpcoes: ro } = montarPreenchimento(j);
       const contratanteCampos = {}; const dataCampos = {};
       for (const [k, v] of Object.entries(campos)) (DATA_KEYS.has(k) ? dataCampos : contratanteCampos)[k] = v;
-      // (vinculo-kommo) resort sobrescreve -> liga o aviso "revise o resort" no campo do resort
-      if (dataCampos.resort) dataCampos.resortAvisoKommo = true;
-      if (Object.keys(contratanteCampos).length) updateContratante(0, contratanteCampos);
-      if (Object.keys(dataCampos).length) updateData(dataCampos);
-      if (j.origemSugerida) updateData({ origemCliente: j.origemSugerida }); // vincular sobrescreve a origem (novo lead = nova sugestao)
-      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc);
+      if (dataCampos.resort) dataCampos.resortAvisoKommo = true; // resort preenchido -> "confira"
+      if (j.origemSugerida) dataCampos.origemCliente = j.origemSugerida; // sugestao (semaforo mostra "confira")
+      // Opcao B: Vincular ZERA o formulario inteiro (mantendo so o link) e aplica os campos do lead/Cadastro.
+      // Assim nenhum dado de um lead anterior sobra em campo que o novo lead nao preenche.
+      aplicarVinculo(link, contratanteCampos, dataCampos);
+      const porTelefone = clienteConhecido && j.matchPor === 'telefone';
+      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc); setResortOpcoes(ro || null);
       setEstado('vinculado');
-      setMsg(clienteConhecido ? 'Cliente já cadastrado — dados puxados do Cadastro Único.' : 'Lead vinculado.');
+      setMsg(clienteConhecido
+        ? (porTelefone ? 'Cliente já cadastrado (casado pelo telefone) — dados do Cadastro Único.' : 'Cliente já cadastrado — dados puxados do Cadastro Único.')
+        : 'Lead vinculado.');
       onDesbloquear && onDesbloquear();
     } catch (e) {
       const t = e?.name === 'TimeoutError' ? 'demorou demais (timeout 25s)' : (e?.message || 'erro de rede');
@@ -72,7 +75,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
   // Semaforo (nome NAO entra — vem do CPF)
   const seg = [
     { k: 'Identidade', ok: !!c0.telefone },
-    { k: 'Origem', ok: !!data.origemCliente },
+    { k: 'Origem', ok: !!data.origemCliente, warn: !!data.origemCliente }, // (item 6) sugestao -> confira
     { k: 'Resort', ok: !!data.resort, warn: resortConfirmar && !!data.resort },
     { k: 'Contrato', ok: !!data.tipoAcao },
   ];
@@ -126,6 +129,12 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
               </span>
             ))}
           </div>
+        )}
+
+        {estado === 'vinculado' && resortOpcoes && !data.resort && (
+          <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
+            ⚠ Este cliente tem histórico em {resortOpcoes.length} resorts: <b>{resortOpcoes.join(' · ')}</b> — escolha o resort deste contrato no campo Resort.
+          </p>
         )}
 
         {data.semKommo ? (

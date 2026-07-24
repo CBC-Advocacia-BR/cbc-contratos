@@ -203,6 +203,26 @@ export function ContractProvider({ children }) {
     try { localStorage.removeItem(getStorageKey()); } catch { /* ignore */ }
   }, []);
 
+  // (vinculo-kommo, item 1 / Opcao B) Vincular = recomecar do zero: zera TODO o
+  // formulario (mantendo apenas o link) e aplica os campos vindos do lead/Cadastro.
+  // Evita que dados de um lead anterior sobrem em campos que o novo lead nao preenche.
+  const aplicarVinculo = useCallback((linkKommo, contratanteCampos = {}, dataCampos = {}) => {
+    setData({
+      ...defaultState,
+      ...dataCampos,
+      numContratantes: 1, // o Vincular preenche o contratante 1
+      contratantes: [
+        { ...defaultContratante(), linkKommo: linkKommo || '', ...contratanteCampos },
+        defaultContratante(),
+      ],
+      honorarios: { ...defaultState.honorarios },
+      clausulas: {},
+      clausulasOrder: null,
+      clausulasAvulsas: [],
+      documentosRecebidos: {},
+    });
+  }, []);
+
   // (perf 31/05) value memoizado. As funcoes ja sao useCallback estaveis; assim o
   // objeto so e recriado quando 'data' ou 'currentStep' mudam (re-render necessario),
   // evitando recriacao a cada render do provider por causas externas.
@@ -210,12 +230,12 @@ export function ContractProvider({ children }) {
     data, updateData, updateContratante, updateHonorarios,
     updateClausula, resetClausula, getClausulaTexto, isClausulaModificada,
     getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa,
-    getResortName, resetAll, currentStep, setCurrentStep,
+    getResortName, resetAll, aplicarVinculo, currentStep, setCurrentStep,
   }), [
     data, updateData, updateContratante, updateHonorarios,
     updateClausula, resetClausula, getClausulaTexto, isClausulaModificada,
     getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa,
-    getResortName, resetAll, currentStep, setCurrentStep,
+    getResortName, resetAll, aplicarVinculo, currentStep, setCurrentStep,
   ]);
 
   return (

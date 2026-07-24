@@ -236,4 +236,52 @@ describe('montarPreenchimento', () => {
     );
     expect(r.campos.telefone).toBe('(15) 99731-2888');
   });
+
+  // ── item 4: cadastro com varios resorts ──
+  it('cliente com VARIOS resorts no cadastro: nao adivinha, oferece opcoes', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'Gustavo', cpf_cnpj: '02871309671', empreendimentos: 'ONDAS PRAIA, SOLAR DAS AGUAS' },
+    });
+    expect(r.campos.resort).toBeUndefined();          // nao preenche (ambiguo)
+    expect(r.resortOpcoes).toEqual(['Ondas Praia', 'Solar das Águas']);
+  });
+
+  it('cliente com 1 resort no cadastro: preenche e nao oferece opcoes', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'Maria', cpf_cnpj: '12345678909', empreendimentos: 'SOLAR DAS AGUAS' },
+    });
+    expect(r.campos.resort).toBe('Solar das Águas');
+    expect(r.resortOpcoes).toBe(null);
+  });
+
+  it('varios resorts no cadastro mas a TAG do lead resolve: usa a tag (e ainda avisa o historico)', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: ['Ondas Praia'],
+      cliente: { nome: 'Gustavo', cpf_cnpj: '02871309671', empreendimentos: 'ONDAS PRAIA, SOLAR DAS AGUAS' },
+    });
+    expect(r.campos.resort).toBe('Ondas Praia');
+    expect(r.proveniencia.resort).toBe('tag');
+    expect(r.resortOpcoes).toEqual(['Ondas Praia', 'Solar das Águas']);
+  });
+
+  // ── item 8: sexo deduzido do nome ──
+  it('sexo deduzido do nome quando o cadastro nao tem genero', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'MARIANA SOUZA', cpf_cnpj: '12345678909', genero: null },
+    });
+    expect(r.campos.sexo).toBe('F');
+    expect(r.proveniencia.sexo).toBe('auto');
+  });
+
+  it('sexo do cadastro tem prioridade sobre a deducao do nome', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'MARIA', cpf_cnpj: '12345678909', genero: 'M' },
+    });
+    expect(r.campos.sexo).toBe('M');
+    expect(r.proveniencia.sexo).toBe('cadastro');
+  });
 });
