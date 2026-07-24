@@ -78,9 +78,9 @@ export const RESORTS = [
 ];
 
 export const HONORARIOS_OPCOES = [
-  { total: 2700, parcelas: 1, valorParcela: 2700, label: 'À vista' },
+  { total: 3270, parcelas: 1, valorParcela: 3270, label: 'À vista' },
   { total: 3000, parcelas: 10, valorParcela: 300, label: '10x' },
-  { total: 3000, parcelas: 12, valorParcela: 250, label: '12x' },
+  { total: 3600, parcelas: 12, valorParcela: 300, label: '12x' },
   { total: 3300, parcelas: 12, valorParcela: 275, label: '12x' },
 ];
 
