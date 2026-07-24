@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { computeFunnel } from './funnel/funnelCompute';
+import PontualidadePanel from './PontualidadePanel';
 
 const SERIF = "'Cormorant Garamond', Georgia, serif";
 const fmtDias = (d) => (d == null ? '—' : `${(Math.round(d * 10) / 10).toLocaleString('pt-BR')} d`);
@@ -270,6 +271,9 @@ export default function FunnelHealthPanel() {
             </div>
           )}
         </section>
+
+        {/* Pontualidade dos vendedores (este painel já é restrito a sócios) */}
+        <PontualidadePanel />
 
         <p className="text-[10px] text-center pb-2" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
           Arquivados e cancelados ficam fora do funil. Tempos usam mediana (robusta a casos extremos).

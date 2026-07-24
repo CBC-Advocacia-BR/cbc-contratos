@@ -49,6 +49,7 @@ import {
 
 const GeoHeatmap = lazy(() => import('./GeoHeatmap'));
 const HeatmapTemporal = lazy(() => import('./HeatmapTemporal'));
+const PontualidadePanel = lazy(() => import('./PontualidadePanel'));
 const RelatorioAssinadosModal = lazy(() => import('./dashboard/RelatorioAssinadosModal'));
 
 // Cache em módulo (#29) — evita tela vazia ao trocar de aba e voltar
@@ -582,6 +583,13 @@ export default function Dashboard() {
 
           {/* ─── Insights ─── */}
           <InsightsCard insights={dash.insights} delay={40} />
+
+          {/* ─── Pontualidade dos vendedores (só sócios) ─── */}
+          {canCompare && (
+            <Suspense fallback={null}>
+              <PontualidadePanel />
+            </Suspense>
+          )}
 
           {/* ─── Geografia & ritmo ─── */}
           <SectionTitle hint="origem dos clientes e horários de pico">Geografia & ritmo</SectionTitle>
