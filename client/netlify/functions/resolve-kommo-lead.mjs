@@ -1,24 +1,22 @@
 /**
  * resolve-kommo-lead: dado o link/lead do Kommo, devolve os dados CRUS para o
  * "Vincular" preencher o formulario (mapeamento no client via utils/kommoResolve).
- * Le ao vivo: Kommo (lead+contato+tags) + Cadastro Unico (clientes, JWT do caller)
- * + Arquivo CBC Conversas (RPC atendimento.primeira_msg_por_telefone, best-effort).
  *
- * Instrumentado: cada chamada externa tem timeout e o passo atual e logado — se
- * algo travar/crashar, vira {ok:false, motivo:'<passo>: <erro>'} + log no Monitor,
- * em vez de um 502 mudo.
+ * Le ao vivo: Kommo (lead+contato+tags) + RPC public.resolve_kommo_dados (SECURITY
+ * DEFINER, segredo BOT_RPC_SECRET) que devolve o cliente do Cadastro Unico + a 1a
+ * mensagem no Arquivo CBC Conversas — via o `db` do botDb (anon com fallback proprio).
+ * NAO usa createClient/JWT do caller (evita o "supabaseKey is required" das functions).
+ *
+ * Instrumentado: cada chamada externa tem timeout e o passo e logado — falha vira
+ * {ok:false, motivo:'<passo>: <erro>'} + log no Monitor, nunca 502 mudo.
  * POST { link } com Authorization: Bearer <JWT do Supabase>.
  */
-import { createClient } from '@supabase/supabase-js';
 import { db, logAdvbox } from './_lib/botDb.mjs';
 import { kommoConfigured, kommoGet, getContact, extractPhones, extrairLeadId } from './_lib/kommo.mjs';
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vygczeepvoyaehfchxko.supabase.co';
-const ANON = process.env.VITE_SUPABASE_ANON_KEY || '';
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
 const resp = (s, b) => new Response(JSON.stringify(b), { status: s, headers: JSONH });
-const so11 = (t) => (t || '').replace(/\D/g, '').slice(-11);
 const withTimeout = (p, ms, label) => Promise.race([
   Promise.resolve(p),
   new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout ${label} ${ms}ms`)), ms)),
@@ -43,8 +41,6 @@ export default async (req) => {
     const leadId = extrairLeadId(link);
     if (!leadId) return resp(400, { ok: false, motivo: 'link do Kommo invalido' });
 
-    const dbUser = createClient(SUPABASE_URL, ANON, { global: { headers: { Authorization: `Bearer ${jwt}` } }, auth: { persistSession: false } });
-
     passo = 'kommo:lead';
     const lead = await withTimeout(kommoGet(`/leads/${leadId}?with=contacts`), 6000, 'lead');
     if (!lead || lead.id == null) return resp(200, { ok: false, motivo: 'lead nao encontrado no Kommo' });
@@ -64,27 +60,20 @@ export default async (req) => {
       }
     }
 
-    passo = 'cadastro';
+    passo = 'dados';
     let cliente = null;
-    try {
-      const idq = await withTimeout(dbUser.from('clientes').select('*').eq('kommo_lead_id', String(leadId)).limit(1), 6000, 'clientes:lead');
-      if (!idq.error && idq.data?.length) cliente = idq.data[0];
-      const t11 = so11(telefone);
-      if (!cliente && t11.length >= 10) {
-        const eqq = await withTimeout(dbUser.from('clientes').select('*').eq('telefone', t11).limit(1), 6000, 'clientes:tel');
-        if (!eqq.error && eqq.data?.length) cliente = eqq.data[0];
-      }
-    } catch (e) { await logAdvbox('kommo', 'aviso', `resolve cadastro falhou: ${e.message}`.slice(0, 200), { leadId }).catch(() => {}); }
-
-    passo = 'conversas';
     let primeiraMsgConversas = null;
-    const t11b = so11(telefone);
-    if (t11b.length >= 10 && RPC_SECRET) {
-      try {
-        const { data: cv } = await withTimeout(dbUser.schema('atendimento').rpc('primeira_msg_por_telefone', { p_tel: telefone, p_chave: RPC_SECRET }), 6000, 'rpc:conversas');
-        const row = Array.isArray(cv) ? cv[0] : cv;
-        if (row?.tem_conversa) primeiraMsgConversas = row.primeira_msg || null;
-      } catch (e) { await logAdvbox('kommo', 'aviso', `resolve conversas falhou: ${e.message}`.slice(0, 200), { leadId }).catch(() => {}); }
+    if (RPC_SECRET) {
+      const { data: dd, error } = await withTimeout(
+        db.rpc('resolve_kommo_dados', { p_lead: String(leadId), p_tel: telefone, p_chave: RPC_SECRET }),
+        6000, 'rpc:dados',
+      );
+      if (error) {
+        await logAdvbox('kommo', 'aviso', `resolve dados: ${error.message}`.slice(0, 200), { leadId }).catch(() => {});
+      } else if (dd) {
+        cliente = dd.cliente || null;
+        if (dd.tem_conversa) primeiraMsgConversas = dd.primeira_msg || null;
+      }
     }
 
     return resp(200, {

@@ -118,6 +118,27 @@ describe('montarPreenchimento', () => {
     expect(r.campos.origemCliente).toBeUndefined();
   });
 
+  it('caso REAL do teste do Paulo (lead 12820604, Hot Beach, sem cadastro)', () => {
+    // dados exatos vindos do Kommo + RPC resolve_kommo_dados (verificados em prod)
+    const r = montarPreenchimento({
+      contato: { telefone: '5515997312888', email: '' },
+      tags: ['HOT BEACH', 'LIMBO'],
+      cliente: null,
+      primeiraMsgConversas: '2024-07-22T08:54:43.275+00:00',
+      leadCriadoEm: '2024-07-22T08:54:00.000Z',
+    });
+    expect(r.campos.telefone).toBe('5515997312888');
+    expect(r.proveniencia.telefone).toBe('kommo');
+    expect(r.campos.resort).toBe('Hot Beach');
+    expect(r.proveniencia.resort).toBe('tag');
+    expect(r.resortConfirmar).toBe(true);
+    expect(r.campos.dataPrimeiraMensagem).toBe('2024-07-22');
+    expect(r.proveniencia.dataPrimeiraMensagem).toBe('conversas');
+    expect(r.clienteConhecido).toBe(false);
+    expect(r.campos.nome).toBeUndefined();
+    expect(r.campos.origemCliente).toBeUndefined();
+  });
+
   it('nao sobrescreve o que ja foi digitado', () => {
     const r = montarPreenchimento(
       { contato: { telefone: '(22) 99104-8383' }, tags: [], cliente: null },
