@@ -60,11 +60,14 @@ Itens 1–3 do runbook (Google + Salesbot) já concluídos em 22/07. Resta:
   (voice message *canned* via Salesbot; TTS dinâmico por turno NÃO passa no WABA
   embutido). Detalhes em `chatguru-export/docs/spike-kommo-audio-2026-07-23.md`;
   desenho da v2.1 abaixo já reflete o resultado.
-- **Mineração da base (insumo v2.1/v2.2)**: nas 13.884 conversas, catalogar (a) objeções
-  reais pré-agendamento + as respostas da equipe que converteram; (b) mensagens de
-  reativação pós-silêncio (≥3 dias) que trouxeram o lead de volta, com padrões e taxa
-  aproximada de resposta. Saída:
-  `chatguru-export/docs/mineracao-objecoes-reativacao-2026-07-23.md`.
+- **Mineração da base (insumo v2.1/v2.2)** — ✅ CONCLUÍDA 23/07 (13.894 conversas,
+  623.874 mensagens; frequências são PISO — 49,5 mil áudios não transcritos). Top
+  achados: preço é a objeção nº 1 e a deflexão da casa converte (33,7% agendam em 30d);
+  "quanto tempo demora?" destrava 73% (é dúvida, não recusa); reativar em **D+3–7 rende
+  62% de resposta** (cai ~metade a cada semana de espera); melhor gatilho de agendamento
+  = reoferta de reagendamento pós-no-show (23% agendam); blasts vendedores são
+  anti-padrão comprovado (conteúdo útil rendeu 3× mais). Catálogos completos com
+  verbatims em `chatguru-export/docs/mineracao-objecoes-reativacao-2026-07-23.md`.
 
 ## v2.1 — voz espelhada híbrida (ElevenLabs) — desenho pós-spike (23/07)
 
@@ -104,10 +107,15 @@ Itens 1–3 do runbook (Google + Salesbot) já concluídos em 22/07. Resta:
 - **Gatilhos de entrada na cadência**: sumiu na qualificação (58% dos leads históricos
   morrem antes de receber oferta — o maior vazamento do funil); recusou agendar;
   no-show com ciclos de reagendamento esgotados.
-- **Cadência**: D+1 até ~D+90, número/espaçamento/horários parametrizáveis na aba;
-  eixos de conteúdo: autoridade (líder em distrato), prova social/cases, esclarecimento
-  do processo, urgência leve. Textos-base MINERADOS da própria base (frente paralela),
-  não inventados. Lead que responde **sai da cadência na hora** e volta ao fluxo vivo da Ana.
+- **Cadência**: D+1 até ~D+90, número/espaçamento/horários parametrizáveis na aba —
+  **front-loaded por evidência da mineração**: D+3–7 rende 62% de resposta vs ~30%
+  após 21 dias, então os primeiros 7 dias concentram os toques; depois espaça
+  (quinzenal/mensal) com conteúdo ÚTIL (esclarecimento, serviço — que rendeu 3× mais),
+  nunca blast vendedor (anti-padrões comprovados: "reajuste de honorários" 6,9%,
+  "imagine recuperar…" 12,3%, case agressivo 15,6%). Toque nº 1 pós-no-show é a
+  reoferta de reagendamento (23% agendam — 3–5× a média). Textos-base minerados,
+  não inventados. Lead que responde **sai da cadência na hora** e volta ao fluxo
+  vivo da Ana.
 - **Reciclagem retroativa do Cemitério** (base antiga, pré-Ana): opção de alto valor,
   decidir escopo e volume na spec da camada (risco de spam maior em base fria antiga).
 - **Guarda-corpos (inegociáveis)**:
@@ -120,10 +128,14 @@ Itens 1–3 do runbook (Google + Salesbot) já concluídos em 22/07. Resta:
     nutrição (rating caiu → pausa) — número denunciado derruba o WhatsApp inteiro
     do escritório;
   - horário comercial apenas; sem toques em fim de semana (parametrizável).
-- **Objeções ampliadas** (entra nesta camada; mesma mineração): novas intenções no
-  intérprete — desconfiança/golpe, "já tenho advogado", cônjuge decide, "vou pensar",
-  "por que videochamada?" — cada uma com resposta-template minerada das conversas que
-  converteram; mantém handoff após 2 turnos sem progresso.
+- **Objeções ampliadas** (entra nesta camada; catálogo PRONTO na mineração — 10
+  objeções com verbatims + respostas que destravaram): novas intenções no intérprete —
+  desconfiança/golpe (kit de prova CNPJ/site destrava 51%), "já tenho advogado",
+  "vou pensar/cônjuge" (a mais letal, 18% — antídoto: converter em call CONJUNTA com
+  slot fechado), "quanto tempo demora?" (resposta direta destrava 73%), "por que
+  videochamada?" — cada uma com resposta-template minerada, sempre fechando com a
+  trinca validação → micro-pitch de restituição → reoferta de slot; mantém handoff
+  após 2 turnos sem progresso.
 - **Kommo**: etapa própria de nutrição (ex.: "Em nutrição" — criar na spec da camada),
   toques logados como notas no lead, campo de motivo-da-perda para atribuição.
 - Custo Meta no pior caso: R$ 0,5–2,5 mil/mês (depende das paradas por resposta/opt-out);
