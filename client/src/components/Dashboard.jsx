@@ -64,7 +64,7 @@ let _cachedFull = false;
 // demanda (botao "carregar tudo") ou automaticamente quando o filtro exige.
 // (#306) Comparativo mês a mês (deltas dos KPIs + comparador de meses) é restrito
 // aos sócios — mesma lista do Dashboard Sócios / App.jsx.
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com'];
+const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
 
 // (leads Meta 14/07/2026) Investimento e custo por lead das campanhas sao dado
 // financeiro sensivel: visiveis SO para socios + Lorenza (pedido do Paulo). Os
@@ -137,8 +137,6 @@ export default function Dashboard() {
   const canCompare = SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
   // (leads Meta) investimento/CPL das campanhas: só sócios + Lorenza
   const canSeeAdsCusto = ADS_CUSTO_EMAILS.includes((user?.email || '').toLowerCase());
-  // (pontualidade) painel de pontualidade dos vendedores: sócios + Lorenza (pedido do Paulo)
-  const canVerPontualidade = ADS_CUSTO_EMAILS.includes((user?.email || '').toLowerCase());
 
   // ─── Fetch ───
   // (perf-fe-7) full=true ignora a janela e traz o historico inteiro.
@@ -586,8 +584,8 @@ export default function Dashboard() {
           {/* ─── Insights ─── */}
           <InsightsCard insights={dash.insights} delay={40} />
 
-          {/* ─── Pontualidade dos vendedores (sócios + Lorenza) ─── */}
-          {canVerPontualidade && (
+          {/* ─── Pontualidade dos vendedores (só sócios) ─── */}
+          {canCompare && (
             <Suspense fallback={null}>
               <PontualidadePanel />
             </Suspense>

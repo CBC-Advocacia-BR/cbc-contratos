@@ -30,7 +30,7 @@ import {
   EyeIcon,
 } from '@heroicons/react/24/outline';
 
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com'];
+const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
 
 function formatCurrency(val) {
   if (!val && val !== 0) return 'R$ 0,00';

@@ -72,7 +72,7 @@ function prefetchTab(key) {
 
 const ASAAS_USERS = ['paulo@advocaciacbc.com', 'paulo.conforto@outlook.com', 'bruno@advocaciacbc.com', 'anderson@advocaciacbc.com', 'lorenza@advocaciacbc.com', 'lucas@advocaciacbc.com'];
 // (#306) Socios — emails com acesso ao Dashboard Socios (restrito por email, nao por is_admin)
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com'];
+const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
 
 // (v6.2.0) Controle de retry do upload para Google Drive
 // - MAX_ATTEMPTS: apos X falhas, marca 'failed' e para de tentar
