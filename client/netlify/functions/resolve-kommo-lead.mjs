@@ -22,6 +22,20 @@ const withTimeout = (p, ms, label) => Promise.race([
   new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout ${label} ${ms}ms`)), ms)),
 ]);
 
+// (item 2) o contato do Kommo pode ter varios telefones; se o 1o vier incompleto,
+// pega o MAIS completo (11 digitos nacionais = celular com o 9). Todo numero e WhatsApp.
+function digitosNac(f) {
+  let d = String(f || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2); // dropa codigo de pais BR
+  return d;
+}
+function melhorFone(fones) {
+  const arr = (fones || []).filter(Boolean);
+  if (!arr.length) return '';
+  const score = (f) => { const n = digitosNac(f).length; return n === 11 ? 3 : n === 10 ? 2 : n >= 8 ? 1 : 0; };
+  return arr.slice().sort((a, b) => score(b) - score(a))[0]; // 11 > 10 > qualquer; estavel se empatam
+}
+
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
   if (req.method !== 'POST') return resp(405, { error: 'somente POST' });
@@ -54,7 +68,7 @@ export default async (req) => {
     if (contactId) {
       const contato = await withTimeout(getContact(contactId), 6000, 'contato');
       const fones = extractPhones(contato) || [];
-      telefone = fones[0] || '';
+      telefone = melhorFone(fones); // (item 2) prefere o numero completo
       for (const f of contato?.custom_fields_values || []) {
         if (f.field_code === 'EMAIL') { emailContato = f.values?.[0]?.value || ''; break; }
       }

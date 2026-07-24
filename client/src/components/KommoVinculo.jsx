@@ -22,6 +22,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
   const [conhecido, setConhecido] = useState(false);
   const [resortConfirmar, setResortConfirmar] = useState(false);
   const [resortOpcoes, setResortOpcoes] = useState(null); // (item 4) cadastro c/ varios resorts
+  const [sexoConflito, setSexoConflito] = useState(null); // (item 1) genero cadastro x nome
   const [showSemKommo, setShowSemKommo] = useState(false);
 
   const setLink = (v) => updateContratante(0, { linkKommo: v });
@@ -51,7 +52,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
         setEstado('erro'); setMsg(`Não vinculou: ${detalhe}. Você pode preencher sem vincular.`);
         return;
       }
-      const { campos, clienteConhecido, resortConfirmar: rc, resortOpcoes: ro } = montarPreenchimento(j);
+      const { campos, clienteConhecido, resortConfirmar: rc, resortOpcoes: ro, sexoConflito: sc } = montarPreenchimento(j);
       const contratanteCampos = {}; const dataCampos = {};
       for (const [k, v] of Object.entries(campos)) (DATA_KEYS.has(k) ? dataCampos : contratanteCampos)[k] = v;
       if (dataCampos.resort) dataCampos.resortAvisoKommo = true; // resort preenchido -> "confira"
@@ -60,7 +61,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
       // Assim nenhum dado de um lead anterior sobra em campo que o novo lead nao preenche.
       aplicarVinculo(link, contratanteCampos, dataCampos);
       const porTelefone = clienteConhecido && j.matchPor === 'telefone';
-      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc); setResortOpcoes(ro || null);
+      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc); setResortOpcoes(ro || null); setSexoConflito(sc || null);
       setEstado('vinculado');
       setMsg(clienteConhecido
         ? (porTelefone ? 'Cliente já cadastrado (casado pelo telefone) — dados do Cadastro Único.' : 'Cliente já cadastrado — dados puxados do Cadastro Único.')
@@ -134,6 +135,12 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
         {estado === 'vinculado' && resortOpcoes && !data.resort && (
           <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
             ⚠ Este cliente tem histórico em {resortOpcoes.length} resorts: <b>{resortOpcoes.join(' · ')}</b> — escolha o resort deste contrato no campo Resort.
+          </p>
+        )}
+
+        {estado === 'vinculado' && sexoConflito && (
+          <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
+            ⚠ Sexo: o Cadastro diz <b>{sexoConflito.cadastro === 'F' ? 'Feminino' : 'Masculino'}</b>, mas o nome sugere <b>{sexoConflito.nome === 'F' ? 'Feminino' : 'Masculino'}</b> — confira o campo Sexo.
           </p>
         )}
 

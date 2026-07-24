@@ -284,4 +284,34 @@ describe('montarPreenchimento', () => {
     expect(r.campos.sexo).toBe('M');
     expect(r.proveniencia.sexo).toBe('cadastro');
   });
+
+  // ── item 1: alerta de genero do cadastro divergente do nome ──
+  it('genero do cadastro diverge do nome: usa o cadastro mas SINALIZA conflito (caso real JOAO=F)', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'JOAO BATISTA DOS SANTOS', cpf_cnpj: '79329012868', genero: 'F' },
+    });
+    expect(r.campos.sexo).toBe('F');            // cadastro ainda manda (editavel)
+    expect(r.proveniencia.sexo).toBe('cadastro');
+    expect(r.sexoConflito).toEqual({ cadastro: 'F', nome: 'M' }); // alerta
+  });
+
+  it('genero do cadastro bate com o nome: sem conflito', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'MARIANA SOUZA', cpf_cnpj: '12345678909', genero: 'F' },
+    });
+    expect(r.campos.sexo).toBe('F');
+    expect(r.sexoConflito).toBe(null);
+  });
+
+  it('cadastro sem genero: deduz do nome e NAO marca conflito', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'JOAO BATISTA', cpf_cnpj: '79329012868', genero: null },
+    });
+    expect(r.campos.sexo).toBe('M');
+    expect(r.proveniencia.sexo).toBe('auto');
+    expect(r.sexoConflito).toBe(null);
+  });
 });

@@ -76,6 +76,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   const NUNCA = new Set(['origemCliente']); // nome pode vir do Cadastro Unico (nunca do Kommo)
   const resortAntigo = String(atuais.resort || '').trim();
   let resortOpcoes = null; // (item 4) cadastro com varios resorts -> usuario escolhe
+  let sexoConflito = null; // (item 1) genero do cadastro diverge do nome -> alerta
 
   // vincular e autoritativo: SEMPRE (re)preenche os campos derivados do lead (telefone,
   // resort, endereco/qualificacao do Cadastro, 1a msg). Inserir um lead diferente
@@ -111,8 +112,14 @@ export function montarPreenchimento(raw, atuais = {}) {
       set('dataNascimento', fmtDateISO(cliente.nascimento), 'cadastro');
       set('profissao', cliente.profissao, 'cadastro');
       set('estadoCivil', normalizeEstadoCivil(cliente.estado_civil), 'cadastro');
-      set('sexo', normalizeSexo(cliente.genero), 'cadastro');
-      if (!campos.sexo && cliente.nome) set('sexo', detectGenderByName(cliente.nome), 'auto'); // (item 8) deduz do nome se cadastro sem genero
+      const sexoCad = normalizeSexo(cliente.genero);
+      const sexoNome = cliente.nome ? detectGenderByName(cliente.nome) : null;
+      if (sexoCad) {
+        set('sexo', sexoCad, 'cadastro');
+        if (sexoNome && sexoNome !== sexoCad) sexoConflito = { cadastro: sexoCad, nome: sexoNome }; // (item 1) alerta: cadastro diverge do nome
+      } else if (sexoNome) {
+        set('sexo', sexoNome, 'auto'); // (item 8) deduz do nome quando o cadastro nao tem genero
+      }
       set('nacionalidade', cliente.nacionalidade, 'cadastro');
       set('cep', cliente.cep && maskCEP(cliente.cep), 'cadastro');
       set('endereco', cliente.logradouro, 'cadastro');
@@ -150,7 +157,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   const resortConfirmar = proveniencia.resort === 'tag' || proveniencia.resort === 'cadastro';
   // resortAlterado = havia um resort diferente e o Kommo trocou -> aviso mais forte
   const resortAlterado = !!(resortAntigo && campos.resort && resortAntigo !== String(campos.resort).trim());
-  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado, resortOpcoes };
+  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado, resortOpcoes, sexoConflito };
 }
 
 // registro da excecao "contrato sem lead no Kommo" (quem/quando/motivo)
