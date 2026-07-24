@@ -58,7 +58,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
       if (dataCampos.resort) dataCampos.resortAvisoKommo = true;
       if (Object.keys(contratanteCampos).length) updateContratante(0, contratanteCampos);
       if (Object.keys(dataCampos).length) updateData(dataCampos);
-      if (!data.origemCliente && j.origemSugerida) updateData({ origemCliente: j.origemSugerida });
+      if (j.origemSugerida) updateData({ origemCliente: j.origemSugerida }); // vincular sobrescreve a origem (novo lead = nova sugestao)
       setConhecido(!!clienteConhecido); setResortConfirmar(!!rc);
       setEstado('vinculado');
       setMsg(clienteConhecido ? 'Cliente já cadastrado — dados puxados do Cadastro Único.' : 'Lead vinculado.');

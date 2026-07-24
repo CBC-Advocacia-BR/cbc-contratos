@@ -1,8 +1,10 @@
 // Logica PURA do "Vincular Kommo": monta o preenchimento do formulario a partir
 // do lead (Kommo) + Cadastro Unico (clientes) + Arquivo CBC Conversas.
-// Regras fechadas com o Paulo (23/07):
-//  - NUNCA preenche 'nome' (vem da API de CPF) nem 'origemCliente' (manual).
-//  - Nao sobrescreve campo ja digitado.
+// Regras fechadas com o Paulo (23-24/07):
+//  - montarPreenchimento NUNCA preenche 'nome' (vem da API de CPF) nem 'origemCliente'
+//    (a origem e aplicada no componente, a partir da sugestao do lead).
+//  - Vincular e autoritativo: (re)preenche os campos derivados do lead a cada vinculo
+//    (inserir um lead diferente sobrescreve). Campos nao-derivados (cpf, honorarios...) ficam.
 //  - Resort auto (tag/cadastro) sempre pede confirmacao.
 import { RESORTS } from '../data/clausulas';
 import { maskPhone } from './masks';
@@ -61,7 +63,7 @@ function fmtDateISO(v) {
 
 // raw = { contato:{telefone,email}, tags:[nome], cliente:linha_clientes|null,
 //         primeiraMsgConversas:iso|null, leadCriadoEm:iso|null }
-// atuais = valores ja no form (nao sobrescreve os preenchidos)
+// atuais = valores ja no form (usado so p/ detectar troca de resort -> resortAlterado)
 export function montarPreenchimento(raw, atuais = {}) {
   const { contato = {}, tags = [], cliente = null, primeiraMsgConversas = null, leadCriadoEm = null } = raw || {};
   const campos = {};
@@ -69,14 +71,12 @@ export function montarPreenchimento(raw, atuais = {}) {
   const NUNCA = new Set(['nome', 'origemCliente']);
   const resortAntigo = String(atuais.resort || '').trim();
 
-  // forcar=true sobrescreve o que ja esta no form (usado so no resort, por decisao do Paulo)
-  const set = (k, v, origem, forcar = false) => {
+  // vincular e autoritativo: SEMPRE (re)preenche os campos derivados do lead (telefone,
+  // resort, endereco/qualificacao do Cadastro, 1a msg). Inserir um lead diferente
+  // sobrescreve tudo. Campos NAO derivados do lead (cpf, nome, honorarios...) nao sao tocados.
+  const set = (k, v, origem) => {
     if (NUNCA.has(k)) return;
     if (v == null || v === '') return;
-    if (!forcar) {
-      const atual = atuais[k];
-      if (atual != null && String(atual).trim() !== '') return; // nao sobrescreve digitacao manual
-    }
     campos[k] = v;
     proveniencia[k] = origem;
   };

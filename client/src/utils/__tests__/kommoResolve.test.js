@@ -155,12 +155,12 @@ describe('montarPreenchimento', () => {
     expect(r.resortAlterado).toBe(true);            // avisa que trocou
   });
 
-  it('nao sobrescreve campo nao-forcado ja preenchido (ex.: data da 1a msg)', () => {
+  it('vincular SOBRESCREVE a 1a msg de um vinculo anterior (lead diferente)', () => {
     const r = montarPreenchimento(
       { contato: {}, tags: [], cliente: null, leadCriadoEm: '2026-01-01T00:00:00Z' },
-      { dataPrimeiraMensagem: '2020-05-05' },
+      { dataPrimeiraMensagem: '2020-05-05' }, // valor de um lead vinculado antes
     );
-    expect(r.campos.dataPrimeiraMensagem).toBeUndefined();
+    expect(r.campos.dataPrimeiraMensagem).toBe('2026-01-01');
   });
 
   it('telefone SEMPRE reformata, mesmo se ja tinha valor cru (re-vincular)', () => {
