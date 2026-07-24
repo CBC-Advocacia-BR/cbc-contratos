@@ -32,16 +32,22 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
     }
     setEstado('carregando'); setMsg('Lendo o lead no Kommo…');
     try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess?.session?.access_token;
+      let token = null;
+      try { const { data: sess } = await supabase.auth.getSession(); token = sess?.session?.access_token || null; } catch { /* trata abaixo */ }
+      if (!token) {
+        setEstado('erro'); setMsg('Sessão expirada — recarregue a página (F5), faça login de novo e tente vincular.');
+        return;
+      }
       const r = await fetch('/.netlify/functions/resolve-kommo-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ link }),
+        signal: AbortSignal.timeout(25000),
       });
       const j = await r.json().catch(() => ({}));
-      if (!j.ok) {
-        setEstado('erro'); setMsg(j.motivo || 'Não consegui vincular agora. Você pode preencher sem vincular.');
+      if (!r.ok || !j.ok) {
+        const detalhe = j.motivo || j.error || `HTTP ${r.status}`;
+        setEstado('erro'); setMsg(`Não vinculou: ${detalhe}. Você pode preencher sem vincular.`);
         return;
       }
       const atuais = { ...c0, resort: data.resort, tipoAcao: data.tipoAcao, dataPrimeiraMensagem: data.dataPrimeiraMensagem, origemCliente: data.origemCliente };
@@ -55,8 +61,9 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
       setEstado('vinculado');
       setMsg(clienteConhecido ? 'Cliente já cadastrado — dados puxados do Cadastro Único.' : 'Lead vinculado.');
       onDesbloquear && onDesbloquear();
-    } catch {
-      setEstado('erro'); setMsg('Erro ao vincular. Você pode preencher sem vincular.');
+    } catch (e) {
+      const t = e?.name === 'TimeoutError' ? 'demorou demais (timeout 25s)' : (e?.message || 'erro de rede');
+      setEstado('erro'); setMsg(`Não vinculou: ${t}. Você pode preencher sem vincular.`);
     }
   }
 
