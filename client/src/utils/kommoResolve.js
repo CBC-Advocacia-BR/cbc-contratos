@@ -7,7 +7,7 @@
 //    (inserir um lead diferente sobrescreve). Campos nao-derivados (cpf, honorarios...) ficam.
 //  - Resort auto (tag/cadastro) sempre pede confirmacao.
 import { RESORTS } from '../data/clausulas';
-import { maskPhone } from './masks';
+import { maskPhone, maskCPF, maskCNPJ, maskCEP, maskRG } from './masks';
 
 // telefone do Kommo vem "55DDDnumero" (so digitos) -> padrao do form "(DD) numero"
 function fmtTelefone(t) {
@@ -68,7 +68,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   const { contato = {}, tags = [], cliente = null, primeiraMsgConversas = null, leadCriadoEm = null } = raw || {};
   const campos = {};
   const proveniencia = {};
-  const NUNCA = new Set(['nome', 'origemCliente']);
+  const NUNCA = new Set(['origemCliente']); // nome pode vir do Cadastro Unico (nunca do Kommo)
   const resortAntigo = String(atuais.resort || '').trim();
 
   // vincular e autoritativo: SEMPRE (re)preenche os campos derivados do lead (telefone,
@@ -81,33 +81,53 @@ export function montarPreenchimento(raw, atuais = {}) {
     proveniencia[k] = origem;
   };
 
-  set('telefone', fmtTelefone(contato.telefone), 'kommo', true); // telefone do lead SEMPRE (re)formata/sobrescreve
+  set('telefone', fmtTelefone(contato.telefone), 'kommo'); // telefone do lead
 
   const clienteConhecido = !!cliente;
   if (clienteConhecido) {
-    set('rg', cliente.rg, 'cadastro');
-    set('dataNascimento', fmtDateISO(cliente.nascimento), 'cadastro');
-    set('profissao', cliente.profissao, 'cadastro');
-    set('estadoCivil', normalizeEstadoCivil(cliente.estado_civil), 'cadastro');
-    set('sexo', normalizeSexo(cliente.genero), 'cadastro');
-    set('nacionalidade', cliente.nacionalidade, 'cadastro');
-    set('cep', cliente.cep, 'cadastro');
-    set('endereco', cliente.logradouro, 'cadastro');
-    set('numero', cliente.numero, 'cadastro');
-    set('complemento', cliente.complemento, 'cadastro');
-    set('bairro', cliente.bairro, 'cadastro');
-    set('cidade', cliente.cidade, 'cadastro');
-    set('uf', cliente.uf, 'cadastro');
-    set('email', cliente.email, 'cadastro');
-    set('resort', matchResort(cliente.empreendimentos), 'cadastro', true); // resort SEMPRE sobrescreve
+    // cliente ja no Cadastro Unico -> puxa o MAXIMO de dados verificados
+    const docDig = String(cliente.cpf_cnpj || '').replace(/\D/g, '');
+    const ehPj = cliente.eh_pj === true || docDig.length > 11;
+    if (ehPj) {
+      set('tipo', 'pj', 'cadastro');
+      set('razaoSocial', cliente.nome, 'cadastro'); // nome do master = razao social
+      set('cnpj', cliente.cpf_cnpj && maskCNPJ(cliente.cpf_cnpj), 'cadastro');
+      set('emailEmpresa', cliente.email, 'cadastro');
+      set('cepEmpresa', cliente.cep && maskCEP(cliente.cep), 'cadastro');
+      set('enderecoEmpresa', cliente.logradouro, 'cadastro');
+      set('numeroEmpresa', cliente.numero, 'cadastro');
+      set('bairroEmpresa', cliente.bairro, 'cadastro');
+      set('cidadeEmpresa', cliente.cidade, 'cadastro');
+      set('ufEmpresa', cliente.uf, 'cadastro');
+    } else {
+      set('tipo', 'pf', 'cadastro');
+      set('nome', cliente.nome, 'cadastro'); // nome verificado do Cadastro (nunca do Kommo)
+      set('cpf', cliente.cpf_cnpj && maskCPF(cliente.cpf_cnpj), 'cadastro');
+      set('rg', cliente.rg && maskRG(cliente.rg), 'cadastro');
+      set('dataNascimento', fmtDateISO(cliente.nascimento), 'cadastro');
+      set('profissao', cliente.profissao, 'cadastro');
+      set('estadoCivil', normalizeEstadoCivil(cliente.estado_civil), 'cadastro');
+      set('sexo', normalizeSexo(cliente.genero), 'cadastro');
+      set('nacionalidade', cliente.nacionalidade, 'cadastro');
+      set('cep', cliente.cep && maskCEP(cliente.cep), 'cadastro');
+      set('endereco', cliente.logradouro, 'cadastro');
+      set('numero', cliente.numero, 'cadastro');
+      set('complemento', cliente.complemento, 'cadastro');
+      set('bairro', cliente.bairro, 'cadastro');
+      set('cidade', cliente.cidade, 'cadastro');
+      set('uf', cliente.uf, 'cadastro');
+      set('email', cliente.email, 'cadastro');
+    }
+    set('resort', matchResort(cliente.empreendimentos), 'cadastro');
+    if (!campos.telefone && cliente.telefone) set('telefone', fmtTelefone(cliente.telefone), 'cadastro');
   }
 
-  set('email', contato.email, 'kommo'); // se o cadastro nao tinha
+  if (!campos.email && contato.email) set('email', contato.email, 'kommo'); // fallback: cadastro sem email
 
   if (campos.resort == null) {
     for (const t of tags) {
       const r = matchResort(t);
-      if (r) { set('resort', r, 'tag', true); break; } // resort da tag SEMPRE sobrescreve
+      if (r) { set('resort', r, 'tag'); break; }
     }
   }
 

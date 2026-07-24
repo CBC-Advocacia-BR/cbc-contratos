@@ -91,31 +91,76 @@ describe('montarPreenchimento', () => {
     expect(r.campos.origemCliente).toBeUndefined();
   });
 
-  it('cliente conhecido: qualificacao do Cadastro + 1a msg do CBC Conversas; nunca nome/origem', () => {
+  it('cliente conhecido (PF): puxa o MAXIMO do Cadastro (nome+cpf+qualificacao) + 1a msg do CBC Conversas; nunca origem', () => {
     const r = montarPreenchimento({
       contato: { telefone: '(19) 99709-9607' },
       tags: [],
       cliente: {
+        nome: 'Maria da Silva', cpf_cnpj: '12345678909', eh_pj: false,
         rg: '34.567.890-2', nascimento: '1966-03-14', profissao: 'Aposentado(a)',
         estado_civil: 'CASADO(A)', genero: 'F', nacionalidade: 'brasileira',
-        cep: '13480-000', logradouro: 'Rua das Palmeiras', numero: '210', bairro: 'Centro',
+        cep: '13480000', logradouro: 'Rua das Palmeiras', numero: '210', bairro: 'Centro',
         cidade: 'Limeira', uf: 'SP', complemento: 'Apto 32', email: 'maria@x.com',
-        empreendimentos: 'SOLAR DAS AGUAS',
+        empreendimentos: 'SOLAR DAS AGUAS', telefone: '(19) 3333-4444',
       },
       primeiraMsgConversas: '2026-07-18T13:00:00Z',
       leadCriadoEm: '2026-07-21T13:24:00Z',
     });
     expect(r.clienteConhecido).toBe(true);
+    expect(r.campos.tipo).toBe('pf');
+    expect(r.campos.nome).toBe('Maria da Silva');       // nome verificado do Cadastro
+    expect(r.campos.cpf).toBe('123.456.789-09');         // CPF mascarado
     expect(r.campos.estadoCivil).toBe('Casado(a)');
     expect(r.campos.sexo).toBe('F');
     expect(r.campos.dataNascimento).toBe('1966-03-14');
+    expect(r.campos.cep).toBe('13480-000');              // CEP mascarado
     expect(r.campos.cidade).toBe('Limeira');
+    expect(r.campos.telefone).toBe('(19) 99709-9607');   // do Kommo (nao o do cadastro)
     expect(r.campos.resort).toBe('Solar das Águas');
     expect(r.proveniencia.resort).toBe('cadastro');
     expect(r.campos.dataPrimeiraMensagem).toBe('2026-07-18');
     expect(r.proveniencia.dataPrimeiraMensagem).toBe('conversas');
-    expect(r.campos.nome).toBeUndefined();
     expect(r.campos.origemCliente).toBeUndefined();
+  });
+
+  it('cliente conhecido (PJ): liga modo empresa (tipo pj + razao social + cnpj + endereco da empresa)', () => {
+    const r = montarPreenchimento({
+      contato: { telefone: '(11) 98888-7777' },
+      tags: [],
+      cliente: {
+        nome: 'ACME EMPREENDIMENTOS LTDA', cpf_cnpj: '12345678000199', eh_pj: true,
+        email: 'contato@acme.com', cep: '01310100', logradouro: 'Av Paulista',
+        numero: '1000', bairro: 'Bela Vista', cidade: 'São Paulo', uf: 'SP',
+        empreendimentos: 'HOT BEACH',
+      },
+    });
+    expect(r.campos.tipo).toBe('pj');
+    expect(r.campos.razaoSocial).toBe('ACME EMPREENDIMENTOS LTDA');
+    expect(r.campos.cnpj).toBe('12.345.678/0001-99');
+    expect(r.campos.emailEmpresa).toBe('contato@acme.com');
+    expect(r.campos.cepEmpresa).toBe('01310-100');
+    expect(r.campos.enderecoEmpresa).toBe('Av Paulista');
+    expect(r.campos.cidadeEmpresa).toBe('São Paulo');
+    expect(r.campos.resort).toBe('Hot Beach');
+    expect(r.campos.nome).toBeUndefined();   // nao poe razao social no nome do representante
+    expect(r.campos.cpf).toBeUndefined();
+  });
+
+  it('detecta PJ pelo tamanho do documento (14 digitos) mesmo sem eh_pj', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [], cliente: { nome: 'X LTDA', cpf_cnpj: '11222333000181' },
+    });
+    expect(r.campos.tipo).toBe('pj');
+    expect(r.campos.cnpj).toBe('11.222.333/0001-81');
+  });
+
+  it('telefone: usa o do Cadastro quando o Kommo nao trouxe', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [],
+      cliente: { nome: 'João', cpf_cnpj: '12345678909', telefone: '5519997099607' },
+    });
+    expect(r.campos.telefone).toBe('(19) 99709-9607'); // fallback do cadastro
+    expect(r.proveniencia.telefone).toBe('cadastro');
   });
 
   it('caso REAL do teste do Paulo (lead 12820604, Hot Beach, sem cadastro)', () => {
