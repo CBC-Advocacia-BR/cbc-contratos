@@ -1,7 +1,39 @@
 import { describe, it, expect } from 'vitest';
 import {
-  extrairLeadId, matchResort, normalizeSexo, normalizeEstadoCivil, montarPreenchimento, montarRegistroSemKommo,
+  extrairLeadId, matchResort, resolveResortTag, normalizeSexo, normalizeEstadoCivil, montarPreenchimento, montarRegistroSemKommo,
 } from '../kommoResolve';
+
+describe('resolveResortTag (tag suja do Kommo -> resort canonico)', () => {
+  it('exato', () => {
+    expect(resolveResortTag('Ondas Praia')).toBe('Ondas Praia');
+    expect(resolveResortTag('HOT BEACH')).toBe('Hot Beach');
+  });
+  it('sufixo apos separador', () => {
+    expect(resolveResortTag('Acordos Particular-Ondas Praia')).toBe('Ondas Praia');
+    expect(resolveResortTag('ALTA VISTA THERMAS-Quitado')).toBe('Alta Vista'); // resort contido
+  });
+  it('primeira palavra unica de um resort (tag curta)', () => {
+    expect(resolveResortTag('ATRIUM')).toBe('Atrium Thermas');
+    expect(resolveResortTag('Aquan Prime Resort')).toBe('Aquan Prime'); // resort contido
+  });
+  it('pega o resort MAIS especifico quando ha prefixo comum', () => {
+    expect(resolveResortTag('Hot Beach You - Quitado')).toBe('Hot Beach You');
+  });
+  it('resort contido como palavra inteira ("Village Itapirica" tem o resort "Itapirica")', () => {
+    expect(resolveResortTag('Village Itapirica')).toBe('Itapirica');
+  });
+  it('1a palavra unica resolve (ONDAS so comeca "Ondas Praia")', () => {
+    expect(resolveResortTag('ONDAS')).toBe('Ondas Praia');
+  });
+  it('ambiguo por 1a palavra (varios resorts comecam igual) -> nao adivinha', () => {
+    expect(resolveResortTag('SOLAR')).toBe('');   // Solar das Águas E Solar Pedra das Ilhas
+    expect(resolveResortTag('HOT')).toBe('');     // Hot Beach, Hot Beach You, Hot Springs
+  });
+  it('sem match -> vazio', () => {
+    expect(resolveResortTag('Zzz Qwerty Foobar')).toBe('');
+    expect(resolveResortTag('')).toBe('');
+  });
+});
 
 describe('montarRegistroSemKommo', () => {
   it('estrutura quem/quando/motivo (email minusculo, motivo aparado)', () => {
@@ -313,5 +345,55 @@ describe('montarPreenchimento', () => {
     expect(r.campos.sexo).toBe('M');
     expect(r.proveniencia.sexo).toBe('auto');
     expect(r.sexoConflito).toBe(null);
+  });
+
+  // ── item 2: resolvedor de tag suja dentro do fluxo ──
+  it('resort da TAG suja (com sufixo) resolve no vinculo', () => {
+    const r = montarPreenchimento({ contato: {}, tags: ['Acordos Particular-Ondas Praia'], cliente: null });
+    expect(r.campos.resort).toBe('Ondas Praia');
+    expect(r.proveniencia.resort).toBe('tag');
+  });
+
+  // ── item 3: varias tags de resort distintas -> escolher ──
+  it('duas tags de resort distintas: nao adivinha, oferece opcoes', () => {
+    const r = montarPreenchimento({ contato: {}, tags: ['Hot Beach', 'ATRIUM'], cliente: null });
+    expect(r.campos.resort).toBeUndefined();
+    expect(r.resortOpcoes).toEqual(['Hot Beach', 'Atrium Thermas']);
+  });
+
+  it('duas tags que apontam o MESMO resort: preenche normal', () => {
+    const r = montarPreenchimento({ contato: {}, tags: ['Ondas Praia', 'Acordos-Ondas Praia'], cliente: null });
+    expect(r.campos.resort).toBe('Ondas Praia');
+  });
+
+  // ── item 8d: completa o 9 do celular ──
+  it('telefone de 10 digitos (sem o 9) e completado', () => {
+    const r = montarPreenchimento({ contato: { telefone: '554899071790' }, tags: [], cliente: null });
+    expect(r.campos.telefone).toBe('(48) 99907-1790'); // DDD + 9 + 8 digitos
+  });
+
+  // ── item 1: match por telefone com nomes divergentes ──
+  it('match por TELEFONE com nome divergente -> matchDuvidoso', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [], nomeLead: 'PEDRO OLIVEIRA', matchPor: 'telefone',
+      cliente: { nome: 'MARIA DA SILVA', cpf_cnpj: '12345678909' },
+    });
+    expect(r.matchDuvidoso).toEqual({ cadastro: 'MARIA DA SILVA', lead: 'PEDRO OLIVEIRA' });
+  });
+
+  it('match por telefone com apelido do mesmo cliente -> NAO alarma (caso real JB)', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [], nomeLead: 'jb batistasantos668', matchPor: 'telefone',
+      cliente: { nome: 'JOAO BATISTA DOS SANTOS', cpf_cnpj: '79329012868' },
+    });
+    expect(r.matchDuvidoso).toBe(null); // "batistasantos668" contem BATISTA/SANTOS
+  });
+
+  it('match pelo LEAD (nao telefone): nunca alarma, mesmo com nome diferente', () => {
+    const r = montarPreenchimento({
+      contato: {}, tags: [], nomeLead: 'QUALQUER COISA', matchPor: 'lead',
+      cliente: { nome: 'MARIA DA SILVA', cpf_cnpj: '12345678909' },
+    });
+    expect(r.matchDuvidoso).toBe(null);
   });
 });

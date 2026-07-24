@@ -64,15 +64,18 @@ export default async (req) => {
     passo = 'kommo:contato';
     let telefone = '';
     let emailContato = '';
+    let nomeLead = ''; // (item 1) nome do contato/lead p/ conferir o match por telefone
     const contactId = lead._embedded?.contacts?.[0]?.id;
     if (contactId) {
       const contato = await withTimeout(getContact(contactId), 6000, 'contato');
       const fones = extractPhones(contato) || [];
       telefone = melhorFone(fones); // (item 2) prefere o numero completo
+      nomeLead = contato?.name || '';
       for (const f of contato?.custom_fields_values || []) {
         if (f.field_code === 'EMAIL') { emailContato = f.values?.[0]?.value || ''; break; }
       }
     }
+    if (!nomeLead) nomeLead = lead.name || '';
 
     passo = 'dados';
     let cliente = null;
@@ -95,6 +98,11 @@ export default async (req) => {
       ? (String(cliente.kommo_lead_id || '') === String(leadId) ? 'lead' : 'telefone')
       : null;
 
+    // (item 7) registra cada vinculo no Monitor (origem kommo) p/ ver adocao/depurar
+    await logAdvbox('kommo', 'info',
+      `vinculo: ${email} lead ${leadId} -> ${cliente ? 'conhecido' : 'novo'}${matchPor ? ` (${matchPor})` : ''}`.slice(0, 200),
+      { leadId, email, conhecido: !!cliente, matchPor, nomeLead }).catch(() => {});
+
     return resp(200, {
       ok: true,
       contato: { telefone, email: emailContato },
@@ -102,6 +110,7 @@ export default async (req) => {
       cliente,
       clienteConhecido: !!cliente,
       matchPor,
+      nomeLead,
       primeiraMsgConversas,
       leadCriadoEm,
       origemSugerida: 'Trafego pago',

@@ -11,6 +11,19 @@ import KommoSemVinculoModal from './KommoSemVinculoModal';
 // campos que moram em `data` (nao no contratante)
 const DATA_KEYS = new Set(['resort', 'dataPrimeiraMensagem']);
 
+// (item 4) rotulos amigaveis p/ o resumo "o que foi puxado" ('' = nao lista)
+const LABELS = {
+  nome: 'nome', cpf: 'CPF', rg: 'RG', telefone: 'telefone', email: 'e-mail',
+  dataNascimento: 'nascimento', profissao: 'profissão', estadoCivil: 'estado civil',
+  sexo: 'sexo', nacionalidade: 'nacionalidade', cep: 'CEP', endereco: 'endereço',
+  numero: 'número', complemento: 'complemento', bairro: 'bairro', cidade: 'cidade', uf: 'UF',
+  resort: 'resort', dataPrimeiraMensagem: '1ª mensagem', tipo: '',
+  razaoSocial: 'razão social', cnpj: 'CNPJ', emailEmpresa: 'e-mail da empresa',
+  cepEmpresa: 'CEP da empresa', enderecoEmpresa: 'endereço da empresa', numeroEmpresa: 'número da empresa',
+  bairroEmpresa: 'bairro da empresa', cidadeEmpresa: 'cidade da empresa', ufEmpresa: 'UF da empresa',
+};
+const LINK_RE = /\/leads\/detail\/\d+/;
+
 export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
   const { data, updateData, updateContratante, aplicarVinculo } = useContract();
   const { user } = useAuth();
@@ -23,8 +36,11 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
   const [resortConfirmar, setResortConfirmar] = useState(false);
   const [resortOpcoes, setResortOpcoes] = useState(null); // (item 4) cadastro c/ varios resorts
   const [sexoConflito, setSexoConflito] = useState(null); // (item 1) genero cadastro x nome
+  const [matchDuvidoso, setMatchDuvidoso] = useState(null); // (item 1) casou por tel, nomes divergem
+  const [resumo, setResumo] = useState(null); // (item 4) rotulos do que foi puxado
   const [showSemKommo, setShowSemKommo] = useState(false);
 
+  const linkValido = LINK_RE.test(link);
   const setLink = (v) => updateContratante(0, { linkKommo: v });
 
   async function vincular() {
@@ -52,7 +68,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
         setEstado('erro'); setMsg(`Não vinculou: ${detalhe}. Você pode preencher sem vincular.`);
         return;
       }
-      const { campos, clienteConhecido, resortConfirmar: rc, resortOpcoes: ro, sexoConflito: sc } = montarPreenchimento(j);
+      const { campos, clienteConhecido, resortConfirmar: rc, resortOpcoes: ro, sexoConflito: sc, matchDuvidoso: md } = montarPreenchimento(j);
       const contratanteCampos = {}; const dataCampos = {};
       for (const [k, v] of Object.entries(campos)) (DATA_KEYS.has(k) ? dataCampos : contratanteCampos)[k] = v;
       if (dataCampos.resort) dataCampos.resortAvisoKommo = true; // resort preenchido -> "confira"
@@ -61,7 +77,9 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
       // Assim nenhum dado de um lead anterior sobra em campo que o novo lead nao preenche.
       aplicarVinculo(link, contratanteCampos, dataCampos);
       const porTelefone = clienteConhecido && j.matchPor === 'telefone';
-      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc); setResortOpcoes(ro || null); setSexoConflito(sc || null);
+      const resumoCampos = Object.keys(campos).map((k) => LABELS[k]).filter(Boolean); // (item 4)
+      setConhecido(!!clienteConhecido); setResortConfirmar(!!rc); setResortOpcoes(ro || null);
+      setSexoConflito(sc || null); setMatchDuvidoso(md || null); setResumo(resumoCampos.length ? resumoCampos : null);
       setEstado('vinculado');
       setMsg(clienteConhecido
         ? (porTelefone ? 'Cliente já cadastrado (casado pelo telefone) — dados do Cadastro Único.' : 'Cliente já cadastrado — dados puxados do Cadastro Único.')
@@ -96,14 +114,15 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
             placeholder="https://advocaciacbc.kommo.com/leads/detail/..."
             value={link}
             onChange={(e) => setLink(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && linkValido && estado !== 'carregando') { e.preventDefault(); vincular(); } }}
             disabled={estado === 'carregando'}
           />
           <button
             type="button"
             onClick={vincular}
-            disabled={estado === 'carregando'}
+            disabled={estado === 'carregando' || !linkValido}
             className="btn-primary"
-            style={{ padding: '0 20px', opacity: estado === 'carregando' ? 0.6 : 1 }}
+            style={{ padding: '0 20px', opacity: (estado === 'carregando' || !linkValido) ? 0.5 : 1, cursor: linkValido ? 'pointer' : 'not-allowed' }}
           >
             {estado === 'carregando' ? 'Vinculando…' : desbloqueado ? 'Vincular de novo' : 'Vincular'}
           </button>
@@ -132,6 +151,12 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
           </div>
         )}
 
+        {estado === 'vinculado' && matchDuvidoso && (
+          <p className="text-[11px] mt-2 font-bold px-2.5 py-1.5 rounded-lg" style={{ color: '#B91C1C', background: '#FEF2F2', border: '1px solid rgba(185,28,28,.25)' }}>
+            ⚠ Casei pelo <b>telefone</b>, mas os nomes divergem — Cadastro: <b>{matchDuvidoso.cadastro}</b> · Kommo: <b>{matchDuvidoso.lead}</b>. Confira se é a mesma pessoa antes de seguir.
+          </p>
+        )}
+
         {estado === 'vinculado' && resortOpcoes && !data.resort && (
           <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
             ⚠ Este cliente tem histórico em {resortOpcoes.length} resorts: <b>{resortOpcoes.join(' · ')}</b> — escolha o resort deste contrato no campo Resort.
@@ -141,6 +166,12 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
         {estado === 'vinculado' && sexoConflito && (
           <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
             ⚠ Sexo: o Cadastro diz <b>{sexoConflito.cadastro === 'F' ? 'Feminino' : 'Masculino'}</b>, mas o nome sugere <b>{sexoConflito.nome === 'F' ? 'Feminino' : 'Masculino'}</b> — confira o campo Sexo.
+          </p>
+        )}
+
+        {estado === 'vinculado' && resumo && (
+          <p className="text-[11px] mt-2 text-gray-500">
+            ✓ Preenchi <b>{resumo.length}</b> {resumo.length === 1 ? 'campo' : 'campos'}: {resumo.join(', ')}.
           </p>
         )}
 

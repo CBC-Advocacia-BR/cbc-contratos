@@ -17,6 +17,9 @@ function fmtTelefone(t) {
   let d = (t || '').replace(/\D/g, '');
   if (d.length > 11 && d.startsWith('55')) d = d.slice(2); // codigo de pais BR
   d = d.slice(-11);
+  // (item 8) todo numero e WhatsApp (celular): se veio com 10 digitos (DDD+8), falta o
+  // 9 do celular -> completa (DDD + 9 + 8 digitos = 11).
+  if (d.length === 10) d = d.slice(0, 2) + '9' + d.slice(2);
   return d ? maskPhone(d) : '';
 }
 
@@ -26,6 +29,53 @@ const norm = (s) => (s || '')
   .toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
 const RESORT_BY_NORM = new Map(RESORTS.map((r) => [norm(r), r]));
+
+// (item 2) apoio ao resolvedor de tags sujas do Kommo.
+// 1a palavra do resort -> resorts que comecam com ela (p/ tags curtas tipo "ATRIUM").
+const RESORT_FIRST_WORD = new Map();
+for (const r of RESORTS) {
+  const w = norm(r).split(' ')[0];
+  if (!RESORT_FIRST_WORD.has(w)) RESORT_FIRST_WORD.set(w, []);
+  RESORT_FIRST_WORD.get(w).push(r);
+}
+// resorts do mais longo p/ o mais curto (p/ o "contido na tag" pegar o mais especifico).
+const RESORTS_BY_LEN = RESORTS.map((r) => [norm(r), r]).sort((a, b) => b[0].length - a[0].length);
+// apelidos curados p/ casos irregulares que as regras nao pegam (tag suja -> canonico).
+const RESORT_ALIASES = {}; // ex.: { 'NOME SUJO': 'Resort Canonico' } — estende quando aparecer
+
+// (item 2) resolve uma TAG suja do Kommo p/ um resort da lista. Ordem: exato -> apelido
+// -> partes separadas por -/| -> resort contido na tag (mais especifico, palavra inteira)
+// -> 1a palavra que seja unica de um resort.
+export function resolveResortTag(tag) {
+  const n = norm(tag);
+  if (!n) return '';
+  if (RESORT_BY_NORM.has(n)) return RESORT_BY_NORM.get(n);
+  if (RESORT_ALIASES[n]) return RESORT_ALIASES[n];
+  for (const parte of n.split(/[-/|]/)) {
+    const p = parte.trim();
+    if (RESORT_BY_NORM.has(p)) return RESORT_BY_NORM.get(p); // "Acordos Particular-Ondas Praia"
+  }
+  const padded = ` ${n} `;
+  for (const [rn, r] of RESORTS_BY_LEN) {
+    if (rn.length >= 5 && padded.includes(` ${rn} `)) return r; // "ALTA VISTA THERMAS-Quitado" contem "Alta Vista"
+  }
+  const w = n.split(' ')[0];
+  const cand = RESORT_FIRST_WORD.get(w);
+  if (cand && cand.length === 1 && w.length >= 4) return cand[0]; // "ATRIUM" -> "Atrium Thermas" (unica)
+  return '';
+}
+
+// resorts distintos resolvidos de uma lista de strings (partes do cadastro ou tags)
+const resortsDistintos = (strs) => [...new Set((strs || []).map(resolveResortTag).filter(Boolean))];
+
+// (item 1) nomes "parecidos" p/ validar o match por telefone: algum token >=4 do nome
+// do Cadastro aparece dentro do nome do lead (tolera apelido "jb batistasantos668").
+function nomesParecidos(nomeCad, nomeLead) {
+  const b = norm(nomeLead).replace(/ /g, '');
+  const toks = norm(nomeCad).split(' ').filter((t) => t.length >= 4);
+  if (!toks.length || !b) return true; // sem base p/ comparar -> nao alarma
+  return toks.some((t) => b.includes(t));
+}
 
 export function extrairLeadId(link) {
   const m = /\/leads\/detail\/(\d+)/.exec(link || '');
@@ -70,12 +120,12 @@ function fmtDateISO(v) {
 //         primeiraMsgConversas:iso|null, leadCriadoEm:iso|null }
 // atuais = valores ja no form (usado so p/ detectar troca de resort -> resortAlterado)
 export function montarPreenchimento(raw, atuais = {}) {
-  const { contato = {}, tags = [], cliente = null, primeiraMsgConversas = null, leadCriadoEm = null } = raw || {};
+  const { contato = {}, tags = [], cliente = null, primeiraMsgConversas = null, leadCriadoEm = null, nomeLead = '', matchPor = null } = raw || {};
   const campos = {};
   const proveniencia = {};
   const NUNCA = new Set(['origemCliente']); // nome pode vir do Cadastro Unico (nunca do Kommo)
   const resortAntigo = String(atuais.resort || '').trim();
-  let resortOpcoes = null; // (item 4) cadastro com varios resorts -> usuario escolhe
+  let resortOpcoes = null; // (itens 3/4) varios resorts (cadastro ou tags) -> usuario escolhe
   let sexoConflito = null; // (item 1) genero do cadastro diverge do nome -> alerta
 
   // vincular e autoritativo: SEMPRE (re)preenche os campos derivados do lead (telefone,
@@ -130,14 +180,11 @@ export function montarPreenchimento(raw, atuais = {}) {
       set('uf', cliente.uf, 'cadastro');
       set('email', cliente.email, 'cadastro');
     }
-    // (item 4) o cadastro pode ter VARIOS resorts ("ONDAS PRAIA, SOLAR DAS AGUAS").
-    // 1 -> preenche; 0 -> tenta a linha inteira; 2+ -> nao adivinha, oferece p/ escolher.
-    const resortsCad = [...new Set(
-      String(cliente.empreendimentos || '').split(/[;,]/).map((s) => matchResort(s)).filter(Boolean),
-    )];
+    // (itens 2/4) resort do cadastro: pode ter VARIOS ("ONDAS PRAIA, SOLAR DAS AGUAS").
+    // 1 -> preenche; 2+ -> nao adivinha, oferece p/ escolher; 0 -> deixa p/ a tag/manual.
+    const resortsCad = resortsDistintos(String(cliente.empreendimentos || '').split(/[;,]/));
     if (resortsCad.length === 1) set('resort', resortsCad[0], 'cadastro');
-    else if (resortsCad.length === 0) set('resort', matchResort(cliente.empreendimentos), 'cadastro');
-    else resortOpcoes = resortsCad;
+    else if (resortsCad.length > 1) resortOpcoes = resortsCad;
     set('telefone', fmtTelefone(cliente.telefone), 'cadastro'); // numero canonico do Cadastro (11 digitos, com o 9)
   }
 
@@ -145,10 +192,10 @@ export function montarPreenchimento(raw, atuais = {}) {
   if (!campos.email && contato.email) set('email', contato.email, 'kommo'); // fallback: cadastro sem email
 
   if (campos.resort == null) {
-    for (const t of tags) {
-      const r = matchResort(t);
-      if (r) { set('resort', r, 'tag'); break; }
-    }
+    // (itens 2/3) tags sujas ("Acordos-Ondas Praia", "ATRIUM"); varias distintas -> escolher
+    const resortsTag = resortsDistintos(tags);
+    if (resortsTag.length === 1) set('resort', resortsTag[0], 'tag');
+    else if (resortsTag.length > 1) resortOpcoes = resortOpcoes || resortsTag;
   }
 
   if (primeiraMsgConversas) set('dataPrimeiraMensagem', fmtDateISO(primeiraMsgConversas), 'conversas');
@@ -157,7 +204,12 @@ export function montarPreenchimento(raw, atuais = {}) {
   const resortConfirmar = proveniencia.resort === 'tag' || proveniencia.resort === 'cadastro';
   // resortAlterado = havia um resort diferente e o Kommo trocou -> aviso mais forte
   const resortAlterado = !!(resortAntigo && campos.resort && resortAntigo !== String(campos.resort).trim());
-  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado, resortOpcoes, sexoConflito };
+  // (item 1) casou por TELEFONE mas os nomes divergem -> pode ser pessoa errada
+  let matchDuvidoso = null;
+  if (clienteConhecido && matchPor === 'telefone' && nomeLead && cliente.nome && !nomesParecidos(cliente.nome, nomeLead)) {
+    matchDuvidoso = { cadastro: cliente.nome, lead: nomeLead };
+  }
+  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado, resortOpcoes, sexoConflito, matchDuvidoso };
 }
 
 // registro da excecao "contrato sem lead no Kommo" (quem/quando/motivo)
