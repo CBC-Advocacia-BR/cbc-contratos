@@ -5,7 +5,8 @@
 -- Fonte dos horarios: agenda_videochamadas.meet_participantes[].entrou (epoch), gravado
 -- pela auditoria do Meet (meet-auditoria-sync). Grao = 1 linha por call auditada.
 --
--- Acesso: view Power BI so p/ powerbi_cbc; RPC so p/ socios (paulo@/bruno@ via JWT).
+-- Acesso: view Power BI so p/ powerbi_cbc; RPC so p/ socios + Lorenza
+-- (paulo@/bruno@/lorenza@ via JWT; Lorenza liberada em 24/07 a pedido do Paulo).
 
 create or replace view public.vw_bi_vendedor_pontualidade as
 with j as (
@@ -42,8 +43,8 @@ security definer
 set search_path to 'public'
 as $function$
 begin
-  if lower(coalesce(auth.jwt() ->> 'email', '')) not in ('paulo@advocaciacbc.com', 'bruno@advocaciacbc.com') then
-    return; -- acesso restrito aos socios: retorna vazio
+  if lower(coalesce(auth.jwt() ->> 'email', '')) not in ('paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com') then
+    return; -- acesso restrito: socios + Lorenza; demais => vazio
   end if;
   return query
     select * from public.vw_bi_vendedor_pontualidade v

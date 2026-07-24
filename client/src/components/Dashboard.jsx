@@ -137,6 +137,8 @@ export default function Dashboard() {
   const canCompare = SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
   // (leads Meta) investimento/CPL das campanhas: só sócios + Lorenza
   const canSeeAdsCusto = ADS_CUSTO_EMAILS.includes((user?.email || '').toLowerCase());
+  // (pontualidade) painel de pontualidade dos vendedores: sócios + Lorenza (pedido do Paulo)
+  const canVerPontualidade = ADS_CUSTO_EMAILS.includes((user?.email || '').toLowerCase());
 
   // ─── Fetch ───
   // (perf-fe-7) full=true ignora a janela e traz o historico inteiro.
@@ -584,8 +586,8 @@ export default function Dashboard() {
           {/* ─── Insights ─── */}
           <InsightsCard insights={dash.insights} delay={40} />
 
-          {/* ─── Pontualidade dos vendedores (só sócios) ─── */}
-          {canCompare && (
+          {/* ─── Pontualidade dos vendedores (sócios + Lorenza) ─── */}
+          {canVerPontualidade && (
             <Suspense fallback={null}>
               <PontualidadePanel />
             </Suspense>
