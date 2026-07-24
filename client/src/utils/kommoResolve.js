@@ -81,7 +81,7 @@ export function montarPreenchimento(raw, atuais = {}) {
     proveniencia[k] = origem;
   };
 
-  set('telefone', fmtTelefone(contato.telefone), 'kommo');
+  set('telefone', fmtTelefone(contato.telefone), 'kommo', true); // telefone do lead SEMPRE (re)formata/sobrescreve
 
   const clienteConhecido = !!cliente;
   if (clienteConhecido) {

@@ -155,11 +155,19 @@ describe('montarPreenchimento', () => {
     expect(r.resortAlterado).toBe(true);            // avisa que trocou
   });
 
-  it('nao sobrescreve o que ja foi digitado', () => {
+  it('nao sobrescreve campo nao-forcado ja preenchido (ex.: data da 1a msg)', () => {
     const r = montarPreenchimento(
-      { contato: { telefone: '(22) 99104-8383' }, tags: [], cliente: null },
-      { telefone: 'já digitado' },
+      { contato: {}, tags: [], cliente: null, leadCriadoEm: '2026-01-01T00:00:00Z' },
+      { dataPrimeiraMensagem: '2020-05-05' },
     );
-    expect(r.campos.telefone).toBeUndefined();
+    expect(r.campos.dataPrimeiraMensagem).toBeUndefined();
+  });
+
+  it('telefone SEMPRE reformata, mesmo se ja tinha valor cru (re-vincular)', () => {
+    const r = montarPreenchimento(
+      { contato: { telefone: '5515997312888' }, tags: [], cliente: null },
+      { telefone: '5515997312888' }, // valor cru de um vincular anterior
+    );
+    expect(r.campos.telefone).toBe('(15) 99731-2888');
   });
 });
