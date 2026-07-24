@@ -9,6 +9,8 @@ import { useCepLookup } from '../hooks/useCepLookup';
 import { supabase } from '../lib/supabase';
 import { ESTADOS_CIVIS, HONORARIOS_OPCOES, PERCENTUAIS_EXITO, CLAUSULAS_PADRAO, TIPOS_ACAO } from '../data/clausulas';
 import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
+import { useKommoVinculoFlag } from '../hooks/useKommoVinculoFlag';
+import KommoVinculo from './KommoVinculo';
 import { formatCurrency } from '../utils/extenso';
 import { detectConflicts, getConflictColor } from '../utils/clausulaConflicts';
 import { getGenderUpdates, adjustProfissaoGender } from '../utils/genderDetector';
@@ -311,7 +313,7 @@ function ValidationIcon({ status }) {
 // (perf-fe-4) Implementacao crua — embrulhada em React.memo abaixo (ContratanteForm).
 // Os handlers vindos do contexto (onChange/updateContratante) ja sao useCallback estaveis,
 // entao ao digitar num contratante o outro nao re-renderiza.
-function ContratanteFormBase({ index, contratante, onChange, errors, otherContratante, numContratantes }) {
+function ContratanteFormBase({ index, contratante, onChange, errors, otherContratante, numContratantes, hideLinkKommo }) {
   const toast = useToast(); // (ux-3) movido p/ cima — usado no aviso de SEM_CREDITOS do CPF
   const [cpfStatus, setCpfStatus] = useState('');
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -955,12 +957,15 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
             );
           })()}
         </div>
+        {/* (vinculo-kommo) quando a flag esta on, o link vai para o "Passo 1" no topo (contratante 0) */}
+        {!hideLinkKommo && (
         <div className="col-span-2">
           <label className="label-field">Link Kommo * {contratante.linkKommo?.startsWith('http') ? <ValidationIcon status="valid" /> : null}</label>
           <input className={`input-field ${errors.linkKommo ? 'input-error' : ''}`}
             inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next"
             value={contratante.linkKommo || ''} onChange={(e) => handle('linkKommo', e.target.value)} placeholder="https://advocaciacbc.kommo.com/leads/detail/..." title="Cole aqui a URL da conversa/lead no Kommo. Campo obrigatorio." />
         </div>
+        )}
 
         {showCopyOptions && (
           <div className="col-span-2 space-y-1.5">
@@ -1045,6 +1050,10 @@ const ContratanteForm = memo(ContratanteFormBase);
 // ─── Main FormPanel ───
 export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcuracaoPdf, saving, onClear, loadedContractId, currentUserEmail }) {
   const { data, updateData, updateContratante, updateHonorarios, getClausulaTexto, updateClausula, resetClausula, isClausulaModificada, getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa, resetAll } = useContract();
+  // (vinculo-kommo) camada Kommo-first atras da flag; off => nada muda no form atual
+  const kommoFlag = useKommoVinculoFlag();
+  const [vinculoDesbloqueado, setVinculoDesbloqueado] = useState(false);
+  const vinculoTravado = kommoFlag.ativo && !vinculoDesbloqueado;
   const { list: empreendimentos, addEmpreendimento } = useEmpreendimentos();
   const [errors, setErrors] = useState([{}, {}]);
   const [editing, setEditing] = useState(null);
@@ -1258,7 +1267,15 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
   }, []);
 
   return (
-    <div ref={formRef} className="px-2 py-2 md:p-3 w-full overflow-hidden relative">
+    <div ref={formRef} className={`px-2 py-2 md:p-3 w-full overflow-hidden relative ${vinculoTravado ? 'cbc-vinculo-locked' : ''}`}>
+      {/* (vinculo-kommo) Passo 1: link do Kommo como 1o campo + gate (so com a flag on) */}
+      {kommoFlag.ativo && (
+        <KommoVinculo
+          desbloqueado={vinculoDesbloqueado}
+          onDesbloquear={() => setVinculoDesbloqueado(true)}
+          onSemKommo={() => setVinculoDesbloqueado(true)}
+        />
+      )}
       {/* (#97, #327) Presenca em tempo real — apenas quando rascunho carregado */}
       {loadedContractId && currentUserEmail && (
         <div className="mb-2 flex justify-end">
@@ -1350,7 +1367,8 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                 <ContratanteForm key={i} index={i} contratante={data.contratantes[i]}
                   onChange={updateContratante} errors={errors[i] || {}}
                   otherContratante={i === 1 ? data.contratantes[0] : null}
-                  numContratantes={data.numContratantes} />
+                  numContratantes={data.numContratantes}
+                  hideLinkKommo={kommoFlag.ativo && i === 0} />
               </div>
             ))}
           </div>

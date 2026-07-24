@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novo Contrato — Kommo primeiro · 3 mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#1B3A5C; --navy-light:#264A72; --navy-dark:#0F2035;
+  --gold:#C9A84C; --gold-dark:#B8860B;
+  --cream:#F0F4F8; --cream-2:#E4EAF0;
+  --paper:#FFFFFF; --subtle:#F7FAFC;
+  --ink:#1B3A5C; --ink-2:#42536b; --ink-muted:#5E6675; --ink-faint:#8A95A5;
+  --border:#E2E8F0; --border-strong:#CBD5E0;
+  --success:#15803D; --success-bg:#EAF6EE; --success-bd:rgba(21,128,61,.28);
+  --danger:#B91C1C;  --danger-bg:#FCEDED;  --danger-bd:rgba(185,28,28,.26);
+  --warning:#B45309; --warning-bg:#FBF1E3; --warning-bd:rgba(180,83,9,.32);
+  --info:#1D4ED8;    --info-bg:#EAF0FC;    --info-bd:rgba(29,78,216,.26);
+  --teal:#0F766E;    --teal-bg:#E6F3F1;    --teal-bd:rgba(15,118,110,.28);
+  --r:12px; --r-lg:18px; --r-xl:24px;
+  --sh:0 1px 6px rgba(0,0,0,.09);
+  --sh-lg:0 8px 30px rgba(15,32,53,.12);
+  --sh-xl:0 24px 60px -14px rgba(15,32,53,.34), 0 6px 18px -6px rgba(15,32,53,.16);
+  --font:'Lato',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+svg{width:16px;height:16px;flex:0 0 auto;vertical-align:middle}
+html,body{margin:0}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--cream);
+  -webkit-font-smoothing:antialiased; line-height:1.45;
+  background-image:
+    radial-gradient(1200px 600px at 88% -8%, rgba(201,168,76,.10), transparent 60%),
+    radial-gradient(900px 520px at -6% 4%, rgba(27,58,92,.08), transparent 55%);
+  background-attachment:fixed;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 96px}
+
+/* ─── App chrome / control deck ─── */
+.deck{position:sticky;top:0;z-index:40;background:rgba(240,244,248,.82);backdrop-filter:blur(14px) saturate(1.2);
+  border-bottom:1px solid var(--border);margin-bottom:26px}
+.deck-inner{max-width:1180px;margin:0 auto;padding:14px 20px 15px;display:flex;flex-direction:column;gap:13px}
+.brandline{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mark{display:flex;align-items:baseline;gap:9px}
+.mark b{font-family:var(--serif);font-weight:700;font-size:27px;letter-spacing:.5px;color:var(--navy);line-height:1}
+.mark span{font-size:10px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold-dark)}
+.deck-title{font-size:12.5px;color:var(--ink-muted);font-weight:600;padding-left:14px;border-left:1px solid var(--border-strong)}
+.deck-title em{font-style:normal;color:var(--navy);font-weight:800}
+.rows{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end}
+.seg-group{display:flex;flex-direction:column;gap:6px}
+.seg-lab{font-size:9.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-faint)}
+.seg{display:inline-flex;background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:3px;box-shadow:var(--sh);gap:2px}
+.seg button{border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-2);
+  padding:7px 15px;border-radius:999px;cursor:pointer;transition:.2s var(--ease);white-space:nowrap;display:flex;align-items:center;gap:7px}
+.seg button .dot{width:7px;height:7px;border-radius:50%;background:var(--border-strong)}
+.seg button:hover{color:var(--navy)}
+.seg button[aria-selected=true]{background:var(--navy);color:#fff;box-shadow:0 2px 8px rgba(27,58,92,.28)}
+.seg.gold button[aria-selected=true]{background:linear-gradient(135deg,var(--gold),var(--gold-dark));color:#22303f}
+.seg button[aria-selected=true] .dot{background:currentColor}
+
+.hint{font-size:12px;color:var(--ink-muted);max-width:80ch}
+.hint b{color:var(--navy)}
+
+/* ─── Stage ─── */
+.stage{animation:rise .5s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.mk-cap{display:flex;align-items:baseline;gap:12px;margin:2px 2px 16px}
+.mk-cap h2{font-family:var(--serif);font-weight:700;font-size:25px;color:var(--navy);margin:0;letter-spacing:.3px}
+.mk-cap p{margin:0;font-size:12.5px;color:var(--ink-muted)}
+
+/* ─── Generic card / panel ─── */
+.panel{background:var(--paper);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh);overflow:hidden}
+.phead{background:var(--navy);color:#fff;padding:11px 16px;font-size:11px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;display:flex;align-items:center;gap:9px}
+.phead.gold{background:linear-gradient(100deg,var(--navy),var(--navy-light))}
+.phead .k{margin-left:auto;font-weight:700;letter-spacing:.4px;font-size:11px;opacity:.9;text-transform:none}
+
+/* ─── Kommo capture ─── */
+.kommo-cap{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.kfield{flex:1;min-width:300px;position:relative}
+.kfield .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--gold-dark);opacity:.85}
+.kinput{width:100%;font:inherit;font-size:14.5px;color:var(--navy);background:var(--paper);
+  border:1.6px solid var(--border-strong);border-radius:var(--r);padding:14px 14px 14px 44px;transition:.2s var(--ease)}
+.kinput:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 4px rgba(27,58,92,.12)}
+.kinput.ok{border-color:var(--success);background:linear-gradient(0deg,rgba(21,128,61,.05),transparent)}
+.kbtn{border:0;background:var(--navy);color:#fff;font:inherit;font-weight:800;font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;
+  padding:0 24px;border-radius:var(--r);cursor:pointer;transition:.2s var(--ease);display:flex;align-items:center;gap:9px;white-space:nowrap}
+.kbtn:hover{background:var(--navy-light);transform:translateY(-1px);box-shadow:var(--sh-lg)}
+.kbtn.ghost{background:transparent;color:var(--navy);border:1.6px solid var(--border-strong)}
+.kbtn.ghost:hover{background:var(--subtle);border-color:var(--navy)}
+.kbtn svg{width:16px;height:16px}
+
+/* ─── Provenance badge ─── */
+.pv{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.3px;
+  padding:2.5px 8px 2.5px 6px;border-radius:999px;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
+.pv svg{width:11px;height:11px}
+.pv.kommo{background:var(--success-bg);color:var(--success);border-color:var(--success-bd)}
+.pv.cadastro{background:#F5EEDA;color:var(--gold-dark);border-color:rgba(184,134,11,.32)}
+.pv.tag{background:var(--warning-bg);color:var(--warning);border-color:var(--warning-bd)}
+.pv.meta{background:var(--info-bg);color:var(--info);border-color:var(--info-bd)}
+.pv.conversas{background:var(--teal-bg);color:var(--teal);border-color:var(--teal-bd)}
+.pv.auto{background:#EDF0F5;color:#475569;border-color:#CBD5E1}
+.pv.falta{background:#F3F5F8;color:var(--ink-muted);border-color:var(--border-strong)}
+
+/* ─── Form field mock ─── */
+.lab{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;color:var(--navy);margin-bottom:5px;letter-spacing:.2px}
+.lab .req{color:var(--danger)}
+.fld{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--border-strong);
+  border-radius:10px;padding:10px 12px;transition:.18s var(--ease)}
+.fld[readonly]{cursor:default}
+.fld.f-kommo{background:var(--success-bg);border-color:var(--success-bd);color:#12401f;font-weight:600}
+.fld.f-cadastro{background:#F7F1DF;border-color:rgba(184,134,11,.3);color:#5c4506;font-weight:600}
+.fld.f-tag{background:var(--warning-bg);border-color:var(--warning-bd);color:#5c3406;font-weight:600}
+.fld.f-meta{background:var(--info-bg);border-color:var(--info-bd);color:#12306e;font-weight:600}
+.fld.f-conversas{background:var(--teal-bg);border-color:var(--teal-bd);color:#0b433d;font-weight:600}
+.fld.f-auto{background:#EDF0F5;border-color:#CBD5E1;color:#334155;font-weight:600}
+.fld.f-manual{background:#fff;border-color:var(--navy);color:var(--ink);font-weight:600}
+.pv.manual{background:var(--success-bg);color:var(--success);border-color:var(--success-bd)}
+/* campos editáveis: cursor de texto + foco navy */
+.fld:not([readonly]){cursor:text}
+.fld:not([readonly]):focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.14);background:#fff;color:var(--ink)}
+textarea.fld{resize:vertical;min-height:46px;font-family:inherit}
+/* checkbox marcado */
+.chk{cursor:pointer;user-select:none;transition:.15s var(--ease)}
+.chk:hover{border-color:var(--navy)}
+.chk.on{border-style:solid;background:var(--success-bg);border-color:var(--success-bd)}
+.chk.on .box{background:var(--success);border-color:var(--success);position:relative}
+.chk.on.warn .box{background:var(--danger);border-color:var(--danger)}
+.chk.on .box::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.chk.on span{color:var(--navy)}
+.chk.on.warn span{color:var(--danger)}
+/* modo de honorário selecionado */
+.modo .opt{cursor:pointer;transition:.15s var(--ease)}
+.modo .opt:hover{border-color:var(--navy)}
+.modo .opt.sel{background:var(--navy);border-color:var(--navy)}
+.modo .opt.sel b{color:#fff} .modo .opt.sel small{color:rgba(255,255,255,.75)}
+/* selects e datas com cara de input do form real */
+select.fld{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:34px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B3A5C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat:no-repeat;background-position:right 11px center;background-size:15px}
+select.fld.f-falta{background-color:#F7F9FC;color:var(--ink-muted)}
+input[type=date].fld{font-family:inherit;cursor:text}
+input[type=date].fld.f-falta{color:var(--ink-faint)}
+/* status das APIs (CPF / CEP) */
+.apistat{font-size:11px;font-weight:600;margin-top:5px;display:flex;align-items:center;gap:6px}
+.apistat:empty{display:none}
+.apistat.busy{color:var(--info)}
+.apistat.busy::before{content:"";width:11px;height:11px;border:2px solid var(--info);border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex:0 0 auto}
+.apistat.ok{color:var(--success)} .apistat.err{color:var(--danger)}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* presets de honorários */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.preset{border:1.4px solid var(--border-strong);background:var(--paper);border-radius:10px;padding:8px 13px;cursor:pointer;font:inherit;transition:.15s var(--ease);display:flex;flex-direction:column;gap:1px;min-width:72px;align-items:center}
+.preset:hover{border-color:var(--navy)}
+.preset b{font-size:12.5px;color:var(--navy);font-weight:800} .preset small{font-size:10px;color:var(--ink-muted)}
+.preset.sel{background:var(--navy);border-color:var(--navy)} .preset.sel b{color:#fff} .preset.sel small{color:rgba(255,255,255,.7)}
+/* ─── contrato gerado em paralelo (LivePreview) ─── */
+.withdoc{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:20px;align-items:start}
+@media(max-width:1040px){.withdoc{grid-template-columns:1fr}}
+.withdoc .doc-form{min-width:0}
+.withdoc .split{grid-template-columns:1fr} /* mock2: empilha o trilho p/ caber o documento */
+.doc-preview{position:sticky;top:150px}
+@media(max-width:1040px){.doc-preview{position:static}}
+.doc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.doc-seg{display:inline-flex;background:var(--paper);border:1px solid var(--border);border-radius:999px;padding:3px;box-shadow:var(--sh)}
+.doc-seg button{border:0;background:transparent;font:inherit;font-size:12px;font-weight:700;color:var(--ink-2);padding:6px 15px;border-radius:999px;cursor:pointer;transition:.18s var(--ease)}
+.doc-seg button.on{background:var(--navy);color:#fff}
+.doc-live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--gold-dark)}
+.doc-live svg{color:var(--gold-dark);animation:docpulse 2.4s ease-in-out infinite}
+@keyframes docpulse{0%,100%{opacity:.5}50%{opacity:1}}
+.doc-paper{background:#fff;border:1px solid var(--border);border-radius:6px;box-shadow:var(--sh-lg);
+  padding:30px 32px 34px;max-height:calc(100dvh - 190px);overflow-y:auto;font-family:var(--serif);color:#1f2733;
+  background-image:linear-gradient(#fff,#fff),repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(27,58,92,.03) 27px,rgba(27,58,92,.03) 28px)}
+.doc-flash{animation:docflash .5s var(--ease)}
+@keyframes docflash{0%{background-color:rgba(201,168,76,.14)}100%{background-color:transparent}}
+.doc-brand{text-align:center;font-family:var(--serif);font-weight:700;font-size:19px;letter-spacing:2px;color:var(--navy)}
+.doc-brand small{display:block;font-family:var(--font);font-size:8px;font-weight:800;letter-spacing:2.5px;color:var(--gold-dark);margin-top:2px}
+.doc-title{text-align:center;font-family:var(--serif);font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.5px;color:#1f2733;margin:16px 0 18px;line-height:1.3}
+.doc-p{font-size:14.5px;line-height:1.7;text-align:justify;margin:0 0 11px}
+.doc-p b{color:#16202c;font-weight:700}
+.doc-cl{font-size:14px;line-height:1.7;text-align:justify;margin:0 0 10px}
+.doc-blank{display:inline-block;height:.95em;vertical-align:baseline;border-bottom:1.5px dotted #b0472e;background:rgba(176,71,46,.06);border-radius:2px;min-width:60px;margin:0 1px}
+.doc-sign{text-align:center;font-size:13.5px;margin:20px 0 26px;color:#42506a}
+.doc-sigs{display:flex;justify-content:space-around;gap:20px;font-size:12.5px;text-align:center;color:#42506a}
+.doc-sigs span{flex:1;border-top:1px solid #24405f;padding-top:6px}
+.doc-note{font-family:var(--font);font-size:10.5px;color:var(--ink-faint);text-align:center;margin-top:16px}
+.fld.f-falta{background:repeating-linear-gradient(-45deg,#fbfcfe,#fbfcfe 7px,#f4f6f9 7px,#f4f6f9 14px);color:var(--ink-faint);border-style:dashed}
+.field{opacity:0;transform:translateY(6px);animation:fieldin .45s var(--ease) forwards}
+@keyframes fieldin{to{opacity:1;transform:none}}
+
+/* ─── Locked overlay ─── */
+.lockzone{position:relative}
+.lockzone.locked .lz-body{filter:blur(3px) grayscale(.35);opacity:.5;pointer-events:none;user-select:none}
+.lz-veil{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;padding:24px}
+.lockzone.locked .lz-veil{display:flex}
+.lz-card{background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-xl);
+  padding:24px 26px;max-width:420px;text-align:center;backdrop-filter:blur(4px)}
+.lz-card .lk{width:44px;height:44px;border-radius:50%;background:var(--cream);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--gold-dark)}
+.lz-card h4{margin:0 0 6px;font-size:15px;color:var(--navy);font-weight:800}
+.lz-card p{margin:0;font-size:12.5px;color:var(--ink-muted);line-height:1.5}
+
+/* ─── Ledger (preenchido / falta) ─── */
+.ledger{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.ledger>div{padding:15px 17px}
+.ledger .l-fill{background:linear-gradient(180deg,rgba(21,128,61,.05),transparent)}
+.ledger .l-miss{border-left:1px solid var(--border)}
+.ltitle{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:11px}
+.ltitle .n{margin-left:auto;font-size:15px;font-family:var(--serif);font-weight:700}
+.l-fill .ltitle{color:var(--success)}
+.l-miss .ltitle{color:var(--ink-muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:8px;background:var(--subtle);border:1px solid var(--border);color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.chip.done{background:var(--success-bg);border-color:var(--success-bd);color:#12401f}
+.chip.miss{background:var(--paper);border-color:var(--border-strong);color:var(--ink-muted)}
+.chip .x{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.55}
+
+/* ─── Lead identity strip ─── */
+.idrow{display:flex;align-items:center;gap:15px;padding:15px 17px;flex-wrap:wrap}
+.ava{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;
+  display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:20px;flex:0 0 auto;box-shadow:var(--sh)}
+.idmeta{min-width:0}
+.idmeta .nm{font-size:16px;font-weight:800;color:var(--navy);letter-spacing:.2px}
+.idmeta .sub{font-size:12px;color:var(--ink-muted);display:flex;gap:12px;flex-wrap:wrap;margin-top:2px}
+.idmeta .sub span{display:flex;align-items:center;gap:5px}
+.match{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;padding:7px 12px;border-radius:999px}
+.match.known{background:#F5EEDA;color:var(--gold-dark);border:1px solid rgba(184,134,11,.32)}
+.match.new{background:var(--success-bg);color:var(--success);border:1px solid var(--success-bd)}
+
+/* ─── Signals (resort/origem/1a msg) ─── */
+.sig{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-top:1px solid var(--border)}
+.sig .sic{width:34px;height:34px;border-radius:10px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:var(--subtle);border:1px solid var(--border)}
+.sig .sic svg{width:17px;height:17px;color:var(--navy)}
+.sig .sbody{flex:1;min-width:0}
+.sig .stop{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.sig .slab{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ink-faint)}
+.sig .sval{font-size:14.5px;font-weight:800;color:var(--navy);margin-top:2px}
+.sig .sval.empty{color:var(--ink-faint);font-weight:600;font-style:italic}
+.sig .svia{font-size:11.5px;color:var(--ink-muted);margin-top:2px}
+.sig .svia b{color:var(--ink-2);font-weight:700}
+.sig .act{display:flex;gap:6px;flex:0 0 auto;align-self:center}
+.mini{border:1px solid var(--border-strong);background:var(--paper);color:var(--navy);font:inherit;font-size:11px;font-weight:700;
+  padding:5px 11px;border-radius:8px;cursor:pointer;transition:.18s var(--ease)}
+.mini:hover{background:var(--subtle);border-color:var(--navy)}
+.mini.solid{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mini.solid:hover{background:var(--navy-light)}
+
+/* ─── Readiness meter ─── */
+.meter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mseg{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--ink-2);padding:6px 12px;border-radius:999px;background:var(--paper);border:1px solid var(--border)}
+.mseg .b{width:8px;height:8px;border-radius:50%}
+.mseg.ok{color:var(--success);border-color:var(--success-bd);background:var(--success-bg)} .mseg.ok .b{background:var(--success)}
+.mseg.warn{color:var(--warning);border-color:var(--warning-bd);background:var(--warning-bg)} .mseg.warn .b{background:var(--warning)}
+.mseg.miss{color:var(--ink-muted)} .mseg.miss .b{background:var(--border-strong)}
+.ring{--p:0;width:58px;height:58px;border-radius:50%;flex:0 0 auto;
+  background:conic-gradient(var(--gold) calc(var(--p)*1%), var(--cream-2) 0);display:flex;align-items:center;justify-content:center}
+.ring i{width:44px;height:44px;border-radius:50%;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;font-style:normal;box-shadow:inset 0 0 0 1px var(--border)}
+.ring b{font-family:var(--serif);font-weight:700;font-size:17px;color:var(--navy);line-height:1}
+.ring small{font-size:8px;font-weight:800;letter-spacing:.5px;color:var(--ink-faint);text-transform:uppercase}
+
+/* ─── Form grid ─── */
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 15px;padding:17px}
+.grp-h{display:flex;align-items:center;gap:9px;padding:12px 17px 0;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--navy)}
+.grp-h .cnt{margin-left:auto;font-size:10.5px;font-weight:700;color:var(--ink-faint);letter-spacing:.2px;text-transform:none}
+.col2{grid-column:span 2} @media(max-width:560px){.col2{grid-column:span 1}}
+.colall{grid-column:1/-1}
+/* checkbox de decisão (arca custas / não mandar msg) */
+.chk{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px dashed var(--border-strong);border-radius:10px;background:var(--subtle)}
+.chk .box{width:17px;height:17px;border-radius:5px;border:1.6px solid var(--border-strong);background:#fff;flex:0 0 auto}
+.chk.warn{border-color:var(--danger-bd)} .chk.warn span{color:var(--danger)}
+.chk span{font-size:12px;font-weight:700;color:var(--ink-2)}
+/* modo de honorários */
+.modo{display:flex;gap:8px;flex-wrap:wrap}
+.modo .opt{flex:1;min-width:130px;border:1.4px solid var(--border-strong);border-radius:10px;padding:9px 11px;background:var(--subtle);text-align:center}
+.modo .opt b{display:block;font-size:12px;color:var(--navy);font-weight:800}
+.modo .opt small{font-size:10.5px;color:var(--ink-muted)}
+/* cláusulas auto */
+.clau{display:flex;align-items:flex-start;gap:11px;padding:13px 16px}
+.clau .cn{width:30px;height:30px;border-radius:8px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:#EDF0F5;border:1px solid #CBD5E1;color:#475569}
+.clau .cb{font-size:12.5px;color:var(--ink-2);line-height:1.5} .clau .cb b{color:var(--navy)}
+.drivewarn{font-size:9.5px;font-weight:800;letter-spacing:.3px;color:#8a1a1a;background:#FBEAEA;border:1px solid var(--danger-bd);padding:2px 7px;border-radius:6px;margin-left:6px;text-transform:uppercase}
+.pjnote{font-size:11.5px;color:var(--ink-muted);padding:2px 17px 0}
+.pjnote b{color:var(--navy)}
+
+/* ─── layout helpers per mockup ─── */
+.split{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.rail{position:sticky;top:150px;display:flex;flex-direction:column;gap:16px}
+@media(max-width:900px){.rail{position:static}}
+.stack{display:flex;flex-direction:column;gap:18px}
+.note{font-size:11.5px;color:var(--ink-muted);padding:11px 16px;background:var(--subtle);border-top:1px solid var(--border);display:flex;gap:9px;align-items:flex-start}
+.note svg{width:15px;height:15px;color:var(--gold-dark);flex:0 0 auto;margin-top:1px}
+.foot{margin-top:34px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-muted);line-height:1.6}
+.foot b{color:var(--navy)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin:14px 2px 0;padding:13px 16px;background:rgba(255,255,255,.6);border:1px solid var(--border);border-radius:var(--r)}
+.legend .li{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-2);font-weight:600}
+.sw{width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+/* ─── botão de exceção ─── */
+.excbtn{border:1.4px dashed var(--border-strong);background:transparent;color:var(--ink-muted);font:inherit;font-size:12px;font-weight:700;
+  padding:9px 15px;border-radius:var(--r);cursor:pointer;transition:.18s var(--ease);display:inline-flex;align-items:center;gap:8px}
+.excbtn:hover{border-color:var(--warning);color:var(--warning);background:var(--warning-bg)}
+.excbtn svg{color:var(--warning)}
+.exc-hint{font-size:11.5px;color:var(--ink-faint);margin-top:10px;display:flex;align-items:center;gap:7px}
+
+/* ─── carimbo de exceção (pós-confirmação) ─── */
+.stamp{display:flex;align-items:flex-start;gap:13px;padding:15px 17px;background:linear-gradient(180deg,var(--warning-bg),transparent);border-top:1px solid var(--warning-bd)}
+.stamp .sh{width:40px;height:40px;border-radius:11px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid var(--warning-bd);color:var(--warning)}
+.stamp .sh svg{width:20px;height:20px}
+.stamp .sb{flex:1;min-width:0}
+.stamp .st{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--warning);display:flex;align-items:center;gap:7px}
+.stamp .snm{font-size:15px;font-weight:800;color:var(--navy);margin-top:2px}
+.stamp .smeta{font-size:12px;color:var(--ink-muted);margin-top:3px;line-height:1.5}
+.stamp .smeta b{color:var(--ink-2);font-weight:700}
+.stamp .undo{border:1px solid var(--border-strong);background:#fff;color:var(--navy);font:inherit;font-size:11px;font-weight:700;padding:5px 11px;border-radius:8px;cursor:pointer;align-self:center}
+.stamp .undo:hover{border-color:var(--navy);background:var(--subtle)}
+.auditbar{display:flex;align-items:center;gap:10px;padding:11px 17px;background:var(--warning-bg);border-bottom:1px solid var(--warning-bd);font-size:12px;color:#5c3406}
+.auditbar svg{color:var(--warning)}
+.auditbar b{color:var(--navy)}
+
+/* ─── modal ─── */
+.scrim{position:fixed;inset:0;z-index:80;background:rgba(15,32,53,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:22px;opacity:0;pointer-events:none;transition:opacity .28s var(--ease)}
+.scrim.on{opacity:1;pointer-events:auto}
+.modal{width:min(520px,100%);background:var(--paper);border-radius:var(--r-xl);box-shadow:var(--sh-xl);overflow:hidden;transform:translateY(14px) scale(.98);transition:transform .32s var(--ease)}
+.scrim.on .modal{transform:none}
+.m-head{padding:20px 22px 16px;display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--border)}
+.m-ic{width:44px;height:44px;border-radius:13px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:var(--warning-bg);border:1px solid var(--warning-bd);color:var(--warning)}
+.m-ic svg{width:22px;height:22px}
+.m-head h3{margin:0;font-size:17px;font-weight:800;color:var(--navy)}
+.m-head p{margin:3px 0 0;font-size:12px;color:var(--ink-muted)}
+.m-body{padding:18px 22px;display:flex;flex-direction:column;gap:15px}
+.m-alert{font-size:12.5px;color:#5c3406;background:var(--warning-bg);border:1px solid var(--warning-bd);border-radius:var(--r);padding:11px 13px;line-height:1.5}
+.m-lab{font-size:11px;font-weight:800;color:var(--navy);margin-bottom:6px;letter-spacing:.2px}
+.m-lab .req{color:var(--danger)}
+.m-sel,.m-ta{width:100%;font:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);border:1px solid var(--border-strong);border-radius:10px;padding:10px 12px;transition:.18s var(--ease)}
+.m-sel:focus,.m-ta:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,58,92,.12)}
+.m-ta{resize:vertical;min-height:64px}
+.m-check{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--ink);line-height:1.45;cursor:pointer;padding:2px}
+.m-check input{width:18px;height:18px;flex:0 0 auto;margin-top:1px;accent-color:var(--navy);cursor:pointer}
+.m-audit{background:var(--subtle);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+.m-audit .aha{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-faint);display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.m-audit .arow{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:3px 0}
+.m-audit .arow span{color:var(--ink-muted)} .m-audit .arow b{color:var(--navy);font-weight:700}
+.m-foot{padding:15px 22px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border);background:var(--subtle)}
+.m-foot button{font:inherit;font-weight:800;font-size:12.5px;letter-spacing:.4px;padding:11px 18px;border-radius:10px;cursor:pointer;transition:.18s var(--ease);border:1.4px solid transparent}
+.m-cancel{background:var(--paper);border-color:var(--border-strong);color:var(--ink-2)}
+.m-cancel:hover{border-color:var(--navy);color:var(--navy)}
+.m-ok{background:var(--navy);color:#fff}
+.m-ok:hover{background:var(--navy-light)}
+.m-ok:disabled{opacity:.45;cursor:not-allowed}
+
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.05ms!important}}
+</style>
+</head>
+<body>
+
+<div class="deck">
+  <div class="deck-inner">
+    <div class="brandline">
+      <div class="mark"><b>CBC</b><span>Contratos</span></div>
+      <div class="deck-title">Novo Contrato — <em>Kommo primeiro</em> · protótipo de refatoração</div>
+    </div>
+    <div class="rows">
+      <div class="seg-group">
+        <span class="seg-lab">Mockup</span>
+        <div class="seg" id="mkseg" role="tablist">
+          <button role="tab" data-mk="1" aria-selected="true"><span class="dot"></span>1 · Portão</button>
+          <button role="tab" data-mk="2" aria-selected="false"><span class="dot"></span>2 · Dossiê</button>
+          <button role="tab" data-mk="3" aria-selected="false"><span class="dot"></span>3 · Semáforo</button>
+        </div>
+      </div>
+      <div class="seg-group">
+        <span class="seg-lab">Caso do lead</span>
+        <div class="seg gold" id="scseg" role="tablist">
+          <button role="tab" data-sc="novo" aria-selected="true">Lead novo</button>
+          <button role="tab" data-sc="conhecido" aria-selected="false">Já cadastrado</button>
+          <button role="tab" data-sc="semtag" aria-selected="false">Sem tag</button>
+        </div>
+      </div>
+      <div class="seg-group">
+        <span class="seg-lab">Estado</span>
+        <div class="seg" id="stseg" role="tablist">
+          <button role="tab" data-st="resolved" aria-selected="true">Resolvido</button>
+          <button role="tab" data-st="locked" aria-selected="false">Antes do link</button>
+          <button role="tab" data-st="semkommo" aria-selected="false">Sem Kommo (exceção)</button>
+        </div>
+      </div>
+      <div class="seg-group">
+        <span class="seg-lab">Contrato</span>
+        <div class="seg" id="docseg" role="tablist">
+          <button role="tab" data-doc="off" aria-selected="true">Oculto</button>
+          <button role="tab" data-doc="side" aria-selected="false">Ao lado (ao vivo)</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint" id="deckhint"></p>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="stage" class="stage"></div>
+
+  <div class="legend">
+    <div class="li"><span class="sw" style="background:var(--success-bg);border-color:var(--success-bd)"></span> Preenchido pelo Kommo</div>
+    <div class="li"><span class="sw" style="background:#F7F1DF;border-color:rgba(184,134,11,.3)"></span> Puxado do Cadastro Único</div>
+    <div class="li"><span class="sw" style="background:var(--warning-bg);border-color:var(--warning-bd)"></span> Detectado pela tag — confira</div>
+    <div class="li"><span class="sw" style="background:var(--info-bg);border-color:var(--info-bd)"></span> Origem (Meta / Kommo)</div>
+    <div class="li"><span class="sw" style="background:var(--teal-bg);border-color:var(--teal-bd)"></span> 1ª msg via CBC Conversas</div>
+    <div class="li"><span class="sw" style="background:#EDF0F5;border-color:#CBD5E1"></span> Derivado pelo sistema (auto)</div>
+    <div class="li"><span class="sw" style="background:#f4f6f9;border:1px dashed var(--border-strong)"></span> Falta preencher à mão</div>
+  </div>
+
+  <div class="foot">
+    <b>O que é real hoje:</b> nome, telefone e data da 1ª mensagem saem direto do Kommo (espelho atualizado hoje). Origem sai do <i>referral</i> Meta/click-to-WhatsApp. O bloco do contratante inteiro sai do <b>Cadastro Único (clientes)</b> quando o telefone/lead casa com cliente existente (1.901 casados hoje). <b>Resort pela tag</b> depende de ler as tags do lead no Kommo e casar com a lista de resorts; por isso aparece como “confira”. <b>1ª mensagem</b> usa o CBC Conversas quando há vínculo; senão, a 1ª do Kommo. <b>São mockups:</b> nada foi alterado no sistema.
+  </div>
+</div>
+
+<!-- ═══════════ modal: contrato sem lead no Kommo ═══════════ -->
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+  <div class="modal">
+    <div class="m-head">
+      <div class="m-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div>
+        <h3 id="mtitle">Contrato sem lead no Kommo</h3>
+        <p>Registro de exceção — fica gravado com responsável e data</p>
+      </div>
+    </div>
+    <div class="m-body">
+      <div class="m-alert">Quase todo contrato tem um lead no Kommo. Confirme abaixo <b>apenas</b> se você verificou (nome, telefone e CPF) e o lead realmente não existe.</div>
+      <div>
+        <div class="m-lab">Por que não há lead no Kommo? <span class="req">*</span></div>
+        <select class="m-sel" id="m-motivo">
+          <option value="">Selecione o motivo…</option>
+          <option>Cliente anterior ao Kommo</option>
+          <option>Indicação direta sem cadastro no Kommo</option>
+          <option>Migração / contrato retroativo</option>
+          <option>Atendimento por outro canal (presencial / telefone)</option>
+          <option value="outro">Outro motivo (descrever)</option>
+        </select>
+      </div>
+      <div id="m-outrowrap" style="display:none">
+        <div class="m-lab">Descreva o motivo <span class="req">*</span></div>
+        <textarea class="m-ta" id="m-outro" placeholder="Explique por que este contrato não tem lead no Kommo…"></textarea>
+      </div>
+      <label class="m-check"><input type="checkbox" id="m-confirm"><span>Confirmo que verifiquei e <b>não localizei</b> lead no Kommo para este cliente. Assumo a responsabilidade por criar o contrato como exceção.</span></label>
+      <div class="m-audit">
+        <div class="aha"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Este registro ficará gravado</div>
+        <div class="arow"><span>Responsável</span><b id="m-user">Paulo Conforto · paulo@advocaciacbc.com</b></div>
+        <div class="arow"><span>Data / hora</span><b id="m-when">23/07/2026 · 14:32 (America/São_Paulo)</b></div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="m-cancel" id="m-cancel">Cancelar</button>
+      <button class="m-ok" id="m-ok" disabled>Confirmar e liberar formulário</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════ ícones ═══════════════ */
+const I = {
+  link:'<path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  check:'<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
+  spark:'<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>',
+  tag:'<path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a2 2 0 0 1 0 2.8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor"/>',
+  mega:'<path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6.5A8 8 0 1 1 21 12Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  clock:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/>',
+  info:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v5M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  user:'<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21a8 8 0 0 1 16 0" fill="none" stroke="currentColor" stroke-width="2"/>',
+  home:'<path d="m3 11 9-8 9 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M5 10v10h14V10" fill="none" stroke="currentColor" stroke-width="2"/>',
+  gavel:'<path d="m14 6 4 4M7 13l4 4M3 21l6-6M13 3l8 8-3 3-8-8Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  shield:'<path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  warn:'<path d="M12 3 4 6v5c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 9v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  edit:'<path d="M4 20h4L20 8a2 2 0 0 0-3-3L5 17v3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
+  money:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M14.5 9.3c0-1-1.1-1.8-2.5-1.8S9.5 8.3 9.5 9.3s1.1 1.5 2.5 1.7 2.5.7 2.5 1.7-1.1 1.8-2.5 1.8-2.5-.8-2.5-1.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
+  clip:'<rect x="6" y="4" width="12" height="17" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+};
+const svg = (n,c='')=>`<svg viewBox="0 0 24 24" class="${c}" aria-hidden="true">${I[n]}</svg>`;
+
+/* ═══════════════ dados dos 3 casos (reais do banco) ═══════════════ */
+const SC = {
+  novo:{
+    tag:'Lead novo',
+    lead:{nome:'Douglas Moreno', ini:'DM', tel:'(22) 99104-8383', email:'—', criado:'23/07/2026 · 06:04', id:'21501586'},
+    match:{type:'new', txt:'Cliente novo — 1º contrato'},
+    resort:{val:'ONDAS PRAIA', via:'tag <b>[Ondas Praia]</b> no lead → resort da lista', status:'tag'},
+    origem:{val:'Tráfego pago', via:'referral Meta · campanha <b>“Distrato SP — Advantage”</b>', status:'meta'},
+    msg:{val:'23/07/2026', via:'Kommo · 1ª mensagem do lead (sem vínculo no CBC Conversas)', status:'kommo'},
+    fields:{
+      nome:'kommo', telefone:'kommo', email:'falta', cpf:'falta', rg:'falta', nasc:'falta',
+      prof:'falta', ec:'falta', nac:'falta', cep:'falta', endereco:'falta', cidade:'falta',
+      resort:'tag', tipo:'falta', origem:'meta', msg:'kommo', hon:'falta'
+    },
+    vals:{nome:'Douglas Moreno', telefone:'(22) 99104-8383', email:'', cpf:'', rg:'', nasc:'',
+      prof:'', ec:'', nac:'', cep:'', endereco:'', cidade:'',
+      resort:'Ondas Praia', tipo:'', origem:'Tráfego pago', msg:'23/07/2026', hon:''},
+  },
+  conhecido:{
+    tag:'Já cadastrado',
+    lead:{nome:'Maria Aparecida Souza', ini:'MS', tel:'(19) 99709-9607', email:'maria.souza@gmail.com', criado:'21/07/2026 · 13:24', id:'20991233'},
+    match:{type:'known', txt:'Cliente no Cadastro Único · 2 contratos'},
+    resort:{val:'SOLAR DAS ÁGUAS', via:'histórico do cliente + tag <b>[Solar das Águas]</b>', status:'cadastro'},
+    origem:{val:'Indicação', via:'Kommo · campo de origem do lead', status:'kommo'},
+    msg:{val:'18/07/2026', via:'<b>CBC Conversas</b> · vínculo encontrado (1ª msg 3 dias antes do Kommo)', status:'conversas'},
+    fields:{
+      nome:'cadastro', telefone:'kommo', email:'cadastro', cpf:'cadastro', rg:'cadastro', nasc:'cadastro',
+      prof:'cadastro', ec:'cadastro', nac:'cadastro', cep:'cadastro', endereco:'cadastro', cidade:'cadastro',
+      resort:'cadastro', tipo:'falta', origem:'kommo', msg:'conversas', hon:'falta'
+    },
+    vals:{nome:'Maria Aparecida Souza', telefone:'(19) 99709-9607', email:'maria.souza@gmail.com',
+      cpf:'312.•••.•••-04', rg:'34.•••.•••-2', nasc:'14/03/1966', prof:'Aposentada', ec:'Casada',
+      nac:'Brasileira', cep:'13480-000', endereco:'Rua das Palmeiras, 210', cidade:'Limeira / SP',
+      resort:'Solar das Águas', tipo:'', origem:'Indicação', msg:'18/07/2026', hon:''},
+  },
+  semtag:{
+    tag:'Sem tag',
+    lead:{nome:'Davi Rodrigues', ini:'DR', tel:'(62) 8519-9906', email:'—', criado:'22/07/2026 · 23:52', id:'21470416'},
+    match:{type:'new', txt:'Cliente novo — 1º contrato'},
+    resort:{val:null, via:'lead <b>sem tag de resort</b> reconhecível — preencher à mão', status:'falta'},
+    origem:{val:null, via:'sem <i>referral</i> Meta — origem não identificada', status:'falta'},
+    msg:{val:'22/07/2026', via:'Kommo · 1ª mensagem do lead (sem vínculo no CBC Conversas)', status:'kommo'},
+    fields:{
+      nome:'kommo', telefone:'kommo', email:'falta', cpf:'falta', rg:'falta', nasc:'falta',
+      prof:'falta', ec:'falta', nac:'falta', cep:'falta', endereco:'falta', cidade:'falta',
+      resort:'falta', tipo:'falta', origem:'falta', msg:'kommo', hon:'falta'
+    },
+    vals:{nome:'Davi Rodrigues', telefone:'(62) 8519-9906', email:'', cpf:'', rg:'', nasc:'',
+      prof:'', ec:'', nac:'', cep:'', endereco:'', cidade:'',
+      resort:'', tipo:'', origem:'', msg:'22/07/2026', hon:''},
+  }
+};
+
+/* auditoria da exceção (quem/quando/motivo) — no app real vem do usuário logado + timestamp BRT */
+const AUDIT = { user:'Paulo Conforto', email:'paulo@advocaciacbc.com', when:'23/07/2026 · 14:32', motivo:'Indicação direta sem cadastro no Kommo' };
+
+/* cenário sintético: contrato de exceção, sem lead no Kommo (tudo manual) */
+const CAMPOS = ['nome','telefone','email','cpf','rg','nasc','prof','ec','nac','cep','endereco','cidade','resort','tipo','origem','msg','hon'];
+SC._semkommo = {
+  tag:'Sem Kommo',
+  lead:null,
+  match:{type:'exc', txt:'Exceção — sem lead no Kommo'},
+  resort:{val:null, via:'preencher à mão (contrato sem Kommo)', status:'falta'},
+  origem:{val:null, via:'preencher à mão (contrato sem Kommo)', status:'falta'},
+  msg:{val:null, via:'preencher à mão (contrato sem Kommo)', status:'falta'},
+  fields:Object.fromEntries(CAMPOS.map(k=>[k,'falta'])),
+  vals:Object.fromEntries(CAMPOS.map(k=>[k,''])),
+};
+
+/* ═══════════ catálogo COMPLETO de campos (espelha o FormPanel.jsx real) ═══════════ */
+const ALL_KEYS = ['cpf','rg','nome','sexo','nacionalidade','profissao','estadoCivil','email','telefone','dataNascimento','linkKommo','cep','uf','endereco','numero','complemento','bairro','cidade','resort','tipoAcao','modo','total','parcelas','valorParcela','dataPrimeiraParcela','percentualExito','origemCliente','dataPrimeiraMensagem','linkGoogleDrive','escritorioArcaCustas','naoMandarMensagem','observacoesInternas'];
+const OPTIONAL = new Set(['complemento','valorParcela','modo','escritorioArcaCustas','naoMandarMensagem','observacoesInternas']);
+const REQUIRED = ALL_KEYS.filter(k=>!OPTIONAL.has(k));
+const FIELD_LABELS = {
+  cpf:'CPF', rg:'RG', nome:'Nome completo', sexo:'Sexo', nacionalidade:'Nacionalidade', profissao:'Profissão',
+  estadoCivil:'Estado civil', email:'E-mail', telefone:'Celular', dataNascimento:'Data de nascimento', linkKommo:'Link Kommo',
+  cep:'CEP', uf:'UF', endereco:'Endereço (Rua)', numero:'Número', complemento:'Complemento', bairro:'Bairro', cidade:'Cidade',
+  resort:'Resort', tipoAcao:'Tipo de ação', modo:'Modo', total:'Valor total', parcelas:'Nº de parcelas', valorParcela:'Valor da parcela',
+  dataPrimeiraParcela:'Data da 1ª parcela', percentualExito:'% de êxito', origemCliente:'Origem do cliente',
+  dataPrimeiraMensagem:'Data da 1ª mensagem', linkGoogleDrive:'Link Google Drive', escritorioArcaCustas:'Escritório arca com custas',
+  naoMandarMensagem:'Não mandar msg automática', observacoesInternas:'Observações internas'
+};
+/* origem (provenance) de cada campo por caso — o que não estiver aqui é 'falta' */
+const SRC = {
+  novo:{ nome:'kommo', telefone:'kommo', linkKommo:'kommo', dataPrimeiraMensagem:'kommo', origemCliente:'meta', resort:'tag', sexo:'auto', nacionalidade:'auto' },
+  conhecido:{ cpf:'cadastro', rg:'cadastro', nome:'cadastro', sexo:'cadastro', nacionalidade:'cadastro', profissao:'cadastro', estadoCivil:'cadastro', email:'cadastro', dataNascimento:'cadastro', cep:'cadastro', uf:'cadastro', endereco:'cadastro', numero:'cadastro', complemento:'cadastro', bairro:'cadastro', cidade:'cadastro', resort:'cadastro', telefone:'kommo', linkKommo:'kommo', origemCliente:'kommo', dataPrimeiraMensagem:'conversas' },
+  semtag:{ nome:'kommo', telefone:'kommo', linkKommo:'kommo', dataPrimeiraMensagem:'kommo', sexo:'auto', nacionalidade:'auto' },
+  _semkommo:{}
+};
+function sources(sc){ const s=SRC[sc]||{}, o={}; for(const k of ALL_KEYS) o[k]=s[k]||'falta'; return o; }
+const VALS = {
+  novo:{ nome:'Douglas Moreno', telefone:'(22) 99104-8383', dataPrimeiraMensagem:'2026-07-23', origemCliente:'Trafego pago', resort:'Ondas Praia', sexo:'M', nacionalidade:'brasileiro' },
+  conhecido:{ cpf:'123.456.789-09', rg:'34.567.890-2', nome:'Maria Aparecida Souza', sexo:'F', nacionalidade:'brasileira', profissao:'Aposentado(a)', estadoCivil:'Casado(a)', email:'maria.souza@gmail.com', dataNascimento:'1966-03-14', cep:'13480-000', uf:'SP', endereco:'Rua das Palmeiras', numero:'210', complemento:'Apto 32', bairro:'Centro', cidade:'Limeira', resort:'Solar das Águas', telefone:'(19) 99709-9607', origemCliente:'Indicacao', dataPrimeiraMensagem:'2026-07-18' },
+  semtag:{ nome:'Davi Rodrigues', telefone:'(62) 8519-9906', dataPrimeiraMensagem:'2026-07-22', sexo:'M', nacionalidade:'brasileiro' },
+  _semkommo:{}
+};
+function valOf(sc,k){
+  if(k==='linkKommo'){ const l=SC[sc]&&SC[sc].lead; return l?`advocaciacbc.kommo.com/leads/detail/${l.id}`:''; }
+  return (VALS[sc]&&VALS[sc][k]) || '';
+}
+
+/* ═══════════ listas e regras COPIADAS do formulário original ═══════════ */
+const ESTADOS_CIVIS = ['Solteiro(a)','Casado(a)','Divorciado(a)','Viúvo(a)','União Estável'];
+const TIPOS_ACAO = ['Ação de Cobrança','Cancelamento de Contrato','Cota Quitada sem Matrícula','Dano Moral','Devolução 80%','Devolução 50%','Distrato por Atraso','Revisão de Distrato','Execução Honorários'];
+const PROFISSOES = ['Empresário(a)','Autônomo(a)','Aposentado(a)','Do Lar','Professor(a)','Advogado(a)','Engenheiro(a)','Médico(a)','Enfermeiro(a)','Vendedor(a)','Contador(a)','Administrador(a)','Funcionário(a) Público(a)','Servidor(a) Público(a)','Comerciante','Motorista','Bancário(a)','Técnico(a)','Policial Militar','Dentista','Psicólogo(a)','Corretor(a)','Consultor(a)','Analista','Programador(a)','Eletricista','Mecânico(a)','Agricultor(a)','Estudante','Desempregado(a)'];
+const SEXOS = [['M','Masculino'],['F','Feminino']];
+const ORIGENS = ['Facebook','Trafego pago','Formulario','Google','Indicacao','Instagram','Organico','Outros'];
+const HONOR_OPCOES = [{total:2700,parcelas:1,label:'À vista'},{total:3000,parcelas:10,label:'10x'},{total:3000,parcelas:12,label:'12x'},{total:3300,parcelas:12,label:'12x'}];
+const PCT_EXITO = [15,20,25,30];
+let RESORTS = ["Aegea Di Roma","Alchimyst","Alta Vista","Amazone Fun Parks","Aquan Prime","Asa Delta (Chateau du Golden)","Atrium Thermas","AVIVA Ocean","Barretos Country","Beach Park","Brava Mundo","Búzios Beach","Búzios Fractional","Canastra Hotel","Centrinho dos Ingleses","China Park","Costão do Santinho","Encontro das Águas","ESTALEIRINHO SPE S/A","Evian Thermas","Golden Dolphin","Golden Laghetto","Golden Tulip Canela","Golden Villagio","Gramado Buona Vitta","Gramado Exclusive Resort","Gramado Parks","Gramado Termas","Gran Garden","Gran Paradiso","Gran Valley Resort","Grandes Lagos","Hard Rock Fortaleza","Hard Rock Gramado","Hard Rock Ilha do Sol","HOLIDAY STUDIO","Hot Beach","Hot Beach You","Hot Springs","Ibiobi Smart Club","Ibiomi Smartclub","Ilhas do Lago","IMGBRAVA","Ipioca Beach","Itapirica","JANGAL","Jardim das Palmeiras II","Jardins da Lagoa","JERIQUIÁ DUNAS","JERIQUIÁ LAGOA RESORT","JUREMA MORADA DA SERRA","Kawana","Lagoa Quente/Ecotowers","Laguna","Le Charmat de Luxe","Leaves Premium","Livyd Angra dos Reis","Long Beach","Mirante da Serra","Momentum","My Mabu","Ohana Beach Park","Oikos Maragogi Resort","Olimpia Park Resort","Ondas Praia","OWN TIME HOME CLUB","Penha Wish Resort","Pipa Island","Pipa Ocean","Pirâmide Palace","PITANGUI BEACH RESORT","Poehma Resort","Porto 2 Life","Porto Alto Resort","Porto Galinhas Marina","Porto Life Resort","Praia Brava","Praias do Lago","Pyrenéus Residence","Quinta Santa Bárbara Eco Resort","RECANTO CATARATAS","Refúgio das Lontras","Resort do Lago","Riacho Doce","Royal Prime","Royal Star","Salinas Beach","Salinas Premium","Solar das Águas","Solar Pedra das Ilhas","Stilo Laghetto","Terra Nova Ondas","TERRENO","The Coral","Thermas São Pedro","Toulon","Varandas","Wanderlust","Wyndham"];
+
+/* máscaras (idênticas a utils/masks.js) */
+const maskCPF = v => v.replace(/\D/g,'').slice(0,11).replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+const maskCEP = v => v.replace(/\D/g,'').slice(0,8).replace(/(\d{5})(\d)/,'$1-$2');
+const maskPhone = v => v.replace(/\D/g,'').slice(0,11).replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2');
+const MASKS = { cpf:maskCPF, cep:maskCEP, telefone:maskPhone };
+function validaCPF(cpf){ cpf=(cpf||'').replace(/\D/g,''); if(cpf.length!==11||/^(\d)\1{10}$/.test(cpf))return false; let s=0; for(let i=0;i<9;i++)s+=+cpf[i]*(10-i); let r=(s*10)%11; if(r===10)r=0; if(r!==+cpf[9])return false; s=0; for(let i=0;i<10;i++)s+=+cpf[i]*(11-i); r=(s*10)%11; if(r===10)r=0; return r===+cpf[10]; }
+const brl = n => 'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* que widget cada campo usa */
+const WIDGET = { sexo:'select', estadoCivil:'select', origemCliente:'select', profissao:'datalist', dataNascimento:'date', dataPrimeiraParcela:'date', dataPrimeiraMensagem:'date', cpf:'mask', cep:'mask', telefone:'mask' };
+const OPTS = { sexo:SEXOS.map(([v,l])=>`<option value="${v}">${l}</option>`).join(''), estadoCivil:ESTADOS_CIVIS.map(o=>`<option>${o}</option>`).join(''), origemCliente:ORIGENS.map(o=>`<option>${o}</option>`).join('') };
+/* "preenchido" de verdade: CPF só com 11 dígitos, CEP com 8, telefone 10+ */
+function isComplete(key,val){
+  const v=(val||'').trim();
+  if(key==='cpf') return v.replace(/\D/g,'').length===11;
+  if(key==='cep') return v.replace(/\D/g,'').length===8;
+  if(key==='telefone') return v.replace(/\D/g,'').length>=10;
+  return v.length>0;
+}
+const PV = {
+  kommo:{c:'kommo', ic:'check', t:'Kommo'},
+  cadastro:{c:'cadastro', ic:'user', t:'Cadastro'},
+  tag:{c:'tag', ic:'tag', t:'Tag · confira'},
+  meta:{c:'meta', ic:'mega', t:'Origem'},
+  conversas:{c:'conversas', ic:'chat', t:'Conversas'},
+  auto:{c:'auto', ic:'spark', t:'Auto'},
+  manual:{c:'manual', ic:'check', t:'Preenchido'},
+  falta:{c:'falta', ic:'', t:'Falta'},
+};
+const pvBadge = s => { const p=PV[s]; return `<span class="pv ${p.c}">${p.ic?svg(p.ic):''}${p.t}</span>`; };
+
+/* conta preenchidos (só campos obrigatórios) */
+function counts(sc){
+  const s = sources(sc); let done=0, tot=0;
+  for(const k of REQUIRED){ tot++; if(s[k]!=='falta') done++; }
+  return {done, tot, miss:tot-done, pct:Math.round(done/tot*100)};
+}
+
+function selOptions(key,cur){
+  let out=`<option value=""${cur?'':' selected'}>Selecione…</option>`;
+  if(key==='sexo') SEXOS.forEach(([v,l])=> out+=`<option value="${v}"${cur===v?' selected':''}>${l}</option>`);
+  else (key==='estadoCivil'?ESTADOS_CIVIS:ORIGENS).forEach(o=> out+=`<option${cur===o?' selected':''}>${o}</option>`);
+  return out;
+}
+/* campo de formulário renderizado (editável após resolver o link, widget conforme o original) */
+function field(sc, key, span2=false){
+  const src = sources(sc)[key]; const val = valOf(sc,key);
+  const shown = (src==='falta') ? '' : val;
+  const opt = OPTIONAL.has(key);
+  const req = opt ? '' : '<span class="req">*</span>';
+  const attrs = `data-key="${key}" data-origin="${src}"${opt?'':' data-req="1"'}`;
+  const w = WIDGET[key]; let ctl;
+  if(w==='select'){
+    ctl = `<select class="fld f-${src}" ${attrs}>${selOptions(key,shown)}</select>`;
+  } else if(w==='date'){
+    const mx = key==='dataPrimeiraParcela' ? '' : ' max="2026-07-23"';
+    ctl = `<input type="date" class="fld f-${src}" value="${shown}"${mx} ${attrs}>`;
+  } else if(w==='datalist'){
+    ctl = `<input class="fld f-${src}" value="${shown}" placeholder="${src==='falta'?'Ex: Empresário(a)':''}" list="dl-profissoes" autocomplete="off" ${attrs}>`;
+  } else if(w==='mask'){
+    const ph = key==='cpf'?'000.000.000-00':key==='cep'?'00000-000':'(00) 00000-0000';
+    const stat = (key==='cpf'||key==='cep') ? `<div class="apistat" data-stat="${key}"></div>` : '';
+    ctl = `<input class="fld f-${src}" value="${shown}" placeholder="${src==='falta'?ph:''}" inputmode="numeric" autocomplete="off" ${attrs}>${stat}`;
+  } else {
+    ctl = `<input class="fld f-${src}" value="${shown}" placeholder="${src==='falta'?'a preencher…':''}" ${attrs}>`;
+  }
+  return `<div class="field ${span2?'col2':''}">
+    <div class="lab">${FIELD_LABELS[key]} ${req} ${pvBadge(src)}</div>
+    ${ctl}
+  </div>`;
+}
+
+/* bloco de sinais resort/origem/1ª msg (reutilizado) */
+function signalRows(sc){
+  const d = SC[sc];
+  const row = (icon, lab, obj) => {
+    const empty = !obj.val;
+    const act = empty
+      ? `<button class="mini solid">Preencher</button>`
+      : (obj.status==='tag'
+        ? `<button class="mini solid">Confirmar</button><button class="mini">Trocar</button>`
+        : `<button class="mini">Editar</button>`);
+    return `<div class="sig">
+      <div class="sic">${svg(icon)}</div>
+      <div class="sbody">
+        <div class="stop"><span class="slab">${lab}</span> ${pvBadge(obj.status)}</div>
+        <div class="sval ${empty?'empty':''}">${obj.val||'não identificado'}</div>
+        <div class="svia">${obj.via}</div>
+      </div>
+      <div class="act">${act}</div>
+    </div>`;
+  };
+  return row('tag','Resort', d.resort) + row('mega','Origem do cliente', d.origem) + row('clock','Data da 1ª mensagem', d.msg);
+}
+
+/* identidade do lead */
+function identity(sc){
+  const d = SC[sc]; const m = d.match;
+  return `<div class="idrow">
+    <div class="ava">${d.lead.ini}</div>
+    <div class="idmeta">
+      <div class="nm">${d.lead.nome}</div>
+      <div class="sub"><span>${svg('user')}lead #${d.lead.id}</span><span>${d.lead.tel}</span><span>${svg('clock')}${d.lead.criado}</span></div>
+    </div>
+    <div class="match ${m.type}">${m.type==='known'?svg('user'):svg('spark')}${m.txt}</div>
+  </div>`;
+}
+
+/* ledger preenchido/falta */
+function ledger(sc){
+  const s = sources(sc); const done=[], miss=[];
+  for(const k of REQUIRED){ (s[k]==='falta'?miss:done).push(k); }
+  const c = counts(sc);
+  const chip = (k,cls)=>`<span class="chip ${cls}"><span class="x"></span>${FIELD_LABELS[k]}</span>`;
+  return `<div class="ledger">
+    <div class="l-fill">
+      <div class="ltitle">${svg('check')} Kommo preencheu <span class="n">${c.done}</span></div>
+      <div class="chips">${done.map(k=>chip(k,'done')).join('')}</div>
+    </div>
+    <div class="l-miss">
+      <div class="ltitle">Falta preencher <span class="n">${c.miss}</span></div>
+      <div class="chips">${miss.map(k=>chip(k,'miss')).join('')}</div>
+    </div>
+  </div>`;
+}
+
+/* capture bar do kommo */
+function capture(sc, locked){
+  const d = SC[sc];
+  if(locked){
+    return `<div class="kommo-cap">
+      <div class="kfield">
+        <span class="ic">${svg('link')}</span>
+        <input class="kinput" value="" placeholder="Cole aqui o link do lead no Kommo…" readonly>
+      </div>
+      <button class="kbtn ghost">${svg('spark')} Resolver lead</button>
+    </div>
+    <div class="exc-hint">${svg('info')} Não há lead no Kommo para este cliente? <button class="excbtn" onclick="openExc()">${svg('warn')} Registrar contrato sem Kommo</button></div>`;
+  }
+  return `<div class="kommo-cap">
+    <div class="kfield">
+      <span class="ic">${svg('link')}</span>
+      <input class="kinput ok" value="https://advocaciacbc.kommo.com/leads/detail/${d.lead.id}" readonly>
+    </div>
+    <button class="kbtn">${svg('check')} Lead resolvido</button>
+  </div>`;
+}
+
+/* carimbo de exceção (pós-confirmação) */
+function exceptionStamp(){
+  return `<div class="stamp">
+    <div class="sh">${svg('shield')}</div>
+    <div class="sb">
+      <div class="st">${svg('warn')} Contrato sem lead no Kommo · exceção registrada</div>
+      <div class="snm">Registrado por ${AUDIT.user}</div>
+      <div class="smeta"><b>${AUDIT.email}</b> · <b>${AUDIT.when}</b> (BRT)<br>Motivo: <b>${AUDIT.motivo}</b></div>
+    </div>
+    <button class="undo" onclick="undoExc()">Desfazer</button>
+  </div>`;
+}
+function auditBanner(){
+  return `<div class="auditbar">${svg('warn')}<div>Exceção: contrato <b>sem lead no Kommo</b>, registrado por <b>${AUDIT.user}</b> em <b>${AUDIT.when}</b>. Todos os campos são preenchidos à mão.</div></div>`;
+}
+
+/* formulário COMPLETO: todos os campos do FormPanel real, agrupados e com badges */
+function formSections(sc, prepend=''){
+  const s = sources(sc);
+  return `
+  <div class="panel">
+    ${prepend}
+    <div class="grp-h">${svg('user')} Contratante <span class="cnt">1 de 1 · Pessoa Física</span></div>
+    <div class="pjnote">${svg('info')} Alterna <b>PF / PJ</b> e permite <b>2 contratantes</b>. Em <b>Pessoa Jurídica</b> abre antes o bloco da <b>Empresa</b> (CNPJ, Razão Social, e-mail e endereço da empresa); os campos abaixo passam a descrever o <b>representante legal</b>.</div>
+    <div class="formgrid">
+      ${field(sc,'cpf')}${field(sc,'rg')}${field(sc,'nome',true)}
+      ${field(sc,'sexo')}${field(sc,'nacionalidade')}${field(sc,'profissao')}
+      ${field(sc,'estadoCivil')}${field(sc,'email')}${field(sc,'telefone')}
+      ${field(sc,'dataNascimento')}${field(sc,'linkKommo',true)}
+    </div>
+    <div class="grp-h">${svg('home')} Endereço</div>
+    <div class="formgrid">
+      ${field(sc,'cep')}${field(sc,'uf')}${field(sc,'endereco',true)}
+      ${field(sc,'numero')}${field(sc,'complemento')}${field(sc,'bairro')}${field(sc,'cidade')}
+    </div>
+    <div class="grp-h">${svg('gavel')} Resort & Ação</div>
+    <div style="padding:13px 17px 2px">
+      <div class="lab">Empreendimento / Resort <span class="req">*</span> ${pvBadge(s.resort)}</div>
+      <input class="fld f-${s.resort}" id="resort-input" list="dl-resorts" value="${s.resort==='falta'?'':valOf(sc,'resort')}" placeholder="Digite para buscar o resort…" autocomplete="off" data-key="resort" data-origin="${s.resort}" data-req="1">
+      <div id="resort-novo"></div>
+    </div>
+    <div id="tipoacao-wrap" style="padding:6px 17px 4px;${s.resort==='falta'?'display:none':''}">
+      <div class="lab">Tipo de ação <span class="req">*</span> ${pvBadge(s.tipoAcao)}</div>
+      <select class="fld f-${s.tipoAcao}" id="tipoacao-sel" data-key="tipoAcao" data-origin="${s.tipoAcao}" data-req="1">
+        <option value="">Selecione o tipo de ação…</option>
+        ${TIPOS_ACAO.map(t=>`<option${valOf(sc,'tipoAcao')===t?' selected':''}>${t}</option>`).join('')}
+        <option value="outro">Outros (especificar)</option>
+      </select>
+      <div id="tipoacao-outro"></div>
+    </div>
+    <div class="grp-h">${svg('money')} Honorários advocatícios</div>
+    <div style="padding:11px 17px 2px">
+      <div class="lab" style="margin-bottom:7px">Modo <span class="req">*</span> ${pvBadge('falta')}</div>
+      <div class="modo" id="modo">
+        <div class="opt" data-modo="ambos"><b>Iniciais + Êxito</b><small>valor fixo + % de êxito</small></div>
+        <div class="opt" data-modo="exito"><b>Somente Êxito</b><small>apenas % ad exitum</small></div>
+        <div class="opt" data-modo="iniciais"><b>Somente Iniciais</b><small>apenas valor fixo</small></div>
+      </div>
+      <p id="modo-hint" class="exc-hint" style="margin-top:9px">${svg('info')} Escolha o modo para liberar os campos de valor / percentual.</p>
+    </div>
+    <div id="hon-iniciais" style="display:none">
+      <div style="padding:8px 17px 0"><div class="lab" style="margin-bottom:6px">Valores predefinidos</div>
+        <div class="presets">${HONOR_OPCOES.map((o,i)=>`<button class="preset" data-preset="${i}"><b>${brl(o.total)}</b><small>${o.parcelas===1?o.label:o.parcelas+'x '+brl(o.total/o.parcelas)}</small></button>`).join('')}<button class="preset" data-preset="custom"><b>Personalizado</b><small>definir à mão</small></button></div>
+      </div>
+      <div class="formgrid">${field(sc,'total')}${field(sc,'parcelas')}${field(sc,'valorParcela')}${field(sc,'dataPrimeiraParcela')}</div>
+    </div>
+    <div id="hon-exito" style="display:none">
+      <div class="formgrid">${field(sc,'percentualExito')}</div>
+      <div style="padding:0 17px 6px"><div class="presets">${PCT_EXITO.map(p=>`<button class="preset" data-pct="${p}"><b>${p}%</b></button>`).join('')}</div></div>
+    </div>
+    <datalist id="dl-resorts">${RESORTS.map(r=>`<option value="${r}"></option>`).join('')}<option value="+ Novo empreendimento…"></option></datalist>
+    <datalist id="dl-profissoes">${PROFISSOES.map(p=>`<option value="${p}"></option>`).join('')}</datalist>
+    <div class="grp-h">${svg('clip')} Cláusulas do contrato</div>
+    <div class="clau">
+      <div class="cn">${svg('spark')}</div>
+      <div class="cb"><b>Cláusula 1ª (Objeto)</b> gerada automaticamente do <b>Resort + Tipo de ação</b>. Seguem as <b>cláusulas padrão</b> (reordenáveis) e as <b>avulsas</b> que você adicionar. ${pvBadge('auto')}</div>
+    </div>
+    <div class="grp-h">${svg('info')} Dados internos <span class="cnt">não aparecem no contrato</span></div>
+    <div class="formgrid">
+      ${field(sc,'origemCliente')}${field(sc,'dataPrimeiraMensagem')}
+      <div class="field colall">
+        <div class="lab">Link Google Drive <span class="req">*</span> ${pvBadge(s.linkGoogleDrive)} <span class="drivewarn">não pode ser pasta de WhatsApp</span></div>
+        <input class="fld f-${s.linkGoogleDrive}" value="" placeholder="https://drive.google.com/drive/folders/…" data-key="linkGoogleDrive" data-origin="${s.linkGoogleDrive}" data-req="1">
+      </div>
+    </div>
+    <div style="padding:0 17px 16px;display:flex;flex-direction:column;gap:9px">
+      <div class="chk"><span class="box"></span><span>Escritório arca com as custas processuais</span></div>
+      <div class="chk warn"><span class="box"></span><span>Não mandar mensagem automática</span></div>
+      <div class="field">
+        <div class="lab">Observações internas ${pvBadge('falta')}</div>
+        <textarea class="fld f-falta" rows="2" placeholder="Anotações internas: indicação, observações sobre o cliente…" data-key="observacoesInternas" data-origin="falta"></textarea>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ════════════ MOCKUP 1 — Portão ════════════ */
+function mock1(sc, st){
+  const d = SC[sc]; const locked = st==='locked'; const semk = st==='semkommo';
+  if(semk) return `
+  <div class="mk-cap"><h2>Portão</h2><p>Exceção: sem lead no Kommo. O portão foi liberado à mão e a decisão ficou registrada com responsável e data.</p></div>
+  <div class="stack">
+    <div class="panel">
+      <div class="phead" style="background:linear-gradient(100deg,#8a5a12,var(--warning))">${svg('warn')} Passo 1 — Exceção registrada (sem lead no Kommo)</div>
+      ${exceptionStamp()}
+    </div>
+    ${formSections('_semkommo', auditBanner())}
+  </div>`;
+  return `
+  <div class="mk-cap"><h2>Portão</h2><p>O link do Kommo é a chave. Enquanto não for colado, o formulário fica travado. Ao resolver, o lead se revela e o restante libera.</p></div>
+  <div class="stack">
+    <div class="panel">
+      <div class="phead gold">${svg('link')} Passo 1 — Cole o link do lead no Kommo <span class="k">obrigatório para começar</span></div>
+      <div style="padding:17px">${capture(sc, locked)}</div>
+      ${!locked?identity(sc):''}
+    </div>
+
+    <div class="lockzone ${locked?'locked':''}">
+      <div class="lz-veil"><div class="lz-card">
+        <div class="lk">${svg('lock')}</div>
+        <h4>Formulário travado</h4>
+        <p>Cole o link do lead no Kommo acima para liberar os campos. Vamos puxar tudo que já existe e mostrar só o que falta.</p>
+      </div></div>
+      <div class="lz-body stack">
+        <div id="readiness"></div>
+        <div class="panel"><div class="phead">${svg('tag')} Confirme os 3 sinais automáticos</div>${signalRows(sc)}
+          <div class="note">${svg('info')}<div>Resort vem da <b>tag</b> do lead (confirme antes de gravar). Origem vem do <b>referral Meta</b>. A 1ª mensagem usa o <b>CBC Conversas</b> quando há vínculo; senão, a 1ª do Kommo.</div></div>
+        </div>
+        ${formSections(sc)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ════════════ MOCKUP 2 — Dossiê ════════════ */
+function mock2(sc, st){
+  const d = SC[sc]; const c = counts(sc); const locked = st==='locked'; const semk = st==='semkommo';
+  if(semk) return `
+  <div class="mk-cap"><h2>Dossiê</h2><p>Exceção: sem lead no Kommo. O trilho mostra o registro da decisão no lugar da ficha do lead.</p></div>
+  <div class="split">
+    <div class="rail"><div class="panel">
+      <div class="phead" style="background:linear-gradient(100deg,#8a5a12,var(--warning))">${svg('warn')} Sem lead no Kommo</div>
+      ${exceptionStamp()}
+    </div></div>
+    ${formSections('_semkommo', auditBanner())}
+  </div>`;
+  const rail = `
+    <div class="panel">
+      <div class="phead gold">${svg('link')} Lead no Kommo</div>
+      <div style="padding:15px 16px 4px">${capture(sc, locked)}</div>
+      ${locked?`<div class="note" style="margin-top:12px">${svg('lock')}<div>Cole o link para montar o dossiê e liberar o formulário à direita.</div></div>`:`
+      ${identity(sc)}
+      <div id="readiness"></div>
+      ${signalRows(sc)}`}
+    </div>`;
+  return `
+  <div class="mk-cap"><h2>Dossiê</h2><p>Trilho fixo com a “ficha do lead” sempre à vista (identidade, tag→resort, origem, 1ª mensagem e o quanto já veio pronto). O formulário fica ao lado, campo a campo etiquetado pela fonte.</p></div>
+  <div class="split">
+    <div class="rail">${rail}</div>
+    <div class="lockzone ${locked?'locked':''}">
+      <div class="lz-veil"><div class="lz-card"><div class="lk">${svg('lock')}</div><h4>Aguardando o link</h4><p>O formulário libera assim que o dossiê do lead for montado a partir do link do Kommo.</p></div></div>
+      <div class="lz-body">${formSections(sc)}</div>
+    </div>
+  </div>`;
+}
+
+/* ════════════ MOCKUP 3 — Semáforo ════════════ */
+function mock3(sc, st){
+  const d = SC[sc]; const c = counts(sc); const locked = st==='locked'; const semk = st==='semkommo';
+  if(semk) return `
+  <div class="mk-cap"><h2>Semáforo</h2><p>Exceção: sem lead no Kommo. Prontidão zerada do lado do Kommo; tudo entra à mão, com o registro no topo.</p></div>
+  <div class="stack">
+    <div class="panel">
+      <div class="phead" style="background:linear-gradient(100deg,#8a5a12,var(--warning))">${svg('warn')} Sem lead no Kommo · exceção registrada</div>
+      ${exceptionStamp()}
+    </div>
+    ${formSections('_semkommo', auditBanner())}
+  </div>`;
+  return `
+  <div class="mk-cap"><h2>Semáforo</h2><p>Barra de prontidão no topo: em um olhar, o que está verde, o que pede conferência e o que falta. Confirmações rápidas dos 3 sinais em linha, depois o formulário limpo.</p></div>
+  <div class="stack">
+    <div class="panel">
+      <div class="phead">${svg('link')} Link do Kommo & prontidão do cadastro</div>
+      <div style="padding:16px 17px;display:flex;flex-direction:column;gap:15px">
+        ${capture(sc, locked)}
+        ${locked?`<div class="note" style="border-radius:10px;border:1px dashed var(--border-strong)">${svg('lock')}<div>Assim que o link entra, a barra abaixo acende e os campos liberam.</div></div>`:'<div id="readiness"></div>'}
+      </div>
+    </div>
+    ${locked?'':`
+    <div class="panel">
+      <div class="phead gold">${svg('spark')} Confirmação rápida dos sinais automáticos</div>
+      ${signalRows(sc)}
+    </div>
+    ${formSections(sc)}`}
+  </div>`;
+}
+
+/* ═══════════════ estado + render ═══════════════ */
+const state = {mk:'1', sc:'novo', st:'resolved', doc:'off', docKind:'contrato'};
+const HINTS = {
+  novo:'<b>Lead novo:</b> Kommo dá nome, telefone e a data da 1ª mensagem. Origem vem do anúncio Meta. Resort é <b>detectado pela tag</b> (confirmar). O resto do contratante fica em branco.',
+  conhecido:'<b>Já cadastrado:</b> o telefone casa com o Cadastro Único — puxa contratante inteiro (CPF, endereço, qualificação). A 1ª mensagem vem do <b>CBC Conversas</b> por haver vínculo. Só falta o que é do contrato novo.',
+  semtag:'<b>Sem tag:</b> lead sem tag de resort e sem referral Meta — resort e origem entram como “falta preencher”. Mostra o comportamento de fallback do desenho.'
+};
+/* ═══════════ prontidão AO VIVO (lê o DOM conforme você preenche) ═══════════ */
+function chipHTML(k,cls){ return `<span class="chip ${cls}"><span class="x"></span>${FIELD_LABELS[k]}</span>`; }
+function segHTML(lab,ok){ return `<div class="mseg ${ok}"><span class="b"></span>${lab}</div>`; }
+function domState(){
+  const flds = [...document.querySelectorAll('#stage .fld[data-req]')];
+  const filled={}, missKeys=[], kommoKeys=[]; let done=0;
+  flds.forEach(f=>{
+    if(f.offsetParent===null) return; // campo escondido (ex.: honorário antes de escolher o modo) não conta
+    const has=isComplete(f.dataset.key, f.value);
+    filled[f.dataset.key]=has;
+    if(has) done++;
+    if(f.dataset.origin==='falta'){ if(!has) missKeys.push(f.dataset.key); }
+    else kommoKeys.push(f.dataset.key);
+  });
+  const tot=flds.length;
+  return {done, tot, miss:tot-done, pct: tot?Math.round(done/tot*100):0, filled, missKeys, kommoKeys};
+}
+function renderReadiness(){
+  const box=document.getElementById('readiness'); if(!box) return;
+  const s=domState(); const manual=s.done - s.kommoKeys.length;
+  if(state.mk==='1'){
+    box.innerHTML = `<div class="panel"><div class="phead">${svg('spark')} O que o Kommo já trouxe</div>
+      <div class="ledger">
+        <div class="l-fill"><div class="ltitle">${svg('check')} Kommo preencheu <span class="n">${s.kommoKeys.length}</span></div>
+          <div class="chips">${s.kommoKeys.map(k=>chipHTML(k,'done')).join('')}${manual>0?`<span class="chip done">+${manual} à mão</span>`:''}</div></div>
+        <div class="l-miss"><div class="ltitle">Falta preencher <span class="n">${s.missKeys.length}</span></div>
+          <div class="chips">${s.missKeys.length?s.missKeys.map(k=>chipHTML(k,'miss')).join(''):'<span style="font-size:11.5px;color:var(--success);font-weight:800">Tudo preenchido ✓</span>'}</div></div>
+      </div></div>`;
+  } else if(state.mk==='2'){
+    box.innerHTML = `<div style="padding:13px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:15px">
+      <div class="ring" style="--p:${s.pct}"><i><b>${s.done}</b><small>de ${s.tot}</small></i></div>
+      <div style="font-size:12px;color:var(--ink-muted);line-height:1.5">${s.done} de ${s.tot} campos preenchidos.${s.miss>0?` Faltam <b style="color:var(--warning)">${s.miss}</b> para a assinatura.`:` <b style="color:var(--success)">Pronto para a assinatura.</b>`}</div>
+    </div>`;
+  } else {
+    const f=s.filled;
+    box.innerHTML = `<div class="meter">
+      <div class="ring" style="--p:${s.pct}"><i><b>${s.pct}%</b><small>pronto</small></i></div>
+      ${segHTML('Identidade', f.nome&&f.telefone?'ok':'miss')}${segHTML('Origem', f.origemCliente?'ok':'miss')}${segHTML('Resort', f.resort?'ok':'miss')}${segHTML('Contrato', f.tipoAcao&&f.total?'ok':'miss')}
+    </div>`;
+  }
+}
+
+/* ═══════════ contrato gerado em paralelo (atualiza ao vivo) ═══════════ */
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(v){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||''); return m?`${m[3]}/${m[2]}/${m[1]}`:(v||''); }
+function docAside(){
+  return `<aside class="doc-preview">
+    <div class="doc-head">
+      <div class="doc-seg"><button data-dk="contrato" class="${state.docKind==='contrato'?'on':''}">Contrato</button><button data-dk="procuracao" class="${state.docKind==='procuracao'?'on':''}">Procuração</button></div>
+      <span class="doc-live">${svg('spark')} ao vivo</span>
+    </div>
+    <div class="doc-paper" id="doc-paper"></div>
+  </aside>`;
+}
+function renderDoc(){
+  const paper=document.getElementById('doc-paper'); if(!paper) return;
+  const g=k=>{ const el=document.querySelector(`#stage .fld[data-key="${k}"]`); return el?(el.value||'').trim():''; };
+  const ph=(v,w=70)=> v ? `<b>${escapeHtml(v)}</b>` : `<span class="doc-blank" style="min-width:${w}px"></span>`;
+  const nome=g('nome'),nac=g('nacionalidade'),ec=g('estadoCivil'),prof=g('profissao'),rg=g('rg'),cpf=g('cpf');
+  const end=g('endereco'),num=g('numero'),bairro=g('bairro'),cid=g('cidade'),uf=g('uf'),cep=g('cep');
+  const resort=g('resort'),tipo=g('tipoAcao'),total=g('total'),parc=g('parcelas'),pct=g('percentualExito'),d1=g('dataPrimeiraParcela');
+  const num2=num?', nº '+escapeHtml(num):'';
+  let hon=[]; if(total) hon.push(`honorários contratuais de ${ph(total)}${parc?` em ${ph(parc)} parcela(s)`:''}${d1?`, com 1º vencimento em <b>${fmtDate(d1)}</b>`:''}`); if(pct) hon.push(`honorários de êxito de ${ph(pct)} sobre o proveito econômico`);
+  const honText = hon.length ? hon.join(', e ')+'.' : `<span class="doc-blank" style="min-width:180px"></span>`;
+  const parte = `${ph(nome,120)}, ${ph(nac)}, ${ph(ec)}, ${ph(prof)}, RG nº ${ph(rg)}, CPF nº ${ph(cpf)}, residente em ${ph(end,120)}${num2}, ${ph(bairro)}, ${ph(cid)}/${ph(uf,38)}`;
+  if(state.docKind==='procuracao'){
+    paper.innerHTML=`<div class="doc-brand">CBC<small>Advogados</small></div>
+      <div class="doc-title">Procuração “Ad Judicia et Extra”</div>
+      <p class="doc-p"><b>OUTORGANTE:</b> ${parte}.</p>
+      <p class="doc-p"><b>OUTORGADO:</b> os advogados de <b>CBC Advogados</b>, inscritos na OAB.</p>
+      <p class="doc-cl">Pelo presente, o(a) outorgante constitui seu(sua) bastante procurador(a) o(a) outorgado(a), conferindo-lhe os poderes da cláusula <i>ad judicia et extra</i> para o foro em geral, podendo propor e acompanhar a ação de ${ph(tipo,120)} referente ao empreendimento ${ph(resort,120)}, em qualquer juízo, instância ou tribunal.</p>
+      <div class="doc-sign">${cid?escapeHtml(cid):'________________'}, ____ de __________ de 2026.</div>
+      <div class="doc-sigs"><span>${nome?escapeHtml(nome):'________________'}<br>Outorgante</span></div>
+      <p class="doc-note">Prévia gerada em paralelo — atualiza conforme você preenche o formulário.</p>`;
+    return;
+  }
+  paper.innerHTML=`<div class="doc-brand">CBC<small>Advogados</small></div>
+    <div class="doc-title">Contrato de Prestação de Serviços Advocatícios</div>
+    <p class="doc-p"><b>CONTRATANTE:</b> ${parte}, CEP ${ph(cep,64)}.</p>
+    <p class="doc-p"><b>CONTRATADA:</b> <b>CBC ADVOGADOS</b>, sociedade de advogados inscrita na OAB, com sede em Americana/SP.</p>
+    <p class="doc-cl"><b>Cláusula 1ª — Do Objeto.</b> A prestação de serviços advocatícios para o ajuizamento e acompanhamento de ${ph(tipo,120)}, referente ao empreendimento ${ph(resort,120)}.</p>
+    <p class="doc-cl"><b>Cláusula 2ª — Dos Honorários.</b> A título de contraprestação, a CONTRATANTE pagará ${honText}</p>
+    <p class="doc-cl"><b>Cláusula 3ª — Do Foro.</b> Fica eleito o foro da comarca de <b>${cid?escapeHtml(cid):'________'}</b> para dirimir controvérsias oriundas deste contrato.</p>
+    <div class="doc-sign">${cid?escapeHtml(cid):'________________'}, ____ de __________ de 2026.</div>
+    <div class="doc-sigs"><span>${nome?escapeHtml(nome):'________________'}<br>Contratante</span><span>CBC Advogados<br>Contratada</span></div>
+    <p class="doc-note">Prévia gerada em paralelo — atualiza conforme você preenche o formulário.</p>`;
+}
+function bump(){ renderReadiness(); renderDoc(); }
+
+function render(){
+  const m = {1:mock1,2:mock2,3:mock3}[state.mk];
+  const el = document.getElementById('stage');
+  el.style.animation='none'; void el.offsetWidth; el.style.animation='';
+  const inner = m(state.sc, state.st);
+  el.innerHTML = state.doc==='side' ? `<div class="withdoc"><div class="doc-form">${inner}</div>${docAside()}</div>` : inner;
+  document.getElementById('deckhint').innerHTML =
+    state.st==='semkommo' ? '<b>Exceção sem Kommo:</b> quando o lead realmente não existe, o botão abre uma tela de confirmação que grava <b>quem</b> e <b>quando</b> registrou. O formulário libera todo manual, com o carimbo da decisão no topo.'
+    : state.st==='locked' ? '<b>Antes do link:</b> o formulário fica travado até colar o link do Kommo. Aqui também aparece o botão “Registrar contrato sem Kommo” que abre o modal de exceção.'
+    : HINTS[state.sc];
+  // stagger dos campos
+  el.querySelectorAll('.field').forEach((f,i)=>{ f.style.animationDelay=(40+i*22)+'ms'; });
+  bump();
+}
+function bindSeg(id, key){
+  document.getElementById(id).addEventListener('click', e=>{
+    const b = e.target.closest('button'); if(!b) return;
+    [...b.parentNode.children].forEach(x=>x.setAttribute('aria-selected','false'));
+    b.setAttribute('aria-selected','true');
+    state[key] = b.dataset[key];
+    render();
+  });
+}
+bindSeg('mkseg','mk'); bindSeg('scseg','sc'); bindSeg('stseg','st'); bindSeg('docseg','doc');
+
+/* ═══════════════ modal: contrato sem lead no Kommo ═══════════════ */
+const scrim = document.getElementById('scrim');
+const mMotivo = document.getElementById('m-motivo');
+const mOutroWrap = document.getElementById('m-outrowrap');
+const mOutro = document.getElementById('m-outro');
+const mConfirm = document.getElementById('m-confirm');
+const mOk = document.getElementById('m-ok');
+function syncStPills(){ document.querySelectorAll('#stseg button').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.st===state.st))); }
+function excValid(){
+  const motivoOk = mMotivo.value && (mMotivo.value!=='outro' || mOutro.value.trim());
+  mOk.disabled = !(motivoOk && mConfirm.checked);
+}
+window.openExc = function(){ scrim.classList.add('on'); };
+function closeExc(){ scrim.classList.remove('on'); }
+window.undoExc = function(){ state.st='locked'; syncStPills(); render(); };
+mMotivo.addEventListener('change', ()=>{ mOutroWrap.style.display = mMotivo.value==='outro'?'block':'none'; excValid(); });
+mOutro.addEventListener('input', excValid);
+mConfirm.addEventListener('change', excValid);
+document.getElementById('m-cancel').addEventListener('click', closeExc);
+scrim.addEventListener('click', e=>{ if(e.target===scrim) closeExc(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && scrim.classList.contains('on')) closeExc(); });
+mOk.addEventListener('click', ()=>{
+  AUDIT.motivo = (mMotivo.value==='outro' ? mOutro.value.trim() : mMotivo.value) || AUDIT.motivo;
+  closeExc();
+  state.st='semkommo'; syncStPills(); render();
+});
+
+/* ═══════════ preencher os campos ao vivo (widgets do formulário real) ═══════════ */
+const stageEl = document.getElementById('stage');
+function badgeOf(el){ return el.previousElementSibling && el.previousElementSibling.querySelector('.pv'); }
+function markField(el){ // só campos 'falta' trocam Falta<->Preenchido
+  if(el.dataset.origin!=='falta') return;
+  const has=isComplete(el.dataset.key, el.value); const b=badgeOf(el);
+  if(has){ el.classList.remove('f-falta'); el.classList.add('f-manual'); if(b) b.outerHTML=pvBadge('manual'); }
+  else   { el.classList.add('f-falta'); el.classList.remove('f-manual'); if(b) b.outerHTML=pvBadge('falta'); }
+}
+function setField(key,value){ const el=document.querySelector(`#stage .fld[data-key="${key}"]`); if(!el) return; el.value=value; markField(el); }
+function showResortNovo(v){
+  const box=document.getElementById('resort-novo'); if(!box) return;
+  box.innerHTML=`<div style="margin-top:9px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <span class="pv tag">${svg('tag')} Novo empreendimento</span>
+    <input class="fld f-manual" id="resort-novo-input" style="flex:1;min-width:150px" placeholder="Nome do novo empreendimento…" value="${(v||'').replace(/"/g,'&quot;')}">
+    <button class="kbtn" id="resort-save" style="padding:0 15px">${svg('check')} Salvar na lista</button>
+  </div><p class="pjnote" style="padding:6px 0 0">Salva na <b>lista compartilhada</b> (sincroniza com a Prestação de Contas).</p>`;
+}
+function handleField(e){
+  const el=e.target;
+  if(!(el.classList && el.classList.contains('fld'))) return;
+  const key=el.dataset.key;
+  if(MASKS[key]) el.value=MASKS[key](el.value);
+  // Resort combobox + novo empreendimento
+  if(el.id==='resort-input'){
+    const v=el.value.trim(); const tw=document.getElementById('tipoacao-wrap');
+    if(v==='+ Novo empreendimento…'){ el.value=''; showResortNovo(''); if(tw) tw.style.display='none'; }
+    else if(v && !RESORTS.includes(v)){ showResortNovo(v); if(tw) tw.style.display='none'; }
+    else { document.getElementById('resort-novo').innerHTML=''; if(tw) tw.style.display = v?'':'none'; }
+  }
+  // Tipo de ação -> Outros
+  if(el.id==='tipoacao-sel'){
+    const o=document.getElementById('tipoacao-outro');
+    o.innerHTML = el.value==='outro' ? `<input class="fld f-manual" style="margin-top:8px" placeholder="Especifique o tipo de ação…">` : '';
+  }
+  // CPF: máscara + validação + API de nome (simulada — em produção usa /api/cpf-lookup)
+  if(key==='cpf'){
+    const stat=el.parentNode.querySelector('.apistat[data-stat="cpf"]'); const d=el.value.replace(/\D/g,'');
+    if(d.length===11){
+      if(!validaCPF(d)){ if(stat){stat.className='apistat err'; stat.textContent='CPF inválido — confira os dígitos.';} }
+      else if(stat){ stat.className='apistat busy'; stat.textContent='Consultando CPF na API…';
+        setTimeout(()=>{ const n=document.querySelector('#stage .fld[data-key="nome"]');
+          if(n && !isComplete('nome',n.value)){ n.value='MARIA HELENA DA SILVA'; markField(n); stat.className='apistat ok'; stat.textContent='✓ Nome preenchido pela API de CPF (simulado no protótipo).'; }
+          else { stat.className='apistat ok'; stat.textContent='✓ CPF válido — nome já preenchido.'; }
+          bump();
+        }, 650);
+      }
+    } else if(stat){ stat.className='apistat'; stat.textContent=''; }
+  }
+  // CEP: máscara + ViaCEP (simulada) preenche endereço/bairro/cidade/UF
+  if(key==='cep'){
+    const stat=el.parentNode.querySelector('.apistat[data-stat="cep"]'); const d=el.value.replace(/\D/g,'');
+    if(d.length===8 && stat){ stat.className='apistat busy'; stat.textContent='Buscando endereço (ViaCEP)…';
+      setTimeout(()=>{ setField('endereco','Avenida Brasil'); setField('bairro','Centro'); setField('cidade','São Paulo'); setField('uf','SP');
+        stat.className='apistat ok'; stat.textContent='✓ Endereço preenchido pelo CEP (ViaCEP · simulado no protótipo).'; bump();
+      }, 600);
+    } else if(stat){ stat.className='apistat'; stat.textContent=''; }
+  }
+  markField(el);
+  bump();
+}
+stageEl.addEventListener('input', handleField);
+stageEl.addEventListener('change', handleField);
+stageEl.addEventListener('click', e=>{
+  const dk=e.target.closest('[data-dk]');
+  if(dk){ state.docKind=dk.dataset.dk; document.querySelectorAll('.doc-seg button').forEach(b=>b.classList.toggle('on', b.dataset.dk===state.docKind)); renderDoc(); return; }
+  const chk=e.target.closest('.chk');
+  if(chk){ chk.classList.toggle('on'); return; }
+  if(e.target.closest('#resort-save')){
+    const inp=document.getElementById('resort-novo-input'); const nome=(inp?.value||'').trim(); if(!nome) return;
+    if(!RESORTS.includes(nome)) RESORTS.unshift(nome);
+    const dl=document.getElementById('dl-resorts'); if(dl) dl.insertAdjacentHTML('afterbegin', `<option value="${nome.replace(/"/g,'&quot;')}"></option>`);
+    const ri=document.getElementById('resort-input'); ri.value=nome; markField(ri);
+    document.getElementById('resort-novo').innerHTML=`<p class="pjnote" style="padding:7px 0 0;color:var(--success);font-weight:700">${svg('check')} "${nome}" adicionado à lista compartilhada.</p>`;
+    const tw=document.getElementById('tipoacao-wrap'); if(tw) tw.style.display='';
+    bump(); return;
+  }
+  const modoOpt=e.target.closest('#modo .opt');
+  if(modoOpt){
+    document.querySelectorAll('#modo .opt').forEach(o=>o.classList.remove('sel')); modoOpt.classList.add('sel');
+    const modo=modoOpt.dataset.modo;
+    const b=badgeOf(modoOpt.closest('.modo')); if(b) b.outerHTML=pvBadge('manual');
+    const hint=document.getElementById('modo-hint'); if(hint) hint.style.display='none';
+    document.getElementById('hon-iniciais').style.display=(modo==='ambos'||modo==='iniciais')?'':'none';
+    document.getElementById('hon-exito').style.display=(modo==='ambos'||modo==='exito')?'':'none';
+    bump(); return;
+  }
+  const preset=e.target.closest('.preset[data-preset]');
+  if(preset){
+    document.querySelectorAll('#hon-iniciais .preset').forEach(p=>p.classList.remove('sel')); preset.classList.add('sel');
+    if(preset.dataset.preset!=='custom'){ const o=HONOR_OPCOES[+preset.dataset.preset];
+      setField('total', brl(o.total)); setField('parcelas', String(o.parcelas)); setField('valorParcela', brl(o.total/o.parcelas)); }
+    bump(); return;
+  }
+  const pct=e.target.closest('.preset[data-pct]');
+  if(pct){ document.querySelectorAll('#hon-exito .preset').forEach(p=>p.classList.remove('sel')); pct.classList.add('sel'); setField('percentualExito', pct.dataset.pct+'%'); bump(); return; }
+});
+
+render();
+</script>
+</body>
+</html>

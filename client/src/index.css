@@ -124,6 +124,17 @@ html, body {
     letter-spacing: 0.2px;
   }
 
+  /* (vinculo-kommo) gate: trava o form ate Vincular ou "preencher sem vincular".
+     So aplica quando a classe esta presente (flag on + nao desbloqueado); o
+     Passo 1 (.cbc-vinculo-top) permanece ativo. */
+  .cbc-vinculo-locked > *:not(.cbc-vinculo-top) {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(0.25);
+    user-select: none;
+    transition: opacity 0.2s ease;
+  }
+
   /* OCR highlight: blue pulse on auto-filled fields */
   .ocr-highlight {
     animation: ocrPulse 2s ease-out;

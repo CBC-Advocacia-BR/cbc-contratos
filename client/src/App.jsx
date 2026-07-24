@@ -224,6 +224,7 @@ function buildContratoRow(data) {
     pdf_page_split: data.pdf_page_split || null,
     kommo_lead_id: kommoLeadId, // (perf-be-14)
     dados: data,
+    sem_kommo: data.semKommo || null, // (vinculo-kommo) registro da excecao "contrato sem lead no Kommo"
     created_by: data.user_email || null,
     updated_by: data.user_email || null,
   };
