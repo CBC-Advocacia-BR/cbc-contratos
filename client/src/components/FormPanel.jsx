@@ -1388,15 +1388,16 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           onChange={(e) => {
             const v = e.target.value;
             const trigger = '+ Novo empreendimento...';
+            // (vinculo-kommo) editar/revisar o resort limpa o aviso de "preenchido pelo Kommo"
             if (!v) {
-              updateData({ resort: '', resortCustom: '', tipoAcao: '', tipoAcaoCustom: '' });
+              updateData({ resort: '', resortCustom: '', tipoAcao: '', tipoAcaoCustom: '', resortAvisoKommo: false });
             } else if (v === trigger) {
-              updateData({ resort: 'outro', resortCustom: '', tipoAcao: '', tipoAcaoCustom: '' });
+              updateData({ resort: 'outro', resortCustom: '', tipoAcao: '', tipoAcaoCustom: '', resortAvisoKommo: false });
             } else if (empreendimentos.includes(v)) {
-              updateData({ resort: v, resortCustom: '', tipoAcao: '', tipoAcaoCustom: '' });
+              updateData({ resort: v, resortCustom: '', tipoAcao: '', tipoAcaoCustom: '', resortAvisoKommo: false });
             } else {
               // Texto livre = novo empreendimento (mesma semantica da antiga opcao "Outro")
-              updateData({ resort: 'outro', resortCustom: v, tipoAcao: '', tipoAcaoCustom: '' });
+              updateData({ resort: 'outro', resortCustom: v, tipoAcao: '', tipoAcaoCustom: '', resortAvisoKommo: false });
             }
             setGlobalFieldErrors(p => ({...p, resort: false}));
           }}
@@ -1406,6 +1407,16 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           {empreendimentos.map(r => <option key={r} value={r} />)}
           <option value="+ Novo empreendimento..." />
         </datalist>
+        {/* (vinculo-kommo) aviso quando o resort foi preenchido/sobrescrito pelo vinculo do Kommo */}
+        {data.resortAvisoKommo && (
+          <div className="mb-3 -mt-1 flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold"
+            style={{ background: '#FBF1E3', color: '#8a5a12', border: '1px solid rgba(180,83,9,.3)' }}>
+            <svg className="w-3.5 h-3.5 shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <span>Resort preenchido pelo vínculo do Kommo (pela tag do lead) — <b>revise</b> e ajuste se não for o correto.</span>
+          </div>
+        )}
         {data.resort === 'outro' && (
           <div className="mb-3">
             <label className="label-field">Nome do Novo Empreendimento *</label>

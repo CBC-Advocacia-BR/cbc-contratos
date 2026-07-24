@@ -5,6 +5,13 @@
 //  - Nao sobrescreve campo ja digitado.
 //  - Resort auto (tag/cadastro) sempre pede confirmacao.
 import { RESORTS } from '../data/clausulas';
+import { maskPhone } from './masks';
+
+// telefone do Kommo vem "55DDDnumero" (so digitos) -> padrao do form "(DD) numero"
+function fmtTelefone(t) {
+  const d = (t || '').replace(/\D/g, '').slice(-11); // ultimos 11 (dropa o 55)
+  return d ? maskPhone(d) : '';
+}
 
 // normaliza p/ casar: sem acento, caixa alta, so alfanumerico + espaco
 const norm = (s) => (s || '')
@@ -60,17 +67,21 @@ export function montarPreenchimento(raw, atuais = {}) {
   const campos = {};
   const proveniencia = {};
   const NUNCA = new Set(['nome', 'origemCliente']);
+  const resortAntigo = String(atuais.resort || '').trim();
 
-  const set = (k, v, origem) => {
+  // forcar=true sobrescreve o que ja esta no form (usado so no resort, por decisao do Paulo)
+  const set = (k, v, origem, forcar = false) => {
     if (NUNCA.has(k)) return;
     if (v == null || v === '') return;
-    const atual = atuais[k];
-    if (atual != null && String(atual).trim() !== '') return; // nao sobrescreve
+    if (!forcar) {
+      const atual = atuais[k];
+      if (atual != null && String(atual).trim() !== '') return; // nao sobrescreve digitacao manual
+    }
     campos[k] = v;
     proveniencia[k] = origem;
   };
 
-  set('telefone', contato.telefone, 'kommo');
+  set('telefone', fmtTelefone(contato.telefone), 'kommo');
 
   const clienteConhecido = !!cliente;
   if (clienteConhecido) {
@@ -88,7 +99,7 @@ export function montarPreenchimento(raw, atuais = {}) {
     set('cidade', cliente.cidade, 'cadastro');
     set('uf', cliente.uf, 'cadastro');
     set('email', cliente.email, 'cadastro');
-    set('resort', matchResort(cliente.empreendimentos), 'cadastro');
+    set('resort', matchResort(cliente.empreendimentos), 'cadastro', true); // resort SEMPRE sobrescreve
   }
 
   set('email', contato.email, 'kommo'); // se o cadastro nao tinha
@@ -96,7 +107,7 @@ export function montarPreenchimento(raw, atuais = {}) {
   if (campos.resort == null) {
     for (const t of tags) {
       const r = matchResort(t);
-      if (r) { set('resort', r, 'tag'); break; }
+      if (r) { set('resort', r, 'tag', true); break; } // resort da tag SEMPRE sobrescreve
     }
   }
 
@@ -104,7 +115,9 @@ export function montarPreenchimento(raw, atuais = {}) {
   else if (leadCriadoEm) set('dataPrimeiraMensagem', fmtDateISO(leadCriadoEm), 'kommo');
 
   const resortConfirmar = proveniencia.resort === 'tag' || proveniencia.resort === 'cadastro';
-  return { campos, proveniencia, clienteConhecido, resortConfirmar };
+  // resortAlterado = havia um resort diferente e o Kommo trocou -> aviso mais forte
+  const resortAlterado = !!(resortAntigo && campos.resort && resortAntigo !== String(campos.resort).trim());
+  return { campos, proveniencia, clienteConhecido, resortConfirmar, resortAlterado };
 }
 
 // registro da excecao "contrato sem lead no Kommo" (quem/quando/motivo)

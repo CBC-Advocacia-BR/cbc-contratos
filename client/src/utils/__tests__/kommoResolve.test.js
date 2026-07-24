@@ -127,7 +127,7 @@ describe('montarPreenchimento', () => {
       primeiraMsgConversas: '2024-07-22T08:54:43.275+00:00',
       leadCriadoEm: '2024-07-22T08:54:00.000Z',
     });
-    expect(r.campos.telefone).toBe('5515997312888');
+    expect(r.campos.telefone).toBe('(15) 99731-2888'); // formatado, sem o 55
     expect(r.proveniencia.telefone).toBe('kommo');
     expect(r.campos.resort).toBe('Hot Beach');
     expect(r.proveniencia.resort).toBe('tag');
@@ -137,6 +137,22 @@ describe('montarPreenchimento', () => {
     expect(r.clienteConhecido).toBe(false);
     expect(r.campos.nome).toBeUndefined();
     expect(r.campos.origemCliente).toBeUndefined();
+  });
+
+  it('telefone 55DDDnumero vira (DD) numero', () => {
+    const r = montarPreenchimento({ contato: { telefone: '5515997312888' }, tags: [], cliente: null });
+    expect(r.campos.telefone).toBe('(15) 99731-2888');
+  });
+
+  it('resort SOBRESCREVE o que ja estava e marca resortAlterado', () => {
+    const r = montarPreenchimento(
+      { contato: {}, tags: ['Hot Beach'], cliente: null },
+      { resort: 'Solar das Águas' }, // ja tinha outro resort no form
+    );
+    expect(r.campos.resort).toBe('Hot Beach');      // sobrescreveu
+    expect(r.proveniencia.resort).toBe('tag');
+    expect(r.resortConfirmar).toBe(true);
+    expect(r.resortAlterado).toBe(true);            // avisa que trocou
   });
 
   it('nao sobrescreve o que ja foi digitado', () => {

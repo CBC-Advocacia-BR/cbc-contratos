@@ -54,6 +54,8 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
       const { campos, clienteConhecido, resortConfirmar: rc } = montarPreenchimento(j, atuais);
       const contratanteCampos = {}; const dataCampos = {};
       for (const [k, v] of Object.entries(campos)) (DATA_KEYS.has(k) ? dataCampos : contratanteCampos)[k] = v;
+      // (vinculo-kommo) resort sobrescreve -> liga o aviso "revise o resort" no campo do resort
+      if (dataCampos.resort) dataCampos.resortAvisoKommo = true;
       if (Object.keys(contratanteCampos).length) updateContratante(0, contratanteCampos);
       if (Object.keys(dataCampos).length) updateData(dataCampos);
       if (!data.origemCliente && j.origemSugerida) updateData({ origemCliente: j.origemSugerida });
