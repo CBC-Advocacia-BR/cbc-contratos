@@ -9,9 +9,13 @@
 import { RESORTS } from '../data/clausulas';
 import { maskPhone, maskCPF, maskCNPJ, maskCEP, maskRG } from './masks';
 
-// telefone do Kommo vem "55DDDnumero" (so digitos) -> padrao do form "(DD) numero"
+// telefone do Kommo pode vir "55DD+numero" -> padrao do form "(DD) numero".
+// dropa o codigo de pais 55 SO quando ele existe (12-13 digitos), nunca de um
+// numero nacional que por acaso comece com DDD 55 (11 digitos).
 function fmtTelefone(t) {
-  const d = (t || '').replace(/\D/g, '').slice(-11); // ultimos 11 (dropa o 55)
+  let d = (t || '').replace(/\D/g, '');
+  if (d.length > 11 && d.startsWith('55')) d = d.slice(2); // codigo de pais BR
+  d = d.slice(-11);
   return d ? maskPhone(d) : '';
 }
 
@@ -81,8 +85,6 @@ export function montarPreenchimento(raw, atuais = {}) {
     proveniencia[k] = origem;
   };
 
-  set('telefone', fmtTelefone(contato.telefone), 'kommo'); // telefone do lead
-
   const clienteConhecido = !!cliente;
   if (clienteConhecido) {
     // cliente ja no Cadastro Unico -> puxa o MAXIMO de dados verificados
@@ -119,9 +121,10 @@ export function montarPreenchimento(raw, atuais = {}) {
       set('email', cliente.email, 'cadastro');
     }
     set('resort', matchResort(cliente.empreendimentos), 'cadastro');
-    if (!campos.telefone && cliente.telefone) set('telefone', fmtTelefone(cliente.telefone), 'cadastro');
+    set('telefone', fmtTelefone(cliente.telefone), 'cadastro'); // numero canonico do Cadastro (11 digitos, com o 9)
   }
 
+  if (!campos.telefone) set('telefone', fmtTelefone(contato.telefone), 'kommo'); // lead novo, ou cadastro sem telefone
   if (!campos.email && contato.email) set('email', contato.email, 'kommo'); // fallback: cadastro sem email
 
   if (campos.resort == null) {

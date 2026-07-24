@@ -93,7 +93,7 @@ describe('montarPreenchimento', () => {
 
   it('cliente conhecido (PF): puxa o MAXIMO do Cadastro (nome+cpf+qualificacao) + 1a msg do CBC Conversas; nunca origem', () => {
     const r = montarPreenchimento({
-      contato: { telefone: '(19) 99709-9607' },
+      contato: { telefone: '5519912345678' }, // Kommo (com 55)
       tags: [],
       cliente: {
         nome: 'Maria da Silva', cpf_cnpj: '12345678909', eh_pj: false,
@@ -101,7 +101,7 @@ describe('montarPreenchimento', () => {
         estado_civil: 'CASADO(A)', genero: 'F', nacionalidade: 'brasileira',
         cep: '13480000', logradouro: 'Rua das Palmeiras', numero: '210', bairro: 'Centro',
         cidade: 'Limeira', uf: 'SP', complemento: 'Apto 32', email: 'maria@x.com',
-        empreendimentos: 'SOLAR DAS AGUAS', telefone: '(19) 3333-4444',
+        empreendimentos: 'SOLAR DAS AGUAS', telefone: '19997099607', // Cadastro (canonico)
       },
       primeiraMsgConversas: '2026-07-18T13:00:00Z',
       leadCriadoEm: '2026-07-21T13:24:00Z',
@@ -115,12 +115,33 @@ describe('montarPreenchimento', () => {
     expect(r.campos.dataNascimento).toBe('1966-03-14');
     expect(r.campos.cep).toBe('13480-000');              // CEP mascarado
     expect(r.campos.cidade).toBe('Limeira');
-    expect(r.campos.telefone).toBe('(19) 99709-9607');   // do Kommo (nao o do cadastro)
+    expect(r.campos.telefone).toBe('(19) 99709-9607');   // do Cadastro (canonico), nao do Kommo
+    expect(r.proveniencia.telefone).toBe('cadastro');
     expect(r.campos.resort).toBe('Solar das Águas');
     expect(r.proveniencia.resort).toBe('cadastro');
     expect(r.campos.dataPrimeiraMensagem).toBe('2026-07-18');
     expect(r.proveniencia.dataPrimeiraMensagem).toBe('conversas');
     expect(r.campos.origemCliente).toBeUndefined();
+  });
+
+  it('caso REAL GUSTAVO (lead 5816760): Kommo manda "55DD+8dig" SEM o 9 -> telefone canonico vem do Cadastro', () => {
+    const r = montarPreenchimento({
+      contato: { telefone: '553192050577' }, // Kommo sem o 9 do celular
+      tags: [],
+      cliente: { nome: 'GUSTAVO SILVA GUIMARAES', cpf_cnpj: '02871309671', telefone: '31992050577' },
+    });
+    expect(r.campos.nome).toBe('GUSTAVO SILVA GUIMARAES');
+    expect(r.campos.cpf).toBe('028.713.096-71');
+    expect(r.campos.telefone).toBe('(31) 99205-0577'); // completo, do Cadastro (nao o (53)... torto do Kommo)
+    expect(r.proveniencia.telefone).toBe('cadastro');
+  });
+
+  it('fmtTelefone dropa o 55 sem estragar DDD 55 nacional', () => {
+    // lead novo (sem cadastro): so o telefone do Kommo, mas com 55 removido corretamente
+    const a = montarPreenchimento({ contato: { telefone: '5511987654321' }, tags: [], cliente: null });
+    expect(a.campos.telefone).toBe('(11) 98765-4321'); // 13 digitos: dropa 55
+    const b = montarPreenchimento({ contato: { telefone: '55987654321' }, tags: [], cliente: null });
+    expect(b.campos.telefone).toBe('(55) 98765-4321'); // 11 digitos: DDD 55 nacional, NAO dropa
   });
 
   it('cliente conhecido (PJ): liga modo empresa (tipo pj + razao social + cnpj + endereco da empresa)', () => {
