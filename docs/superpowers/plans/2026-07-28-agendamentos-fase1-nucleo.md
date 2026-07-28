@@ -1,3 +1,27 @@
+# ⛔ PLANO SUPERADO — NÃO EXECUTAR
+
+> **Descartado em 28/07/2026, antes de qualquer execução.** A varredura de pré-voo da
+> `subagent-driven-development` descobriu que o projeto **Bot Ana**
+> (`docs/superpowers/plans/2026-07-21-agenda-bot-ana.md`, worktree `../cbc-contratos-ana`,
+> branch `feat/agenda-bot-ana`) **já construiu quase tudo que este plano propunha**:
+> `_lib/agendaSlots.mjs`, a escrita no Google (`freeBusy`, `createEventComMeet`,
+> `patchEventHorario`, `setEventColor`, `cancelEvent`) e a aba no CBC Contratos.
+> Tasks 1-13 completas e revisadas, suíte 466/466.
+>
+> Executar este plano criaria um SEGUNDO motor de agenda concorrente. **Não execute.**
+>
+> **O que sobrevive daqui** (e foi para o plano substituto): a **trava de concorrência em
+> banco**. A Ana protege contra double-booking do MESMO lead (conversa serializada), mas
+> não contra N clientes anônimos escolhendo o mesmo horário no mesmo instante — que é
+> exatamente o caso da página pública. Essa peça continua necessária.
+>
+> **Plano substituto:** `2026-07-28-agendamento-publico.md`
+
+---
+
+<details>
+<summary>Conteúdo original (referência histórica)</summary>
+
 # Agendamentos — Fase 1: Núcleo Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -1265,3 +1289,5 @@ git commit -m "feat(agenda): libera reserva orfa e alerta quando o token do Goog
 | Aba interna, calendário, modais | Plano 2 |
 | Página pública, pixel, envio à Meta, botões "Adicionar à agenda" | Plano 3 |
 | Tela de configuração, pausa, redistribuição, push do Google, limite por IP | Plano 4 |
+
+</details>
