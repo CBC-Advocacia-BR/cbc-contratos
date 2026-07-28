@@ -16,8 +16,13 @@
  * do App.jsx — a logica de lock/orfao/retry dele usa um util do cliente e e mais
  * entrelacada; fica para um proximo passo. (Ver auditoria #75, parte Drive.)
  */
-import { supa } from './_lib/supabaseClient.mjs';
-import { heartbeat } from './_lib/botDb.mjs';
+// (fix 28/07/2026) usa o cliente do botDb, nao o de supabaseClient.mjs: aquele resolve a
+// chave por env e cai em VITE_SUPABASE_ANON_KEY, que **nao existe no runtime das Netlify
+// Functions** (VITE_* e build-only do frontend) — sem SUPABASE_SERVICE_ROLE_KEY setada o
+// client saia null e este cron morria na 1a linha ("supabase env ausente") desde sempre,
+// deixando o backstop 24/7 do "assinado -> ADVBOX" desligado. O `db` do botDb tem fallback
+// proprio da anon key e sempre funciona (mesma causa/fix do 502 do vinculo-kommo).
+import { db as supa, heartbeat } from './_lib/botDb.mjs';
 
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 const jres = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
