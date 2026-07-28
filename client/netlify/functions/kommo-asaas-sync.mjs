@@ -17,7 +17,7 @@
  *  - POST { leadId }          -> escopa a um lead
  * Auth (exceto scheduled): body.key | header x-bot-key === BOT_PANEL_KEY
  */
-import { db, logAdvbox } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import {
   kommoConfigured, findCustomFieldByName, getEntity, extractFieldValue,
   mainContactOfLead, extrairLeadId, extrairHostKommo,
@@ -175,6 +175,7 @@ export default async (req) => {
       await logAdvbox('kommo', 'info', `Asaas->Kommo: ${resumo.enfileirado} enfileirados, drain ${drain?.done || 0} ok/${drain?.failed || 0} falha`, { resumo, drain }).catch(() => {});
     }
 
+    await heartbeat('kommo-asaas-sync', true, JSON.stringify(resumo || {}).slice(0, 180)).catch(() => {}); // (observ 28/07)
     return new Response(JSON.stringify({
       success: true, dryRun, isScheduled,
       campo: { entity: field.entity, field_id: field.fieldId, name: field.fieldName, type: field.fieldType, discovered: !!field.discovered },
@@ -185,6 +186,7 @@ export default async (req) => {
     }), { headers: CORS });
   } catch (err) {
     await logAdvbox('kommo', 'erro', `kommo-asaas-sync: ${err.message}`.slice(0, 300), {}).catch(() => {});
+    await heartbeat('kommo-asaas-sync', false, err.message).catch(() => {}); // (observ 28/07)
     return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: CORS });
   }
 };

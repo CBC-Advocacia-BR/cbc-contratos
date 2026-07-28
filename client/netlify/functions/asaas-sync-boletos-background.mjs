@@ -13,7 +13,7 @@
  * advbox_api_log origem 'asaas' (aparece no Monitor ADVBOX).
  */
 import { STATUSES, processBlock, nextBlock, reconcileStaleOpen, mirrorState } from './_lib/asaasMirror.mjs';
-import { db, logAdvbox } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 
 const TIME_BUDGET_MS = 11.5 * 60 * 1000;
 const BASE_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
@@ -86,10 +86,14 @@ export default async (req) => {
       `Espelho de boletos atualizado (${mode}): ${stats.upserts} boletos em ${stats.blocos} páginas, ${stats.reconciliados} reconciliados${stats.erros ? `, ${stats.erros} erro(s)` : ''} — ${dur}s${stats.elos > 1 ? ` em ${stats.elos} elos` : ''}`,
       stats);
     console.log('[asaas-sync] done', JSON.stringify(stats));
+    // (observ 28/07) heartbeat no WORKER (nao no dispatcher): se marcasse no dispatcher,
+    // ficaria verde mesmo com o worker morto — foi assim que a falha do Trafego passou batida.
+    await heartbeat('asaas-sync-boletos', !stats.erros, `${stats.upserts} boletos, ${stats.reconciliados} reconciliados${stats.erros ? `, ${stats.erros} erro(s)` : ''}`).catch(() => {});
     return new Response('ok');
   } catch (err) {
     await setStatus({ ativo: false, erro: err.message, fim: new Date().toISOString() });
     await logAdvbox('asaas', 'erro', `sync boletos abortou: ${err.message}`.slice(0, 300), { mode, cursor });
+    await heartbeat('asaas-sync-boletos', false, err.message).catch(() => {});
     console.error('[asaas-sync] fatal', err);
     return new Response('erro', { status: 500 });
   }

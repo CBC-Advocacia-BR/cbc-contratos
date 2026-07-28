@@ -2,11 +2,10 @@
 // Executa a cada 5min: varre user_reminders com fire_at <= now() AND done_at IS NULL
 // Para cada um: insere notification, marca done_at (ou reagenda se recurrence)
 
-import { createClient } from '@supabase/supabase-js';
-import { heartbeat } from './_lib/botDb.mjs';
-
-const SUPA_URL  = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPA_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// (fix 28/07/2026) exigia SUPABASE_SERVICE_ROLE_KEY, que nunca foi configurada: a funcao
+// retornava 500 'Missing SUPABASE env vars' a cada 15 min DESDE SEMPRE (nenhum heartbeat
+// jamais gravado) e os lembretes nunca disparariam. Passa a usar o `db` do botDb.
+import { db as sb, heartbeat } from './_lib/botDb.mjs';
 
 export const config = {
   schedule: '*/15 * * * *',  // (perf 31/05) a cada 15 min (era 5) — reduz 66% das execucoes; lembrete pode atrasar ate 15min, aceitavel
@@ -33,11 +32,6 @@ function nextOccurrence(current, recurrence, after = new Date()) {
 }
 
 export default async () => {
-  if (!SUPA_URL || !SUPA_KEY) {
-    return new Response('Missing SUPABASE env vars', { status: 500 });
-  }
-
-  const sb = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } });
   const now = new Date().toISOString();
 
   const { data: due, error } = await sb

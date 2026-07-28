@@ -18,6 +18,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { heartbeat } from './_lib/botDb.mjs'; // (observ 28/07) visibilidade no watchdog
 
 const ADVBOX_TOKEN = process.env.ADVBOX_TOKEN;
 const ADVBOX_URL = 'https://app.advbox.com.br/api/v1';
@@ -216,11 +217,13 @@ export default async (req) => {
 
   try {
     const stats = await run();
+    await heartbeat('advbox-vendas-sync', true, JSON.stringify(stats || {}).slice(0, 180)).catch(() => {});
     return new Response(JSON.stringify({ success: true, ...stats }), {
       status: 200,
       headers: CORS,
     });
   } catch (err) {
+    await heartbeat('advbox-vendas-sync', false, err.message).catch(() => {});
     return new Response(JSON.stringify({ success: false, error: err.message }), {
       status: 500,
       headers: CORS,

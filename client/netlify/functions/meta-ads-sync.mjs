@@ -14,7 +14,7 @@
  * Env: META_ADS_TOKEN (obrigatoria) + META_AD_ACCOUNT_IDS (ou META_AD_ACCOUNT_ID;
  * default = conta CA - CBC Distratos).
  */
-import { db, logAdvbox } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { insightRowToLinha, ymFirstDay } from './_lib/metaAds.mjs';
 
 const GRAPH = 'https://graph.facebook.com/v23.0';
@@ -102,9 +102,11 @@ export default async (req) => {
       porConta[account] = linhas.length;
     }
     await logAdvbox('meta', 'info', `meta-ads-sync ok: ${gravadas} linhas mes/campanha (${since} a ${until})`, { porConta, backfill: !!body.backfill });
+    await heartbeat('meta-ads-sync', true, `${gravadas} linhas (${since} a ${until})`).catch(() => {}); // (observ 28/07)
     return new Response(JSON.stringify({ success: true, gravadas, since, until, porConta }), { headers: JSONH });
   } catch (e) {
     await logAdvbox('meta', 'error', `meta-ads-sync falhou: ${e.message}`, { contas: ACCOUNTS });
+    await heartbeat('meta-ads-sync', false, e.message).catch(() => {});
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: JSONH });
   }
 };

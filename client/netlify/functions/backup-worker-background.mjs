@@ -14,7 +14,7 @@
  */
 
 import { gzipSync } from 'node:zlib';
-import { db } from './_lib/botDb.mjs';
+import { db, heartbeat } from './_lib/botDb.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
@@ -155,10 +155,14 @@ export default async (req) => {
     };
     await gravaStatus(status);
     console.log(`backup diario OK: ${lista.length} tabelas, ${totalLinhas} linhas, ${arquivos.length} arquivo(s), ${status.duracao_s}s`);
+    // (observ 28/07) heartbeat: o backup do banco so tinha status em bot_config — o
+    // watchdog do Monitor nao o vigiava. Se parar, agora aparece como cron caido.
+    await heartbeat('backup-diario', true, `${lista.length} tabelas, ${totalLinhas} linhas, ${arquivos.length} arquivo(s)`).catch(() => {});
     return new Response(JSON.stringify(status), { status: 200, headers: JSONH });
   } catch (e) {
     console.error('backup diario FALHOU:', e.message);
     await gravaStatus({ ok: false, data: hoje, quando: new Date().toISOString(), erro: e.message });
+    await heartbeat('backup-diario', false, e.message).catch(() => {});
     return new Response(JSON.stringify({ ok: false, erro: e.message }), { status: 500, headers: JSONH });
   }
 };

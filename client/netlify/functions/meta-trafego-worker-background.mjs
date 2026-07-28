@@ -83,6 +83,10 @@ export default async (req) => {
     // console.error tambem: garante rastro nos logs do Netlify mesmo se o insert falhar
     console.error('trafego-worker falhou:', modo, e);
     await logAdvbox('meta', 'error', `trafego-worker ${modo} falhou: ${e.message}`, { contas: ACCOUNTS });
+    // (observ 28/07) heartbeat de FALHA: antes so batia no sucesso, entao um worker que
+    // morria (28/07: espelho ficou 2 dias defasado) apenas envelhecia o heartbeat, sem
+    // sinal de erro. Agora o watchdog ve ok=false na hora.
+    if (modo === 'diario') await heartbeat('meta-trafego-sync', false, e.message).catch(() => {});
     return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 };

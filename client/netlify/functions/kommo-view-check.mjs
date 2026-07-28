@@ -8,19 +8,19 @@
  * Varre contratos `enviado_zapsign` ainda sem a nota, consulta o ZapSign (times_viewed)
  * e, se o cliente abriu mas nao assinou, posta a nota de follow-up no lead do Kommo.
  */
-import { createClient } from '@supabase/supabase-js';
+// (fix 28/07/2026) usava createClient com SERVICE_ROLE || VITE_SUPABASE_ANON_KEY: as duas
+// sao undefined no runtime das Functions (VITE_* e build-only), entao a funcao morria no
+// guard 'missing env' a cada 30 min e a nota #18 NUNCA foi postada pelo servidor. Passa a
+// usar o `db` do botDb (fallback proprio da anon) — mesma causa do sweep-cron/vinculo-kommo.
+import { db as sb, heartbeat } from './_lib/botDb.mjs';
 
-const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const ZAP_TOKEN = process.env.ZAPSIGN_TOKEN;
 const ZAP_API = 'https://api.zapsign.com.br/api/v1';
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
 export default async () => {
   const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
-  if (!SUPA_URL || !SUPA_KEY || !ZAP_TOKEN) return json({ error: 'missing env (supabase/zapsign)' }, 500);
-
-  const sb = createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } });
+  if (!ZAP_TOKEN) { await heartbeat('kommo-view-check', false, 'ZAPSIGN_TOKEN ausente'); return json({ error: 'missing env (zapsign)' }, 500); }
 
   // Contratos enviados ao ZapSign, ainda sem a nota "abriu" postada.
   const { data: pend, error } = await sb
@@ -70,6 +70,7 @@ export default async () => {
     } catch { /* best-effort: o proximo ciclo re-tenta */ }
   }
 
+  await heartbeat('kommo-view-check', true, `${checked} checados, ${noted} nota(s) postada(s)`).catch(() => {});
   return json({ ok: true, checked, noted, skipped });
 };
 

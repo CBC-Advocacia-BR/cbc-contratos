@@ -6,7 +6,7 @@
  * Janela: [hoje-180d, hoje+30d], paginado. Upsert idempotente via RPC protegida por
  * BOT_RPC_SECRET (a tabela agenda_videochamadas tem RLS fechada por causa do PII de cliente).
  */
-import { db, logAdvbox } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { getAccessToken, listEvents, classifyEvent, VENDEDORAS } from './_lib/googleAgenda.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
@@ -62,9 +62,13 @@ export default async () => {
     } catch { /* best-effort */ }
 
     await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
+    // (observ 28/07) heartbeat p/ o watchdog enxergar: o token Google que sustenta as
+    // agendas ja expirou uma vez (23/07) sem alerta.
+    await heartbeat('agenda-videochamadas-sync', true, `${rows.length} atendimentos de ${totalEventos} eventos`);
     return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `videochamadas sync falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
+    await heartbeat('agenda-videochamadas-sync', false, e.message);
     return json({ ok: false, error: e.message }, 500);
   }
 };

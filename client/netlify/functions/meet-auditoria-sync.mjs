@@ -2,7 +2,7 @@
 // classifica presenca de cliente por calendar_event_id e grava meet_* em agenda_videochamadas.
 // NUNCA escreve 'status' (isso e a cor). Manual: ?key=<BOT_PANEL_KEY>&dias=N (default 1).
 // Log silencioso: so registra no Monitor quando houve atualizacao ou erro.
-import { db, logAdvbox } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { getAccessToken, listMeetCallEnded, classifyMeetItems, deriveMeetStatus, LIMIAR_SEG } from './_lib/meetAudit.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || '';
@@ -40,9 +40,13 @@ export default async (req) => {
     if (atualizados > 0) {
       await logAdvbox('meet', 'info', `meet-auditoria: ${atualizados} videochamadas atualizadas de ${rows.length} conferencias (${items.length} call_ended, ${dias}d)`, { items: items.length, conferencias: rows.length, atualizados, dias }).catch(() => {});
     }
+    // (observ 28/07) heartbeat: sem ele o watchdog nao enxergava esta funcao — a queda do
+    // token do Google (23/07) passou dias sem ninguem notar.
+    await heartbeat('meet-auditoria-sync', true, `${atualizados} atualizadas de ${rows.length} conferencias`);
     return json({ ok: true, items: items.length, conferencias: rows.length, atualizados });
   } catch (e) {
     await logAdvbox('meet', 'erro', `meet-auditoria falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
+    await heartbeat('meet-auditoria-sync', false, e.message);
     return json({ ok: false, error: e.message }, 500);
   }
 };

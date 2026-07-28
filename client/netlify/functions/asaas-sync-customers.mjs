@@ -7,7 +7,7 @@
  * escrita direta com a chave anon era barrada pelo RLS e congelava o espelho.
  */
 import { customerRow, customersUpsert } from './_lib/asaasMirror.mjs';
-import { logAdvbox } from './_lib/botDb.mjs';
+import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY;
 const ASAAS_URL = 'https://api.asaas.com/v3';
@@ -57,6 +57,8 @@ export default async (req) => {
   try {
     if (isScheduled) {
       const stats = await runFullSync();
+      // (observ 28/07) heartbeat: esta funcao era invisivel p/ o watchdog do Monitor.
+      await heartbeat('asaas-sync-customers', true, JSON.stringify(stats).slice(0, 200)).catch(() => {});
       return new Response(JSON.stringify({ success: true, mode: 'scheduled', ...stats }), { headers: CORS });
     }
     const body = await req.json().catch(() => ({}));
@@ -66,6 +68,7 @@ export default async (req) => {
     return new Response(JSON.stringify({ success: true, processed: result.rows, current: { offset }, next, done: !next }), { headers: CORS });
   } catch (err) {
     await logAdvbox('asaas', 'erro', `sync customers: ${err.message}`.slice(0, 300), {});
+    await heartbeat('asaas-sync-customers', false, err.message).catch(() => {});
     return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: CORS });
   }
 };

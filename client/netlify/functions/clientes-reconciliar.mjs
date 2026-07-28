@@ -6,7 +6,7 @@
  * GET/scheduled = roda. POST exige key === BOT_PANEL_KEY (gatilho manual).
  */
 import { db } from './_lib/botDb.mjs';
-import { logAdvbox } from './_lib/botDb.mjs';
+import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
@@ -23,9 +23,11 @@ export default async (req) => {
   try {
     const { data, error } = await db.rpc('clientes_reconciliar', { p_chave: RPC_SECRET });
     if (error) throw new Error(error.message);
+    await heartbeat('clientes-reconciliar', true, JSON.stringify(data || {}).slice(0, 180)).catch(() => {}); // (observ 28/07)
     return new Response(JSON.stringify({ ok: true, ...(data || {}) }), { headers: JSONH });
   } catch (e) {
     await logAdvbox('clientes', 'erro', `reconciliar: ${e.message}`.slice(0, 300), {}).catch(() => {});
+    await heartbeat('clientes-reconciliar', false, e.message).catch(() => {});
     return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500, headers: JSONH });
   }
 };
