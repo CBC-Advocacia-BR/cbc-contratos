@@ -11,18 +11,38 @@
  */
 
 export const ACTION_CONVERSA = 'onsite_conversion.messaging_conversation_started_7d';
+
+/**
+ * (fix 28/07/2026) Tipos de lead de formulario em ORDEM DE PREFERENCIA — o primeiro
+ * presente vence. NAO SOMAR: `lead` ja e o TOTAL que a Meta entrega
+ * (lead = onsite_conversion.lead + offsite_conversion.fb_pixel_lead), e
+ * `onsite_conversion.lead_grouped` e o MESMO pedaco onsite com outro nome. A versao
+ * anterior somava os tres e contava o lead de formulario duas vezes: 3.016 leads
+ * fantasma em 25 meses (14.979 -> 11.963) e julho/26 exibindo 546 leads / CPL
+ * R$ 13,81 no lugar de 371 / R$ 19,63. Conferido campanha a campanha: em todas as
+ * linhas com dado vale lead = onsite + pixel e lead_grouped = onsite.
+ */
 export const ACTION_LEAD_FORM = ['lead', 'leadgen_grouped', 'onsite_conversion.lead_grouped'];
 
 const LEAD_FORM_SET = new Set(ACTION_LEAD_FORM);
 
-/** Soma conversas iniciadas e lead forms de um array `actions` dos insights. */
+/**
+ * Conta conversas iniciadas (soma) e leads de formulario (melhor tipo, sem somar)
+ * de um array `actions` dos insights.
+ */
 export function actionsToCounts(actions) {
   let conversas = 0;
-  let leadsForm = 0;
+  const porTipo = new Map();
   for (const a of actions || []) {
     const v = Number(a?.value) || 0;
     if (a?.action_type === ACTION_CONVERSA) conversas += v;
-    else if (LEAD_FORM_SET.has(a?.action_type)) leadsForm += v;
+    else if (LEAD_FORM_SET.has(a?.action_type)) porTipo.set(a.action_type, (porTipo.get(a.action_type) || 0) + v);
+  }
+  // o 1o tipo presente na ordem de preferencia define o numero — somar seria contar
+  // o mesmo lead em dois nomes diferentes (ver comentario de ACTION_LEAD_FORM).
+  let leadsForm = 0;
+  for (const tipo of ACTION_LEAD_FORM) {
+    if (porTipo.has(tipo)) { leadsForm = porTipo.get(tipo); break; }
   }
   return { conversas, leadsForm };
 }

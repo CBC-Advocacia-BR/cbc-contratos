@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { computeFunnel } from './funnel/funnelCompute';
+import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil } from '../utils/funilSources';
 import PontualidadePanel from './PontualidadePanel';
 
 const SERIF = "'Cormorant Garamond', Georgia, serif";
@@ -69,28 +70,28 @@ export default function FunnelHealthPanel() {
         .order('created_at', { ascending: false })
         .limit(20000);
       if (error) throw error;
-      // (etapa "Distribuídos") data de conclusão da tarefa "DISTRIBUIR AÇÃO" por processo.
+      // (fix funil 28/07/2026) As 4 consultas vêm de utils/funilSources.js, a MESMA
+      // fonte do Dashboard (antes eram cópias que já tinham divergido) e que PAGINA
+      // com .range(): sem isso o PostgREST cortava em 1000 linhas e as videochamadas
+      // (view com 2.883 linhas) apareciam pela metade.
       const merged = data || [];
+      // (etapa "Distribuídos") data de conclusão da tarefa "DISTRIBUIR AÇÃO" por processo.
       try {
-        const { data: dist } = await supabase.from('vw_processo_distribuido').select('lawsuit_id');
-        const distSet = new Set((dist || []).map((r) => String(r.lawsuit_id)));
+        const distSet = new Set((await fetchProcessosDistribuidos()).map((r) => String(r.lawsuit_id)));
         for (const c of merged) c.distribuido = distSet.has(String(c.advbox_lawsuit_id));
       } catch { /* etapa degrada p/ 0 se a view falhar */ }
       // (etapa "Guia Paga/JEC") processo passou da citação no ADVBOX (guia paga ou JEC).
       try {
-        const { data: gp } = await supabase.from('vw_processo_guia_paga').select('lawsuit_id');
-        const gpSet = new Set((gp || []).map((r) => String(r.lawsuit_id)));
+        const gpSet = new Set((await fetchProcessosGuiaPaga()).map((r) => String(r.lawsuit_id)));
         for (const c of merged) c.guia_paga = gpSet.has(String(c.advbox_lawsuit_id));
       } catch { /* etapa degrada p/ 0 se a view falhar */ }
       try {
-        const { data: vc } = await supabase.from('vw_funil_videochamadas').select('status, scheduled_at');
-        setVchamadas(vc || []);
+        setVchamadas(await fetchVideochamadasFunil());
       } catch { setVchamadas([]); }
       // (leads Meta) 1a etapa do funil — leads de campanha por mes. Tabela vazia/sem
       // permissao -> etapa some do painel (leadsMeta null), sem quebrar o resto.
       try {
-        const { data: ma } = await supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto');
-        setMetaAds(ma || []);
+        setMetaAds(await fetchMetaAdsFunil(true));
       } catch { setMetaAds([]); }
       setRows(merged);
     } catch (e) {

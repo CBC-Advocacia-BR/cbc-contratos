@@ -3,6 +3,9 @@
 // (MEDIANA, robusta a outliers), gargalos (enviados ha muito tempo sem assinar) e
 // tendencia mensal de conversao. Datas/assinatura seguem a regra efetiva do projeto.
 
+// (fix funil 28/07/2026) deteccao de campanha de RH: fonte unica, a mesma da aba Trafego.
+import { isCampanhaRh } from '../../../netlify/functions/_lib/metaAds.mjs';
+
 /** contrato "ativo" no funil: nao cancelado e nao arquivado */
 const ativoNoFunil = (c) => c.status !== 'cancelado' && !c.arquivado_em;
 
@@ -62,8 +65,11 @@ export function computeFunnel(contratos, now = new Date(), videochamadas = [], m
   // (click-to-WhatsApp) + lead forms, dos insights mensais por campanha (meta_ads_mensal).
   // ALL-TIME desde o 1o mes com dado. Sem dados (token nao configurado / tabela vazia)
   // -> null e o painel oculta a etapa, sem quebrar o resto do funil.
+  // (fix funil 28/07/2026) Campanhas de VAGA/RH sao curriculos p/ o escritorio, nao
+  // clientes — MESMA regra da aba Trafego (decisao Paulo 16/07). Sem isso o acumulado
+  // somava 712 candidatos como lead de venda e barateava o CPL.
   let leadsMeta = null;
-  const metaRows = (metaAds || []).filter((m) => m && m.mes);
+  const metaRows = (metaAds || []).filter((m) => m && m.mes && !isCampanhaRh(m.campaign_name));
   if (metaRows.length) {
     const porMesMeta = {};
     let totalLeads = 0;

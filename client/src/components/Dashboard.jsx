@@ -17,6 +17,7 @@ import { exportContratosToExcel } from '../utils/excelExport';
 import { SkeletonDashboard } from './Skeleton';
 import ErrorState from './ErrorState';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
+import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil } from '../utils/funilSources';
 import { celebrations, getMonthlyGoal } from '../utils/celebrations';
 import { useKpiPreferences } from '../hooks/useKpiPreferences';
 import KpiPreferencesModal from './KpiPreferencesModal';
@@ -166,29 +167,32 @@ export default function Dashboard() {
       // principal — rodam em PARALELO (Promise.allSettled) em vez de 3 awaits em fila,
       // cortando o tempo de abertura do Dashboard. Cada uma mantem a degradacao
       // graciosa individual (rejeicao/erro => aquela etapa simplesmente vira 0).
+      // (fix funil 28/07/2026) As 4 consultas passaram a vir de utils/funilSources.js,
+      // que PAGINA com .range(). Sem isso o PostgREST cortava em 1000 linhas e as
+      // etapas de videochamada (view com 2.883 linhas) exibiam ~60% do real.
       const [distR, gpR, vcR, maR] = await Promise.allSettled([
-        supabase.from('vw_processo_distribuido').select('lawsuit_id'),
-        supabase.from('vw_processo_guia_paga').select('lawsuit_id'),
-        supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
+        fetchProcessosDistribuidos(),
+        fetchProcessosGuiaPaga(),
+        fetchVideochamadasFunil(),
         // (etapa "Leads de campanha") insights mensais das campanhas Meta (meta_ads_mensal).
         // A coluna `gasto` só vem para quem pode ver investimento/CPL (sócios + Lorenza)
         // — os demais nem recebem o dado no navegador.
-        supabase.from('meta_ads_mensal').select(canSeeAdsCusto ? 'mes, conversas_iniciadas, leads_form, gasto' : 'mes, conversas_iniciadas, leads_form'),
+        fetchMetaAdsFunil(canSeeAdsCusto),
       ]);
       // (etapa "Distribuídos") tem nº de processo no ADVBOX. Merge por advbox_lawsuit_id.
-      if (distR.status === 'fulfilled' && !distR.value.error) {
-        const distSet = new Set((distR.value.data || []).map((r) => String(r.lawsuit_id)));
+      if (distR.status === 'fulfilled') {
+        const distSet = new Set(distR.value.map((r) => String(r.lawsuit_id)));
         for (const c of normalizados) { if (c) c.distribuido = distSet.has(String(c.advbox_lawsuit_id)); }
       }
       // (etapa "Guia Paga/JEC") passou da citação no ADVBOX. Merge por advbox_lawsuit_id.
-      if (gpR.status === 'fulfilled' && !gpR.value.error) {
-        const gpSet = new Set((gpR.value.data || []).map((r) => String(r.lawsuit_id)));
+      if (gpR.status === 'fulfilled') {
+        const gpSet = new Set(gpR.value.map((r) => String(r.lawsuit_id)));
         for (const c of normalizados) { if (c) c.guia_paga = gpSet.has(String(c.advbox_lawsuit_id)); }
       }
       // (etapas "Videochamada agendada/realizada") da agenda do Google, via view sem PII.
-      setVideochamadas(vcR.status === 'fulfilled' && !vcR.value.error ? (vcR.value.data || []) : []);
+      setVideochamadas(vcR.status === 'fulfilled' ? vcR.value : []);
       // (etapa "Leads de campanha") tabela vazia/erro -> etapa some do funil, sem quebrar.
-      setMetaAds(maR.status === 'fulfilled' && !maR.value.error ? (maR.value.data || []) : []);
+      setMetaAds(maR.status === 'fulfilled' ? maR.value : []);
       _cachedContratos = normalizados;
       _cachedFull = full;
       setAllContratos(normalizados);

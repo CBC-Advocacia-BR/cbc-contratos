@@ -4,7 +4,16 @@
 // aberto pelo botao "Editar dados".
 import { useEffect, useMemo, useState } from 'react';
 import { buscar360, buscarAcoesDrive, buscarDadosBancarios, buscarLinhaCaso } from '../../utils/clientesService';
-import { buildLinhaCaso, dataBRLC, reaisLC, idadeDe } from '../../utils/linhaCaso';
+import { buildLinhaCaso, dataBRLC, reaisLC, idadeDe, mesBR, FASE_LABEL, acoesProprias, valorEmDiscussao } from '../../utils/linhaCaso';
+
+// telefone em (DD) 9NNNN-NNNN
+function foneBR(d) {
+  const s = String(d || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+  if (s.length === 11) return `(${s.slice(0, 2)}) ${s.slice(2, 7)}-${s.slice(7)}`;
+  if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(2, 6)}-${s.slice(6)}`;
+  return s || '—';
+}
+const SIS_LABEL = { kommo: 'Kommo', advbox: 'ADVBOX', asaas: 'Asaas', cadastro: 'cadastro', agenda: 'agenda', contrato: 'contrato', bi: 'BI' };
 
 const TIPO_LABEL = { marco: 'Marco', etapa: 'Etapa', tribunal: 'Tribunal', equipe: 'Equipe', financeiro: 'Financeiro', relacionamento: 'Relacionamento' };
 
@@ -88,27 +97,59 @@ export default function LinhaCasoView({ row, onClose, onEditar, onAbrir }) {
           <aside className="lc-sat">
             <div className="lc-pan">
               <h3>Investimento {modelo.investimento.cotas > 0 && <small>{modelo.investimento.cotas} cota(s)</small>}</h3>
-              {acoes.filter((a) => !a.fora_censo).map((a) => (
-                <div key={a.id} className="lc-cota">
-                  <b>{a.resort || 'Resort a identificar'}</b>
-                  {a.unidade_cota && <div className="muted lc-sm">{a.unidade_cota}</div>}
-                  <div className="lc-cota-l tnum">
-                    <span>{a.data_contrato_compra ? `compra ${dataBRLC(a.data_contrato_compra)}` : 'data de compra pendente'}</span>
-                    <b>{a.valor_pago != null ? reaisLC(a.valor_pago) : 'valor pendente'}</b>
+              {acoesProprias(acoes).map((a) => {
+                const disc = valorEmDiscussao(a);
+                const atual = disc && disc.fonte !== 'contratado';
+                return (
+                  <div key={a.id} className="lc-cota">
+                    <b>{a.resort || 'Resort a identificar'}</b>
+                    {a.unidade_cota && <div className="muted lc-sm">{a.unidade_cota}</div>}
+                    <div className="lc-cota-l tnum">
+                      <span>{a.data_contrato_compra ? `compra ${dataBRLC(a.data_contrato_compra)}` : 'data de compra pendente'}</span>
+                      <b className={atual ? 'lc-riscado' : undefined}>{a.valor_pago != null ? reaisLC(a.valor_pago) : 'valor pendente'}</b>
+                    </div>
+                    {atual && (
+                      <div className={'lc-atualizado' + (disc.fonte === 'sisbajud' ? ' sis' : '')}>
+                        <span>{disc.fonte === 'sisbajud' ? 'Pedido SISBAJUD' : FASE_LABEL[disc.fonte] || 'Valor atualizado'}</span>
+                        <b className="tnum">{reaisLC(disc.valor)}</b>
+                        {disc.mes && <i className="tnum">{disc.fonte === 'sisbajud' ? 'pedido em ' : 'calculado em '}{mesBR(disc.mes)}</i>}
+                      </div>
+                    )}
+                    {a.parcela_media_paga > 0 && (
+                      <div className="lc-hl tnum lc-sm">
+                        <span>Parcela paga</span>
+                        <b>{reaisLC(a.parcela_media_paga)} média{a.parcela_ultima_paga > 0 ? ` · ${reaisLC(a.parcela_ultima_paga)} a última` : ''}</b>
+                      </div>
+                    )}
+                    {a.drive_folder_link && <a className="lc-link" href={a.drive_folder_link} target="_blank" rel="noreferrer">Abrir pasta ↗</a>}
+                    {a.needs_review && <span className="lc-chip warn" style={{ marginLeft: 6 }}>revisar</span>}
                   </div>
-                  {a.drive_folder_link && <a className="lc-link" href={a.drive_folder_link} target="_blank" rel="noreferrer">Abrir pasta ↗</a>}
-                  {a.needs_review && <span className="lc-chip warn" style={{ marginLeft: 6 }}>revisar</span>}
-                </div>
-              ))}
-              {acoes.filter((a) => !a.fora_censo).length === 0 && (
+                );
+              })}
+              {acoesProprias(acoes).length === 0 && (
                 <div className="muted lc-sm">Nenhuma ação minerada — valor e resort aguardam mineração do Drive.</div>
+              )}
+              {modelo.investimento.fases.length > 0 && (
+                <div className="lc-fases">
+                  <span className="lc-fases-k">Fases da mesma ação</span>
+                  {modelo.investimento.fases.map((f) => (
+                    <div key={f.id} className="lc-hl tnum lc-sm">
+                      <span>{FASE_LABEL[f.fase] || 'Fase posterior'}</span>
+                      <b>{f.valor != null ? reaisLC(f.valor) : '—'}</b>
+                    </div>
+                  ))}
+                  <i className="lc-sm muted">desmembramento da ação principal — não soma ao investido</i>
+                </div>
               )}
               {modelo.investimento.total != null && (
                 <div className="lc-total">
                   <span>Total investido</span>
                   <b className="tnum">{reaisLC(modelo.investimento.total)}</b>
+                  {modelo.investimento.atualizadoPorFase && modelo.investimento.emDiscussao != null && (
+                    <i className="lc-disc tnum">Em discussão hoje: <b>{reaisLC(modelo.investimento.emDiscussao)}</b></i>
+                  )}
                   {modelo.investimento.percExito > 0 && (
-                    <i>Êxito potencial ({modelo.investimento.percExito}%): {reaisLC(modelo.investimento.total * modelo.investimento.percExito / 100)}</i>
+                    <i>Êxito potencial ({modelo.investimento.percExito}%): {reaisLC((modelo.investimento.emDiscussao || modelo.investimento.total) * modelo.investimento.percExito / 100)}</i>
                   )}
                 </div>
               )}
@@ -262,6 +303,30 @@ export default function LinhaCasoView({ row, onClose, onEditar, onAbrir }) {
                     {!m.repassado_em
                       ? <span className="lc-chip warn">repasse pendente</span>
                       : <span className="lc-chip ok">repassado em {dataBRLC(m.repassado_em)}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {modelo.telefones.length > 0 && (
+              <div className="lc-pan">
+                <h3>Telefones <small>{modelo.telefones.length} no histórico</small></h3>
+                {modelo.telefones.map((t) => (
+                  <div key={t.fone} className={'lc-tel' + (t.suspeito ? ' bad' : t.principal ? ' on' : '')}>
+                    <div className="lc-tel-l">
+                      <b className="tnum">{foneBR(t.fone)}</b>
+                      {t.principal && <span className="lc-chip ok">em uso</span>}
+                      {t.suspeito && <span className="lc-chip warn">número inválido</span>}
+                    </div>
+                    <div className="muted lc-sm">
+                      {(t.sistemas || []).map((s) => SIS_LABEL[s] || s).join(' · ') || 'origem não registrada'}
+                      {t.visto_em ? ` · visto em ${dataBRLC(t.visto_em)}` : ''}
+                    </div>
+                    {!t.suspeito && (
+                      <div className="lc-tel-a">
+                        <a className="lc-link" href={`https://wa.me/55${String(t.fone).replace(/\D/g, '').replace(/^55/, '')}`} target="_blank" rel="noreferrer">WhatsApp ↗</a>
+                        <button className="btn lc-btn-mini" onClick={() => copiar(foneBR(t.fone))}>Copiar</button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

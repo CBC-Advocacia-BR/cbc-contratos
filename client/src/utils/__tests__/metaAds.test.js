@@ -10,17 +10,44 @@ import {
 } from '../../../netlify/functions/_lib/metaAds.mjs';
 
 describe('actionsToCounts', () => {
-  it('soma conversas iniciadas e lead forms, ignora o resto', () => {
+  it('soma conversas iniciadas e ignora acoes irrelevantes', () => {
     const r = actionsToCounts([
       { action_type: ACTION_CONVERSA, value: '42' },
       { action_type: ACTION_CONVERSA, value: 8 },
       { action_type: 'lead', value: '3' },
-      { action_type: 'leadgen_grouped', value: 2 },
       { action_type: 'link_click', value: 999 },
       { action_type: 'post_engagement', value: '55' },
     ]);
     expect(r.conversas).toBe(50);
-    expect(r.leadsForm).toBe(5);
+    expect(r.leadsForm).toBe(3);
+  });
+
+  // (fix 28/07/2026) O bug que inflava o funil: `lead` e o TOTAL e
+  // `onsite_conversion.lead_grouped` e um pedaco dele. Somar contava 2x.
+  it('NAO soma os tipos de lead — `lead` (total) vence os demais', () => {
+    const r = actionsToCounts([
+      { action_type: 'lead', value: 22 },                        // total = onsite + pixel
+      { action_type: 'onsite_conversion.lead', value: 16 },      // subconjunto (nem entra na lista)
+      { action_type: 'offsite_conversion.fb_pixel_lead', value: 6 },
+      { action_type: 'onsite_conversion.lead_grouped', value: 16 }, // mesmo onsite, outro nome
+      { action_type: 'leadgen_grouped', value: 16 },
+    ]);
+    expect(r.leadsForm).toBe(22); // antes dava 54
+  });
+
+  it('sem `lead`, cai p/ leadgen_grouped e depois p/ lead_grouped', () => {
+    expect(actionsToCounts([
+      { action_type: 'leadgen_grouped', value: 9 },
+      { action_type: 'onsite_conversion.lead_grouped', value: 9 },
+    ]).leadsForm).toBe(9);
+    expect(actionsToCounts([{ action_type: 'onsite_conversion.lead_grouped', value: 7 }]).leadsForm).toBe(7);
+  });
+
+  it('linhas repetidas do mesmo tipo ainda somam entre si', () => {
+    expect(actionsToCounts([
+      { action_type: 'lead', value: 2 },
+      { action_type: 'lead', value: 3 },
+    ]).leadsForm).toBe(5);
   });
 
   it('tolera actions ausente/vazio e valores invalidos', () => {

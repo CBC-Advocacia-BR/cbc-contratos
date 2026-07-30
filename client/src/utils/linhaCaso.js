@@ -70,6 +70,43 @@ export function telefoneDiverge(a, b) {
 
 const ordemTipo = { marco: 0, etapa: 1, tribunal: 2, equipe: 3, financeiro: 4, relacionamento: 5 };
 
+// Fases processuais (regra Paulo 29/07/2026): liquidacao e cumprimento de sentenca sao
+// desmembramentos da acao principal — NUNCA contam valor de novo. O valor em discussao passa
+// a ser o calculado na fase e, havendo pedido SISBAJUD, o valor do pedido.
+export const FASE_LABEL = {
+  liquidacao: 'Liquidação de sentença',
+  cumprimento: 'Cumprimento de sentença',
+  sisbajud: 'Penhora SISBAJUD',
+  penhora: 'Penhora',
+  execucao: 'Execução',
+  calculo: 'Cálculo atualizado',
+  conhecimento: 'Fase de conhecimento',
+  recursal: 'Fase recursal',
+  encerrado: 'Encerrado',
+};
+
+// so as acoes que valem como acao propria (fase = desmembramento, nao soma)
+export const acoesProprias = (acoes = []) => acoes.filter((a) => !a.fora_censo && !a.eh_fase_de);
+export const acoesFases = (acoes = []) => acoes.filter((a) => !a.fora_censo && a.eh_fase_de);
+
+// valor em discussao HOJE: SISBAJUD > valor calculado na fase > valor pago
+export function valorEmDiscussao(a) {
+  if (!a) return null;
+  const sis = Number(a.sisbajud_valor);
+  if (sis > 0) return { valor: sis, fonte: 'sisbajud', mes: a.sisbajud_mes || a.valor_atualizado_data || null };
+  const atu = Number(a.valor_atualizado);
+  if (atu > 0) return { valor: atu, fonte: a.valor_atualizado_fonte || 'calculo', mes: a.valor_atualizado_data || null };
+  const pg = Number(a.valor_pago);
+  return pg > 0 ? { valor: pg, fonte: 'contratado', mes: null } : null;
+}
+
+// "07/2026" a partir de uma data ISO
+export function mesBR(iso) {
+  if (!iso) return null;
+  const s = String(iso).slice(0, 10).split('-');
+  return s.length >= 2 ? `${s[1]}/${s[0]}` : null;
+}
+
 // Monta os eventos datados da espinha (passado). "hoje" e "futuro" saem separados.
 export function buildEventos({ acoes = [], lc = {}, hoje }) {
   const ev = [];
@@ -83,11 +120,25 @@ export function buildEventos({ acoes = [], lc = {}, hoje }) {
   const ajuizado = procs.map((p) => p.distribuido).filter(Boolean).sort()[0] || null;
 
   // compras das cotas (+ prescricao por cota — vai junto no evento)
-  for (const a of acoes) {
-    if (a.fora_censo) continue;
+  for (const a of acoesProprias(acoes)) {
     push(a.data_contrato_compra, 'marco', `Compra da cota — ${a.resort || 'resort a identificar'}`,
       [a.unidade_cota, a.valor_pago != null ? `valor pago ${reaisLC(a.valor_pago)}` : null].filter(Boolean).join(' · '),
       { prescricao: prescricaoDe(a.data_contrato_compra, ajuizado, hoje), resort: a.resort });
+  }
+
+  // fases posteriores: o valor recalculado e o pedido SISBAJUD entram na linha do tempo
+  for (const a of acoes) {
+    if (a.fora_censo) continue;
+    if (a.sisbajud_valor > 0) {
+      push(a.sisbajud_mes || a.valor_atualizado_data, 'financeiro',
+        `Pedido de penhora SISBAJUD — ${reaisLC(a.sisbajud_valor)}`,
+        [a.resort, a.sisbajud_mes ? `pedido em ${mesBR(a.sisbajud_mes)}` : null].filter(Boolean).join(' · '),
+        { destaque: true });
+    } else if (a.valor_atualizado > 0 && a.valor_atualizado_fonte) {
+      push(a.valor_atualizado_data, 'financeiro',
+        `${FASE_LABEL[a.valor_atualizado_fonte] || 'Valor atualizado'} — ${reaisLC(a.valor_atualizado)}`,
+        [a.resort, 'valor recalculado na fase (não é nova ação)'].filter(Boolean).join(' · '));
+    }
   }
 
   // contrato CBC: app (rico) ou pre-sistema (data_contrato da mina)
@@ -159,15 +210,31 @@ export function buildLinhaCaso({ row, info, acoes = [], lc = {}, hoje }) {
   // recuperacao pendente = MLE recebido sem repasse
   const mlePend = (Array.isArray(lc.mles) ? lc.mles : []).find((m) => m.recebido_em && !m.repassado_em) || null;
 
-  const acoesCenso = acoes.filter((a) => !a.fora_censo);
+  const acoesCenso = acoesProprias(acoes);
+  const fases = acoesFases(acoes);
   const totalInvestido = acoesCenso.reduce((s, a) => s + (Number(a.valor_pago) || 0), 0) || null;
   const percExito = acoesCenso.map((a) => Number(a.honorarios_perc)).find((v) => v > 0) ?? null;
+
+  // valor em discussao hoje (fase mais avancada por cota) + de onde veio
+  const discutido = acoesCenso.map((a) => valorEmDiscussao(a)).filter(Boolean);
+  const totalDiscutido = discutido.reduce((s, d) => s + d.valor, 0) || null;
+  const atualizadoPorFase = discutido.some((d) => d.fonte !== 'contratado');
+  const sisAcao = acoesCenso.find((a) => Number(a.sisbajud_valor) > 0) || null;
+  const faseAtual = acoesCenso.map((a) => a.fase_atual).find(Boolean)
+    || fases.map((a) => a.fase_atual).find(Boolean) || null;
 
   const chips = [];
   if (info?.tem_portal && lc.portal && !(lc.portal.acessos > 0)) {
     chips.push({ tipo: 'warn', txt: 'Portal: nunca acessou', acao: 'reenviar' });
   }
   if (lc.kommo?.tel_diverge) chips.push({ tipo: 'warn', txt: 'Telefone divergente no Kommo' });
+  if (sisAcao) {
+    chips.push({ tipo: 'gold', txt: `SISBAJUD ${reaisLC(sisAcao.sisbajud_valor)}${sisAcao.sisbajud_mes ? ` · pedido em ${mesBR(sisAcao.sisbajud_mes)}` : ''}` });
+  } else if (faseAtual && FASE_LABEL[faseAtual] && !['conhecimento', 'encerrado'].includes(faseAtual)) {
+    chips.push({ tipo: 'info', txt: FASE_LABEL[faseAtual] });
+  }
+  const telSusp = (Array.isArray(lc.telefones) ? lc.telefones : []).filter((t) => t.suspeito).length;
+  if (telSusp > 0) chips.push({ tipo: 'warn', txt: `${telSusp} telefone(s) com número inválido` });
   if (!row?.kommo && !lc.kommo) chips.push({ tipo: 'mut', txt: 'Kommo sem vinculo' });
   if (!lc.contrato_app && acoesCenso.length > 0) chips.push({ tipo: 'mut', txt: 'Contrato pre-sistema (Drive)' });
   const aniv = aniversarioInfo(row?.nascimento || info?.nascimento, hoje);
@@ -198,7 +265,21 @@ export function buildLinhaCaso({ row, info, acoes = [], lc = {}, hoje }) {
     },
     futuros,
     chips,
-    investimento: { total: totalInvestido, percExito, cotas: acoesCenso.length },
+    investimento: {
+      total: totalInvestido,
+      percExito,
+      cotas: acoesCenso.length,
+      emDiscussao: totalDiscutido,
+      atualizadoPorFase,
+      faseAtual,
+      sisbajud: sisAcao ? { valor: Number(sisAcao.sisbajud_valor), mes: sisAcao.sisbajud_mes } : null,
+      fases: fases.map((a) => ({
+        id: a.id, fase: a.fase_atual, resort: a.resort,
+        valor: Number(a.valor_atualizado) || Number(a.valor_pago) || null,
+        arquivo: a.inicial_file_name || null,
+      })),
+    },
+    telefones: Array.isArray(lc.telefones) ? lc.telefones : [],
     andamentosTotal: lc.andamentos_total ?? 0,
   };
 }

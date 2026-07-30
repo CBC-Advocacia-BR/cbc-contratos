@@ -16,6 +16,9 @@
 //  - Métricas "do mês" são sempre do mês corrente (ignoram filtro de
 //    período) e devem ser rotuladas com o nome do mês na UI.
 // ─────────────────────────────────────────────────────────────────────────
+// (fix funil 28/07/2026) Mesma detecção de campanha de RH usada pela aba Tráfego —
+// importada da fonte única em _lib/metaAds.mjs, nunca reimplementada aqui.
+import { isCampanhaRh } from '../../../netlify/functions/_lib/metaAds.mjs';
 
 const DAY_MS = 86400000;
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -223,6 +226,11 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
     let gasto = 0;
     for (const m of filters.metaAds) {
       if (!m || !m.mes) continue;
+      // (fix funil 28/07/2026) Campanhas de VAGA/RH são currículos p/ o escritório, não
+      // clientes — MESMA regra que a aba Tráfego já aplicava (decisão Paulo 16/07). Sem
+      // isso jul/26 contava 128 candidatos a advogado como lead e o CPL saía barato
+      // demais (R$ 13,81 em vez de R$ 17,43).
+      if (isCampanhaRh(m.campaign_name)) continue;
       const ym = String(m.mes).slice(0, 7);
       if (distRange.start && fimMes(ym) < distRange.start) continue;
       if (distRange.end && iniMes(ym) > distRange.end) continue;

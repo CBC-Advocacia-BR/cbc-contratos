@@ -198,3 +198,83 @@ describe('computeDashboard — etapa "Leads de campanha (Meta)" no funil (14/07/
     expect(d.funil.criados).toBe(0);
   });
 });
+
+describe('computeDashboard — campanhas de VAGA/RH fora da captação (fix 28/07/2026)', () => {
+  // Fixture com os numeros REAIS de julho/2026 (meta_ads_mensal) que expuseram o bug:
+  // "[VAGA] Advogado" sao CURRICULOS e entravam como lead de venda. A aba Trafego ja
+  // excluia essas campanhas (decisao Paulo 16/07) — as duas telas se contradiziam.
+  // `leads_form` aqui ja e o valor CORRIGIDO (= action_type `lead`, o total da Meta),
+  // depois que o parece foi consertado e o historico recalculado — antes vinha em
+  // dobro (38/36/128/... ) e julho aparecia com 546 leads no lugar de 371.
+  const NOW_JUL = new Date('2026-07-28T12:00:00');
+  const metaJulho = [
+    { mes: '2026-07-01', campaign_name: '[30.09][SOU][ABO][LEADS][WPP] - Ondas Praia', conversas_iniciadas: 130, leads_form: 22, gasto: 2348.14 },
+    { mes: '2026-07-01', campaign_name: '[02.10][SOU][ABO][LEADS][WPP] - Hot Beach', conversas_iniciadas: 97, leads_form: 21, gasto: 1700.50 },
+    { mes: '2026-07-01', campaign_name: '[VAGA] Advogado', conversas_iniciadas: 0, leads_form: 64, gasto: 255.59 },
+    { mes: '2026-07-01', campaign_name: '[22/07][SOU][ABO][LEADS][WPP] - Novas Listas', conversas_iniciadas: 61, leads_form: 15, gasto: 662.64 },
+    { mes: '2026-07-01', campaign_name: '[02.10][SOU][ABO][LEADS][WPP] - Thermas São Pedro', conversas_iniciadas: 9, leads_form: 5, gasto: 1339.07 },
+    { mes: '2026-07-01', campaign_name: '[02.06][SOU][ABO][LEADS][WPP] - Geral - Novas Listas', conversas_iniciadas: 4, leads_form: 3, gasto: 670.48 },
+    { mes: '2026-07-01', campaign_name: '[18.03][SOU][ABO][LEADS][WPP] - Gran Paradiso', conversas_iniciadas: 4, leads_form: 0, gasto: 563.66 },
+  ];
+
+  it('tira [VAGA] dos leads, do investimento e do CPL', () => {
+    const d = computeDashboard([], { periodo: 'mes', metaAds: metaJulho, videochamadas: [] }, 15, NOW_JUL);
+    expect(d.funil.leadsMeta).toBe(371);                    // 435 - 64 curriculos
+    expect(d.funil.leadsMetaGasto).toBeCloseTo(7284.49, 2); // 7.540,08 - 255,59
+    expect(d.funil.leadsMetaCpl).toBe(19.63);               // tela mostrava 13,81
+  });
+
+  it('conversão lead -> agendada usa só os leads de venda', () => {
+    const vc = Array.from({ length: 191 }, () => ({ status: 'realizada', scheduled_at: '2026-07-10T10:00:00Z' }));
+    const d = computeDashboard([], { periodo: 'mes', metaAds: metaJulho, videochamadas: vc }, 15, NOW_JUL);
+    expect(d.funil.agendadas).toBe(191);
+    expect(d.funil.pctLeadAgendada).toBe(51.5);             // 191/371 (tela mostrava 20,5%)
+  });
+
+  it('linha sem campaign_name (dado legado) segue contando como venda', () => {
+    const d = computeDashboard([], { periodo: 'mes', videochamadas: [], metaAds: [{ mes: '2026-07-01', conversas_iniciadas: 10, leads_form: 0, gasto: 100 }] }, 15, NOW_JUL);
+    expect(d.funil.leadsMeta).toBe(10);
+  });
+
+  it('só campanhas de RH no período -> etapa some (não vira 0 leads com gasto)', () => {
+    const d = computeDashboard([], { periodo: 'mes', videochamadas: [], metaAds: [metaJulho[2]] }, 15, NOW_JUL);
+    expect(d.funil.leadsMeta).toBeUndefined();
+  });
+
+  // ── Funil INTEIRO de julho/2026 com a forma real dos dados (conferida no banco em
+  // 28/07). Trava as 7 etapas de uma vez: e o cenario que estava errado na tela, onde
+  // o corte de 1000 linhas do PostgREST mostrava 112/87 no lugar de 191/147 e o RH
+  // inflava os leads. Se qualquer uma das duas regressoes voltar, este teste cai.
+  it('julho/2026 ponta a ponta: as 7 etapas batem com o banco', () => {
+    const rep = (n, row) => Array.from({ length: n }, () => ({ ...row }));
+    const videochamadas = [
+      ...rep(147, { status: 'realizada', scheduled_at: '2026-07-10T10:00:00Z' }), // ocorridas
+      ...rep(44, { status: 'no_show', scheduled_at: '2026-07-11T10:00:00Z' }),
+      ...rep(25, { status: 'excluida', scheduled_at: '2026-07-12T10:00:00Z' }),   // fora da base
+      ...rep(19, { status: 'agendada', scheduled_at: '2026-07-30T10:00:00Z' }),   // ainda vao ocorrer
+      ...rep(1, { status: 'realizada', scheduled_at: '2026-07-30T11:00:00Z' }),
+      ...rep(2, { status: 'no_show', scheduled_at: '2026-07-31T10:00:00Z' }),
+    ];
+    const jul = (over) => contrato({ created_at: '2026-07-15T10:00:00Z', ...over });
+    const contratos = [
+      ...Array.from({ length: 28 }, () => jul({ status: 'assinado', signed_at: '2026-07-20T10:00:00Z', distribuido: true, guia_paga: true })),
+      ...Array.from({ length: 8 }, () => jul({ status: 'assinado', signed_at: '2026-07-20T10:00:00Z', distribuido: true })),
+      ...Array.from({ length: 22 }, () => jul({ status: 'assinado', signed_at: '2026-07-20T10:00:00Z' })),
+      ...Array.from({ length: 24 }, () => jul({ status: 'enviado_zapsign' })),
+      jul({ status: 'rascunho' }),
+    ];
+    const d = computeDashboard(contratos, { periodo: 'mes', metaAds: metaJulho, videochamadas }, 15, NOW_JUL);
+
+    expect(d.funil.leadsMeta).toBe(371);        // tela mostrava 546 (currículos + dobra)
+    expect(d.funil.leadsMetaCpl).toBe(19.63);   // tela mostrava 13,81
+    expect(d.funil.agendadas).toBe(191);        // tela mostrava 112 (corte de 1000)
+    expect(d.funil.realizadas).toBe(147);       // tela mostrava 87
+    expect(d.funil.futuras).toBe(22);           // tela mostrava 20
+    expect(d.funil.pctComparecimento).toBe(77);
+    expect(d.funil.pctLeadAgendada).toBe(51.5); // tela mostrava 20,5%
+    expect(d.funil.enviados).toBe(82);          // já estavam certos
+    expect(d.funil.assinados).toBe(58);
+    expect(d.funil.distribuidos).toBe(36);
+    expect(d.funil.guiaPaga).toBe(28);
+  });
+});

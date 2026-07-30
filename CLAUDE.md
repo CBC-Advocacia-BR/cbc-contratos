@@ -9,6 +9,23 @@
 
 **Versão em produção: v6.6.x** (última sessão 25/06/2026). Changelog detalhado das últimas sessões abaixo.
 
+### 🔢 Funil de vendas — 3 defeitos corrigidos (28/07/2026) — EM PRODUÇÃO
+
+Paulo perguntou se os números do funil do mês estavam certos. **Não estavam**: as 4 etapas de baixo (enviados 82 / assinados 58 / distribuídos 36 / guia 28) conferiam, mas as 3 do topo estavam erradas por três causas independentes. Deploy `6a69409156c2477bd094b0ed`, rollback `./rollback.sh 6a68bee0b06da017bab6a299`. Backups: `backups/20260728_202955_funil_videochamadas_rh/` e `backups/20260728_204906_meta_leads_dupla_contagem/`. Suíte 467/467.
+
+Julho/2026 saiu de **546 leads · CPL R$ 13,81 · 20,5% agendaram · 112 calls** para **371 · R$ 19,63 · 51,5% · 191**.
+
+1. **Corte de 1.000 linhas do PostgREST** (a mais grave). `vw_funil_videochamadas` tem 2.883 linhas e o Dashboard buscava sem `.limit()`/`.range()` → chegava uma fatia arbitrária do heap e o funil exibia 112 agendadas / 87 realizadas no lugar de **191 / 147**. ⚠️ Um `.limit(N)` maior NÃO levanta esse teto (`db-max-rows`) — só paginação resolve. Fonte única nova **`client/src/utils/funilSources.js`** (usada pelo Dashboard E pela Saúde do Funil, que eram cópias já divergentes) pagina as 4 consultas com `.range()`. ⚠️ ORDER BY tem que ser TOTAL: 93 linhas empatam em `scheduled_at`, então cada consulta termina numa coluna única (`event_id`, `lawsuit_id`, `campaign_id`).
+2. **Campanhas de VAGA/RH contadas como lead de venda**. A aba Tráfego já as excluía (`isCampanhaRh`, decisão Paulo 16/07) mas o funil não — jul/26 somava 128 currículos de "[VAGA] Advogado". Corrigido em `dashboard/compute.js` e `funnel/funnelCompute.js` importando o MESMO `isCampanhaRh` de `_lib/metaAds.mjs`; o `select` passou a trazer `campaign_name` (não vinha).
+3. **Lead de formulário contado em dobro** (afetava o funil E toda a aba Tráfego). `ACTION_LEAD_FORM` SOMAVA `lead` + `leadgen_grouped` + `onsite_conversion.lead_grouped`, mas **`lead` já é o TOTAL** (`lead = onsite_conversion.lead + offsite_conversion.fb_pixel_lead`) e `lead_grouped` é o mesmo pedaço onsite com outro nome. Conferido campanha a campanha: a identidade vale em 100% das linhas com dado. Eram **3.016 leads fantasma em 25 meses** (14.979 → 11.963). `actionsToCounts` agora usa ORDEM DE PREFERÊNCIA, nunca soma. Histórico recalculado pelo `raw` já gravado (migrações `meta_leads_dupla_contagem_backup` + `_fix`): `meta_ads_mensal` 6.787→3.771 (31 linhas), `meta_ads_diario` 3.080→1.561 (260). Backup em `_backup_meta_leads_20260728_mensal`/`_diario`. **`meta_ads_breakdown` não tem coluna `raw`** → só se corrige por re-sync da API (`meta-trafego-sync?backfill=1&dias=N`, GET é livre).
+
+**Semântica que vale saber ao ler o funil** (não são bugs, são escolhas de modelagem):
+- A faixa **CONTRATOS** é troca de coorte: dali para baixo são contratos *criados* no mês, não os originados das calls do mês. Por isso não há % naquele degrau. "58 assinados" ≠ "assinamos 58 em julho" — por data de assinatura julho fechou **63**.
+- **A régua de comparecimento mudou em jun/2026**: até maio o status vinha da COR da agenda (subjetivo, e existia `fechou`); de junho em diante vem da auditoria do Google Meet (`meet_status` tem precedência na view). Julho: 186 dos 191 via Meet. Não dá para comparar mês a mês direto, e a Saúde do Funil (all-time) mistura as duas réguas.
+- 191 eventos = **186 pessoas** (5 remarcações pós-no-show contam 2×).
+- Só **1 conta de anúncio** sincroniza (`act_969110338250520`); o BM tem 2. Se a outra rodar algo, fica fora do funil — verificar no Gerenciador.
+- `vw_bi_trafego_mensal` (Power BI) é espelho puro e **inclui** campanhas de RH — quem consome filtra.
+
 ### 🔧 Correções de precisão deste guia (06/07/2026 — auditoria)
 
 Alguns números/afirmações mais abaixo estavam defasados e ficam corrigidos aqui (têm precedência):

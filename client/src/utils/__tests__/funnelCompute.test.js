@@ -183,3 +183,22 @@ describe('computeFunnel — etapa Guia Paga/JEC (passou da citação, all-time)'
     expect(r.guiaPaga).toBe(2);
   });
 });
+
+describe('computeFunnel — campanhas de VAGA/RH fora da captação (fix 28/07/2026)', () => {
+  // Curriculos p/ o escritorio nao sao lead de venda — mesma regra da aba Trafego
+  // (decisao Paulo 16/07). No acumulado eram 712 candidatos somados como lead.
+  const metaRows = [
+    { mes: '2026-05-01', campaign_name: '[30.09][SOU][ABO][LEADS][WPP] - Ondas Praia', conversas_iniciadas: 130, leads_form: 22, gasto: 2348.14 },
+    { mes: '2026-05-01', campaign_name: '[VAGA] Advogado', conversas_iniciadas: 0, leads_form: 64, gasto: 255.59 },
+  ];
+  const r = computeFunnel([], NOW, [], metaRows);
+
+  it('currículos de vaga não entram no total nem no gasto', () => {
+    expect(r.leadsMeta.total).toBe(152);              // 130 + 22, sem os 64 do RH
+    expect(r.leadsMeta.gasto).toBeCloseTo(2348.14, 2);
+  });
+
+  it('só campanha de RH -> leadsMeta null (painel oculta a etapa)', () => {
+    expect(computeFunnel([], NOW, [], [metaRows[1]]).leadsMeta).toBe(null);
+  });
+});

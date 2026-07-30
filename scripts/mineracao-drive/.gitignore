@@ -1,0 +1,5 @@
+# saidas de execucao (dados de clientes) — nunca versionar
+*.json
+*.jsonl
+*.txt
+*.log

@@ -26,6 +26,11 @@ const CRON_SLA = {
   'commission-calculator': 33 * 24 * 60, // (auditoria #89) dia 20 do mes (~33d de folga)
   'kommo-queue-worker': 30,          // (auditoria #89) a cada 1min (drena a fila Kommo)
   'bandwidth-check-cron': 14 * 60,   // (auditoria #93) 3x/dia
+  // (28/07/2026) eventos da CAPI Meta — cron pg_cron 'meta-capi-purchase' (jobid 28),
+  // de hora em hora aos :20. O heartbeat e escrito por fn_capi_healthcheck() no Supabase.
+  // Existe um vigia proprio no banco (jobid 30), mas ele morre junto se o pg_cron cair;
+  // esta linha poe um sistema INDEPENDENTE (Netlify) olhando o silencio.
+  'meta-capi-eventos': 90,           // 1x/hora
 };
 
 export default async () => {

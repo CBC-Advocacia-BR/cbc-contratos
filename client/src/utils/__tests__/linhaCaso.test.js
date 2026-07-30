@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildLinhaCaso, buildEventos, prescricaoDe, aniversarioInfo, telefoneDiverge, idadeDe, dataBRLC } from '../linhaCaso';
+import { buildLinhaCaso, buildEventos, prescricaoDe, aniversarioInfo, telefoneDiverge, idadeDe, dataBRLC, valorEmDiscussao, acoesProprias, acoesFases, mesBR } from '../linhaCaso';
 
 const HOJE = '2026-07-21';
 
@@ -120,5 +120,58 @@ describe('dataBRLC', () => {
   it('formata ISO como pt-BR e devolve null p/ vazio', () => {
     expect(dataBRLC('2026-07-21')).toBe('21/07/2026');
     expect(dataBRLC(null)).toBeNull();
+  });
+});
+
+// Fases processuais (regra Paulo 29/07/2026)
+describe('fase processual e valor atualizado', () => {
+  it('SISBAJUD vence a fase e o contratado, e traz o mes do pedido', () => {
+    const d = valorEmDiscussao({ valor_pago: 30000, valor_atualizado: 41000,
+      valor_atualizado_fonte: 'cumprimento', sisbajud_valor: 52000, sisbajud_mes: '2026-03-01' });
+    expect(d).toEqual({ valor: 52000, fonte: 'sisbajud', mes: '2026-03-01' });
+    expect(mesBR('2026-03-01')).toBe('03/2026');
+  });
+  it('sem SISBAJUD, o valor calculado na fase vence o contratado', () => {
+    const d = valorEmDiscussao({ valor_pago: 30052.31, valor_atualizado: 23600.04,
+      valor_atualizado_fonte: 'liquidacao', valor_atualizado_data: '2024-08-01' });
+    expect(d.valor).toBe(23600.04);
+    expect(d.fonte).toBe('liquidacao');
+  });
+  it('sem fase, cai no valor contratado', () => {
+    expect(valorEmDiscussao({ valor_pago: 30000 })).toEqual({ valor: 30000, fonte: 'contratado', mes: null });
+    expect(valorEmDiscussao({})).toBeNull();
+  });
+  it('liquidacao/cumprimento nao duplicam o valor investido', () => {
+    const acoes = [
+      { id: 'a', resort: 'Porto 2 Life', valor_pago: 30052.31, valor_atualizado: 23600.04,
+        valor_atualizado_fonte: 'liquidacao', fase_atual: 'liquidacao' },
+      { id: 'b', resort: 'SPE LTDA', valor_pago: 26428.85, eh_fase_de: 'a', fase_atual: 'liquidacao' },
+    ];
+    expect(acoesProprias(acoes)).toHaveLength(1);
+    expect(acoesFases(acoes)).toHaveLength(1);
+    const r = buildLinhaCaso({ row: {}, info: {}, acoes, lc: { processos: [] }, hoje: HOJE });
+    expect(r.investimento.total).toBe(30052.31);          // nao soma os 26.428,85 da fase
+    expect(r.investimento.emDiscussao).toBe(23600.04);    // valor recalculado na liquidacao
+    expect(r.investimento.atualizadoPorFase).toBe(true);
+    expect(r.investimento.fases).toHaveLength(1);
+  });
+  it('chip de SISBAJUD com valor e mes do pedido', () => {
+    const r = buildLinhaCaso({ row: {}, info: {},
+      acoes: [{ id: 'a', resort: 'Ondas', valor_pago: 40000, sisbajud_valor: 61000, sisbajud_mes: '2026-05-01', fase_atual: 'sisbajud' }],
+      lc: { processos: [] }, hoje: HOJE });
+    expect(r.chips.some((c) => c.tipo === 'gold' && /SISBAJUD/.test(c.txt) && /05\/2026/.test(c.txt))).toBe(true);
+  });
+  it('pedido SISBAJUD entra na linha do tempo', () => {
+    const ev = buildEventos({
+      acoes: [{ id: 'a', resort: 'Ondas', valor_pago: 40000, sisbajud_valor: 61000, sisbajud_mes: '2026-05-01' }],
+      lc: { processos: [] }, hoje: HOJE });
+    expect(ev.some((e) => e.tipo === 'financeiro' && /SISBAJUD/.test(e.titulo) && e.data === '2026-05-01')).toBe(true);
+  });
+  it('telefone suspeito virou chip de alerta', () => {
+    const r = buildLinhaCaso({ row: {}, info: {}, acoes: [],
+      lc: { processos: [], telefones: [{ fone: '16981489703', principal: true }, { fone: '5540770276', suspeito: true }] },
+      hoje: HOJE });
+    expect(r.telefones).toHaveLength(2);
+    expect(r.chips.some((c) => /telefone\(s\) com n/.test(c.txt))).toBe(true);
   });
 });
