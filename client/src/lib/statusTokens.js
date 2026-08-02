@@ -92,6 +92,31 @@ export const PAID_STATUSES = byBucket('PAID');
 export const NEUTRAL_STATUSES = byBucket('NEUTRAL');
 export const REMOVED_STATUSES = byBucket('REMOVED');
 
+// (auditoria 01/08/2026 — item 248) Status "em aberto" = inadimplencia.
+export const OPEN_STATUSES = byBucket('OPEN');
+
+/**
+ * Filtro PostgREST canonico de inadimplencia, para uso com `.or(...)`.
+ *
+ * POR QUE EXISTE: InadimplenciaStrip, CobrancaPanel e RelatorioBoletosModal escreviam a
+ * MAO a mesma expressao (`status.eq.OVERDUE,status.eq.DUNNING_REQUESTED,and(...)`), cada
+ * uma com uma variacao. Quando o Asaas ganha um status novo, basta acrescenta-lo ao
+ * STATUS_TOKENS acima como bucket 'OPEN' e as tres telas passam a conta-lo — antes, o
+ * status novo entrava no mapa de exibicao e continuava FORA das consultas, que e
+ * exatamente a divergencia silenciosa que o funil sofreu antes da fonte unica.
+ *
+ * O ramo `and(status.eq.PENDING,due_date.lt.HOJE)` existe porque o Asaas demora a virar
+ * PENDING -> OVERDUE: olhar so o status esconde inadimplente cujo vencimento ja passou.
+ *
+ * @param {string} hoje data de hoje em 'YYYY-MM-DD' (use ymdLocal(), nunca UTC)
+ */
+export function filtroInadimplencia(hoje) {
+  const diretos = OPEN_STATUSES
+    .filter((s) => s !== 'PENDING')      // PENDING entra so com vencimento passado
+    .map((s) => `status.eq.${s}`);
+  return [...diretos, `and(status.eq.PENDING,due_date.lt.${hoje})`].join(',');
+}
+
 export const pagamentoBucket = (status) => STATUS_TOKENS.pagamento[status]?.bucket || 'OPEN';
 export const isPaidStatus = (s) => pagamentoBucket(s) === 'PAID';
 export const isNeutralStatus = (s) => pagamentoBucket(s) === 'NEUTRAL';

@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { getSignedDate } from './compute';
 import { buildAssinadosReportHtml } from '../../utils/relatorioAssinadosHtml';
 import { downloadPdf } from '../../utils/pdfGenerator';
+import { fetchAllPaged } from '../../utils/supabasePaged';
 
 // Date -> 'YYYY-MM-DD' no fuso local (formato do <input type="date">)
 function toInputDate(d) {
@@ -41,11 +42,15 @@ export default function RelatorioAssinadosModal({ initialStart = null, initialEn
     }
     setGerando(true);
     try {
-      const { data, error } = await supabase
+      // (auditoria 01/08 — item 223) Sem paginacao o PostgREST corta em 1000 linhas e o
+      // PDF de assinados passaria a OMITIR clientes assim que a base crescesse — sem erro
+      // e sem marca no relatorio. Ordem total: created_at + id.
+      const data = await fetchAllPaged(() => supabase
         .from('contratos')
         .select(SELECT_COLS)
-        .eq('status', 'assinado');
-      if (error) throw error;
+        .eq('status', 'assinado')
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }));
 
       const start = inicio ? new Date(`${inicio}T00:00:00`) : null;
       const end = fim ? new Date(`${fim}T23:59:59.999`) : null;

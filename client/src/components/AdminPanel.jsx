@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabase';
 import { SkeletonAdmin } from './Skeleton';
 // (resilience 28/04) Cache offline IndexedDB
 import { clearCache as clearContractsCache } from '../utils/contractsCache';
+// (auditoria 01/08/2026 — item 266) a caixa cinza do `alert()` do navegador trava a tela
+// inteira, sai do visual do app e nao diz de onde veio. O toast oficial ja existe.
+import { useToast } from './Toast';
 import {
   PlusIcon,
   DocumentTextIcon,
@@ -45,13 +48,27 @@ function UserRow({ user, onUpdate, vendedoras }) {
   const [perfilVendas, setPerfilVendas] = useState(user.perfil_vendas || '');
   const [vendedoraParceira, setVendedoraParceira] = useState(user.vendedora_parceira_email || '');
   const [savingVendas, setSavingVendas] = useState(false);
+  const [erroPermissao, setErroPermissao] = useState(''); // (item 199)
 
   const toggle = async (tabKey) => {
+    // (auditoria 01/08 — item 199) A versao anterior marcava o quadradinho na hora e
+    // IGNORAVA o resultado da gravacao: se o banco recusasse (RLS, rede, sessao expirada),
+    // o admin saia da tela convencido de que concedeu — ou revogou — um acesso que
+    // continuava exatamente como estava. Agora, se falhar, o estado volta atras e o erro
+    // aparece na tela.
+    const anterior = tabs;
     const newTabs = { ...tabs, [tabKey]: !tabs[tabKey] };
     setTabs(newTabs);
     setSaving(true);
-    await supabase.from('user_permissions').update({ tabs: newTabs, updated_at: new Date().toISOString() }).eq('id', user.id);
+    setErroPermissao('');
+    const { error } = await supabase.from('user_permissions')
+      .update({ tabs: newTabs, updated_at: new Date().toISOString() }).eq('id', user.id);
     setSaving(false);
+    if (error) {
+      setTabs(anterior);
+      setErroPermissao(`Nao foi possivel salvar a permissao "${tabKey}": ${error.message}`);
+      return;
+    }
     if (onUpdate) onUpdate();
   };
 
@@ -104,6 +121,13 @@ function UserRow({ user, onUpdate, vendedoras }) {
               style={{ background: 'var(--cbc-info-bg, #EDE9FE)', color: 'var(--cbc-info, #6D28D9)' }}>ADMIN</span>
           )}
           {saving && <span className="text-[11px] animate-pulse ml-1" style={{ color: 'var(--cbc-info, #2563EB)' }}>Salvando...</span>}
+          {/* (item 199) falha de gravacao precisa APARECER — antes o admin achava que
+              tinha concedido/revogado um acesso que continuou como estava */}
+          {erroPermissao && (
+            <span role="alert" className="text-[11px] ml-1 font-semibold" style={{ color: 'var(--cbc-danger, #DC2626)' }}>
+              {erroPermissao}
+            </span>
+          )}
         </td>
       </tr>
       {/* NOVA SECAO: Equipe de Vendas — mini-form em cada linha */}
@@ -128,7 +152,7 @@ function UserRow({ user, onUpdate, vendedoras }) {
                   color: 'var(--cbc-text-primary, #111827)',
                 }}
               >
-                <option value="">— Nao participa —</option>
+                <option value="">— Não participa —</option>
                 <option value="vendedora">Vendedora</option>
                 <option value="assistente">Assistente</option>
               </select>
@@ -225,6 +249,7 @@ function AddUserModal({ onClose, onAdded }) {
 }
 
 export default function AdminPanel() {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -310,11 +335,11 @@ export default function AdminPanel() {
             try {
               localStorage.removeItem('cbc-supabase-health-history');
             } catch { /* ignore */ }
-            alert('Cache local de contratos e historico Supabase removidos.');
+            toast.success('Cache local de contratos e historico Supabase removidos.');
           }}
           className="px-3 py-1.5 text-[10px] font-bold uppercase rounded-lg cursor-pointer border hover:bg-gray-50 dark:hover:bg-gray-800"
           style={{ borderColor: 'var(--cbc-border, #E5E7EB)', color: 'var(--cbc-text-muted, #6B7280)' }}
-          title="Remove os contratos salvos offline (IndexedDB) e o historico do monitor Supabase"
+          title="Remove os contratos salvos offline (IndexedDB) e o histórico do monitor Supabase"
         >
           Limpar cache local
         </button>

@@ -8,6 +8,8 @@ import { logAdvbox } from './_lib/botDb.mjs';
 // testada em vitest — antes havia uma 2a copia no client que divergiu (bug Revisao de Distrato).
 import { getOrigemId, getTipoAcaoId } from './_lib/advboxMaps.mjs';
 import { moveLeadStage, postNote } from './_lib/kommo.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
 const ADVBOX_TOKEN = process.env.ADVBOX_TOKEN;
 const ADVBOX_URL = 'https://app.advbox.com.br/api/v1';
@@ -87,26 +89,16 @@ function formatCEP(cep) {
   return clean;
 }
 
-async function findCustomerByCPF(cpf) {
-  const clean = (cpf || '').replace(/\D/g, '');
-  if (clean.length !== 11) return null;
-  try {
-    // (perf-be-6 / integ-6) busca DIRETA por CPF (?identification) em vez de baixar
-    // a lista inteira de clientes do ADVBOX — antes isso ficava lento e gastava cota
-    // conforme a base crescia, e podia travar o retro/retry em "error" numa base grande.
-    const resp = await fetch(`${ADVBOX_URL}/customers?identification=${encodeURIComponent(clean)}&limit=5`, {
-      headers: HEADERS, signal: AbortSignal.timeout(15000),
-    });
-    if (!resp.ok) return null;
-    const result = await resp.json();
-    const list = result.data || result.customers || (Array.isArray(result) ? result : []);
-    const match = list.find(c => (c.identification || '').replace(/\D/g, '') === clean) || list[0];
-    if (match) return { id: match.id, name: match.name, existing: true };
-  } catch { /* ignore */ }
-  return null;
-}
-
-// (PJ 25/06) busca cliente por CPF (11) OU CNPJ (14) — generaliza findCustomerByCPF.
+// (auditoria 01/08 — item 102) A antiga `findCustomerByCPF` foi REMOVIDA daqui: era
+// byte a byte a mesma coisa que a funcao abaixo, mudando so o tamanho aceito do
+// documento, e nao era chamada por ninguem desde que o suporte a PJ entrou (25/06).
+// Manter as duas era risco real: bastava alguem usar a versao antiga para o fluxo de
+// Cliente Empresa parar de encontrar o cadastro (CNPJ tem 14 digitos, ela so aceitava 11).
+//
+// (perf-be-6 / integ-6) busca DIRETA por documento (?identification) em vez de baixar a
+// lista inteira de clientes do ADVBOX — antes ficava lento e gastava cota conforme a base
+// crescia, e podia travar o retry em "error" numa base grande.
+// (PJ 25/06) aceita CPF (11) OU CNPJ (14).
 async function findCustomerByIdentification(idClean) {
   const clean = (idClean || '').replace(/\D/g, '');
   if (clean.length !== 11 && clean.length !== 14) return null;
@@ -213,7 +205,17 @@ const USER_MAP = {
 function getResponsavelId(email) {
   if (!email) return RESPONSAVEL_PADRAO;
   const lower = email.toLowerCase();
-  return USER_MAP[lower] || RESPONSAVEL_PADRAO;
+  const id = USER_MAP[lower];
+  if (id) return id;
+  // (auditoria 01/08 — item 117) Quem NAO esta no mapa caia silenciosamente no Paulo.
+  // Vendedor novo entrava no escritorio e TODOS os processos dele iam para o responsavel
+  // padrao — e ninguem descobria, porque o fluxo terminava "com sucesso". O processo
+  // continua sendo criado (nunca travar a assinatura de um contrato por causa disso),
+  // mas agora o desvio fica registrado no Monitor para ser corrigido no mapa.
+  logAdvbox('advbox', 'aviso',
+    `E-mail "${lower}" nao esta no mapa de usuarios do ADVBOX — processo atribuido ao responsavel padrao. Incluir no USER_MAP de advbox-sync.mjs.`,
+    { email: lower, responsavel_usado: RESPONSAVEL_PADRAO }).catch(() => {});
+  return RESPONSAVEL_PADRAO;
 }
 
 async function createLawsuit(customerIds, tipoAcao, dataFechamento, dataCadastro, honorarios, responsavelEmail, observacoes, resort, contratantes, linkGoogleDrive) {
@@ -314,7 +316,11 @@ function montarResumoNota({ resort, tipo, honorarios, escritorioArcaCustas, cont
   return linhas.join('\n');
 }
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('advbox-sync', async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 200, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' } });
   }
@@ -324,7 +330,7 @@ export default async (req) => {
     const tipo = tipoAcao === 'outro' ? tipoAcaoCustom : tipoAcao;
     const resort = rawResort === 'outro' ? resortCustom : rawResort;
     // Data de fechamento = data que assinou no ZapSign
-    const dataFechamento = dataAssinatura || new Date().toISOString().split('T')[0];
+    const dataFechamento = dataAssinatura || diaBrt();
     // Data de cadastro = data da primeira mensagem do cliente
     const dataCadastro = dataPrimeiraMensagem || null;
     const num = numContratantes || 1;
@@ -442,6 +448,6 @@ export default async (req) => {
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   }
-};
+}, { origem: 'advbox' });
 
 export const config = { path: '/.netlify/functions/advbox-sync' };

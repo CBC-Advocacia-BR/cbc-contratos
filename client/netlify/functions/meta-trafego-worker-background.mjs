@@ -72,7 +72,9 @@ export default async (req) => {
 
     let alertas = null;
     if (modo === 'diario') {
-      try { alertas = await rodarAlertas(); }
+      // (item 235) passa o que a rodada gravou: 'gravou 0 linhas' e o sinal mais direto
+      // de espelho quebrado, e nao da para deduzir isso so olhando a serie.
+      try { alertas = await rodarAlertas(totais); }
       catch (e) { alertas = { erro: e.message }; }
       await heartbeat('meta-trafego-sync').catch(() => {});
     }

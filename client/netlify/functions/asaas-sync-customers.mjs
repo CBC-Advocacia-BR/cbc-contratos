@@ -8,6 +8,7 @@
  */
 import { customerRow, customersUpsert } from './_lib/asaasMirror.mjs';
 import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { verificarGatilho, respostaNegada } from './_lib/gatilho.mjs';
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY;
 const ASAAS_URL = 'https://api.asaas.com/v3';
@@ -53,7 +54,14 @@ async function runFullSync() {
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS });
-  const isScheduled = req.headers.get('x-netlify-event') === 'schedule' || req.method === 'GET';
+  // (auditoria 01/08 — item 9) ANTES: `|| req.method === 'GET'` fazia QUALQUER acesso
+  // pelo navegador ser tratado como "veio do agendador" — e o bloco de checagem de chave
+  // abaixo era pulado. Bastava abrir a URL para disparar o robo (aqui, inclusive
+  // backfills que consomem cota paga de API de terceiros). Agora: ou vem do agendador
+  // da Netlify (cabecalho x-netlify-event), ou apresenta a BOT_PANEL_KEY.
+  const gatilho = verificarGatilho(req, { agendada: true });
+  if (!gatilho.ok) return respostaNegada(gatilho);
+  const isScheduled = gatilho.origem === 'cron';
   try {
     if (isScheduled) {
       const stats = await runFullSync();

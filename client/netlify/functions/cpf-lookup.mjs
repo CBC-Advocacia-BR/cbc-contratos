@@ -48,6 +48,13 @@ export default async (req) => {
     // A API devolve o codigo em "erroCodigo" (com "erro" = texto); os outros dois
     // formatos ficam por compatibilidade.
     if (data?.erroCodigo === 1001 || data?.['cod-erro'] === 1001 || data?.erro === 1001) {
+      // (auditoria 01/08 — item 138) Sem credito a consulta simplesmente PARA de
+      // preencher o formulario, e o efeito na tela e identico a "esse CPF nao tem dados".
+      // Ninguem descobre ate alguem estranhar que o auto-preenchimento morreu.
+      // Agora vira registro no Monitor — a recarga do pacote deixa de depender de acaso.
+      await logAdvbox('cpf', 'erro',
+        'API de CPF SEM CREDITOS: o preenchimento automatico do formulario parou de funcionar. Recarregar o pacote em cpfcnpj.com.br.',
+        { pacote: CPF_PACOTE }).catch(() => {});
       return json({ valid: true, nome: '', error: 'SEM_CREDITOS' });
     }
     if (!data || data.status === 0 || !data.nome) {

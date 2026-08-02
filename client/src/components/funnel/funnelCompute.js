@@ -5,6 +5,9 @@
 
 // (fix funil 28/07/2026) deteccao de campanha de RH: fonte unica, a mesma da aba Trafego.
 import { isCampanhaRh } from '../../../netlify/functions/_lib/metaAds.mjs';
+// (auditoria — item 230) mes LOCAL (BRT) a partir da string ISO do banco. Nunca usar
+// slice(0,7) direto: call das 21h do dia 31 cairia no mes seguinte (o banco devolve UTC).
+import { ymOf as mesLocalDe } from '../../utils/format.js';
 
 /** contrato "ativo" no funil: nao cancelado e nao arquivado */
 const ativoNoFunil = (c) => c.status !== 'cancelado' && !c.arquivado_em;
@@ -85,13 +88,36 @@ export function computeFunnel(contratos, now = new Date(), videochamadas = [], m
       gastoTotal += gasto;
     }
     const mesesMeta = Object.values(porMesMeta).sort((a, b) => a.mes.localeCompare(b.mes));
+
+    // (auditoria 01/08/2026 — item 230) A conversao lead -> videochamada precisa comparar
+    // JANELAS IGUAIS. Os leads da Meta comecam em jul/2024; as videochamadas so existem a
+    // partir do backfill da agenda (mar/2025). Dividir TODAS as calls por TODOS os leads
+    // colocava ~1.900 leads (R$ 36 mil de investimento) no denominador sem nenhuma call
+    // possivel no numerador: a tela mostrava 24,4% quando o numero comparavel e 29,0%.
+    // Regra: o percentual so considera os meses em que as DUAS fontes existem.
+    const mesesComCall = new Set(vcAconteceram.map((v) => mesLocalDe(v.scheduled_at)).filter(Boolean));
+    const primeiroMesCall = [...mesesComCall].sort()[0] || null;
+    const leadsNaJanela = primeiroMesCall
+      ? mesesMeta.filter((m) => m.mes >= primeiroMesCall).reduce((s, m) => s + m.leads, 0)
+      : 0;
+    const callsNaJanela = primeiroMesCall
+      ? vcAconteceram.filter((v) => (mesLocalDe(v.scheduled_at) || '') >= primeiroMesCall).length
+      : 0;
+    const mesesForaDaJanela = primeiroMesCall
+      ? mesesMeta.filter((m) => m.mes < primeiroMesCall).length
+      : mesesMeta.length;
+
     leadsMeta = {
       total: totalLeads,
       gasto: gastoTotal,
       cpl: totalLeads > 0 ? gastoTotal / totalLeads : null,
       meses: mesesMeta,
       desde: mesesMeta[0]?.mes || null,
-      pctAgendada: totalLeads > 0 ? pct(vcAconteceram.length, totalLeads) : null,
+      pctAgendada: leadsNaJanela > 0 ? pct(callsNaJanela, leadsNaJanela) : null,
+      // janela em que a comparacao lead -> call e legitima (as duas fontes existem)
+      janelaComparavel: primeiroMesCall
+        ? { desde: primeiroMesCall, leads: leadsNaJanela, calls: callsNaJanela, mesesIgnorados: mesesForaDaJanela }
+        : null,
     };
   }
 
@@ -154,5 +180,52 @@ export function computeFunnel(contratos, now = new Date(), videochamadas = [], m
       lista: travadosList.slice(0, 12),
     },
     tendencia,
+  };
+}
+
+/**
+ * (auditoria 01/08/2026 — item 239) Resumo do SLA de 1a resposta ao lead.
+ *
+ * A `vw_funil_sla` ja vem agregada POR DIA. Aqui as diarias viram um retrato do
+ * periodo. Detalhe que muda o numero: a mediana do periodo NAO e a media das
+ * medianas diarias (dia com 2 leads pesaria igual a dia com 40) — sem as linhas
+ * cruas, o mais honesto e a media PONDERADA pelos leads atendidos, e o rotulo diz
+ * "tempo medio", nao "mediana".
+ *
+ * O que importa de verdade nao e o tempo: e `nuncaRespondidos`. Em 02/08 eram 75 de
+ * 217 leads (34,6%) que simplesmente nunca receberam resposta — perda que ate hoje
+ * so aparecia diluida como "conversao baixa".
+ */
+export function computeSla(linhas) {
+  const dias = (linhas || []).filter((d) => d && d.dia && Number(d.leads_com_conversa) > 0);
+  if (!dias.length) return null;
+
+  const leads = dias.reduce((s, d) => s + (Number(d.leads_com_conversa) || 0), 0);
+  const atendidos = dias.reduce((s, d) => s + (Number(d.atendidos) || 0), 0);
+  const engajaram = dias.reduce((s, d) => s + (Number(d.engajaram) || 0), 0);
+
+  const ponderada = (campo) => {
+    let peso = 0;
+    let soma = 0;
+    for (const d of dias) {
+      const v = Number(d[campo]);
+      const n = Number(d.atendidos) || 0;
+      if (Number.isFinite(v) && n > 0) { soma += v * n; peso += n; }
+    }
+    return peso > 0 ? soma / peso : null;
+  };
+
+  return {
+    dias: dias.length,
+    desde: dias.map((d) => String(d.dia)).sort()[0],
+    leads,
+    atendidos,
+    nuncaRespondidos: Math.max(0, leads - atendidos),
+    pctAtendidos: pct(atendidos, leads),
+    pctNuncaRespondidos: pct(Math.max(0, leads - atendidos), leads),
+    minutosAteResponder: ponderada('sla_mediano_min'),
+    minutosAteHumano: ponderada('sla_humano_mediano_min'),
+    engajaram,
+    pctEngajou: pct(engajaram, atendidos),
   };
 }

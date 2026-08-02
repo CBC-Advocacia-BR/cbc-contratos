@@ -47,8 +47,15 @@ export function useNotifications(userEmail) {
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'notifications', filter: `user_email=eq.${userEmail}` },
         (payload) => {
-          setItems(prev => prev.map(n => n.id === payload.new.id ? payload.new : n));
-          load();
+          // (auditoria 01/08 — item 179) O payload do UPDATE JA traz a linha nova; o
+          // load() extra recarregava 100 linhas do banco a cada evento. Ao clicar em
+          // "marcar todas como lidas", N notificacoes viravam N recargas completas.
+          // O contador de nao lidas e recalculado a partir da propria lista.
+          setItems(prev => {
+            const lista = prev.map(n => n.id === payload.new.id ? payload.new : n);
+            setUnread(lista.filter(n => !n.read_at).length);
+            return lista;
+          });
         })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

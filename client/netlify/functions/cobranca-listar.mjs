@@ -6,6 +6,7 @@
  */
 import { db, getConfig, logAdvbox } from './_lib/botDb.mjs';
 import { avaliarElegibilidade } from './_lib/cobranca.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || '';
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
@@ -23,7 +24,7 @@ export default async (req) => {
     const { data, error } = await db.rpc('cobranca_inadimplentes', { p_chave: RPC_SECRET });
     if (error) throw new Error(error.message);
 
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = diaBrt();
     const resumo = { total: 0, elegiveis: 0, por_match: {} };
     const lista = (data || []).map((d) => {
       const el = avaliarElegibilidade(d, cfg, hoje);

@@ -58,10 +58,32 @@ async function jaTemNota(leadId, marker) {
   // (#L16) teto elevado 8->40 paginas (2k->10k notas): leads muito ativos passavam
   // do limite antigo e re-postavam. O early-exit (notes.length < 250) ja encerra cedo
   // na grande maioria; o teto e so trava de seguranca contra loop infinito.
+  // (auditoria 01/08 — item 94) Duas travas que faltavam nesta varredura:
+  //  a) ORCAMENTO DE TEMPO: 40 paginas de 250 notas podem sozinhas estourar o limite da
+  //     function num lead muito antigo. Passado o orcamento, paramos e deixamos a decisao
+  //     para o caller — com registro, nunca em silencio.
+  //  b) BLOQUEIO 429: o Kommo devolve "muitas requisicoes" e o codigo tratava como erro
+  //     definitivo, abortando a checagem (e arriscando nota duplicada, que o Kommo nao
+  //     deixa apagar). Agora espera e tenta a MESMA pagina de novo.
+  const prazoFinal = Date.now() + 12000;
+  let tentativas429 = 0;
   for (let page = 1; page <= 40; page++) {
+    if (Date.now() > prazoFinal) {
+      // LANCA (nao retorna false!): o caller trata excecao como "checagem indisponivel"
+      // e NAO posta. Retornar false aqui significaria "nao existe nota" e a nota seria
+      // postada — podendo virar DUPLICATA permanente, ja que o Kommo nao deixa apagar.
+      throw new Error(`checagem de duplicidade sem tempo habil (parou na pagina ${page} do lead ${leadId})`);
+    }
     const r = await fetch(`${KOMMO_BASE}/leads/${leadId}/notes?limit=250&page=${page}&order[id]=desc`, {
       headers: { 'Authorization': `Bearer ${KOMMO_TOKEN}` },
+      signal: AbortSignal.timeout(10000),
     });
+    if (r.status === 429 && tentativas429 < 2) {
+      tentativas429++;
+      await new Promise((res) => setTimeout(res, 3000 * tentativas429));
+      page--;               // repete a MESMA pagina
+      continue;
+    }
     if (r.status === 204) return false; // lead sem (mais) notas
     if (!r.ok) throw new Error(`GET notes HTTP ${r.status}`);
     const d = await r.json();

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useContract } from '../ContractContext';
 import { formatCurrency } from '../utils/extenso';
 import { validateCNPJ } from '../utils/validation';
+import { useModalEscape } from '../hooks/useModalEscape';
 import {
   CheckIcon,
   XMarkIcon,
@@ -80,6 +81,8 @@ function CheckItem({ label, status, detail, severity = 'error' }) {
 }
 
 export default function PreSendChecklist({ issues, onProceed, onClose }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const { data } = useContract();
   const [emailChecks, setEmailChecks] = useState({});
   const [cepChecks, setCepChecks] = useState({});
@@ -246,7 +249,7 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
             /* ─── Revisão Final Obrigatória ─── */
             <div className="space-y-3">
               <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 text-center mb-2">
-                Revisao Final — Confira todos os dados
+                Revisão Final — Confira todos os dados
               </div>
 
               {/* Contratante 1 */}
@@ -258,8 +261,8 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
                   <div><span className="text-gray-400">RG:</span> <strong>{reviewData.c1.rg}</strong></div>
                   <div><span className="text-gray-400">Email:</span> <strong>{reviewData.c1.email}</strong></div>
                   <div><span className="text-gray-400">Celular:</span> <strong>{reviewData.c1.telefone}</strong></div>
-                  <div><span className="text-gray-400">Profissao:</span> <strong>{reviewData.c1.profissao}</strong></div>
-                  <div className="col-span-2"><span className="text-gray-400">Endereco:</span> <strong>{reviewData.c1.endereco}{reviewData.c1.numero ? `, ${reviewData.c1.numero}` : ''} — {reviewData.c1.cidade}/{reviewData.c1.uf}</strong></div>
+                  <div><span className="text-gray-400">Profissão:</span> <strong>{reviewData.c1.profissao}</strong></div>
+                  <div className="col-span-2"><span className="text-gray-400">Endereço:</span> <strong>{reviewData.c1.endereco}{reviewData.c1.numero ? `, ${reviewData.c1.numero}` : ''} — {reviewData.c1.cidade}/{reviewData.c1.uf}</strong></div>
                 </div>
               </div>
 
@@ -281,12 +284,12 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
                 <div className="text-[9px] font-bold uppercase tracking-wide text-gray-400 mb-2">Contrato</div>
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                   <div><span className="text-gray-400">Resort:</span> <strong>{reviewData.resort}</strong></div>
-                  <div><span className="text-gray-400">Acao:</span> <strong>{reviewData.tipo}</strong></div>
+                  <div><span className="text-gray-400">Ação:</span> <strong>{reviewData.tipo}</strong></div>
                   {!reviewData.h.somenteExito && (
-                    <div><span className="text-gray-400">Honorarios:</span> <strong>{formatCurrency(reviewData.h.total)} em {reviewData.h.parcelas}x</strong></div>
+                    <div><span className="text-gray-400">Honorários:</span> <strong>{formatCurrency(reviewData.h.total)} em {reviewData.h.parcelas}x</strong></div>
                   )}
                   {!reviewData.h.somenteIniciais && (
-                    <div><span className="text-gray-400">Exito:</span> <strong>{reviewData.h.percentualExito}%</strong></div>
+                    <div><span className="text-gray-400">Êxito:</span> <strong>{reviewData.h.percentualExito}%</strong></div>
                   )}
                 </div>
               </div>

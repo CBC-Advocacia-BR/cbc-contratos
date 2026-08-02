@@ -141,8 +141,24 @@ export default async (req) => {
             const job = await enqueueKommo('assinatura_send',
               { leadId: String(g.leadId), fieldId, value: mensagem, botId },
               { source: 'assinatura', priority: 2, dedupeKey: `assinatura:${contratoId}:${g.leadId}` });
-            await drainNow(job.id); // envia agora; se falhar transitorio, o worker da fila entrega
-            leads.push({ leadId: g.leadId, contratantes: nomes, resultado: 'enviado', sent_at: new Date().toISOString(), last_msg_at: lastIso });
+            const envio = await drainNow(job.id); // envia agora; se falhar transitorio, o worker da fila entrega
+            if (envio?.ok === false && String(envio.error || '').includes('KOMMO_TRUNCOU')) {
+              // (31/07) o Kommo persistiu o campo diferente do enviado (truncamento
+              // silencioso no 1o emoji fora do BMP) e o Salesbot NAO rodou. E um erro
+              // deterministico: re-tentar so repetiria o corte — tira o job da fila e
+              // cai no mesmo fluxo manual do fora_janela (nota + faixa M2 na UI).
+              await db.from('kommo_queue')
+                .update({ status: 'failed', last_error: String(envio.error).slice(0, 400), updated_at: new Date().toISOString() })
+                .eq('id', job.id).eq('status', 'pending');
+              const linksTxt = g.itens.map((i) => `• ${i.nome}: ${i.link}`).join('\n');
+              const texto = ['✍️ Contrato enviado para assinatura — link NAO foi ao WhatsApp',
+                'O Kommo cortou o texto do campo (a mensagem sairia sem o link) e o disparo foi bloqueado.',
+                'Envie o link manualmente por esta conversa:', linksTxt].join('\n');
+              await postNote(g.leadId, `CBC.assinatura.manual:${contratoId}`, texto);
+              leads.push({ leadId: g.leadId, contratantes: nomes, resultado: 'falha_envio', erro: String(envio.error).slice(0, 200), last_msg_at: lastIso });
+            } else {
+              leads.push({ leadId: g.leadId, contratantes: nomes, resultado: 'enviado', sent_at: new Date().toISOString(), last_msg_at: lastIso });
+            }
           } else {
             // Fora da janela: NAO envia e NAO re-tenta (decisao Paulo 02/07).
             // Nota interna (idempotente) com os links p/ o vendedor mandar manualmente.
@@ -173,11 +189,27 @@ export default async (req) => {
     await heartbeat('kommo-assinatura', status !== 'erro', resumo);
     return json({ ok: true, status, leads });
   } catch (e) {
-    // Nunca deixa o lock orfao em 'processando': grava o erro no contrato.
+    // (auditoria 01/08 — item 127) Erro de INFRAESTRUTURA nao pode consumir o disparo
+    // unico. A versao anterior gravava `status: 'erro'` em qualquer falha — inclusive um
+    // 500 momentaneo do Kommo ou um timeout de rede na checagem da janela de 24h. Como o
+    // lock so libera quando `kommo_assinatura` e NULL, aquele contrato nunca mais seria
+    // tentado, e o cliente ficava sem o link sem ninguem saber.
+    // Agora: falha passageira LIBERA o lock (volta a NULL) para a proxima tentativa —
+    // manual ou pelo proximo salvamento. Erro de configuracao/decisao (ex.: contrato sem
+    // link do Kommo) continua gravado, porque re-tentar nao mudaria o resultado.
+    const msg = String(e?.message || e);
+    const passageiro = /timeout|fetch failed|network|ECONN|socket|HTTP 5\d\d|502|503|504/i.test(msg);
     try {
       await db.from('contratos').update({
-        kommo_assinatura: { status: 'erro', checked_at: new Date().toISOString(), leads: [], erro: String(e.message || e).slice(0, 300) },
+        kommo_assinatura: passageiro
+          ? null
+          : { status: 'erro', checked_at: new Date().toISOString(), leads: [], erro: msg.slice(0, 300) },
       }).eq('id', contratoId).eq('kommo_assinatura->>status', 'processando');
+      if (passageiro) {
+        await logAdvbox('kommo', 'aviso',
+          `assinatura contrato ${contratoId}: falha passageira (${msg.slice(0, 120)}) — lock LIBERADO para nova tentativa`,
+          { contratoId });
+      }
     } catch { /* best-effort */ }
     await logAdvbox('kommo', 'erro', `kommo-assinatura-send ${contratoId}: ${e.message}`.slice(0, 300), {});
     await heartbeat('kommo-assinatura', false, e.message);

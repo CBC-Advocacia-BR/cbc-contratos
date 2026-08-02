@@ -470,6 +470,107 @@ export function avaliarAlertasTrafego(series, config = {}) {
   return alertas;
 }
 
+/** Config default das checagens de sanidade do espelho (bot_config['meta_trafego'].sanidade). */
+export const SANIDADE_DEFAULT = { ativo: true, gasto_mult: 10, gasto_min_dia: 50, dias_buraco: 2 };
+
+/**
+ * (auditoria 01/08/2026 — item 235) Checagem de SANIDADE DO DADO, nao do negocio.
+ *
+ * Os alertas de `avaliarAlertasTrafego` olham a campanha ("CPL dobrou", "leads cairam").
+ * Nenhum deles olha o ESPELHO. E o modo de falha mais perigoso da aba Tráfego é justamente
+ * esse: se o sync parar de gravar, a tela nao mostra erro nenhum — ela mostra ZERO gasto e
+ * ZERO leads, que e visualmente identico a um dia fraco de campanha. Alguem olha, conclui
+ * "a campanha esfriou", e mexe no orcamento por causa de um dado que nao existe.
+ *
+ * Regras (todas baratas, sobre a serie que os alertas ja carregam):
+ *   - espelho_vazio: a rodada nao gravou nenhuma linha diaria;
+ *   - espelho_parado: o dia mais recente da serie e mais velho que o esperado;
+ *   - buraco_serie: faltam dias no meio da serie (sync falhou naquele dia e ninguem viu);
+ *   - gasto_absurdo: gasto de um dia N vezes a mediana (tipico de gravacao duplicada);
+ *   - lead_sem_gasto / gasto_sem_lead ja tem alerta de negocio — aqui so o caso impossivel
+ *     (leads > 0 com gasto exatamente 0 na conta inteira, que indica insight truncado).
+ *
+ * `resumo` = { diario } com o que a rodada acabou de gravar (opcional).
+ * Retorna [] quando a serie e curta demais: falta de dado historico nao e incidente.
+ */
+export function avaliarSanidadeEspelho(series, hojeBrt, resumo = null, config = {}) {
+  const cfg = { ...SANIDADE_DEFAULT, ...config };
+  if (!cfg.ativo) return [];
+  const problemas = [];
+  const conta = [...(series?.conta || [])]
+    .filter((d) => d && d.dia)
+    .sort((a, b) => String(a.dia).localeCompare(String(b.dia)));
+
+  // 1) a rodada nao gravou nada
+  if (resumo && Number(resumo.diario) === 0) {
+    problemas.push({
+      tipo: 'espelho_vazio',
+      mensagem: 'O sync da Meta rodou e nao gravou NENHUMA linha diaria — a aba Trafego vai mostrar zero como se fosse dia sem campanha.',
+    });
+  }
+
+  if (!conta.length) {
+    problemas.push({ tipo: 'espelho_parado', mensagem: 'O espelho da Meta esta VAZIO no periodo consultado.' });
+    return problemas;
+  }
+
+  const diasEntre = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400000);
+
+  // 2) espelho parado — o mais recente e velho demais (a serie vai ate ONTEM por definicao)
+  const ultimo = conta[conta.length - 1].dia;
+  const atraso = hojeBrt ? diasEntre(String(ultimo), String(hojeBrt)) : null;
+  if (Number.isFinite(atraso) && atraso > cfg.dias_buraco + 1) {
+    problemas.push({
+      tipo: 'espelho_parado',
+      mensagem: `O ultimo dia com dado da Meta e ${ultimo} (${atraso} dias atras) — o espelho parou de atualizar.`,
+      valor: atraso,
+    });
+  }
+
+  // 3) buraco no meio da serie
+  const faltando = [];
+  for (let i = 1; i < conta.length; i++) {
+    const gap = diasEntre(String(conta[i - 1].dia), String(conta[i].dia));
+    if (gap > 1) faltando.push(`${conta[i - 1].dia} -> ${conta[i].dia}`);
+  }
+  if (faltando.length) {
+    problemas.push({
+      tipo: 'buraco_serie',
+      mensagem: `Faltam dias no espelho da Meta (${faltando.slice(0, 3).join(', ')}${faltando.length > 3 ? ` e mais ${faltando.length - 3}` : ''}) — os totais do periodo estao subestimados.`,
+      valor: faltando.length,
+    });
+  }
+
+  // 4) gasto absurdo em um dia (mediana, nao media: um dia louco nao contamina o proprio limite)
+  const gastos = conta.map((d) => Number(d.gasto) || 0).filter((g) => g > 0).sort((a, b) => a - b);
+  if (gastos.length >= 7) {
+    const meio = Math.floor(gastos.length / 2);
+    const mediana = gastos.length % 2 ? gastos[meio] : (gastos[meio - 1] + gastos[meio]) / 2;
+    const limite = mediana * cfg.gasto_mult;
+    const fora = conta.filter((d) => (Number(d.gasto) || 0) > limite && (Number(d.gasto) || 0) >= cfg.gasto_min_dia);
+    if (fora.length && mediana > 0) {
+      problemas.push({
+        tipo: 'gasto_absurdo',
+        mensagem: `Gasto de ${fora[0].dia} (R$ ${Math.round(Number(fora[0].gasto))}) e mais de ${cfg.gasto_mult}x a mediana do periodo (R$ ${Math.round(mediana)}) — provavel gravacao duplicada no espelho.`,
+        valor: Number(fora[0].gasto),
+        limite,
+      });
+    }
+  }
+
+  // 5) impossivel: a conta inteira registra leads com gasto zerado no mesmo dia
+  const impossivel = conta.filter((d) => (Number(d.leads) || 0) > 0 && (Number(d.gasto) || 0) === 0);
+  if (impossivel.length) {
+    problemas.push({
+      tipo: 'lead_sem_gasto',
+      mensagem: `${impossivel.length} dia(s) com leads e gasto ZERO (ex.: ${impossivel[0].dia}) — o insight da Meta veio incompleto; o custo por lead do periodo esta barato demais.`,
+      valor: impossivel.length,
+    });
+  }
+
+  return problemas;
+}
+
 /**
  * (v2 #104) Resumo semanal (segunda de manha): semana fechada vs anterior +
  * top campanhas por leads. RH/vagas fora. `series` = meta_trafego_series(14).

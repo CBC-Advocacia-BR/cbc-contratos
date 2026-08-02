@@ -33,6 +33,8 @@ import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 import { TIPOS_ACAO } from '../data/clausulas';
 import { processImport, checkAutomacaoRequisitos } from '../utils/importContrato';
 import { supabase } from '../lib/supabase';
+import { ymdLocal } from '../utils/format';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 // ─── Estado inicial ────────────────────────────────────────────
 const EMPTY_CONTRATANTE = {
@@ -52,8 +54,7 @@ const EMPTY_HONORARIOS = {
 };
 
 function todayISO() {
-  const d = new Date();
-  return d.toISOString().split('T')[0];
+  return ymdLocal();
 }
 
 // ─── Utils ─────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ function fmtBytes(bytes) {
 
 // ─── Componente principal ──────────────────────────────────────
 export default function ImportContratoModal({ onClose, onImported }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 
@@ -502,7 +505,7 @@ export default function ImportContratoModal({ onClose, onImported }) {
         {/* Header */}
         <div className="shrink-0 px-5 py-4 border-b border-white/40 flex items-center justify-between bg-white/40 backdrop-blur dark:bg-gray-900/40 dark:border-gray-700/40">
           <div>
-            <div className="text-base font-bold flex items-center gap-2" style={{ color: '#1B3A5C' }}>
+            <div className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
               <span aria-hidden="true">📥</span>
               Importar contrato assinado
             </div>
@@ -707,7 +710,7 @@ function Step1({
     <div className="space-y-5">
       {/* ── Contratante 1 ── */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#1B3A5C' }}>
+        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
           Contratante 1
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -826,7 +829,7 @@ function Step1({
 
       {/* ── Detalhes do contrato ── */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#1B3A5C' }}>
+        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
           Detalhes do contrato
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -857,7 +860,7 @@ function Step1({
             {showErr('resort') && <ErrText msg={errors.resort} />}
           </div>
           <div>
-            <label className={labelCls}>Tipo de acao *</label>
+            <label className={labelCls}>Tipo de ação *</label>
             <select
               value={tipoAcao}
               onChange={(e) => setTipoAcao(e.target.value)}
@@ -876,7 +879,7 @@ function Step1({
                 type="text"
                 value={tipoAcaoCustom}
                 onChange={(e) => setTipoAcaoCustom(e.target.value)}
-                placeholder="Tipo de acao"
+                placeholder="Tipo de ação"
                 className={`${inputCls('tipoAcao')} mt-2`}
               />
             )}
@@ -897,8 +900,8 @@ function Step1({
 
       {/* ── Honorarios ── */}
       <section>
-        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#1B3A5C' }}>
-          Honorarios *
+        <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
+          Honorários *
         </h3>
         <div className="flex flex-wrap gap-3 mb-3 text-[11px]">
           <label className="flex items-center gap-1.5 cursor-pointer">
@@ -917,7 +920,7 @@ function Step1({
               onChange={() => setHonorarios({ ...honorarios, modo: 'exito' })}
               className="accent-[#1B3A5C]"
             />
-            Apenas exito
+            Apenas êxito
           </label>
           <label className="flex items-center gap-1.5 cursor-pointer">
             <input
@@ -926,7 +929,7 @@ function Step1({
               onChange={() => setHonorarios({ ...honorarios, modo: 'iniciais_exito' })}
               className="accent-[#1B3A5C]"
             />
-            Iniciais + Exito
+            Iniciais + Êxito
           </label>
         </div>
 
@@ -947,7 +950,7 @@ function Step1({
                 {showErr('hon_total') && <ErrText msg={errors.hon_total} />}
               </div>
               <div>
-                <label className={labelCls}>Numero de parcelas</label>
+                <label className={labelCls}>Número de parcelas</label>
                 <input
                   type="number"
                   min="1"
@@ -962,7 +965,7 @@ function Step1({
                 <input
                   type="date"
                   value={honorarios.dataPrimeiraParcela}
-                  min={new Date().toISOString().slice(0, 10)}
+                  min={todayISO()}
                   onChange={(e) =>
                     setHonorarios({ ...honorarios, dataPrimeiraParcela: e.target.value })
                   }
@@ -971,7 +974,7 @@ function Step1({
                 {honorarios.dataPrimeiraParcela && (() => {
                   const today = new Date(); today.setHours(0, 0, 0, 0);
                   const due = new Date(honorarios.dataPrimeiraParcela + 'T12:00:00');
-                  if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data ja passou — Asaas rejeita</p>;
+                  if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data já passou — Asaas rejeita</p>;
                   return null;
                 })()}
               </div>
@@ -979,7 +982,7 @@ function Step1({
           )}
           {(honorarios.modo === 'exito' || honorarios.modo === 'iniciais_exito') && (
             <div>
-              <label className={labelCls}>Percentual exito (%)</label>
+              <label className={labelCls}>Percentual êxito (%)</label>
               <input
                 type="number"
                 min="0"
@@ -1038,13 +1041,13 @@ function Step1({
               onChange={(e) => setOrigemCliente(e.target.value)}
               className={inputCls('origem')}
             >
-              <option value="">Nao especificada</option>
+              <option value="">Não especificada</option>
               <option value="INSTAGRAM">Instagram</option>
               <option value="FORMULARIO">Formulario</option>
               <option value="ORGANICO">Organico</option>
               <option value="GOOGLE">Google</option>
               <option value="FACEBOOK">Facebook</option>
-              <option value="INDICACAO">Indicacao</option>
+              <option value="INDICACAO">Indicação</option>
               <option value="OUTROS">Outros</option>
             </select>
           </div>
@@ -1065,7 +1068,7 @@ function Step2({ anexos, handleFileUpload, removeAnexo, linkGoogleDrive, setLink
   return (
     <div className="space-y-5">
       <div className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed">
-        Anexos sao opcionais. Se voce ja possui o contrato e a procuracao em PDF, anexe-os abaixo
+        Anexos são opcionais. Se você já possui o contrato e a procuração em PDF, anexe-os abaixo
         para que possamos arquiva-los automaticamente no Google Drive.
       </div>
 
@@ -1110,7 +1113,7 @@ function Step2({ anexos, handleFileUpload, removeAnexo, linkGoogleDrive, setLink
       </div>
 
       <div className="text-[11px] text-gray-500 dark:text-gray-400 italic leading-snug border-l-2 border-gray-200 dark:border-gray-700 pl-2">
-        Se anexar PDFs e fornecer link da pasta, posso fazer upload automatico no Drive na etapa
+        Se anexar PDFs e fornecer link da pasta, posso fazer upload automático no Drive na etapa
         seguinte.
       </div>
     </div>
@@ -1192,8 +1195,8 @@ function Step3({ automacoes, setAutomacoes, requisitosOk }) {
   return (
     <div className="space-y-3">
       <div className="text-[11px] text-gray-600 dark:text-gray-400 leading-relaxed mb-2">
-        Selecione apenas as automacoes que deseja rodar agora. Cada item exige requisitos
-        especificos — quando faltar algo, o checkbox fica desabilitado.
+        Selecione apenas as automações que deseja rodar agora. Cada item exige requisitos
+        específicos — quando faltar algo, o checkbox fica desabilitado.
       </div>
 
       {items.map((item) => {
@@ -1304,7 +1307,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
                     ✓ {anexos.contratoPdf.name} ({fmtBytes(anexos.contratoPdf.size)})
                   </span>
                 ) : (
-                  <span className="text-gray-400">— nao anexado</span>
+                  <span className="text-gray-400">— não anexado</span>
                 )
               }
             />
@@ -1316,7 +1319,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
                     ✓ {anexos.procuracaoPdf.name} ({fmtBytes(anexos.procuracaoPdf.size)})
                   </span>
                 ) : (
-                  <span className="text-gray-400">— nao anexado</span>
+                  <span className="text-gray-400">— não anexado</span>
                 )
               }
             />
@@ -1326,7 +1329,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
                 data.linkGoogleDrive ? (
                   <span className="text-green-700 break-all">{data.linkGoogleDrive}</span>
                 ) : (
-                  <span className="text-gray-400">— nao informada</span>
+                  <span className="text-gray-400">— não informada</span>
                 )
               }
             />
@@ -1341,7 +1344,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
           <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700/40 text-blue-800 dark:text-blue-200 text-[11px]">
             <InformationCircleIcon className="w-4 h-4 shrink-0 mt-0.5" />
             Ao clicar em "Importar e processar", o contrato sera salvo no banco com flag
-            <strong className="mx-1">imported_manually=true</strong> e cada automacao acima sera
+            <strong className="mx-1">imported_manually=true</strong> e cada automação acima será
             disparada na sequencia.
           </div>
         </>
@@ -1350,8 +1353,8 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
       {/* Timeline de execucao */}
       {hasExec && (
         <div className="space-y-2">
-          <div className="text-xs font-bold uppercase tracking-wide" style={{ color: '#1B3A5C' }}>
-            Execucao
+          <div className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
+            Execução
           </div>
           {execSteps.map((s, i) => (
             <ExecLine
@@ -1376,7 +1379,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
               </div>
               {execSteps.some((s) => s.status === 'error') && (
                 <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-1">
-                  Algumas automacoes falharam — voce pode tentar novamente individualmente.
+                  Algumas automações falharam — você pode tentar novamente individualmente.
                 </div>
               )}
             </div>
@@ -1397,7 +1400,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
 function Card({ titulo, children }) {
   return (
     <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/40 p-3.5 space-y-1">
-      <div className="text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: '#1B3A5C' }}>
+      <div className="text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
         {titulo}
       </div>
       {children}
@@ -1431,7 +1434,7 @@ function AutoLine({ label, on }) {
       >
         {label}
       </span>
-      {!on && <span className="text-[9px] text-gray-400">(nao marcado)</span>}
+      {!on && <span className="text-[9px] text-gray-400">(não marcado)</span>}
     </div>
   );
 }

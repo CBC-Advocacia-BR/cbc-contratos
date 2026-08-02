@@ -13,6 +13,7 @@
  * Config em bot_config key 'regua': { ativo, notas, etapas:[1,7,15] }.
  */
 import { db, getConfig, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { fetchAllPaged } from './_lib/paged.mjs';
 import { postNote, setLeadField, runSalesbot } from './_lib/kommo.mjs';
 
 const digits = (s) => String(s || '').replace(/\D/g, '');
@@ -48,6 +49,11 @@ export default async () => {
       const ini = Math.floor(new Date(ontem.toISOString().slice(0, 10) + 'T00:00:00-03:00').getTime() / 1000);
       const fim = ini + 86400;
       let total = 0, page = 1;
+      // (auditoria 01/08 — item 107) O laco para na pagina 4 (1.000 eventos). Em dia
+      // movimentado o numero gravado em contatos_kommo_diario fica MENOR que a realidade
+      // e nada indicava o corte — a correlacao "mensagens x cobranca" ficava enviesada
+      // para baixo sem ninguem saber. `truncou` registra quando isso acontece.
+      let truncou = false;
       while (page <= 4) {
         const r = await fetch(`https://advocaciacbc.kommo.com/api/v4/events?filter[type]=incoming_chat_message&filter[created_at][from]=${ini}&filter[created_at][to]=${fim}&limit=250&page=${page}`,
           { headers: { 'Authorization': `Bearer ${process.env.KOMMO_TOKEN}` } });
@@ -58,6 +64,12 @@ export default async () => {
         total += n;
         if (n < 250) break;
         page++;
+        if (page > 4) truncou = true;   // (item 107) saiu por limite, nao por fim dos dados
+      }
+      if (truncou) {
+        await logAdvbox('kommo', 'aviso',
+          `Contagem de mensagens do dia atingiu o limite de 1.000 eventos — o total gravado (${total}) esta SUBESTIMADO`,
+          { dia: ontem.toISOString().slice(0, 10), total });
       }
       await db.from('contatos_kommo_diario').upsert({ dia: ontem.toISOString().slice(0, 10), mensagens: total });
       stats.contatos_kommo = total;
@@ -65,6 +77,8 @@ export default async () => {
   } catch (e) { await logAdvbox('portal', 'aviso', `contatos Kommo (correlação) indisponíveis: ${e.message}`, {}); }
 
   // 2) regua D+1/7/15 (uma etapa = boletos que venceram ha exatamente N dias)
+  // (item 89) cache do mapa CPF->lead: a consulta e a mesma para as 3 etapas.
+  const leadPorCpfCache = {};
   try {
     if (REGUA_COBRANCA_ATIVA) for (const dias of etapas) {
       const alvo = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10);
@@ -75,9 +89,16 @@ export default async () => {
       if (!lista.length) continue;
 
       // mapa CPF -> lead Kommo (via contratos.dados->contratantes.linkKommo)
-      const { data: cts } = await db.from('contratos')
-        .select('cpf_contratante1, cpf_contratante2, contratantes:dados->contratantes')
-        .is('arquivado_em', null).not('dados', 'is', null);
+      // (auditoria 01/08 — item 89) Dois defeitos aqui: (a) sem paginacao, o PostgREST
+      // cortava em 1000 linhas e os clientes de fora dessa fatia entravam como "sem
+      // lead" — nao recebiam a nota de cobranca, em silencio; (b) o mapa era remontado
+      // DENTRO do laco das etapas (D+1, D+7, D+15), refazendo a mesma consulta pesada
+      // tres vezes por rodada. Agora e paginado e montado UMA vez (ver `leadPorCpfCache`).
+      const cts = leadPorCpfCache.linhas || (leadPorCpfCache.linhas = await fetchAllPaged(() =>
+        db.from('contratos')
+          .select('cpf_contratante1, cpf_contratante2, contratantes:dados->contratantes')
+          .is('arquivado_em', null).not('dados', 'is', null)
+          .order('id')));
       const leadPorCpf = {};
       for (const ct of cts || []) {
         const link = (ct.contratantes || []).map(c => c?.linkKommo).find(Boolean);

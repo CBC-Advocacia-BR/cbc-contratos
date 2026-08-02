@@ -23,18 +23,34 @@ export default async () => {
   if (!ZAP_TOKEN) { await heartbeat('kommo-view-check', false, 'ZAPSIGN_TOKEN ausente'); return json({ error: 'missing env (zapsign)' }, 500); }
 
   // Contratos enviados ao ZapSign, ainda sem a nota "abriu" postada.
+  // (auditoria 01/08 — item 112) Antes: ate 300 contratos por rodada, uma chamada ao
+  // ZapSign para CADA um, a cada 30 minutos — 14 mil chamadas por dia no pior caso, sem
+  // controle de ritmo. Cresce junto com o pipeline e esbarra no limite da API justo na
+  // hora de pico, quando ha mais contratos aguardando assinatura.
+  //
+  // Tres travas, sem perder nenhum contrato:
+  //  1) so os enviados nos ULTIMOS 30 DIAS — passado disso o cliente nao vai "abrir e
+  //     assinar agora", e a nota de follow-up ja perdeu o sentido;
+  //  2) teto de 60 por rodada, do mais ANTIGO para o mais novo, para a fila girar;
+  //  3) orcamento de tempo (a function e sincrona, teto de ~26s neste site).
+  const trintaDias = new Date(Date.now() - 30 * 86400000).toISOString();
   const { data: pend, error } = await sb
     .from('contratos')
     .select('id, zapsign_doc_token, contratantes_j:dados->contratantes')
     .eq('status', 'enviado_zapsign')
     .not('zapsign_doc_token', 'is', null)
     .or('kommo_view_noted.is.null,kommo_view_noted.eq.false')
-    .limit(300);
+    .gt('zapsign_sent_at', trintaDias)
+    .order('zapsign_sent_at', { ascending: true })
+    .limit(60);
 
   if (error) return json({ error: error.message }, 500);
 
-  let checked = 0, noted = 0, skipped = 0;
+  const PRAZO_MS = 20000;
+  const inicio = Date.now();
+  let checked = 0, noted = 0, skipped = 0, interrompido = false;
   for (const c of (pend || [])) {
+    if (Date.now() - inicio > PRAZO_MS) { interrompido = true; break; }
     checked++;
     try {
       const r = await fetch(`${ZAP_API}/docs/${c.zapsign_doc_token}/`, {
@@ -70,7 +86,7 @@ export default async () => {
     } catch { /* best-effort: o proximo ciclo re-tenta */ }
   }
 
-  await heartbeat('kommo-view-check', true, `${checked} checados, ${noted} nota(s) postada(s)`).catch(() => {});
+  await heartbeat('kommo-view-check', true, `${checked} checados, ${noted} nota(s) postada(s)${interrompido ? ' · interrompido por tempo (segue na proxima rodada)' : ''}`).catch(() => {});
   return json({ ok: true, checked, noted, skipped });
 };
 

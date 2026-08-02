@@ -4,13 +4,26 @@
 // exatamente esse tipo de divergencia que causou o bug do mapa ADVBOX (duas copias
 // fora de sincronia). Aqui a resolucao de env fica num lugar so.
 //
-// Prioriza a SERVICE ROLE (bypass legitimo de RLS quando estiver configurada) e cai
-// para a anon. HOJE a service role ainda nao esta setada, entao o comportamento e
-// identico ao atual (anon); quando for configurada (pendencia de seguranca), as
-// functions que adotarem este helper passam a gravar com service role sem novo deploy.
+// Prioriza a SERVICE ROLE (bypass legitimo de RLS) e cai para a anon.
+//
+// 🔎 CORRECAO 02/08/2026 (achado ao conferir o Netlify pelo navegador): a documentacao
+// dizia que a SERVICE ROLE nao estava configurada. **Ela esta.** O que NAO existe no
+// Netlify e a URL — nao ha `SUPABASE_URL` nem `VITE_SUPABASE_URL`. Como este modulo
+// exigia a URL do ambiente e nao tinha fallback, `supa` era SEMPRE null e tudo que
+// depende dele degradava em silencio:
+//   · db-backup-cron        -> "supabase env ausente" todo dia desde que existe
+//   · rate-limit            -> caia para o limitador EM MEMORIA (por instancia), ou seja,
+//                              o limite compartilhado no banco nunca funcionou
+//                              (`rate_limit_counters` esta VAZIA, conferido no banco)
+//   · kommo-note            -> o cache local de notas ja postadas nunca gravou
+// O `_lib/botDb.mjs` sempre teve a URL como fallback embutido — por isso a maior parte
+// das functions funciona. Aqui a URL passa a ter o MESMO fallback: a URL do projeto e
+// publica (ja vai no JavaScript do site), nao e segredo, e amarrar meia duzia de rotinas
+// a uma variavel de ambiente que ninguem sabia que faltava nao paga o risco.
 import { createClient } from '@supabase/supabase-js';
 
-const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPA_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  || 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
   || process.env.SUPABASE_KEY
   || process.env.SUPABASE_ANON_KEY

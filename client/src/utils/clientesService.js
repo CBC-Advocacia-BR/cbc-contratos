@@ -1,6 +1,7 @@
 // Camada de dados da aba "Clientes" — fala com o cadastro unico (golden record)
 // via as views/RPCs em public (criadas 29/06). Tudo como usuario logado (authenticated).
 import { supabase } from '../lib/supabase';
+import { fetchAllPaged } from './supabasePaged';
 
 const onlyDigits = (s) => (s || '').replace(/\D/g, '');
 
@@ -96,8 +97,11 @@ export async function buscar360(uid) {
 
 // Devedores: Map CPF(so digitos) -> link do boleto mais antigo. Le a view leve (1 linha por CPF).
 export async function buscarCpfsDevedores() {
-  const { data, error } = await supabase.from('vw_boletos_devedores').select('cpf,bank_slip_url');
-  if (error) throw error;
+  // (auditoria 01/08 — item 224) Sem paginacao o PostgREST corta em 1000 linhas: acima
+  // disso, clientes inadimplentes apareciam na aba Clientes como se estivessem EM DIA
+  // (o marcador de devedor some por corte de consulta, nao por quitacao).
+  const data = await fetchAllPaged(() =>
+    supabase.from('vw_boletos_devedores').select('cpf,bank_slip_url').order('cpf'));
   const m = new Map();
   for (const b of (data || [])) { if (b.cpf) m.set(b.cpf, b.bank_slip_url || null); }
   return m;

@@ -1,0 +1,35 @@
+-- ============================================================================
+-- supabase_bi_produtividade_peso.sql
+-- Migracao `bi_produtividade_peso_e_homonimo` — APLICADA 02/08/2026 (auditoria — item 247).
+-- Definicao completa aplicada via MCP; para ver a vigente:
+--   select pg_get_viewdef('public.vw_bi_produtividade'::regclass, true);
+-- ============================================================================
+--
+-- (1) TAREFA COM 2 RESPONSAVEIS CONTAVA DUAS VEZES.
+--     A view e "1 linha por pessoa x tarefa" de proposito (serve para ranquear pessoas),
+--     mas quem conta LINHAS achava que houve mais tarefas do que houve.
+--     MEDIDO em 02/08: 27.817 tarefas concluidas viravam 29.537 linhas -> 1.720 a mais,
+--     6,18% de inflacao, vindas de 1.638 tarefas feitas a quatro maos. A Carga Atual foi
+--     reconciliada em 02/07; a produtividade nao.
+--     Colunas novas (sempre no FIM — Power BI quebra se coluna some):
+--        responsaveis_na_tarefa  quantos concluiram
+--        peso                    1/n  -> SUM(peso) devolve a contagem VERDADEIRA e ainda
+--                                divide o credito de forma justa entre quem fez junto
+--        credito_compartilhado   bandeira p/ filtrar/explicar no painel
+--        atribuicao_ambigua      ver (2)
+--     CONFERIDO apos aplicar: SUM(peso) = 27.817 = exatamente o total do espelho.
+--     ⚠️ No Power BI, [Concluidas] passou de COUNTROWS para SUM(peso) — ja corrigido no
+--     gerador `powerbi/gerar_pbip.py`. Quem tiver o .pbix aberto precisa trocar a medida
+--     (uma linha) ou regerar o arquivo. Medida nova [Participacoes] mantem a contagem de
+--     linhas para responder "quantas tarefas essa pessoa tocou".
+--
+-- (2) HOMONIMO LEVAVA O CREDITO ERRADO.
+--     "PUBLICACAO TRATADA <PRIMEIRO NOME>" era resolvido por
+--        split_part(pessoa,' ',1) = <nome> ... ORDER BY pessoa LIMIT 1
+--     ou seja: com dois colegas de mesmo primeiro nome, o credito ia para o primeiro em
+--     ordem alfabetica SEM NENHUM AVISO. Hoje nao ha homonimo em bi_equipes (conferido),
+--     mas uma contratacao cria o problema em silencio.
+--     Agora so atribui quando a correspondencia e UNICA; havendo duvida, mantem quem o
+--     ADVBOX registrou e marca `atribuicao_ambigua` (fila de conferencia).
+--     CONFERIDO: as 7.658 linhas de PUBLICACAO TRATADA seguem atribuidas as mesmas
+--     3 pessoas; 0 ambiguas.

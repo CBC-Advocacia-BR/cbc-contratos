@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { EnvelopeIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
@@ -8,6 +8,9 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
   const [showPwd, setShowPwd] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
+  // (item 273) foco vai para a mensagem de erro quando ela aparece — sem isso quem usa
+  // leitor de tela ou zoom alto tenta de novo sem saber que a tentativa anterior falhou.
+  const erroRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [resetMode, setResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
@@ -15,6 +18,9 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
 
   // Fade-in animation
   useEffect(() => { const t = setTimeout(() => setVisible(true), 50); return () => clearTimeout(t); }, []);
+
+  // (item 273) leva o foco ate a mensagem de erro assim que ela aparece
+  useEffect(() => { if (error) erroRef.current?.focus(); }, [error]);
 
   const handleLogin = async (e) => {
     e?.preventDefault();
@@ -128,8 +134,13 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
 
         {/* Form */}
         <form onSubmit={resetMode ? handleReset : handleLogin} className="px-8 pb-8">
+          {/* (auditoria 01/08/2026 — item 273) A caixa vermelha aparecia sem nenhuma marcacao:
+              quem usa leitor de tela (ou zoom alto, com o campo fora da tela) tentava de novo
+              sem saber que a tentativa anterior tinha falhado. role="alert" faz o erro ser
+              ANUNCIADO na hora, e tabIndex={-1} + foco leva a pessoa ate ele. */}
           {error && (
-            <div className="mb-4 p-3 rounded-lg text-[12px] text-red-700 font-medium animate-shake"
+            <div ref={erroRef} tabIndex={-1} role="alert" aria-live="assertive"
+              className="mb-4 p-3 rounded-lg text-[12px] text-red-700 font-medium animate-shake focus:outline-none"
               style={{ background: 'var(--cbc-danger-bg)', border: '1px solid var(--cbc-danger-border)' }}>
               {error}
             </div>
@@ -187,9 +198,12 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
                         className="w-full px-3.5 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 transition-all pr-10"
                         style={{ borderColor: 'var(--cbc-border-strong, #CBD3DC)', color: 'var(--cbc-text-primary, #1A1A1A)' }}
                       />
+                      {/* (item 273) o tabIndex={-1} tirava o "olhinho" do teclado: quem nao usa
+                          mouse (ou digita a senha no celular com teclado externo) nao conseguia
+                          conferir o que digitou. aria-pressed diz o estado atual em voz alta. */}
                       <button type="button" onClick={() => setShowPwd(!showPwd)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                        tabIndex={-1} aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}>
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        aria-pressed={showPwd} aria-label={showPwd ? 'Ocultar senha' : 'Mostrar senha'}>
                         {showPwd ? <EyeSlashIcon className="w-4 h-4" aria-hidden="true" /> : <EyeIcon className="w-4 h-4" aria-hidden="true" />}
                       </button>
                     </div>
@@ -253,7 +267,7 @@ export default function LoginScreen({ onLogin, onGoogleLogin }) {
                   </button>
 
                   <div className="text-center mt-4 text-[10px] text-gray-400">
-                    Acesso restrito — apenas usuarios autorizados
+                    Acesso restrito — apenas usuários autorizados
                   </div>
                 </>
               )}

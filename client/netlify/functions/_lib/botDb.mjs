@@ -3,6 +3,7 @@
  * anon key — apertar quando SUPABASE_SERVICE_ROLE_KEY existir no Netlify).
  */
 import { createClient } from '@supabase/supabase-js';
+import { fetchAllPaged } from './paged.mjs';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY ||
@@ -285,9 +286,13 @@ export async function setAiCache(hash, source, translation) {
  * (perf-be-14) prefere a coluna enxuta kommo_lead_id; abre o JSON dos contratantes
  * apenas para contratos ainda nao backfillados (kommo_lead_id null). */
 export async function getLawsuitLeadMap() {
-  const { data } = await db.from('contratos')
+  // (auditoria 01/08 — item 90) Sem paginacao o PostgREST corta em 1000 linhas: passando
+  // disso, os contratos MAIS NOVOS sumiam do mapa e paravam de receber nota automatica no
+  // Kommo — sem erro, sem log, sem ninguem perceber. Ordem por id garante paginacao estavel.
+  const data = await fetchAllPaged(() => db.from('contratos')
     .select('advbox_lawsuit_id, kommo_lead_id, contratantes:dados->contratantes')
-    .not('advbox_lawsuit_id', 'is', null);
+    .not('advbox_lawsuit_id', 'is', null)
+    .order('id'));
   const map = {};
   for (const row of data || []) {
     if (row.kommo_lead_id) { map[String(row.advbox_lawsuit_id)] = Number(row.kommo_lead_id); continue; }

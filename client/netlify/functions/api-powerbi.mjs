@@ -5,10 +5,12 @@
  * Auth: Bearer token via API_KEY env var
  */
 import { createClient } from '@supabase/supabase-js';
+import { chavesDaEnv, autorizado, CACHE_PRIVADO } from './_lib/apiAuth.mjs';
+import { fetchAllPaged } from './_lib/paged.mjs';
+import { checkRateLimitShared, rateLimitResponse } from './rate-limit.mjs';
 
 const SUPABASE_URL = 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5Z2N6ZWVwdm95YWVoZmNoeGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjgxNDYsImV4cCI6MjA4OTcwNDE0Nn0.dFk9CC48V1SlDuFNmtJOkfKf6LSz46aUg6Mpbd7xUjo';
-const API_KEY = process.env.POWERBI_API_KEY || 'cbc-powerbi-2026';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CORS = {
@@ -16,18 +18,34 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
   'Content-Type': 'application/json',
-  // (#156) Cache de 5min para payloads Power BI — contratos nao mudam tanto e PowerBI repuxa pouco
-  'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=60',
+  // (auditoria 01/08 — item 16) ERA `public, s-maxage=300`: a CDN da Netlify guarda a
+  // resposta POR URL e ignora o cabecalho de senha, entao um pedido SEM CHAVE podia
+  // receber de volta o payload cacheado de um integrador autenticado — com nome e CPF
+  // dos clientes dentro. Dado pessoal nunca pode ir para cache compartilhado.
+  ...CACHE_PRIVADO,
 };
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS });
 
-  // Auth check
-  const auth = req.headers.get('authorization') || '';
-  const token = auth.replace('Bearer ', '').trim();
-  const urlKey = new URL(req.url).searchParams.get('api_key');
-  if (token !== API_KEY && urlKey !== API_KEY) {
+  // (auditoria 01/08 — item 19) Limite de requisicoes antes da chave: barra tentativa de
+  // adivinhar a chave em massa e download da base inteira em loop. Teto folgado porque o
+  // Power BI faz varias chamadas seguidas ao atualizar o painel.
+  const rl = await checkRateLimitShared(req, { bucket: 'api-powerbi', max: 120, windowSeconds: 60 });
+  if (!rl.allowed) return rateLimitResponse();
+
+  // (item 13) Sem POWERBI_API_KEY configurada, a versao anterior aceitava
+  // 'cbc-powerbi-2026' — valor que esta escrito neste repositorio. Agora o endpoint
+  // se DESATIVA com uma mensagem clara em vez de ficar aberto em silencio.
+  const { chaves, erro } = chavesDaEnv('POWERBI_API_KEY');
+  if (erro) {
+    return new Response(JSON.stringify({ error: erro }), { status: 503, headers: CORS });
+  }
+  // (item 14) `?api_key=` fica em log/histórico/Referer. Mantido por ora porque o Power BI
+  // do escritorio ja esta configurado assim — a troca para cabecalho Authorization deve
+  // ser feita no Power BI antes de virar `permitirUrl: false`.
+  // (item 20) comparacao em tempo constante (timingSafeEqual) dentro de `autorizado`.
+  if (!autorizado(req, chaves, { permitirUrl: true })) {
     return new Response(JSON.stringify({ error: 'Unauthorized. Provide api_key param or Bearer token.' }), { status: 401, headers: CORS });
   }
 
@@ -82,11 +100,13 @@ export default async (req) => {
 
     if (table === 'dashboard') {
       // Aggregated stats for Power BI dashboard
-      const { data, error } = await supabase
+      // (auditoria 01/08 — item 88) Paginado: sem isto o painel do Power BI publicaria
+      // totais calculados sobre no maximo 1000 contratos, sem nenhum sinal de corte.
+      const data = await fetchAllPaged(() => supabase
         .from('contratos')
         // (bug-3) origem_cliente / data_primeira_mensagem reais vivem no JSONB dados (top-level vazias); alias mantem c.origem_cliente / c.data_primeira_mensagem. (perf-be-9/dashboard-bi-13) advbox_date entra como fallback de assinatura efetiva
-        .select('id, created_at, updated_at, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, status, created_by, signed_at, zapsign_sent_at, advbox_date, origem_cliente:dados->>origemCliente, data_primeira_mensagem:dados->>dataPrimeiraMensagem');
-      if (error) throw error;
+        .select('id, created_at, updated_at, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, status, created_by, signed_at, zapsign_sent_at, advbox_date, origem_cliente:dados->>origemCliente, data_primeira_mensagem:dados->>dataPrimeiraMensagem')
+        .order('id'));
 
       const stats = {
         total: data.length,

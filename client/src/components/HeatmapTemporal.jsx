@@ -160,7 +160,7 @@ export default function HeatmapTemporal({ contratos = null }) {
 
       {totalEvents === 0 ? (
         <div className="text-center py-8 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-          Sem dados suficientes nos ultimos 90 dias.
+          Sem dados suficientes nos últimos 90 dias.
         </div>
       ) : (
         <>

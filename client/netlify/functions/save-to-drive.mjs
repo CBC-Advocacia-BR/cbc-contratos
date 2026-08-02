@@ -8,9 +8,11 @@
  */
 
 import { PDFDocument } from 'pdf-lib';
+import { extractFolderId, APPS_SCRIPT_URL } from './_lib/drive.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
 // (integ-12) URL do Apps Script via env, com a URL atual como fallback (nao quebra ate a env ser configurada)
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec';
+// (auditoria 01/08 — item 38) URL do Apps Script vem de _lib/drive.mjs (era copiada em 4 arquivos)
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -65,13 +67,7 @@ function bufferToBase64(buffer) {
 // Aceita folders/ID, /u/0/folders/ID, open?id=ID, folderview?id=ID e remove o
 // sufixo "-drive_fs" que o Google Drive para Desktop cola no id (artefato).
 // DUPLICADO em save-to-drive-direct.mjs e src/utils/driveRetry.js — manter em sincronia.
-function extractFolderId(driveUrl) {
-  if (!driveUrl || typeof driveUrl !== 'string') return null;
-  const match = driveUrl.match(/(?:folders\/|[?&]id=)([a-zA-Z0-9_-]+)/);
-  if (!match) return null;
-  const id = match[1].replace(/-drive_fs$/, '');
-  return id || null;
-}
+// (item 101) extractFolderId agora vem de _lib/drive.mjs (era copiado em 3 arquivos)
 
 async function splitPdfWithReport(pdfBytes, contractPages, originalTotalPages) {
   const srcDoc = await PDFDocument.load(pdfBytes);
@@ -114,7 +110,11 @@ async function splitPdfWithReport(pdfBytes, contractPages, originalTotalPages) {
  */
 async function callAppsScriptOnce(payload) {
   // Step 1: POST — get redirect URL
+  // (auditoria 01/08 — item 135) Prazo maximo: sem ele, um Apps Script pendurado
+  // segurava a function ate o teto do Netlify e o contrato ficava travado em
+  // 'uploading' (lock orfao), exigindo destravar na mao.
   const postResp = await fetch(APPS_SCRIPT_URL, {
+    signal: AbortSignal.timeout(45000),
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload),
@@ -126,7 +126,7 @@ async function callAppsScriptOnce(payload) {
     if (!redirectUrl) throw new Error('Apps Script redirect sem URL');
 
     // Step 2: GET the redirect URL
-    const getResp = await fetch(redirectUrl, { redirect: 'follow' });
+    const getResp = await fetch(redirectUrl, { redirect: 'follow', signal: AbortSignal.timeout(45000) });
     const text = await getResp.text();
     try {
       return JSON.parse(text);
@@ -176,7 +176,11 @@ async function callAppsScript(payload) {
   throw lastErr;
 }
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('save-to-drive', async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 200, headers: CORS });
   }
@@ -201,7 +205,8 @@ export default async (req) => {
   // 1. Download signed PDF from ZapSign
   let pdfBytes;
   try {
-    const pdfResp = await fetch(signedFileUrl);
+    // (item 135) o PDF assinado vem do ZapSign; sem prazo, um download lento trava tudo
+    const pdfResp = await fetch(signedFileUrl, { signal: AbortSignal.timeout(45000) });
     if (!pdfResp.ok) {
       throw new Error('Falha ao baixar PDF assinado do ZapSign (HTTP ' + pdfResp.status + ')');
     }
@@ -271,6 +276,6 @@ export default async (req) => {
 
   // No Drive URL — just return split files as base64 (for download)
   return new Response(JSON.stringify({ success: true, files }), { status: 200, headers: CORS });
-};
+}, { origem: 'drive' });
 
 export const config = { path: '/.netlify/functions/save-to-drive' };

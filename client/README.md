@@ -1,16 +1,48 @@
-# React + Vite
+# client/ — o aplicativo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Esta pasta **é a raiz do app no Netlify**: o build e o deploy saem daqui.
 
-Currently, two official plugins are available:
+👉 **A documentação de entrada está em [`../README.md`](../README.md)** (o que o sistema é,
+como rodar, como subir, o que não fazer). As decisões, regras de negócio e o histórico
+detalhado estão em [`../CLAUDE.md`](../CLAUDE.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Este arquivo era o template do Vite ("React + Vite… two official plugins are available"),
+que não dizia nada sobre este projeto — substituído em 02/08/2026 (auditoria, item 303).
 
-## React Compiler
+## O que tem aqui
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Pasta | Conteúdo |
+|---|---|
+| `src/` | O aplicativo React — componentes, hooks, utilitários, testes |
+| `src/utils/__tests__/` | Suíte de testes (vitest) — lógica pura, sem navegador |
+| `netlify/functions/` | ~65 funções de servidor (`.mjs`, Node 22) + bibliotecas em `_lib/` |
+| `netlify/edge-functions/` | 2 funções de borda (Deno/TypeScript): `health` e o proxy do ZapSign |
+| `public/` | Arquivos servidos como estão (cabeçalhos, ícones, service worker do portal) |
+| `portal.html` | **Entrada do Portal do Cliente** — este arquivo é o oficial; o de `public/` não entra no build |
+| `dist/` | Resultado do build (não versionado) |
 
-## Expanding the ESLint configuration
+## Comandos
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Preferir os atalhos da raiz (`npm run dev`, `npm test`, `npm run verificar`,
+`npm run deploy`). Aqui direto, quando precisar de algo específico:
+
+```bash
+npm run dev
+```
+
+```bash
+npm run build
+```
+
+```bash
+npm test
+```
+
+```bash
+npm run lint
+```
+
+Deploy e rollback: `./deploy.sh` e `./rollback.sh` — **nunca** `netlify deploy` na mão
+(o script tem travas que já evitaram a produção regredir meses).
+
+Consumo de banda do Netlify: `./check-bandwidth.sh`.

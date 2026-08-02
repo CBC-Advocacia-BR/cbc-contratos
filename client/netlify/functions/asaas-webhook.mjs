@@ -8,7 +8,11 @@
  */
 
 import { mirrorUpdate, mirrorUpsert, paymentRow, nfClaim, nfRelease } from './_lib/asaasMirror.mjs';
-import { logAdvbox, db } from './_lib/botDb.mjs';
+// (item 296) regra de precedencia de status — pura e testada em _lib/__tests__/asaasEventos.test.mjs
+import { EVENT_TO_STATUS, decidirEvento } from './_lib/asaasEventos.mjs';
+import { logAdvbox, db, heartbeat } from './_lib/botDb.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY;
 const ASAAS_URL = 'https://api.asaas.com/v3';
@@ -21,17 +25,6 @@ const HEADERS = { 'access_token': ASAAS_KEY, 'Content-Type': 'application/json' 
 // desligar de novo, trocar para false e fazer deploy.
 const NF_AUTOMATICA_ATIVA = true;
 
-// Mapeia evento Asaas -> status final do boleto em asaas_boletos
-const EVENT_TO_STATUS = {
-  PAYMENT_RECEIVED: 'RECEIVED',
-  PAYMENT_CONFIRMED: 'CONFIRMED',
-  PAYMENT_RECEIVED_IN_CASH: 'RECEIVED_IN_CASH',
-  PAYMENT_OVERDUE: 'OVERDUE',
-  PAYMENT_DELETED: 'DELETED',
-  PAYMENT_REFUNDED: 'REFUNDED',
-  PAYMENT_CHARGEBACK_REQUESTED: 'CHARGEBACK_REQUESTED',
-  PAYMENT_CHARGEBACK_DISPUTE: 'CHARGEBACK_DISPUTE',
-};
 
 async function asaasPost(path, body) {
   const resp = await fetch(`${ASAAS_URL}${path}`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
@@ -43,7 +36,11 @@ async function asaasGet(path) {
   return resp.json();
 }
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('asaas-webhook', async (req) => {
   // Asaas sends POST with payment event data
   if (req.method === 'GET') {
     return new Response('Asaas webhook endpoint active', { status: 200 });
@@ -75,6 +72,11 @@ export default async (req) => {
     const payment = body.payment;
 
     console.log('Asaas webhook:', event, payment?.id);
+    // (auditoria 01/08 — item 149) Registra que o webhook FOI CHAMADO. Sem isto, "o Asaas
+    // parou de nos avisar" (URL trocada, integracao desligada no painel, segredo alterado)
+    // fica indistinguivel de "nao houve pagamento hoje" — os dois casos sao silencio total.
+    // Com o registro, o watchdog consegue cobrar a ausencia de eventos.
+    heartbeat('asaas-webhook', true, `evento ${event}`).catch(() => {});
 
     if (!payment?.id) {
       return new Response(JSON.stringify({ ok: true, noPayment: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -86,9 +88,25 @@ export default async (req) => {
     const newStatus = EVENT_TO_STATUS[event];
     if (newStatus) {
       try {
+        // (auditoria 01/08 — itens 122/296) A regra de precedencia saiu daqui para
+        // `_lib/asaasEventos.mjs` e ganhou testes: e ela que decide se um boleto consta
+        // como PAGO ou VENCIDO, e era a unica parte do fluxo de dinheiro sem protecao
+        // automatica nenhuma. Le o status atual so quando a decisao depende dele.
+        const { data: atualRow } = await db.from('asaas_boletos')
+          .select('status').eq('id', payment.id).maybeSingle();
+        const decisao = decidirEvento(event, atualRow?.status);
+        if (!decisao.aplicar) {
+          await logAdvbox('asaas', 'aviso',
+            `Evento ${event} ignorado: ${decisao.motivo}`,
+            { payment: payment.id, evento: event, status_atual: atualRow?.status || null });
+          // 200 de proposito: o Asaas re-tenta em caso de erro, e devolver erro para um
+          // evento que decidimos descartar geraria reenvio eterno.
+          return new Response(JSON.stringify({ ok: true, ignorado: decisao.motivo }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
         const update = { status: newStatus };
-        if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(newStatus)) {
-          update.payment_date = payment.paymentDate || payment.clientPaymentDate || new Date().toISOString().slice(0, 10);
+        if (decisao.gravaDataPagamento) {
+          update.payment_date = payment.paymentDate || payment.clientPaymentDate || diaBrt();
         }
         const n = await mirrorUpdate(payment.id, update);
         // boleto ainda nao existia no espelho (criado depois do ultimo sync) -> upsert completo
@@ -107,7 +125,7 @@ export default async (req) => {
     // disparo de cobranca, marca pago/pago_em. Best-effort — nao derruba o webhook/NF.
     if (['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(newStatus)) {
       try {
-        const pagoEm = payment.paymentDate || payment.clientPaymentDate || new Date().toISOString().slice(0, 10);
+        const pagoEm = payment.paymentDate || payment.clientPaymentDate || diaBrt();
         await db.rpc('cobranca_marcar_pago', { p_chave: process.env.BOT_RPC_SECRET || '', p_boleto_id: payment.id, p_pago_em: pagoEm });
       } catch (e) { await logAdvbox('asaas', 'aviso', `cobranca_marcar_pago ${payment.id}: ${e.message}`.slice(0, 200), {}); }
     }
@@ -166,7 +184,7 @@ export default async (req) => {
     }
 
     // Create invoice with today as effective date (payment already confirmed)
-    const today = new Date().toISOString().split('T')[0];
+    const today = diaBrt();
     const invoiceBody = {
       payment: payment.id,
       serviceDescription: `Prestação de serviços advocatícios - ${customerName}`,
@@ -202,6 +220,6 @@ export default async (req) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
-};
+}, { origem: 'asaas' });
 
 export const config = { path: '/.netlify/functions/asaas-webhook' };

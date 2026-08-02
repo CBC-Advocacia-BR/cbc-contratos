@@ -6,8 +6,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { computeFunnel } from './funnel/funnelCompute';
-import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil } from '../utils/funilSources';
+import { computeFunnel, computeSla } from './funnel/funnelCompute';
+import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil, fetchFunilSla } from '../utils/funilSources';
+import { fetchAllPaged } from '../utils/supabasePaged';
 import PontualidadePanel from './PontualidadePanel';
 
 const SERIF = "'Cormorant Garamond', Georgia, serif";
@@ -58,18 +59,22 @@ export default function FunnelHealthPanel() {
   const [rows, setRows] = useState(null);
   const [vchamadas, setVchamadas] = useState([]); // etapas Agendada/Realizada (vw_funil_videochamadas)
   const [metaAds, setMetaAds] = useState([]);     // 1a etapa: leads de campanha (meta_ads_mensal)
+  const [sla, setSla] = useState([]);             // (item 239) SLA de 1a resposta por dia (vw_funil_sla)
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true); setErr('');
     try {
-      const { data, error } = await supabase
-        .from('contratos')
-        .select('id, nome_contratante1, resort, status, created_at, updated_at, zapsign_sent_at, signed_at, advbox_date, advbox_lawsuit_id, arquivado_em')
-        .order('created_at', { ascending: false })
-        .limit(20000);
-      if (error) throw error;
+      // (auditoria 01/08 — item 222) `.limit(20000)` nao levanta o teto de 1000 do
+      // PostgREST; a Saude do Funil passaria a subcontar em silencio junto com o
+      // Dashboard e o Trafego. Ordem TOTAL (created_at empata, id desempata).
+      const data = await fetchAllPaged(() =>
+        supabase
+          .from('contratos')
+          .select('id, nome_contratante1, resort, status, created_at, updated_at, zapsign_sent_at, signed_at, advbox_date, advbox_lawsuit_id, arquivado_em')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false }));
       // (fix funil 28/07/2026) As 4 consultas vêm de utils/funilSources.js, a MESMA
       // fonte do Dashboard (antes eram cópias que já tinham divergido) e que PAGINA
       // com .range(): sem isso o PostgREST cortava em 1000 linhas e as videochamadas
@@ -93,6 +98,11 @@ export default function FunnelHealthPanel() {
       try {
         setMetaAds(await fetchMetaAdsFunil(true));
       } catch { setMetaAds([]); }
+      // (auditoria 01/08 — item 239) SLA de 1a resposta: medido desde 11/07 e nunca exibido.
+      // View vazia / sem permissao -> bloco some, sem quebrar o resto do painel.
+      try {
+        setSla(await fetchFunilSla());
+      } catch { setSla([]); }
       setRows(merged);
     } catch (e) {
       setErr(e.message || 'Erro ao carregar');
@@ -104,6 +114,8 @@ export default function FunnelHealthPanel() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const f = useMemo(() => (rows ? computeFunnel(rows, undefined, vchamadas, metaAds) : null), [rows, vchamadas, metaAds]);
+  // (item 239) resumo do SLA de 1a resposta — logica pura, testada em funnelCompute.test.js
+  const slaResumo = useMemo(() => computeSla(sla), [sla]);
   const maxConv = useMemo(() => (f ? Math.max(1, ...f.tendencia.map((t) => t.conversao)) : 1), [f]);
   // Escala ÚNICA p/ TODAS as barras do funil (leads + vídeo + contratos): largura ∝ valor, maior = 100%.
   const baseFunil = useMemo(() => (f ? Math.max(f.leadsMeta?.total || 0, f.videochamadas?.agendadas || 0, f.funil.enviados, 1) : 1), [f]);
@@ -161,6 +173,43 @@ export default function FunnelHealthPanel() {
                     ▼ {f.leadsMeta.pctAgendada < 1 ? `${f.leadsMeta.pctAgendada.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : fmtPct(f.leadsMeta.pctAgendada)} viram videochamada agendada
                   </div>
                 )}
+                {/* (auditoria — item 230) o percentual acima compara janelas iguais: so os meses
+                    em que as duas fontes existem. Sem esta linha o leitor supunha que ele valia
+                    para o total de leads mostrado logo acima, e a conversao parecia pior. */}
+                {f.leadsMeta.janelaComparavel?.mesesIgnorados > 0 && (
+                  <div className="pl-32 text-[10px] tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                    (percentual calculado de {fmtMesCurto(f.leadsMeta.janelaComparavel.desde)} em diante, quando as videochamadas passaram a ser registradas:{' '}
+                    {f.leadsMeta.janelaComparavel.calls.toLocaleString('pt-BR')} de {f.leadsMeta.janelaComparavel.leads.toLocaleString('pt-BR')} leads)
+                  </div>
+                )}
+              </>
+            )}
+            {/* (auditoria 01/08 — item 239) ENTRE o lead e a videochamada existe uma etapa que
+                nunca apareceu no funil: alguém precisa RESPONDER o lead. O tempo até a 1ª
+                resposta é medido desde 11/07 e ficava só no banco. O número que importa não é
+                o tempo médio — é quantos nunca receberam resposta nenhuma. */}
+            {slaResumo && (
+              <>
+                <div className="pl-32 text-[10px] font-bold uppercase tracking-[1.5px] pt-1" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+                  Atendimento ao lead · desde {slaResumo.desde?.slice(8, 10)}/{slaResumo.desde?.slice(5, 7)}
+                </div>
+                <div className="pl-32 flex flex-wrap items-baseline gap-x-6 gap-y-1 text-[11px] tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                  <span>
+                    <strong style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{fmtInt(slaResumo.atendidos)}</strong>
+                    {' '}de {fmtInt(slaResumo.leads)} leads receberam resposta
+                  </span>
+                  {slaResumo.minutosAteResponder != null && (
+                    <span>1ª resposta em <strong style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{Math.round(slaResumo.minutosAteResponder)} min</strong> (tempo médio)</span>
+                  )}
+                  {slaResumo.atendidos > 0 && (
+                    <span>{fmtPct(slaResumo.pctEngajou)} voltaram a falar</span>
+                  )}
+                </div>
+                {slaResumo.nuncaRespondidos > 0 && (
+                  <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-danger, #DC2626)' }}>
+                    ✕ {fmtInt(slaResumo.nuncaRespondidos)} lead{slaResumo.nuncaRespondidos > 1 ? 's' : ''} ({fmtPct(slaResumo.pctNuncaRespondidos)}) nunca recebe{slaResumo.nuncaRespondidos > 1 ? 'ram' : 'u'} resposta
+                  </div>
+                )}
               </>
             )}
             {/* (videochamadas) etapas do topo — Agendada/Realizada ALL-TIME (da agenda do Google). */}
@@ -206,7 +255,7 @@ export default function FunnelHealthPanel() {
           </div>
           <div className="mt-2 pt-4 flex items-baseline gap-3" style={{ borderTop: '1px dashed var(--cbc-border, #E5E7EB)' }}>
             <span className="text-[11px] font-bold uppercase tracking-[1.5px]" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>Conversão total</span>
-            <span style={{ fontFamily: SERIF, fontSize: '2rem', fontWeight: 700, color: 'var(--cbc-gold-dark, #B8860B)' }}>{fmtPct(f.conversao.enviadoAssinado)}</span>
+            <span style={{ fontFamily: SERIF, fontSize: '2rem', fontWeight: 700, color: 'var(--cbc-gold-text, #8A6A12)' }}>{fmtPct(f.conversao.enviadoAssinado)}</span>
             <span className="text-[12px]" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>enviado → assinado</span>
           </div>
         </section>

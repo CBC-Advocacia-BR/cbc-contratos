@@ -7,6 +7,7 @@
  */
 import { db } from './_lib/botDb.mjs';
 import { logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { verificarGatilho, respostaNegada } from './_lib/gatilho.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
@@ -14,12 +15,16 @@ const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
-  const isScheduled = req.headers.get('x-netlify-event') === 'schedule' || req.method === 'GET';
-  if (!isScheduled) {
-    const body = await req.json().catch(() => ({}));
-    const key = body.key || req.headers.get('x-bot-key') || '';
-    if (key !== PANEL_KEY) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: JSONH });
-  }
+  // (auditoria 01/08 — item 9) ANTES: `|| req.method === 'GET'` fazia QUALQUER acesso
+  // pelo navegador ser tratado como "veio do agendador" — e o bloco de checagem de chave
+  // abaixo era pulado. Bastava abrir a URL para disparar o robo (aqui, inclusive
+  // backfills que consomem cota paga de API de terceiros). Agora: ou vem do agendador
+  // da Netlify (cabecalho x-netlify-event), ou apresenta a BOT_PANEL_KEY.
+  const gatilho = verificarGatilho(req, { agendada: true });
+  if (!gatilho.ok) return respostaNegada(gatilho);
+  const isScheduled = gatilho.origem === 'cron';
+  // (item 9) a checagem de chave ja foi feita por verificarGatilho() acima —
+  // o bloco antigo daqui so olhava body.key/cabecalho e barrava o disparo via ?key=.
   try {
     const { data, error } = await db.rpc('clientes_reconciliar', { p_chave: RPC_SECRET });
     if (error) throw new Error(error.message);

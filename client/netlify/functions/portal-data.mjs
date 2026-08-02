@@ -387,6 +387,7 @@ export default async (req) => {
       let bols = [];
       try { const r = await db.rpc('portal_boletos', { p_token: token }); bols = r.data || []; }
       catch (e) { console.error('[portal-data boletos]', e?.message); }
+      const hojeSP = isoDate(nowSP());
       for (const b of bols) {
         const item = {
           valor: Number(b.value) || 0,
@@ -397,7 +398,7 @@ export default async (req) => {
           boleto_url: b.bank_slip_url || b.invoice_url || null,
           pix: b.pix_copy_paste || null,
           nf_url: b.nf_pdf_url || null,
-          vencido: b.status === 'OVERDUE' || (b.due_date && !PAGOS.has(b.status) && b.due_date < new Date().toISOString().slice(0, 10)),
+          vencido: b.status === 'OVERDUE' || (b.due_date && !PAGOS.has(b.status) && b.due_date < hojeSP),
           _id: b.id,
         };
         if (PAGOS.has(b.status)) pagos.push(item);

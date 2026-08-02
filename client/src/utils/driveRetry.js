@@ -101,6 +101,11 @@ export async function updateDriveFolder(id, url) {
  * @param {string} url
  * @returns {string|null} folderId ou null se formato invalido
  */
+// ⚠️ (auditoria 01/08 — item 101) COPIA PROPOSITAL de netlify/functions/_lib/drive.mjs.
+// Nao importamos de la porque o app importar codigo de `netlify/functions/` acopla o
+// build do site ao codigo de servidor — no dia em que aquele arquivo usar algo que so
+// existe no Node, o site inteiro para de compilar (ver item 211). Sao 6 linhas estaveis:
+// se mudar aqui, mudar la tambem.
 export function extractFolderId(url) {
   if (!url || typeof url !== 'string') return null;
   const m = url.match(/(?:folders\/|[?&]id=)([a-zA-Z0-9_-]+)/);

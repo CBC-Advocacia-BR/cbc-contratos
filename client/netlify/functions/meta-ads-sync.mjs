@@ -16,6 +16,7 @@
  */
 import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { insightRowToLinha, ymFirstDay } from './_lib/metaAds.mjs';
+import { verificarGatilho, respostaNegada } from './_lib/gatilho.mjs';
 
 const GRAPH = 'https://graph.facebook.com/v23.0';
 const TOKEN = process.env.META_ADS_TOKEN || '';
@@ -35,6 +36,29 @@ async function graphGet(url, tentativa = 0) {
     if (tentativa < 2) { await _sleep(2500 * (tentativa + 1)); return graphGet(url, tentativa + 1); }
     throw new Error(`Meta Graph: ${e.name === 'TimeoutError' ? 'timeout' : e.message}`);
   }
+  // (auditoria 01/08 — item 132) A Meta AVISA o quanto da cota ja foi consumida nos
+  // cabecalhos `X-Business-Use-Case-Usage` / `X-App-Usage`. O codigo so reagia ao 429,
+  // ou seja, DEPOIS de levar o bloqueio — e um bloqueio no meio do sync deixa o espelho
+  // pela metade. Lendo o percentual, dá para frear ANTES: acima de 90% respiramos 20s
+  // (as chamadas seguintes ja entram com a cota renovada), e acima de 75% fica o registro
+  // para o Paulo saber que o volume esta perto do teto.
+  try {
+    const bruto = r.headers.get('x-business-use-case-usage') || r.headers.get('x-app-usage');
+    if (bruto) {
+      const uso = JSON.parse(bruto);
+      const valores = Array.isArray(uso) ? uso : Object.values(uso).flat();
+      const pico = Math.max(0, ...valores.flatMap((u) => [
+        Number(u?.call_count) || 0, Number(u?.total_cputime) || 0, Number(u?.total_time) || 0,
+      ]));
+      if (pico >= 90) {
+        await logAdvbox('meta', 'aviso', `Cota da Meta em ${pico}% — pausando 20s para nao levar bloqueio`, { pico });
+        await _sleep(20000);
+      } else if (pico >= 75) {
+        await logAdvbox('meta', 'aviso', `Cota da Meta em ${pico}% do limite nesta janela`, { pico });
+      }
+    }
+  } catch { /* cabecalho ausente ou em formato novo: nunca derruba o sync */ }
+
   const body = await r.json().catch(() => ({}));
   if (!r.ok || body.error) {
     const err = body.error || {};
@@ -64,7 +88,14 @@ async function syncAccount(account, since, until) {
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
-  const isScheduled = req.headers.get('x-netlify-event') === 'schedule' || req.method === 'GET';
+  // (auditoria 01/08 — item 9) ANTES: `|| req.method === 'GET'` fazia QUALQUER acesso
+  // pelo navegador ser tratado como "veio do agendador" — e o bloco de checagem de chave
+  // abaixo era pulado. Bastava abrir a URL para disparar o robo (aqui, inclusive
+  // backfills que consomem cota paga de API de terceiros). Agora: ou vem do agendador
+  // da Netlify (cabecalho x-netlify-event), ou apresenta a BOT_PANEL_KEY.
+  const gatilho = verificarGatilho(req, { agendada: true });
+  if (!gatilho.ok) return respostaNegada(gatilho);
+  const isScheduled = gatilho.origem === 'cron';
   let body = {};
   if (req.method === 'POST') body = await req.json().catch(() => ({}));
   // GET ?backfill=1&meses=N — religada manual do historico (upsert idempotente,
@@ -73,10 +104,8 @@ export default async (req) => {
     const qs = new URL(req.url).searchParams;
     if (qs.get('backfill')) body = { backfill: true, meses: Number(qs.get('meses')) || undefined };
   }
-  if (!isScheduled) {
-    const key = body.key || req.headers.get('x-bot-key') || '';
-    if (key !== PANEL_KEY) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: JSONH });
-  }
+  // (item 9) a checagem de chave ja foi feita por verificarGatilho() acima —
+  // o bloco antigo daqui so olhava body.key/cabecalho e barrava o disparo via ?key=.
   if (!TOKEN) return new Response(JSON.stringify({ error: 'META_ADS_TOKEN ausente' }), { status: 500, headers: JSONH });
 
   try {

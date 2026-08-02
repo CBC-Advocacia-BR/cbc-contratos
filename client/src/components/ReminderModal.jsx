@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 const PRESETS = [
   { label: 'Em 1 hora',     hours: 1 },
@@ -32,6 +33,8 @@ function computeFireAt(preset, customDate) {
 }
 
 export default function ReminderModal({ contratoId, contratoNome, userEmail, onClose }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const toast = useToast();
   const [preset, setPreset] = useState(PRESETS[2]); // amanha 9h padrao
   const [customDate, setCustomDate] = useState('');
@@ -119,7 +122,7 @@ export default function ReminderModal({ contratoId, contratoNome, userEmail, onC
               value={message}
               onChange={e => setMessage(e.target.value)}
               rows={3}
-              placeholder="O que voce quer lembrar?"
+              placeholder="O que você quer lembrar?"
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-navy focus:outline-none resize-none"
             />
           </div>

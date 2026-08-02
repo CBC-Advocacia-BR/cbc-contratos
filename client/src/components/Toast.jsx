@@ -8,7 +8,7 @@
 // Posicao top-right, stack max 4, auto-dismiss 3s padrao
 // Respeita prefers-reduced-motion
 
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -64,14 +64,20 @@ export function ToastProvider({ children }) {
     return id;
   }, [dismiss]);
 
-  const api = {
+  // (auditoria 01/08/2026 — itens 266/174) Este objeto era recriado A CADA RENDER do
+  // provider — e o provider re-renderiza toda vez que um toast aparece ou some. Como ele
+  // envolve o app INTEIRO, um `value` novo obrigava todos os consumidores de contexto a
+  // re-renderizar junto; e, do outro lado, `toast` nunca podia entrar na lista de
+  // dependencias de um useCallback sem destruir a memoizacao de quem o usasse.
+  // `push`/`dismiss` ja sao estaveis (useCallback), entao memoizar aqui e seguro.
+  const api = useMemo(() => ({
     push,
     dismiss,
     info: (msg, opts) => push(msg, { ...opts, type: 'info' }),
     success: (msg, opts) => push(msg, { ...opts, type: 'success' }),
     warning: (msg, opts) => push(msg, { ...opts, type: 'warning' }),
     error: (msg, opts) => push(msg, { ...opts, type: 'error' }),
-  };
+  }), [push, dismiss]);
 
   return (
     <ToastContext.Provider value={api}>

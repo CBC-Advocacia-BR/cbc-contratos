@@ -91,7 +91,13 @@ CALC_COLS = {
 
 MEASURES = {
     "Produtividade": [
-        ("Concluídas", 'CALCULATE(COUNTROWS(Produtividade), Produtividade[categoria] <> "sistema")', "#,0"),
+        # (auditoria 01/08/2026 — item 247) SUM(peso) em vez de COUNTROWS: a view tem 1 linha
+        # por PESSOA x tarefa, entao tarefa feita a quatro maos virava 2 linhas e o painel
+        # contava 2 tarefas. Medido: 27.817 tarefas viravam 29.537 linhas (+6,18%). O `peso`
+        # (1/n) devolve a contagem verdadeira E divide o credito de forma justa entre quem fez.
+        ("Concluídas", 'CALCULATE(SUM(Produtividade[peso]), Produtividade[categoria] <> "sistema")', "#,0"),
+        # contagem de LINHAS (participacoes), util para "quantas tarefas essa pessoa tocou"
+        ("Participações", 'CALCULATE(COUNTROWS(Produtividade), Produtividade[categoria] <> "sistema")', "#,0"),
         ("Tempo Mediano (dias)", 'CALCULATE(MEDIAN(Produtividade[tempo_ciclo_dias]), Produtividade[categoria] = "ciclo")', "0.0"),
         ("Tempo Médio (dias)", 'CALCULATE(AVERAGE(Produtividade[tempo_ciclo_dias]), Produtividade[categoria] = "ciclo")', "0.0"),
         ("% Em Dia", 'DIVIDE(CALCULATE([Concluídas], Produtividade[dias_vs_agendado] <= 0), CALCULATE([Concluídas], NOT ISBLANK(Produtividade[dias_vs_agendado])))', "0.0%"),

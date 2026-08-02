@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../AuthContext';
+import { ymdLocal } from '../utils/format';
 import { SkeletonAdmin } from './Skeleton';
 import ErrorState from './ErrorState';
 import ConfirmDestructive from './ConfirmDestructive';
 import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 import { TIPOS_ACAO } from '../data/clausulas';
+// (auditoria 01/08/2026 — item 265) o usuario nao le "duplicate key value violates":
+// friendlyError traduz o erro tecnico; o detalhe cru segue indo para o console/Sentry.
+import { friendlyError } from '../utils/friendlyError';
 import {
   Cog6ToothIcon,
   DocumentTextIcon,
@@ -157,7 +161,7 @@ export default function VendasParametrizacaoPanel() {
                 Parametrizacao de Vendas
               </h2>
               <p className="text-[11px]" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-                Documentos, comissoes, promocoes, metas e expectativa de honorarios
+                Documentos, comissões, promoções, metas e expectativa de honorários
               </p>
             </div>
           </div>
@@ -320,7 +324,8 @@ function DocumentosTab({ setDestructiveConfirm }) {
           showToast('Requisito removido.');
         } catch (e) {
           setDestructiveConfirm(null);
-          showToast('Erro: ' + e.message);
+          console.error('[VendasParametrizacaoPanel]', e);
+          showToast('Erro: ' + friendlyError(e));
         }
       },
     });
@@ -358,7 +363,8 @@ function DocumentosTab({ setDestructiveConfirm }) {
       if (l.id) updateLinha(idx, { _edited: false });
       showToast('Salvo!');
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -391,10 +397,10 @@ function DocumentosTab({ setDestructiveConfirm }) {
         {/* Sub-titulo */}
         <div className="mb-4">
           <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>
-            Documentos exigidos por resort + tipo de acao
+            Documentos exigidos por resort + tipo de ação
           </h3>
           <p className="text-[11px]" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-            Use <strong>{LABEL_STAR}</strong> para criar a regra generica. Combinacoes especificas substituem o padrao.
+            Use <strong>{LABEL_STAR}</strong> para criar a regra genérica. Combinacoes específicas substituem o padrão.
           </p>
         </div>
 
@@ -415,7 +421,7 @@ function DocumentosTab({ setDestructiveConfirm }) {
               </select>
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de Acao</label>
+              <label className="text-[10px] font-bold uppercase tracking-wide block mb-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de Ação</label>
               <select
                 value={tipoAcaoSel}
                 onChange={e => setTipoAcaoSel(e.target.value)}
@@ -440,11 +446,11 @@ function DocumentosTab({ setDestructiveConfirm }) {
           </div>
           {(resortSel === STAR && tipoAcaoSel === STAR) ? (
             <div className="mt-3 px-3 py-2 rounded-lg text-[11px]" style={{ background: 'var(--cbc-bg-subtle, #F3F4F6)', color: 'var(--cbc-text-secondary, #6B7280)' }}>
-              Voce esta editando a regra <strong>PADRAO</strong> que se aplica quando nenhuma combinacao especifica existe.
+              Você esta editando a regra <strong>PADRAO</strong> que se aplica quando nenhuma combinacao específica existe.
             </div>
           ) : (
             <div className="mt-3 px-3 py-2 rounded-lg text-[11px]" style={{ background: '#FEF3C7', color: '#92400E' }}>
-              <strong>Combinacao especifica:</strong> os requisitos aqui substituem o padrao para esta dupla resort+tipo.
+              <strong>Combinacao específica:</strong> os requisitos aqui substituem o padrão para esta dupla resort+tipo.
             </div>
           )}
         </div>
@@ -471,9 +477,9 @@ function DocumentosTab({ setDestructiveConfirm }) {
                   <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Documento</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Obrigatoriedade</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Condicional (se X faltar)</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descricao</th>
+                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
                   <th className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ordem</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Acoes</th>
+                  <th className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -526,7 +532,7 @@ function DocumentosTab({ setDestructiveConfirm }) {
                           value={l.condicao_descricao || ''}
                           onChange={e => updateLinha(idx, { condicao_descricao: e.target.value })}
                           disabled={l.obrigatoriedade !== 'condicional'}
-                          placeholder="Ex: Caso extrato nao seja possivel obter"
+                          placeholder="Ex: Caso extrato não seja possível obter"
                           className="w-full border rounded px-2 py-1 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                           style={{ background: 'var(--cbc-bg-card, white)', color: 'var(--cbc-text-primary, #1A2E52)', borderColor: 'var(--cbc-border, #E5E7EB)' }}
                         />
@@ -620,7 +626,8 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
       setEditing(null);
       await onReload();
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -637,7 +644,8 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
           showToast('Removido.');
         } catch (e) {
           setDestructiveConfirm(null);
-          showToast('Erro: ' + e.message);
+          console.error('[VendasParametrizacaoPanel]', e);
+          showToast('Erro: ' + friendlyError(e));
         }
       },
     });
@@ -705,7 +713,7 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase block mb-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descricao</label>
+                  <label className="text-[10px] font-bold uppercase block mb-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</label>
                   <input
                     type="text"
                     value={editing.descricao || ''}
@@ -721,7 +729,7 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
                     onChange={e => setEditing({ ...editing, ativo: e.target.checked })}
                     className="w-4 h-4 accent-green-600 cursor-pointer"
                   />
-                  <span className="text-xs" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Ativo (disponivel para uso)</span>
+                  <span className="text-xs" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Ativo (disponível para uso)</span>
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
@@ -742,9 +750,9 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
                 <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
                   <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Nome</th>
                   <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Categoria</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descricao</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
                   <th className="text-center px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ativo</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Acoes</th>
+                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -878,7 +886,8 @@ function ComissaoTab() {
       if (error) throw error;
       showToast('Regras salvas!');
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     } finally {
       setSaving(false);
     }
@@ -926,7 +935,7 @@ function ComissaoTab() {
     <div className="p-5 md:p-6">
       <div className="max-w-5xl mx-auto space-y-4">
         <div>
-          <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Regras globais de comissao</h3>
+          <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Regras globais de comissão</h3>
           <p className="text-[11px]" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
             Valores aplicados a todas as vendedoras. Ha apenas UMA configuracao ativa (id=1).
           </p>
@@ -1021,7 +1030,7 @@ function ComissaoTab() {
               style={{ borderColor: 'var(--cbc-accent, #1B3A5C)', color: 'var(--cbc-accent, #1B3A5C)', background: 'var(--cbc-bg-card, white)' }}
             >
               <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
-              Restaurar padrao
+              Restaurar padrão
             </button>
           </div>
         </div>
@@ -1034,7 +1043,7 @@ function ComissaoTab() {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-              <label className="text-[10px] font-bold uppercase block mb-1" style={{ color: '#92400E' }}># Contratos iniciais no mes</label>
+              <label className="text-[10px] font-bold uppercase block mb-1" style={{ color: '#92400E' }}># Contratos iniciais no mês</label>
               <input
                 type="number"
                 value={previewContratos}
@@ -1227,7 +1236,8 @@ function PromocoesTab({ setDestructiveConfirm }) {
       showToast('Salvo!');
       await load();
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -1244,7 +1254,8 @@ function PromocoesTab({ setDestructiveConfirm }) {
           showToast('Removida.');
         } catch (e) {
           setDestructiveConfirm(null);
-          showToast('Erro: ' + e.message);
+          console.error('[VendasParametrizacaoPanel]', e);
+          showToast('Erro: ' + friendlyError(e));
         }
       },
     });
@@ -1255,7 +1266,8 @@ function PromocoesTab({ setDestructiveConfirm }) {
       await supabase.from('vendas_promocoes_sazonais').update({ ativo: !promo.ativo }).eq('id', promo.id);
       await load();
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -1268,16 +1280,16 @@ function PromocoesTab({ setDestructiveConfirm }) {
     );
   }
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = ymdLocal();
 
   return (
     <div className="p-5 md:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Promocoes sazonais</h3>
+            <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Promoções sazonais</h3>
             <p className="text-[11px]" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-              Promocoes aplicadas automaticamente com base no periodo vigente.
+              Promoções aplicadas automaticamente com base no período vigente.
             </p>
           </div>
           <button
@@ -1288,7 +1300,7 @@ function PromocoesTab({ setDestructiveConfirm }) {
             style={{ background: 'var(--cbc-accent, #1B3A5C)' }}
           >
             <PlusIcon className="w-4 h-4" aria-hidden="true" />
-            Nova promocao
+            Nova promoção
           </button>
         </div>
 
@@ -1584,7 +1596,8 @@ function MetasTab() {
       // refresh somente se upsert deu id
       if (m.id) updateMeta(email, { _edited: false });
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -1629,14 +1642,14 @@ function MetasTab() {
         <div className="card p-4 mb-4" style={{ background: 'var(--cbc-bg-card, white)', border: '1px solid var(--cbc-border, #E5E7EB)', borderRadius: 12 }}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <button onClick={() => setMonthOffset(o => o - 1)} className="p-2 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--cbc-border, #E5E7EB)', background: 'var(--cbc-bg-card, white)' }} title="Mes anterior">
+              <button onClick={() => setMonthOffset(o => o - 1)} className="p-2 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--cbc-border, #E5E7EB)', background: 'var(--cbc-bg-card, white)' }} title="Mês anterior">
                 <ChevronLeftIcon className="w-4 h-4" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }} aria-hidden="true" />
               </button>
               <div className="px-3 py-1 rounded-lg" style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
-                <div className="text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Periodo</div>
+                <div className="text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Período</div>
                 <div className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>{periodo.label}</div>
               </div>
-              <button onClick={() => setMonthOffset(o => o + 1)} className="p-2 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--cbc-border, #E5E7EB)', background: 'var(--cbc-bg-card, white)' }} title="Proximo mes">
+              <button onClick={() => setMonthOffset(o => o + 1)} className="p-2 rounded-lg cursor-pointer border" style={{ borderColor: 'var(--cbc-border, #E5E7EB)', background: 'var(--cbc-bg-card, white)' }} title="Próximo mês">
                 <ChevronRightIcon className="w-4 h-4" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }} aria-hidden="true" />
               </button>
               {monthOffset !== 0 && (
@@ -1666,8 +1679,8 @@ function MetasTab() {
                 <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Meta Valor R$</th>
                 <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Realizado</th>
                 <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% Atingido</th>
-                <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observacao</th>
-                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Acoes</th>
+                <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
+                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -1715,7 +1728,7 @@ function MetasTab() {
                     </td>
                     <td className="px-3 py-2">
                       <input type="text" value={m.observacao || ''} onChange={e => updateMeta(v.email, { observacao: e.target.value })}
-                        placeholder="Observacao"
+                        placeholder="Observação"
                         className="w-full border rounded px-2 py-1 text-xs"
                         style={{ background: 'var(--cbc-bg-card, white)', color: 'var(--cbc-text-primary, #1A2E52)', borderColor: 'var(--cbc-border, #E5E7EB)' }} />
                     </td>
@@ -1805,7 +1818,8 @@ function ExpectativaTab() {
       setEditing(null);
       await load();
     } catch (e) {
-      showToast('Erro: ' + e.message);
+      console.error('[VendasParametrizacaoPanel]', e);
+      showToast('Erro: ' + friendlyError(e));
     }
   };
 
@@ -1826,9 +1840,9 @@ function ExpectativaTab() {
       <div className="max-w-full mx-auto">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Expectativa de Honorarios</h3>
+            <h3 className="text-sm font-bold" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>Expectativa de Honorários</h3>
             <p className="text-[11px]" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-              Valor medio de sentenca, percentual praticado e tempo medio por resort x tipo de acao.
+              Valor médio de sentença, percentual praticado e tempo médio por resort x tipo de ação.
             </p>
           </div>
           <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'var(--cbc-bg-subtle, #F3F4F6)' }}>
@@ -1911,12 +1925,12 @@ function ExpectativaTab() {
               <thead>
                 <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
                   <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Resort</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de acao</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor medio</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de ação</th>
+                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor médio</th>
                   <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% praticado</th>
                   <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tempo (meses)</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observacao</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Acoes</th>
+                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
+                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>

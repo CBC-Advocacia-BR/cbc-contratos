@@ -19,11 +19,15 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../AuthContext';
+import { ymdLocal } from '../utils/format';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
 import { useDebounce } from '../hooks/useDebounce';
 import ErrorState from './ErrorState';
 import ConfirmDestructive from './ConfirmDestructive';
 import { SkeletonDashboard } from './Skeleton';
+// (auditoria 01/08/2026 — item 265) o usuario nao le "duplicate key value violates":
+// friendlyError traduz o erro tecnico; o detalhe cru segue indo para o console/Sentry.
+import { friendlyError } from '../utils/friendlyError';
 import {
   TableCellsIcon,
   ViewColumnsIcon,
@@ -172,6 +176,9 @@ export default function VendasPanel() {
 
   // Contratos carregados do banco
   const [contratos, setContratos] = useState(_cachedVendasContratos || []);
+  // (auditoria 01/08 — item 200) contador de pedidos: garante que so a busca MAIS RECENTE
+  // escreve na tela (resposta antiga que chega atrasada e descartada).
+  const pedidoRef = useRef(0);
   const [loading, setLoading] = useState(!_cachedVendasContratos);
   // (perf 31/05) Mantem o cache sincronizado com a lista exibida.
   useEffect(() => { _cachedVendasContratos = contratos; }, [contratos]);
@@ -281,6 +288,13 @@ export default function VendasPanel() {
   const fetchContratos = useCallback(async () => {
     // Gate: sem email filtro, so admin pode carregar (visao consolidada)
     if (!vendedoraEmail && !isAdmin) return;
+    // (auditoria 01/08 — item 200) Numero de serie da busca. Sem isto, trocar de
+    // vendedora rapidamente podia mostrar a carteira ERRADA: se a 1a consulta demorasse
+    // mais que a 2a, ela chegava DEPOIS e sobrescrevia a tela com os dados do filtro
+    // anterior — sem nenhum sinal de erro. Ao final, so o pedido mais recente pode
+    // escrever no estado.
+    const meuPedido = ++pedidoRef.current;
+    const aindaVale = () => meuPedido === pedidoRef.current;
     setLoading(true);
     setError('');
     try {
@@ -293,6 +307,7 @@ export default function VendasPanel() {
       }
       const { data, error: dbError } = await query;
       if (dbError) throw dbError;
+      if (!aindaVale()) return;   // (item 200) chegou tarde: outro filtro ja esta na tela
       setContratos(data || []);
     } catch {
       // Pode ser que colunas novas (pasta, vendedora_email etc) nao existam ainda.
@@ -304,12 +319,13 @@ export default function VendasPanel() {
           .order('created_at', { ascending: false })
           .limit(100);
         if (e2) throw e2;
+        if (!aindaVale()) return;
         setContratos(data || []);
       } catch {
-        setError('Erro ao carregar contratos. Verifique se o SQL supabase_vendas_comissoes.sql foi aplicado.');
+        if (aindaVale()) setError('Nao foi possivel carregar os contratos. Tente atualizar a pagina; se continuar, avise o suporte.');
       }
     } finally {
-      setLoading(false);
+      if (aindaVale()) setLoading(false);
     }
   }, [vendedoraEmail, isAdmin]);
 
@@ -357,7 +373,7 @@ export default function VendasPanel() {
   // ─── Carregar promocoes ativas ───
   const fetchPromocoes = useCallback(async () => {
     try {
-      const now = new Date().toISOString().split('T')[0];
+      const now = ymdLocal();
       const { data, error: e } = await supabase
         .from('vendas_promocoes_sazonais')
         .select('*')
@@ -569,7 +585,8 @@ export default function VendasPanel() {
         setTimeout(() => setSavedCell(null), 400);
       }
     } catch (err) {
-      showToast('Erro ao salvar: ' + err.message, 'error');
+      console.error('[VendasPanel]', err);
+      showToast('Erro ao salvar: ' + friendlyError(err), 'error');
     } finally {
       setSavingCell(null);
     }
@@ -647,10 +664,10 @@ export default function VendasPanel() {
             <ExclamationTriangleIcon className="w-8 h-8" style={{ color: '#D97706' }} />
           </div>
           <h2 className="text-base font-bold mb-2" style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}>
-            Acesso nao autorizado
+            Acesso não autorizado
           </h2>
           <p className="text-xs" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-            Seu usuario nao tem um perfil de vendas configurado. Peca ao Paulo para definir <code className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-mono">perfil_vendas</code> (vendedora ou assistente) em <code className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-mono">user_permissions</code>.
+            Seu usuário não tem um perfil de vendas configurado. Peça ao Paulo para definir <code className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-mono">perfil_vendas</code> (vendedora ou assistente) em <code className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-mono">user_permissions</code>.
           </p>
         </div>
       </div>
@@ -819,7 +836,7 @@ export default function VendasPanel() {
           {comissaoPrevia.adminConsolidado ? (
             <div className="flex items-center gap-1.5 text-xs">
               <span style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>
-                Selecione uma vendedora para ver comissao prevista.
+                Selecione uma vendedora para ver comissão prevista.
               </span>
             </div>
           ) : (
@@ -828,7 +845,7 @@ export default function VendasPanel() {
                 {isAdmin && adminViewEmail ? 'Comissao prevista do mes:' : 'Minha comissao prevista do mes:'}
               </span>
               <strong className="text-sm font-bold tabular-nums" style={{ color: 'var(--cbc-navy)' }}>{formatMoney(comissaoPrevia.total)}</strong>
-              <span className="text-[11px] px-1.5 py-0.5 rounded-md font-bold uppercase" style={{ background: 'var(--cbc-warning-bg)', color: 'var(--cbc-warning)' }}>Previsao</span>
+              <span className="text-[11px] px-1.5 py-0.5 rounded-md font-bold uppercase" style={{ background: 'var(--cbc-warning-bg)', color: 'var(--cbc-warning)' }}>Previsão</span>
             </div>
           )}
           <div className="h-4 w-px" style={{ background: 'var(--cbc-border, #E5E7EB)' }} />
@@ -856,7 +873,7 @@ export default function VendasPanel() {
         ) : error ? (
           <div className="p-6">
             <ErrorState
-              title="Nao foi possivel carregar vendas"
+              title="Não foi possível carregar vendas"
               message={error}
               suggestion="Verifique a conexao com o Supabase e se o SQL de vendas foi aplicado."
               onRetry={fetchContratos}
@@ -1487,17 +1504,20 @@ function ContratoKanbanCard({ contrato, guia, onClick, onDragStart, onDragEnd, i
       onDragEnd={onDragEnd}
       onClick={onClick}
       className="rounded-lg p-2.5 cursor-pointer transition-all hover:shadow-md"
+      /* (auditoria 01/08/2026 — item 292) branco fixo + navy fixo faziam o quadro virar uma
+         parede branca ofuscante no modo escuro (o CSS do tema nao vence estilo inline).
+         Tokens --cbc-* trocam sozinhos entre claro e escuro. */
       style={{
-        background: 'rgba(255,255,255,0.95)',
+        background: 'var(--cbc-bg-card, #fff)',
         opacity: isDragging ? 0.5 : 1,
         transform: isDragging ? 'scale(0.97)' : 'scale(1)',
-        border: isFds ? `2px solid ${COLORS.gold}` : '1px solid rgba(0,0,0,0.08)',
+        border: isFds ? `2px solid ${COLORS.gold}` : '1px solid var(--cbc-border, rgba(0,0,0,0.08))',
       }}
     >
-      <div className="font-bold text-[12px] truncate mb-0.5" style={{ color: COLORS.navy }}>
+      <div className="font-bold text-[12px] truncate mb-0.5" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
         {c.nome_contratante1 || '—'}
       </div>
-      <div className="text-[10px] truncate mb-1.5" style={{ color: '#6B7280' }}>
+      <div className="text-[10px] truncate mb-1.5" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
         {c.resort || '—'}
       </div>
       <div className="flex items-center gap-1 flex-wrap text-[11px]">
@@ -1527,7 +1547,7 @@ function ContratoKanbanCard({ contrato, guia, onClick, onDragStart, onDragEnd, i
             onChange={(e) => { if (e.target.value) onMove(e.target.value); }}
             aria-label="Mover para coluna"
             className="w-full rounded border px-1.5 py-1 text-[11px] font-semibold"
-            style={{ borderColor: 'rgba(0,0,0,0.12)', color: '#6B7280', background: 'rgba(255,255,255,0.9)' }}
+            style={{ borderColor: 'var(--cbc-border, rgba(0,0,0,0.12))', color: 'var(--cbc-text-muted, #6B7280)', background: 'var(--cbc-bg-card, #fff)' }}
           >
             <option value="">Mover para...</option>
             {KANBAN_COLS.filter((k) => k.key !== colKey).map((k) => (
@@ -1542,15 +1562,21 @@ function ContratoKanbanCard({ contrato, guia, onClick, onDragStart, onDragEnd, i
 
 // ─── Card de lead rapido (pre-contrato) ───
 function LeadRapidoCard({ lead, onReload, showToast }) {
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    if (!confirm(`Arquivar lead "${lead.nome}"?`)) return;
+  // (auditoria 01/08/2026 — item 267) sai o `confirm()` cinza do navegador, entra a mesma
+  // caixa do resto do app em modo simples: arquivar e reversivel (o lead volta na base).
+  const [confirmarArquivar, setConfirmarArquivar] = useState(false);
+
+  const handleDelete = (e) => { e.stopPropagation(); setConfirmarArquivar(true); };
+
+  const arquivarDeVerdade = async () => {
+    setConfirmarArquivar(false);
     try {
       await supabase.from('vendas_leads_rapidos').update({ arquivado: true }).eq('id', lead.id);
       showToast('Lead arquivado');
       onReload();
     } catch (err) {
-      showToast('Erro ao arquivar: ' + err.message, 'error');
+      console.error('[VendasPanel]', err);
+      showToast('Erro ao arquivar: ' + friendlyError(err), 'error');
     }
   };
 
@@ -1572,13 +1598,13 @@ function LeadRapidoCard({ lead, onReload, showToast }) {
     <div
       className="rounded-lg p-2.5 cursor-pointer transition-all hover:shadow-md relative"
       style={{
-        background: 'rgba(255,255,255,0.95)',
+        background: 'var(--cbc-bg-card, #fff)',
         border: '1px dashed #F9A8D4',
       }}
     >
       <div className="flex items-start justify-between gap-1 mb-1">
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-[12px] truncate" style={{ color: COLORS.navy }}>
+          <div className="font-bold text-[12px] truncate" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
             {lead.nome}
           </div>
           <div className="text-[10px] truncate" style={{ color: '#6B7280' }}>
@@ -1615,6 +1641,18 @@ function LeadRapidoCard({ lead, onReload, showToast }) {
           Gerar contrato
         </button>
       </div>
+
+      {/* (item 267) confirmacao no visual do app, sem exigir digitacao */}
+      <ConfirmDestructive
+        isOpen={confirmarArquivar}
+        title="Arquivar lead?"
+        message={`"${lead.nome}" sai do quadro. Ele continua na base e pode voltar depois.`}
+        confirmLabel="Arquivar"
+        exigirDigitacao={false}
+        danger={false}
+        onConfirm={arquivarDeVerdade}
+        onCancel={() => setConfirmarArquivar(false)}
+      />
     </div>
   );
 }
@@ -1655,7 +1693,8 @@ function NovoLeadCard({ vendedoraEmail, assistenteEmail, onReload, onReloadContr
       if (String(err.message || '').toLowerCase().includes('does not exist')) {
         showToast('Tabela vendas_leads_rapidos nao existe. Rode o SQL.', 'error');
       } else {
-        showToast('Erro: ' + err.message, 'error');
+        console.error('[VendasPanel]', err);
+        showToast('Erro: ' + friendlyError(err), 'error');
       }
     } finally {
       setSaving(false);
@@ -1680,7 +1719,7 @@ function NovoLeadCard({ vendedoraEmail, assistenteEmail, onReload, onReloadContr
     <>
       <div
         className="rounded-lg border-2 border-dashed p-2.5"
-        style={{ borderColor: '#F9A8D4', background: 'rgba(255,255,255,0.85)' }}
+        style={{ borderColor: '#F9A8D4', background: 'var(--cbc-bg-card, #fff)' }}
       >
         {!expanded ? (
           <button
@@ -1819,7 +1858,8 @@ function ImportLeadModal({ vendedoraEmail, assistenteEmail, onClose, onReload, s
       onReload();
       onClose();
     } catch (err) {
-      showToast('Erro ao importar: ' + err.message, 'error');
+      console.error('[VendasPanel]', err);
+      showToast('Erro ao importar: ' + friendlyError(err), 'error');
     }
   };
 
@@ -2001,7 +2041,7 @@ function ContractDrawer({ contrato, guia, promocoes, onClose, onUpdate, onReload
         {/* Sections */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* 1. Informacoes basicas */}
-          <DrawerSection title="Informacoes">
+          <DrawerSection title="Informações">
             <InfoRow label="CPF" value={c.cpf_contratante1 || '—'} />
             <InfoRow label="Telefone" value={tel || '—'} />
             <InfoRow label="Status contrato" value={<StatusBadge status={c.status} />} />
@@ -2124,7 +2164,8 @@ function ContractDrawer({ contrato, guia, promocoes, onClose, onUpdate, onReload
                             juntada_por: user?.email,
                           }).eq('id', guia.id);
                         } catch (err) {
-                          showToast('Erro ao marcar guia: ' + err.message, 'error');
+                          console.error('[VendasPanel]', err);
+                          showToast('Erro ao marcar guia: ' + friendlyError(err), 'error');
                           return;
                         }
 
@@ -2196,7 +2237,7 @@ function ContractDrawer({ contrato, guia, promocoes, onClose, onUpdate, onReload
           </DrawerSection>
 
           {/* 5. Status comissao */}
-          <DrawerSection title="Status comissao">
+          <DrawerSection title="Status comissão">
             <div
               className="rounded-lg p-3 flex items-start gap-2"
               style={{ background: commStatus.bg, border: `1px solid ${commStatus.border}` }}
@@ -2354,14 +2395,16 @@ function DocUploadButton({ documentoTipoId, contratoId, user, onReload, showToas
           showToast('Documento enviado');
           onReload();
         } catch (err) {
-          showToast('Erro: ' + err.message, 'error');
+          console.error('[VendasPanel]', err);
+          showToast('Erro: ' + friendlyError(err), 'error');
         } finally {
           setUploading(false);
         }
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      showToast('Erro: ' + err.message, 'error');
+      console.error('[VendasPanel]', err);
+      showToast('Erro: ' + friendlyError(err), 'error');
       setUploading(false);
     }
   };
@@ -2422,7 +2465,8 @@ function GuiaForm({ contratoId, guiaExistente, user, onClose, onSaved, showToast
       showToast(guiaExistente ? 'Guia atualizada' : 'Guia criada');
       onSaved();
     } catch (err) {
-      showToast('Erro: ' + err.message, 'error');
+      console.error('[VendasPanel]', err);
+      showToast('Erro: ' + friendlyError(err), 'error');
     } finally {
       setSaving(false);
     }

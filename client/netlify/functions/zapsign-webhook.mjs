@@ -8,21 +8,20 @@
 // Seguranca: validamos via shared secret no header X-ZapSign-Secret (env ZAPSIGN_WEBHOOK_SECRET).
 // Se o secret nao estiver configurado, o handler ainda funciona mas ignora chamadas suspeitas.
 
-import { createClient } from '@supabase/supabase-js';
+// (auditoria 01/08/2026 — item 86) ESTE WEBHOOK NUNCA FUNCIONOU.
+// Ele criava o client exigindo `SUPABASE_URL` (ou `VITE_SUPABASE_URL`) **e**
+// `SUPABASE_SERVICE_ROLE_KEY`. 🔎 CORRECAO 02/08/2026 (conferido no painel do Netlify):
+// a SERVICE ROLE **existe**; o que NAO existe e a URL — nao ha `SUPABASE_URL` nem
+// `VITE_SUPABASE_URL` cadastrada. Sem a URL o client saia null e TODO evento de
+// assinatura virava 500, desde sempre: a 'atualizacao em tempo real' nunca existiu.
+// Passa a usar o `db` do _lib/botDb.mjs, que tem a URL como fallback embutido.
+import { db as sb, heartbeat, logAdvbox } from './_lib/botDb.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
-const SUPA_URL  = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPA_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ZAP_TOKEN = process.env.ZAPSIGN_TOKEN;
 const WEBHOOK_SECRET = process.env.ZAPSIGN_WEBHOOK_SECRET || '';
 
 const ZAP_API = 'https://api.zapsign.com.br/api/v1';
-
-// (auditoria #21) Client Supabase em ESCOPO DE MODULO — reutilizado entre invocacoes
-// quentes do mesmo container (menos cold start). null-safe: se faltar env, o handler
-// retorna 500 (checagem !SUPA_URL/!SUPA_KEY) antes de tocar em `sb`.
-const sb = (SUPA_URL && SUPA_KEY)
-  ? createClient(SUPA_URL, SUPA_KEY, { auth: { persistSession: false } })
-  : null;
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -42,7 +41,11 @@ async function fetchDocFromZapSign(docToken) {
   }
 }
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('zapsign-webhook', async (req) => {
   if (req.method !== 'POST') return jsonResponse({ error: 'POST only' }, 405);
 
   // (#L14) Validacao de secret. Quando configurado, exige o header correto (fail-closed).
@@ -59,9 +62,10 @@ export default async (req) => {
     console.warn('[zapsign-webhook] AVISO SEGURANCA: ZAPSIGN_WEBHOOK_SECRET nao configurado — webhook sem autenticacao de header (mitigado pela re-verificacao na API ZapSign). Configure o secret no Netlify E no painel ZapSign p/ fechar.');
   }
 
-  if (!SUPA_URL || !SUPA_KEY) {
-    return jsonResponse({ error: 'missing supabase env' }, 500);
-  }
+  // (item 149) Registra que o webhook FOI CHAMADO. Sem isto, "o ZapSign parou de avisar"
+  // (URL trocada, segredo alterado, integracao desligada no painel) e indistinguivel de
+  // "ninguem assinou hoje" — os dois casos sao silencio absoluto.
+  heartbeat('zapsign-webhook', true, `evento recebido`).catch(() => {});
 
   let body;
   try { body = await req.json(); }
@@ -92,6 +96,20 @@ export default async (req) => {
   // Re-busca ground truth da API ZapSign (mais seguro que confiar no payload)
   const doc = await fetchDocFromZapSign(docToken);
   if (!doc) {
+    // (auditoria 01/08 — item 110) Documento APAGADO ou EXPIRADO no ZapSign nao pode
+    // virar 502 eterno: o re-fetch sempre falha (o doc nao existe mais), o contrato fica
+    // preso em "aguardando assinatura" para sempre e o ZapSign pode desativar o webhook
+    // por excesso de erro. Nesses eventos, encerramos o contrato aqui mesmo.
+    if (event === 'doc_deleted' || event === 'doc_expired') {
+      await sb.from('contratos').update({
+        status: 'cancelado',
+        updated_at: new Date().toISOString(),
+      }).eq('id', contract.id).eq('status', 'enviado_zapsign'); // so se ainda estiver pendente
+      await logAdvbox('zapsign', 'aviso',
+        `Documento ${event === 'doc_expired' ? 'expirou' : 'foi apagado'} no ZapSign — contrato marcado como cancelado`,
+        { contrato_id: contract.id, docToken, event });
+      return jsonResponse({ ok: true, event, contrato: contract.id, acao: 'cancelado' });
+    }
     return jsonResponse({ error: 'failed to fetch doc from zapsign' }, 502);
   }
 
@@ -157,4 +175,4 @@ export default async (req) => {
     signers_count: signers.length,
     all_signed: allSigned,
   });
-};
+}, { origem: 'zapsign' });

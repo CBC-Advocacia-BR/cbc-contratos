@@ -75,6 +75,7 @@ export default function HealthSlos() {
   const [error, setError] = useState('');
   const [automationRows, setAutomationRows] = useState([]);
   const [healthSamples, setHealthSamples] = useState([]);
+  const [asaasErros, setAsaasErros] = useState(0); // (item 258) erros do espelho Asaas (7d)
 
   useEffect(() => {
     let mounted = true;
@@ -92,13 +93,17 @@ export default function HealthSlos() {
           .limit(5000);
         if (mounted) setAutomationRows(autoData || []);
 
-        // asaas_error_log referenciado apenas para monitoramento futuro (nao usado hoje)
+        // (auditoria 01/08 — item 258) Esta consulta buscava os erros do espelho Asaas e
+        // JOGAVA O RESULTADO FORA ("monitoramento futuro"). Custava uma ida ao banco a
+        // cada carga e nao informava nada. Agora o numero aparece: erro no espelho do
+        // Asaas e justamente o sinal de que a sincronizacao de boletos esta quebrando —
+        // o tipo de coisa que so se descobre quando a inadimplencia sai errada.
         try {
-          await supabase
+          const { count } = await supabase
             .from('asaas_error_log')
-            .select('created_at')
-            .gte('created_at', sevenDaysAgo)
-            .limit(500);
+            .select('id', { count: 'exact', head: true })
+            .gte('created_at', sevenDaysAgo);
+          if (mounted) setAsaasErros(count || 0);
         } catch { /* tabela pode nao existir */ }
 
         // health live — uma amostragem simples agora
@@ -237,6 +242,18 @@ export default function HealthSlos() {
         </div>
       )}
 
+      {/* (auditoria 01/08 — item 258) Erros do espelho do Asaas nos ultimos 7 dias.
+          Esta consulta ja era feita e o resultado era DESCARTADO. Erro aqui significa
+          sincronizacao de boletos falhando — o tipo de problema que so aparece depois,
+          quando a inadimplencia da tela sai errada. */}
+      {asaasErros > 0 && (
+        <div className="mb-2 text-[11px] inline-flex items-center gap-1" style={{ color: 'var(--cbc-warning)' }}>
+          <ExclamationTriangleIcon className="w-3.5 h-3.5" />
+          {asaasErros} erro{asaasErros === 1 ? '' : 's'} no espelho do Asaas nos ultimos 7 dias —
+          a sincronizacao de boletos pode estar falhando (ver console do Monitor).
+        </div>
+      )}
+
       <div className="space-y-2">
         {SLO_DEFS.map(def => {
           const s = slos[def.key];
@@ -314,7 +331,7 @@ export default function HealthSlos() {
             <span className="font-bold">Como ler:</span> verde = no alvo, amarelo = dentro de 97% do alvo, vermelho = fora.
           </div>
           <div className="mt-0.5">
-            <span className="font-bold">Error budget:</span> quanto ainda pode falhar este periodo antes de estourar a meta.
+            <span className="font-bold">Error budget:</span> quanto ainda pode falhar este período antes de estourar a meta.
           </div>
         </div>
       </div>

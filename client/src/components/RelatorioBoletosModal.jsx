@@ -6,6 +6,9 @@
  */
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { filtroInadimplencia } from '../lib/statusTokens';
+import { ymdLocal } from '../utils/format';
+import { fetchAllPaged } from '../utils/supabasePaged';
 import { XMarkIcon, DocumentArrowDownIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 
 const PAGOS = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED'];
@@ -31,7 +34,7 @@ const STATUS_PT = {
 };
 
 export default function RelatorioBoletosModal({ open, onClose }) {
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = ymdLocal();
   const [f, setF] = useState({ tipo: 'detalhado', base: 'due_date', ini: hoje.slice(0, 8) + '01', fim: '', status: 'todos', cliente: '' });
   const [busy, setBusy] = useState('');
   const [erro, setErro] = useState('');
@@ -40,25 +43,32 @@ export default function RelatorioBoletosModal({ open, onClose }) {
   if (!open) return null;
 
   async function buscar() {
-    let q = supabase.from('asaas_boletos')
-      .select('customer_name, customer_cpf, value, net_value, status, due_date, payment_date, description, installment_number, installment_total, billing_type');
-    if (f.ini) q = q.gte(f.base, f.ini);
-    if (f.fim) q = q.lte(f.base, f.fim);
-    if (f.base === 'payment_date') q = q.not('payment_date', 'is', null);
-    if (f.status === 'pagos') q = q.in('status', PAGOS);
-    if (f.status === 'abertos') q = q.in('status', ['PENDING', 'OVERDUE']);
-    if (f.status === 'pendentes') q = q.eq('status', 'PENDING');
-    // (R12) "vencidos" tambem pega PENDING cujo vencimento ja passou — o Asaas
-    // demora a virar p/ OVERDUE, entao so olhar status escondia inadimplentes.
-    if (f.status === 'vencidos') q = q.or(`status.eq.OVERDUE,and(status.eq.PENDING,due_date.lt.${hoje})`);
-    if (f.status === 'todos') q = q.not('status', 'in', '("DELETED")');
-    const t = f.cliente.trim();
-    if (t) {
-      const d = t.replace(/\D/g, '');
-      q = d.length >= 5 ? q.or(`customer_name.ilike.%${t}%,customer_cpf.ilike.%${d}%`) : q.ilike('customer_name', `%${t}%`);
-    }
-    const { data, error } = await q.order(f.base, { ascending: true }).limit(5000);
-    if (error) throw new Error(error.message);
+    // (auditoria 01/08 — item 223) O `.limit(5000)` entregava 1000 linhas: o relatorio em
+    // Excel/PDF enviado ao socio podia estar FALTANDO boletos, sem nenhuma marca disso no
+    // arquivo. Agora pagina — e a query e MONTADA A CADA PAGINA (o helper exige builder
+    // novo; reusar o mesmo acumula os modificadores e a 2a pagina vem errada).
+    // `f.base` (due_date/payment_date) empata muito, entao `id` entra como desempate.
+    const montarQuery = () => {
+      let q = supabase.from('asaas_boletos')
+        .select('customer_name, customer_cpf, value, net_value, status, due_date, payment_date, description, installment_number, installment_total, billing_type, id');
+      if (f.ini) q = q.gte(f.base, f.ini);
+      if (f.fim) q = q.lte(f.base, f.fim);
+      if (f.base === 'payment_date') q = q.not('payment_date', 'is', null);
+      if (f.status === 'pagos') q = q.in('status', PAGOS);
+      if (f.status === 'abertos') q = q.in('status', ['PENDING', 'OVERDUE']);
+      if (f.status === 'pendentes') q = q.eq('status', 'PENDING');
+      // (R12) "vencidos" tambem pega PENDING cujo vencimento ja passou — o Asaas
+      // demora a virar p/ OVERDUE, entao so olhar status escondia inadimplentes.
+      if (f.status === 'vencidos') q = q.or(`status.eq.OVERDUE,and(status.eq.PENDING,due_date.lt.${hoje})`);
+      if (f.status === 'todos') q = q.not('status', 'in', '("DELETED")');
+      const t = f.cliente.trim();
+      if (t) {
+        const d = t.replace(/\D/g, '');
+        q = d.length >= 5 ? q.or(`customer_name.ilike.%${t}%,customer_cpf.ilike.%${d}%`) : q.ilike('customer_name', `%${t}%`);
+      }
+      return q.order(f.base, { ascending: true }).order('id', { ascending: true });
+    };
+    const data = await fetchAllPaged(montarQuery);
     return (data || []).map((b) => ({
       cliente: b.customer_name || '',
       cpf: b.customer_cpf || '',
@@ -76,18 +86,25 @@ export default function RelatorioBoletosModal({ open, onClose }) {
   // inadimplência por cliente: total em aberto + tempo desde o 1º inadimplemento,
   // ordenado do maior valor em aberto para o menor
   async function buscarInadimplencia() {
-    let q = supabase.from('asaas_boletos')
-      .select('customer_name, customer_cpf, value, due_date')
-      .or(`status.eq.OVERDUE,and(status.eq.PENDING,due_date.lt.${hoje})`);
-    if (f.ini) q = q.gte('due_date', f.ini);
-    if (f.fim) q = q.lte('due_date', f.fim);
-    const t = f.cliente.trim();
-    if (t) {
-      const d = t.replace(/\D/g, '');
-      q = d.length >= 5 ? q.or(`customer_name.ilike.%${t}%,customer_cpf.ilike.%${d}%`) : q.ilike('customer_name', `%${t}%`);
-    }
-    const { data, error } = await q.limit(5000);
-    if (error) throw new Error(error.message);
+    // (item 223) mesma correcao: relatorio de inadimplencia por cliente nao pode omitir
+    // devedores em silencio. Query remontada a cada pagina, ordem total por `id`.
+    const montarQuery = () => {
+      let q = supabase.from('asaas_boletos')
+        .select('customer_name, customer_cpf, value, due_date, id')
+        // (item 248) filtro canonico: a versao antiga daqui ainda NAO incluia
+        // DUNNING_REQUESTED (negativacao), entao o relatorio de inadimplencia por
+        // cliente subcontava em relacao as outras duas telas.
+        .or(filtroInadimplencia(hoje));
+      if (f.ini) q = q.gte('due_date', f.ini);
+      if (f.fim) q = q.lte('due_date', f.fim);
+      const t = f.cliente.trim();
+      if (t) {
+        const d = t.replace(/\D/g, '');
+        q = d.length >= 5 ? q.or(`customer_name.ilike.%${t}%,customer_cpf.ilike.%${d}%`) : q.ilike('customer_name', `%${t}%`);
+      }
+      return q.order('id', { ascending: true });
+    };
+    const data = await fetchAllPaged(montarQuery);
     const grupos = {};
     for (const b of data || []) {
       const chave = (b.customer_cpf || '').replace(/\D/g, '') || b.customer_name || '?';

@@ -7,7 +7,7 @@
  * das functions sincronas (medido 26.1s p/ 7 dias em 15/07).
  */
 import { db, logAdvbox } from './botDb.mjs';
-import { campaignToRow, adToRow, adsetToRow, insightToDiario, breakdownToLinha, contaToRow, atividadeToRow, avaliarAlertasTrafego, ALERTAS_DEFAULT } from './metaAds.mjs';
+import { campaignToRow, adToRow, adsetToRow, insightToDiario, breakdownToLinha, contaToRow, atividadeToRow, avaliarAlertasTrafego, ALERTAS_DEFAULT, avaliarSanidadeEspelho, SANIDADE_DEFAULT } from './metaAds.mjs';
 import { sendAlertEmail } from './alertEmail.mjs';
 
 export const GRAPH = 'https://graph.facebook.com/v23.0';
@@ -224,18 +224,33 @@ export async function gravar(catalogos, diario, limpar, breakdown = [], extras =
 export async function lerConfig() {
   const { data } = await db.from('bot_config').select('value').eq('key', 'meta_trafego').maybeSingle();
   const alertas = { ...ALERTAS_DEFAULT, destinatarios: TRIO, ...(data?.value?.alertas || {}) };
-  return { alertas };
+  const sanidade = { ...SANIDADE_DEFAULT, ...(data?.value?.sanidade || {}) };
+  return { alertas, sanidade };
 }
 
-/** Roda o motor de alertas com anti-flood (1 por tipo+campanha+dia). */
-export async function rodarAlertas() {
+/**
+ * Roda o motor de alertas com anti-flood (1 por tipo+campanha+dia).
+ * (auditoria — item 235) Antes dos alertas de NEGOCIO, checa a sanidade do ESPELHO:
+ * espelho travado/vazio/com buraco parece "dia fraco de campanha" na tela e leva alguem
+ * a mexer no orcamento por causa de dado que nao existe. Os problemas de dado entram na
+ * MESMA fila de aviso (e-mail + sino), com destaque, e nunca derrubam o sync.
+ */
+export async function rodarAlertas(resumoDaRodada = null) {
   const cfg = await lerConfig();
   if (!cfg.alertas.ativo) return { avaliados: 0, enviados: 0, motivo: 'desligado' };
 
   const { data: series, error } = await db.rpc('meta_trafego_series', { p_chave: RPC_SECRET, p_dias: 29 });
   if (error) throw new Error(`RPC meta_trafego_series: ${error.message}`);
 
-  const alertas = avaliarAlertasTrafego(series || {}, cfg.alertas);
+  let sanidade = [];
+  try {
+    sanidade = avaliarSanidadeEspelho(series || {}, diaBrt(0), resumoDaRodada, cfg.sanidade)
+      .map((p) => ({ ...p, mensagem: `⚠️ DADO: ${p.mensagem}` }));
+  } catch (e) {
+    await logAdvbox('meta', 'erro', `sanidade do espelho falhou: ${e.message}`.slice(0, 200), {});
+  }
+
+  const alertas = [...sanidade, ...avaliarAlertasTrafego(series || {}, cfg.alertas)];
   if (!alertas.length) return { avaliados: 0, enviados: 0 };
 
   const hoje = diaBrt(0);

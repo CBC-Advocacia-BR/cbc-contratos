@@ -12,6 +12,7 @@ import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 import { useKommoVinculoFlag } from '../hooks/useKommoVinculoFlag';
 import KommoVinculo from './KommoVinculo';
 import { formatCurrency } from '../utils/extenso';
+import { ymdLocal } from '../utils/format';
 import { detectConflicts, getConflictColor } from '../utils/clausulaConflicts';
 import { getGenderUpdates, adjustProfissaoGender } from '../utils/genderDetector';
 // docxGenerator importado dinamicamente ao gerar DOCX (lazy) (#112)
@@ -42,7 +43,20 @@ function ConflictIcon({ iconKey, className, style }) {
 }
 import { useRipple } from '../hooks/useRipple';
 import { useToast } from './Toast';
+// (item 265/266) erro tecnico traduzido; o cru vai para o console
+import { friendlyError } from '../utils/friendlyError';
 import PresenceIndicator from './contratos/PresenceIndicator';
+
+// (auditoria 01/08/2026 — item 264) LABELS LIGADOS AOS CAMPOS (htmlFor/id).
+// Antes: ~150 <label> no projeto e 5 htmlFor. Clicar no rotulo nao focava o campo, o
+// preenchimento automatico do navegador piorava e leitor de tela anunciava "campo sem nome".
+// Os ids dos campos do CONTRATANTE levam `c${index}-` porque o MESMO componente renderiza
+// os dois contratantes — id repetido quebraria a associacao (o navegador liga tudo ao
+// primeiro), o que e pior do que nao ter nenhuma.
+// 5 rotulos seguem sem ligacao de proposito: Profissao, Empreendimento/Resort, Nome do
+// Novo Empreendimento, Valor/Parc. (somente leitura) e Link Google Drive — nesses o
+// controle nao vem logo apos o rotulo (ha <div>/comentario no meio) e reorganizar a
+// estrutura daria mais risco do que ganho.
 
 // (#36) Validacao cruzada de data de nascimento — retorna {level, message} ou null
 function evaluateBirthDate(value) {
@@ -476,7 +490,9 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
       const data = await extractTextFromFile(file, {
         onProgress: (p) => setOcrProgress(p),
       });
-      console.log('OCR response:', data);
+      // (auditoria 01/08 — item 203) REMOVIDO: imprimia nome, CPF, RG e endereco
+      // extraidos da CNH no console do navegador. Num escritorio sujeito a LGPD isso
+      // nao pode existir em producao (qualquer pessoa com acesso a maquina le).
       const updates = {};
       const filledFields = {};
       const fieldMap = { nome: 'nome', cpf: 'cpf', rg: 'rg', nacionalidade: 'nacionalidade', email: 'email', estadoCivil: 'estadoCivil', profissao: 'profissao', endereco: 'endereco', bairro: 'bairro', cidade: 'cidade', uf: 'uf', cep: 'cep' };
@@ -641,7 +657,7 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
     if (result.nome) {
       onChange(index, { nome: result.nome });
     }
-  }, [contratante.cpf, contratante.nome, index, onChange]);
+  }, [contratante.cpf, contratante.nome, index, onChange, toast]);
 
   // (#34) Copia rapida do contratante 1 — varios escopos
   const copyFrom = (fields, label) => {
@@ -687,7 +703,7 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
       )}
 
       <div className="flex items-center justify-between mb-2">
-        <div className="text-[11px] font-bold uppercase tracking-[1px]" style={{ color: '#1B3A5C' }}>
+        <div className="text-[11px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
           Contratante {index + 1}
         </div>
         <div className="flex items-center gap-2">
@@ -750,66 +766,66 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
       {/* (PJ) Bloco de dados da empresa — so quando Pessoa Juridica */}
       {contratante.tipo === 'pj' && (
         <div className="mb-3 rounded-lg border border-gray-200 p-3" style={{ background: '#F7F9FC' }}>
-          <div className="flex items-center gap-1.5 mb-2.5 text-[11px] font-bold uppercase tracking-[1px]" style={{ color: '#1B3A5C' }}>
+          <div className="flex items-center gap-1.5 mb-2.5 text-[11px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
             <BuildingOffice2Icon className="w-4 h-4" aria-hidden="true" /> Dados da Empresa
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             <div className="col-span-2">
-              <label className="label-field">CNPJ *
+              <label className="label-field" htmlFor={`c${index}-cnpj`}>CNPJ *
                 {cnpjStatus === 'loading' && <span className="text-blue-500 text-[9px] ml-1 animate-pulse normal-case">buscando...</span>}
                 {cnpjStatus === 'found' && <span className="text-green-600 text-[9px] ml-1 font-bold normal-case">&#9733; Empresa encontrada</span>}
-                {cnpjStatus === 'notfound' && <span className="text-amber-600 text-[9px] ml-1 font-bold normal-case">nao encontrado — preencha manualmente</span>}
+                {cnpjStatus === 'notfound' && <span className="text-amber-600 text-[9px] ml-1 font-bold normal-case">não encontrado — preencha manualmente</span>}
               </label>
-              <input className={`input-field ${errors.cnpj ? 'input-error' : ''}`}
+              <input id={`c${index}-cnpj`} className={`input-field ${errors.cnpj ? 'input-error' : ''}`} aria-invalid={!!errors.cnpj}
                 value={contratante.cnpj || ''} onChange={(e) => handleEmpresa('cnpj', maskCNPJ(e.target.value))}
                 onBlur={handleCNPJLookup} placeholder="00.000.000/0000-00" inputMode="numeric" autoComplete="off" enterKeyHint="next" />
             </div>
             <div className="col-span-2">
-              <label className="label-field">Razao Social *</label>
-              <input className={`input-field ${errors.razaoSocial ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-razaoSocial`}>Razao Social *</label>
+              <input id={`c${index}-razaoSocial`} className={`input-field ${errors.razaoSocial ? 'input-error' : ''}`} aria-invalid={!!errors.razaoSocial}
                 value={contratante.razaoSocial || ''} onChange={(e) => handleEmpresa('razaoSocial', e.target.value)} placeholder="Razao social da empresa" enterKeyHint="next" />
             </div>
             <div className="col-span-2">
-              <label className="label-field">E-mail da Empresa *</label>
-              <input className={`input-field ${errors.emailEmpresa ? 'input-error' : ''}`} type="email"
+              <label className="label-field" htmlFor={`c${index}-emailEmpresa`}>E-mail da Empresa *</label>
+              <input id={`c${index}-emailEmpresa`} className={`input-field ${errors.emailEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.emailEmpresa} type="email"
                 inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="off" enterKeyHint="next"
                 value={contratante.emailEmpresa || ''} onChange={(e) => handleEmpresa('emailEmpresa', e.target.value)} placeholder="empresa@exemplo.com" />
             </div>
             <div>
-              <label className="label-field">CEP da Empresa *</label>
-              <input className={`input-field ${errors.cepEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-cepEmpresa`}>CEP da Empresa *</label>
+              <input id={`c${index}-cepEmpresa`} className={`input-field ${errors.cepEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.cepEmpresa}
                 value={contratante.cepEmpresa || ''} onChange={(e) => handleEmpresa('cepEmpresa', maskCEP(e.target.value))}
                 onBlur={handleCepEmpresaLookup} placeholder="00000-000" inputMode="numeric" autoComplete="off" />
             </div>
             <div>
-              <label className="label-field">UF *</label>
-              <input className={`input-field ${errors.ufEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-ufEmpresa`}>UF *</label>
+              <input id={`c${index}-ufEmpresa`} className={`input-field ${errors.ufEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.ufEmpresa}
                 value={contratante.ufEmpresa || ''} onChange={(e) => handleEmpresa('ufEmpresa', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" maxLength={2}
                 autoCapitalize="characters" autoCorrect="off" enterKeyHint="next" />
             </div>
             <div className="col-span-2">
-              <label className="label-field">Endereco (Rua) *</label>
-              <input className={`input-field ${errors.enderecoEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-enderecoEmpresa`}>Endereço (Rua) *</label>
+              <input id={`c${index}-enderecoEmpresa`} className={`input-field ${errors.enderecoEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.enderecoEmpresa}
                 value={contratante.enderecoEmpresa || ''} onChange={(e) => handleEmpresa('enderecoEmpresa', e.target.value)} placeholder="Rua / Avenida" enterKeyHint="next" />
             </div>
             <div>
-              <label className="label-field">Numero *</label>
-              <input className={`input-field ${errors.numeroEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-numeroEmpresa`}>Número *</label>
+              <input id={`c${index}-numeroEmpresa`} className={`input-field ${errors.numeroEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.numeroEmpresa}
                 value={contratante.numeroEmpresa || ''} onChange={(e) => handleEmpresa('numeroEmpresa', e.target.value)} placeholder="123" inputMode="numeric" enterKeyHint="next" />
             </div>
             <div>
-              <label className="label-field">Complemento</label>
-              <input className="input-field"
+              <label className="label-field" htmlFor={`c${index}-complementoEmpresa`}>Complemento</label>
+              <input id={`c${index}-complementoEmpresa`} className="input-field"
                 value={contratante.complementoEmpresa || ''} onChange={(e) => handleEmpresa('complementoEmpresa', e.target.value)} placeholder="Sala, Andar..." />
             </div>
             <div>
-              <label className="label-field">Bairro *</label>
-              <input className={`input-field ${errors.bairroEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-bairroEmpresa`}>Bairro *</label>
+              <input id={`c${index}-bairroEmpresa`} className={`input-field ${errors.bairroEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.bairroEmpresa}
                 value={contratante.bairroEmpresa || ''} onChange={(e) => handleEmpresa('bairroEmpresa', e.target.value)} placeholder="Bairro" enterKeyHint="next" />
             </div>
             <div>
-              <label className="label-field">Cidade *</label>
-              <input className={`input-field ${errors.cidadeEmpresa ? 'input-error' : ''}`}
+              <label className="label-field" htmlFor={`c${index}-cidadeEmpresa`}>Cidade *</label>
+              <input id={`c${index}-cidadeEmpresa`} className={`input-field ${errors.cidadeEmpresa ? 'input-error' : ''}`} aria-invalid={!!errors.cidadeEmpresa}
                 value={contratante.cidadeEmpresa || ''} onChange={(e) => handleEmpresa('cidadeEmpresa', e.target.value)} placeholder="Cidade" enterKeyHint="next" />
             </div>
           </div>
@@ -818,35 +834,35 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
 
       {/* (PJ) Divisor: os campos abaixo descrevem o representante legal quando PJ */}
       {contratante.tipo === 'pj' && (
-        <div className="flex items-center gap-2 mb-2 text-[11px] font-bold uppercase tracking-[1px]" style={{ color: '#1B3A5C' }}>
+        <div className="flex items-center gap-2 mb-2 text-[11px] font-bold uppercase tracking-[1px]" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
           <UserIcon className="w-4 h-4" aria-hidden="true" /> Representante Legal
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-2.5">
         <div>
-          <label className="label-field">CPF *
+          <label className="label-field" htmlFor={`c${index}-cpf`}>CPF *
             {cpfStatus === 'loading' && <span className="text-blue-500 text-[9px] ml-1 animate-pulse">buscando...</span>}
             {cpfStatus === 'history' && <span className="text-purple-600 text-[9px] ml-1 font-bold">&#9733; Cliente encontrado</span>}
             {/* (ux-3) Aviso discreto de consulta sem creditos — nem verde nem erro */}
             {cpfStatus === 'sem_creditos' && <span className="text-amber-600 text-[9px] ml-1 font-bold normal-case">sem creditos — preencha o nome</span>}
             {cpfStatus !== 'loading' && cpfStatus !== 'history' && cpfStatus !== 'sem_creditos' && <ValidationIcon status={vCpf} />}
           </label>
-          <input className={`input-field ${ocrClass('cpf')} ${errors.cpf ? 'input-error' : vCpf === 'valid' ? 'input-valid' : vCpf === 'invalid' ? 'input-invalid' : ''}`}
+          <input id={`c${index}-cpf`} className={`input-field ${ocrClass('cpf')} ${errors.cpf ? 'input-error' : vCpf === 'valid' ? 'input-valid' : vCpf === 'invalid' ? 'input-invalid' : ''}`} aria-invalid={!!errors.cpf}
             value={contratante.cpf} onChange={(e) => handle('cpf', maskCPF(e.target.value))}
             onBlur={handleCPFValidate} onKeyDown={handleCPFKeyDown} placeholder="000.000.000-00" autoFocus={index === 0}
             inputMode="numeric" autoComplete="off" enterKeyHint="next" />
         </div>
         <div>
-          <label className="label-field">RG * <ValidationIcon status={vRg} /></label>
-          <input className={`input-field ${ocrClass('rg')} ${errors.rg ? 'input-error' : ''}`}
-            value={contratante.rg} onChange={(e) => handle('rg', maskRG(e.target.value))} placeholder="Numero do RG"
+          <label className="label-field" htmlFor={`c${index}-rg`}>RG * <ValidationIcon status={vRg} /></label>
+          <input id={`c${index}-rg`} className={`input-field ${ocrClass('rg')} ${errors.rg ? 'input-error' : ''}`} aria-invalid={!!errors.rg}
+            value={contratante.rg} onChange={(e) => handle('rg', maskRG(e.target.value))} placeholder="Número do RG"
             inputMode="numeric" enterKeyHint="next" />
         </div>
         <div className="col-span-2 relative">
-          <label className="label-field">Nome Completo * <ValidationIcon status={vNome} /></label>
-          <input ref={nameInputRef}
-            className={`input-field ${ocrClass('nome')} ${errors.nome ? 'input-error' : vNome === 'valid' ? 'input-valid' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-nome`}>Nome Completo * <ValidationIcon status={vNome} /></label>
+          <input id={`c${index}-nome`} ref={nameInputRef}
+            className={`input-field ${ocrClass('nome')} ${errors.nome ? 'input-error' : vNome === 'valid' ? 'input-valid' : ''}`} aria-invalid={!!errors.nome}
             value={contratante.nome}
             onChange={(e) => { handle('nome', e.target.value); searchClientByName(e.target.value); }}
             onFocus={() => { if (nameSuggestions.length > 0) setShowSuggestions(true); }}
@@ -856,7 +872,7 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
           {showSuggestions && nameSuggestions.length > 0 && (
             <div className="absolute z-50 left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden" style={{ maxHeight: '220px', overflowY: 'auto' }}>
               <div className="px-3 py-1.5 bg-purple-50 border-b border-purple-100">
-                <span className="text-[9px] font-bold uppercase text-purple-600 tracking-wide">Clientes encontrados no historico</span>
+                <span className="text-[9px] font-bold uppercase text-purple-600 tracking-wide">Clientes encontrados no histórico</span>
               </div>
               {nameSuggestions.map((s, i) => (
                 <button key={i}
@@ -879,8 +895,8 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
           )}
         </div>
         <div>
-          <label className="label-field">Sexo *</label>
-          <select className={`input-field ${errors.sexo ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-sexo`}>Sexo *</label>
+          <select id={`c${index}-sexo`} className={`input-field ${errors.sexo ? 'input-error' : ''}`} aria-invalid={!!errors.sexo}
             value={contratante.sexo || ''} onChange={(e) => {
               const sexo = e.target.value;
               const updates = { sexo };
@@ -903,14 +919,14 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
           </select>
         </div>
         <div>
-          <label className="label-field">Nacionalidade *</label>
-          <input className={`input-field ${ocrClass('nacionalidade')} ${errors.nacionalidade ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-nacionalidade`}>Nacionalidade *</label>
+          <input id={`c${index}-nacionalidade`} className={`input-field ${ocrClass('nacionalidade')} ${errors.nacionalidade ? 'input-error' : ''}`} aria-invalid={!!errors.nacionalidade}
             value={contratante.nacionalidade} onChange={(e) => handle('nacionalidade', e.target.value)} enterKeyHint="next" />
         </div>
         <div>
-          <label className="label-field">Profissao *</label>
+          <label className="label-field">Profissão *</label>
           <div className="relative">
-            <input className={`input-field ${ocrClass('profissao')} ${errors.profissao ? 'input-error' : ''}`}
+            <input className={`input-field ${ocrClass('profissao')} ${errors.profissao ? 'input-error' : ''}`} aria-invalid={!!errors.profissao}
               value={contratante.profissao} onChange={(e) => handle('profissao', e.target.value)}
               placeholder="Ex: empresario" list={`profissoes-${index}`} autoComplete="off" enterKeyHint="next" />
             <datalist id={`profissoes-${index}`}>
@@ -919,31 +935,31 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
           </div>
         </div>
         <div>
-          <label className="label-field">Estado Civil *</label>
-          <select className={`input-field ${ocrClass('estadoCivil')} ${errors.estadoCivil ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-estadoCivil`}>Estado Civil *</label>
+          <select id={`c${index}-estadoCivil`} className={`input-field ${ocrClass('estadoCivil')} ${errors.estadoCivil ? 'input-error' : ''}`} aria-invalid={!!errors.estadoCivil}
             value={contratante.estadoCivil} onChange={(e) => handle('estadoCivil', e.target.value)}>
             <option value="">Selecione...</option>
             {ESTADOS_CIVIS.map(ec => <option key={ec} value={ec}>{ec}</option>)}
           </select>
         </div>
         <div>
-          <label className="label-field">E-mail * <ValidationIcon status={vEmail} /></label>
+          <label className="label-field" htmlFor={`c${index}-email`}>E-mail * <ValidationIcon status={vEmail} /></label>
           {/* (mobile-2/mobile-6) email sem auto-capitalize/correcao + teclado certo */}
-          <input className={`input-field ${ocrClass('email')} ${errors.email ? 'input-error' : vEmail === 'valid' ? 'input-valid' : ''}`} type="email"
+          <input id={`c${index}-email`} className={`input-field ${ocrClass('email')} ${errors.email ? 'input-error' : vEmail === 'valid' ? 'input-valid' : ''}`} aria-invalid={!!errors.email} type="email"
             inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="email" enterKeyHint="next"
             value={contratante.email} onChange={(e) => handle('email', e.target.value)} placeholder="email@exemplo.com" />
         </div>
         <div>
-          <label className="label-field">Celular * {contratante.telefone?.replace(/\D/g,'').length >= 10 ? <ValidationIcon status="valid" /> : null}</label>
-          <input className={`input-field ${errors.telefone ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-telefone`}>Celular * {contratante.telefone?.replace(/\D/g,'').length >= 10 ? <ValidationIcon status="valid" /> : null}</label>
+          <input id={`c${index}-telefone`} className={`input-field ${errors.telefone ? 'input-error' : ''}`} aria-invalid={!!errors.telefone}
             value={contratante.telefone || ''} onChange={(e) => handle('telefone', maskPhone(e.target.value))} placeholder="(00) 00000-0000"
             type="tel" inputMode="tel" autoComplete="tel-national" />
         </div>
         <div>
-          <label className="label-field">Data de Nascimento *</label>
+          <label className="label-field" htmlFor={`c${index}-dataNascimento`}>Data de Nascimento *</label>
           {/* (ux-15) nao pode ser futura — max trava o seletor; evaluateBirthDate ja avisa abaixo */}
-          <input className={`input-field ${errors.dataNascimento ? 'input-error' : ''}`}
-            type="date" max={new Date().toISOString().slice(0, 10)}
+          <input id={`c${index}-dataNascimento`} className={`input-field ${errors.dataNascimento ? 'input-error' : ''}`} aria-invalid={!!errors.dataNascimento}
+            type="date" max={ymdLocal()}
             value={contratante.dataNascimento || ''} onChange={(e) => handle('dataNascimento', e.target.value)} />
           {(() => {
             const w = evaluateBirthDate(contratante.dataNascimento);
@@ -960,10 +976,10 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
         {/* (vinculo-kommo) quando a flag esta on, o link vai para o "Passo 1" no topo (contratante 0) */}
         {!hideLinkKommo && (
         <div className="col-span-2">
-          <label className="label-field">Link Kommo * {contratante.linkKommo?.startsWith('http') ? <ValidationIcon status="valid" /> : null}</label>
-          <input className={`input-field ${errors.linkKommo ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-linkKommo`}>Link Kommo * {contratante.linkKommo?.startsWith('http') ? <ValidationIcon status="valid" /> : null}</label>
+          <input id={`c${index}-linkKommo`} className={`input-field ${errors.linkKommo ? 'input-error' : ''}`} aria-invalid={!!errors.linkKommo}
             inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next"
-            value={contratante.linkKommo || ''} onChange={(e) => handle('linkKommo', e.target.value)} placeholder="https://advocaciacbc.kommo.com/leads/detail/..." title="Cole aqui a URL da conversa/lead no Kommo. Campo obrigatorio." />
+            value={contratante.linkKommo || ''} onChange={(e) => handle('linkKommo', e.target.value)} placeholder="https://advocaciacbc.kommo.com/leads/detail/..." title="Cole aqui a URL da conversa/lead no Kommo. Campo obrigatório." />
         </div>
         )}
 
@@ -973,8 +989,8 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
               Copiar tudo do Contratante 1
             </button>
             <div className="cbc-copy-row">
-              <button type="button" onClick={handleCopyAddress} className="cbc-copy-btn" title="CEP, endereco, numero, complemento, bairro, cidade, UF">
-                Endereco
+              <button type="button" onClick={handleCopyAddress} className="cbc-copy-btn" title="CEP, endereço, número, complemento, bairro, cidade, UF">
+                Endereço
               </button>
               <button type="button" onClick={handleCopyContact} className="cbc-copy-btn" title="Telefone e link Kommo">
                 Telefone + Kommo
@@ -982,7 +998,7 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
               <button type="button" onClick={handleCopyEmail} className="cbc-copy-btn" title="E-mail">
                 E-mail
               </button>
-              <button type="button" onClick={handleCopySocial} className="cbc-copy-btn" title="Sexo, nacionalidade, profissao, estado civil">
+              <button type="button" onClick={handleCopySocial} className="cbc-copy-btn" title="Sexo, nacionalidade, profissão, estado civil">
                 Dados sociais
               </button>
             </div>
@@ -1004,39 +1020,39 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
             onBlur={handleCEPLookup} onKeyDown={handleCEPKeyDown} placeholder="00000-000"
             inputMode="numeric" autoComplete="postal-code" />
           {cepError && (
-            <div className="text-[10px] text-red-600 mt-0.5 font-semibold">CEP nao encontrado</div>
+            <div className="text-[10px] text-red-600 mt-0.5 font-semibold">CEP não encontrado</div>
           )}
         </div>
         <div>
-          <label className="label-field">UF *</label>
-          <input className={`input-field ${ocrClass('uf')} ${errors.uf ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-uf`}>UF *</label>
+          <input id={`c${index}-uf`} className={`input-field ${ocrClass('uf')} ${errors.uf ? 'input-error' : ''}`} aria-invalid={!!errors.uf}
             value={contratante.uf} onChange={(e) => handle('uf', e.target.value.toUpperCase().slice(0, 2))} placeholder="SP" maxLength={2}
             autoCapitalize="characters" autoCorrect="off" enterKeyHint="next" />
         </div>
         <div>
-          <label className="label-field">Endereco (Rua) *</label>
-          <input className={`input-field ${ocrClass('endereco')} ${errors.endereco ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-endereco`}>Endereço (Rua) *</label>
+          <input id={`c${index}-endereco`} className={`input-field ${ocrClass('endereco')} ${errors.endereco ? 'input-error' : ''}`} aria-invalid={!!errors.endereco}
             value={contratante.endereco} onChange={(e) => handle('endereco', e.target.value)} placeholder="Rua Exemplo" enterKeyHint="next" />
         </div>
         <div>
-          <label className="label-field">Numero *</label>
-          <input className={`input-field ${errors.numero ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-numero`}>Número *</label>
+          <input id={`c${index}-numero`} className={`input-field ${errors.numero ? 'input-error' : ''}`} aria-invalid={!!errors.numero}
             value={contratante.numero || ''} onChange={(e) => handle('numero', e.target.value)} placeholder="123"
             inputMode="numeric" enterKeyHint="next" />
         </div>
         <div className="col-span-2">
-          <label className="label-field">Complemento</label>
-          <input className={`input-field ${ocrClass('complemento')}`}
+          <label className="label-field" htmlFor={`c${index}-complemento`}>Complemento</label>
+          <input id={`c${index}-complemento`} className={`input-field ${ocrClass('complemento')}`}
             value={contratante.complemento || ''} onChange={(e) => handle('complemento', e.target.value)} placeholder="Apto, Bloco, Sala..." />
         </div>
         <div>
-          <label className="label-field">Bairro *</label>
-          <input className={`input-field ${ocrClass('bairro')} ${errors.bairro ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-bairro`}>Bairro *</label>
+          <input id={`c${index}-bairro`} className={`input-field ${ocrClass('bairro')} ${errors.bairro ? 'input-error' : ''}`} aria-invalid={!!errors.bairro}
             value={contratante.bairro} onChange={(e) => handle('bairro', e.target.value)} placeholder="Bairro" enterKeyHint="next" />
         </div>
         <div>
-          <label className="label-field">Cidade *</label>
-          <input className={`input-field ${ocrClass('cidade')} ${errors.cidade ? 'input-error' : ''}`}
+          <label className="label-field" htmlFor={`c${index}-cidade`}>Cidade *</label>
+          <input id={`c${index}-cidade`} className={`input-field ${ocrClass('cidade')} ${errors.cidade ? 'input-error' : ''}`} aria-invalid={!!errors.cidade}
             value={contratante.cidade} onChange={(e) => handle('cidade', e.target.value)} placeholder="Cidade" enterKeyHint="next" />
         </div>
       </div>
@@ -1049,6 +1065,7 @@ const ContratanteForm = memo(ContratanteFormBase);
 
 // ─── Main FormPanel ───
 export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcuracaoPdf, saving, onClear, loadedContractId, currentUserEmail }) {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador na geracao do DOCX
   const { data, updateData, updateContratante, updateHonorarios, getClausulaTexto, updateClausula, resetClausula, isClausulaModificada, getClausulasOrdenadas, reorderClausulas, addClausulaAvulsa, removeClausulaAvulsa, resetAll } = useContract();
   // (vinculo-kommo) camada Kommo-first atras da flag; off => nada muda no form atual
   const kommoFlag = useKommoVinculoFlag();
@@ -1254,17 +1271,15 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
   }, [validateForm]);
 
   const formRef = useRef(null);
-  const [, setShowStickyHeader] = useState(false);
   const percent = useMemo(() => Math.round((progress.filter(s => s.done).length / progress.length) * 100), [progress]);
 
-  // Sticky header: show after scrolling past the progress bar
-  useEffect(() => {
-    const container = formRef.current?.closest('[class*="overflow-y-auto"]') || formRef.current?.parentElement;
-    if (!container) return;
-    const handleScroll = () => setShowStickyHeader(container.scrollTop > 100);
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  // (auditoria 01/08 — item 202) REMOVIDO um estado de "cabecalho fixo" que ninguem lia.
+  // O codigo era `const [, setShowStickyHeader] = useState(false)` — repare que o VALOR
+  // era descartado, so o setter existia — e um listener de scroll o atualizava. Resultado:
+  // cada rolagem do formulario disparava um setState e obrigava o React a reprocessar as
+  // ~2.000 linhas desta tela, para um valor que nenhum elemento consultava. Era a
+  // "travadinha" ao rolar o formulario no iPad. O cabecalho fixo nunca foi implementado;
+  // se um dia for, o certo e CSS `position: sticky`, sem estado nem listener.
 
   return (
     <div ref={formRef} className={`px-2 py-2 md:p-3 w-full overflow-hidden relative ${vinculoTravado ? 'cbc-vinculo-locked' : ''}`}>
@@ -1358,7 +1373,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                 {i === 1 && (
                   <div className="flex items-center gap-3 my-4">
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-                    <span className="text-[10px] font-bold uppercase tracking-[2px] px-3 py-1 rounded-full" style={{ background: '#EEF4FF', color: '#1B3A5C' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-[2px] px-3 py-1 rounded-full" style={{ background: '#EEF4FF', color: 'var(--cbc-text-primary, #1B3A5C)' }}>
                       Contratante 2
                     </span>
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
@@ -1444,18 +1459,18 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
 
         {data.resort && (
           <div className="mt-1">
-            <label className="label-field">Tipo de Acao *</label>
-            <select
+            <label className="label-field" htmlFor="f-tipoAcao">Tipo de Ação *</label>
+            <select id="f-tipoAcao"
               className={`input-field mb-2 ${globalFieldErrors.tipoAcao ? 'input-error' : ''}`}
               value={data.tipoAcao || ''}
               onChange={(e) => { updateData({ tipoAcao: e.target.value, tipoAcaoCustom: '' }); setGlobalFieldErrors(p => ({...p, tipoAcao: false})); }}
             >
-              <option value="">Selecione o tipo de acao...</option>
+              <option value="">Selecione o tipo de ação...</option>
               {TIPOS_ACAO.map(tipo => <option key={tipo} value={tipo}>{tipo}</option>)}
               <option value="outro">Outros (especificar)</option>
             </select>
             {data.tipoAcao === 'outro' && (
-              <input className="input-field" placeholder="Especifique o tipo de acao..."
+              <input className="input-field" placeholder="Especifique o tipo de ação..."
                 value={data.tipoAcaoCustom || ''} onChange={(e) => updateData({ tipoAcaoCustom: e.target.value })} />
             )}
 
@@ -1463,11 +1478,11 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               <div className="mt-3 p-3 rounded-lg text-xs" style={{ background: '#EEF4FF', border: '1px solid #C0D0E8' }}>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Resort</span>
-                  <span className="font-bold" style={{ color: '#1B3A5C' }}>{data.resort === 'outro' ? data.resortCustom : data.resort}</span>
+                  <span className="font-bold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{data.resort === 'outro' ? data.resortCustom : data.resort}</span>
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-gray-500">Acao</span>
-                  <span className="font-bold" style={{ color: '#1B3A5C' }}>{data.tipoAcao === 'outro' ? data.tipoAcaoCustom : data.tipoAcao}</span>
+                  <span className="text-gray-500">Ação</span>
+                  <span className="font-bold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{data.tipoAcao === 'outro' ? data.tipoAcaoCustom : data.tipoAcao}</span>
                 </div>
               </div>
             )}
@@ -1514,7 +1529,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               <div className="mt-2 p-2.5 rounded-lg text-[11px] flex items-center gap-2" style={{ background: 'var(--cbc-success-bg)', border: '1px solid var(--cbc-success-border)' }}>
                 <span aria-hidden="true">⏱️</span>
                 <span style={{ color: 'var(--cbc-success)' }}>
-                  Tempo medio ate assinatura para este resort: <strong>{signatureEstimate.avgDays} dias</strong> (base: {signatureEstimate.sampleSize} contratos)
+                  Tempo médio até assinatura para este resort: <strong>{signatureEstimate.avgDays} dias</strong> (base: {signatureEstimate.sampleSize} contratos)
                 </span>
               </div>
             )}
@@ -1523,9 +1538,9 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
       </Section>
 
       {/* Honorarios */}
-      <Section title="Honorarios Advocaticios" id="section-honorarios" dark done={progress[2].done} icon={SECTION_ICONS['Honorarios Advocaticios']} filled={progress[2].filled} total={progress[2].total}>
+      <Section title="Honorários Advocaticios" id="section-honorarios" dark done={progress[2].done} icon={SECTION_ICONS['Honorarios Advocaticios']} filled={progress[2].filled} total={progress[2].total}>
         {/* Modo de honorários: 3 opções */}
-        <div className="text-[11px] font-bold uppercase tracking-[0.5px] text-gray-500 mb-2">Tipo de Honorarios:</div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.5px] text-gray-500 mb-2">Tipo de Honorários:</div>
         <div className="grid grid-cols-3 gap-1.5 mb-4">
           {[
             { key: 'ambos', label: 'Iniciais + Exito', desc: 'Valor fixo + % de êxito' },
@@ -1582,16 +1597,16 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         {h.tipo === 'personalizado' && (
           <div className="grid grid-cols-3 gap-2 mt-3">
             <div>
-              <label className="label-field">Total (R$)</label>
-              <input type="number" inputMode="decimal" className="input-field" value={h.total || ''} onChange={(e) => {
+              <label className="label-field" htmlFor="f-honTotal">Total (R$)</label>
+              <input type="number" inputMode="decimal" id="f-honTotal" className="input-field" value={h.total || ''} onChange={(e) => {
                 const total = Number(e.target.value);
                 const vp = h.parcelas > 0 ? Math.round((total / h.parcelas) * 100) / 100 : 0;
                 updateHonorarios({ total, valorParcela: vp });
               }} />
             </div>
             <div>
-              <label className="label-field">Parcelas</label>
-              <input type="number" inputMode="numeric" className="input-field" value={h.parcelas || ''} onChange={(e) => {
+              <label className="label-field" htmlFor="f-honParcelas">Parcelas</label>
+              <input type="number" inputMode="numeric" id="f-honParcelas" className="input-field" value={h.parcelas || ''} onChange={(e) => {
                 const parcelas = Number(e.target.value);
                 const vp = parcelas > 0 ? Math.round((h.total / parcelas) * 100) / 100 : 0;
                 updateHonorarios({ parcelas, valorParcela: vp });
@@ -1606,12 +1621,12 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
 
         <div className="text-[11px] font-bold uppercase tracking-[0.5px] text-gray-500 mt-4 mb-2">Data da 1a Parcela:</div>
         <input type="date" className={`input-field ${globalFieldErrors.dataPrimeiraParcela ? 'input-error' : ''}`} value={h.dataPrimeiraParcela || ''}
-          min={new Date().toISOString().slice(0, 10)}
+          min={ymdLocal()}
           onChange={(e) => { updateHonorarios({ dataPrimeiraParcela: e.target.value }); setGlobalFieldErrors(p => ({...p, dataPrimeiraParcela: false})); }} />
         {h.dataPrimeiraParcela && (() => {
           const today = new Date(); today.setHours(0, 0, 0, 0);
           const due = new Date(h.dataPrimeiraParcela + 'T12:00:00');
-          if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data ja passou — Asaas rejeita boletos com vencimento no passado</p>;
+          if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data já passou — Asaas rejeita boletos com vencimento no passado</p>;
           return null;
         })()}
           </>
@@ -1727,7 +1742,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                           className="w-8 h-8 rounded-md flex items-center justify-center text-gray-500 disabled:opacity-25 cursor-pointer no-touch-min"
                           style={{ background: 'rgba(27,58,92,0.08)' }} aria-label="Mover cláusula para baixo">↓</button>
                       </span>
-                      <span className="font-bold truncate" style={{ color: '#1B3A5C', fontSize: '11px' }}>{displayTitle}</span>
+                      <span className="font-bold truncate" style={{ color: 'var(--cbc-text-primary, #1B3A5C)', fontSize: '11px' }}>{displayTitle}</span>
                     </div>
                     <div className="flex gap-1.5 items-center shrink-0">
                       {isAuto && <span className="text-[10px] px-2 py-0.5 rounded-full text-white" style={{ background: '#1B3A5C' }}>Auto</span>}
@@ -1753,7 +1768,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                     <div className="px-3 py-2">
                       <p className="text-gray-600 line-clamp-2 text-[11px] leading-relaxed">{getClausulaTexto(cl.id) || cl.texto}</p>
                       <div className="flex gap-3 mt-1.5">
-                        <button className="text-[11px] font-bold cursor-pointer hover:underline" style={{ color: '#1B3A5C' }}
+                        <button className="text-[11px] font-bold cursor-pointer hover:underline" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}
                           onClick={() => { setEditing(cl.id); setEditText(getClausulaTexto(cl.id) || cl.texto); }}>Editar</button>
                         {isModified && !isAvulsa && (
                           <button className="text-[11px] text-red-600 font-bold cursor-pointer hover:underline"
@@ -1776,7 +1791,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         {showAddClausula ? (
           <div className="mt-3 p-3 rounded-lg border border-dashed border-green-400 bg-green-50/50">
             <div className="text-[10px] font-bold uppercase tracking-wide text-green-700 mb-2">Nova Clausula Avulsa</div>
-            <input type="text" placeholder="Titulo da clausula (ex: Clausula Especial — Garantias)"
+            <input type="text" placeholder="Título da clausula (ex: Clausula Especial — Garantias)"
               value={newClausulaTitulo} onChange={e => setNewClausulaTitulo(e.target.value)}
               className="input-field text-xs mb-2" />
             <textarea placeholder="Texto da clausula..."
@@ -1811,13 +1826,13 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Dados Internos <span className="font-normal text-gray-300">— nao aparecem no contrato</span>
+          Dados Internos <span className="font-normal text-gray-300">— não aparecem no contrato</span>
         </div>
 
         {/* Origem do Cliente */}
         <div>
-          <label className="label-field">Origem do Cliente *</label>
-          <select
+          <label className="label-field" htmlFor="f-origemCliente">Origem do Cliente *</label>
+          <select id="f-origemCliente"
             className={`input-field text-xs ${globalFieldErrors.origemCliente ? 'input-error' : ''}`}
             value={data.origemCliente || ''}
             onChange={(e) => { updateData({ origemCliente: e.target.value }); setGlobalFieldErrors(p => ({...p, origemCliente: false})); }}
@@ -1827,7 +1842,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             <option value="Trafego pago">Trafego pago</option>
             <option value="Formulario">Formulario</option>
             <option value="Google">Google</option>
-            <option value="Indicacao">Indicacao</option>
+            <option value="Indicacao">Indicação</option>
             <option value="Instagram">Instagram</option>
             <option value="Organico">Organico</option>
             <option value="Outros">Outros</option>
@@ -1836,12 +1851,12 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
 
         {/* Data da primeira mensagem */}
         <div>
-          <label className="label-field">Data da Primeira Mensagem *</label>
-          <input
+          <label className="label-field" htmlFor="f-primeiraMsg">Data da Primeira Mensagem *</label>
+          <input id="f-primeiraMsg"
             type="date"
             className={`input-field text-xs ${globalFieldErrors.dataPrimeiraMensagem ? 'input-error' : ''}`}
             value={data.dataPrimeiraMensagem || ''}
-            max={new Date().toISOString().slice(0, 10)} /* (ux-15) nao pode ser futura */
+            max={ymdLocal()} /* (ux-15) nao pode ser futura */
             onChange={(e) => { updateData({ dataPrimeiraMensagem: e.target.value }); setGlobalFieldErrors(p => ({...p, dataPrimeiraMensagem: false})); }}
           />
           {/* (ux-15) Aviso se a data digitada/colada for futura — 1a mensagem nunca esta no futuro */}
@@ -1862,13 +1877,16 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               checked={data.escritorioArcaCustas || false}
               onChange={(e) => updateData({ escritorioArcaCustas: e.target.checked })}
             />
-            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#1B3A5C' }}>
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
               Escritório arca com as custas processuais
             </span>
           </label>
         </div>
 
-        {/* Não mandar mensagem automática */}
+        {/* (auditoria 01/08 — item 193) Rótulo agora diz exatamente o que a opção faz.
+            Ela era herança do ChatGuru e não tinha efeito nenhum; depois que o envio
+            automático do link entrou (02/07), marcá-la dava uma falsa sensação de
+            bloqueio e a mensagem saía do mesmo jeito. Hoje o App respeita este campo. */}
         <div>
           <label className="flex items-center gap-2 cursor-pointer py-2">
             <input
@@ -1878,9 +1896,13 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               onChange={(e) => updateData({ naoMandarMensagem: e.target.checked })}
             />
             <span className="text-xs font-bold uppercase tracking-wide text-red-500">
-              Não mandar mensagem automática
+              Não enviar o link de assinatura por WhatsApp
             </span>
           </label>
+          <p className="text-[11px] mt-0.5 ml-6" style={{ color: 'var(--cbc-muted, #64748b)' }}>
+            Marque para enviar o link manualmente pelo Kommo. Sem marcar, o link segue
+            automático quando a conversa estiver dentro da janela de 24h.
+          </p>
         </div>
 
         {/* Link Google Drive */}
@@ -1905,11 +1927,11 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
 
         {/* Observações Internas */}
         <div>
-          <label className="label-field">Observacoes Internas</label>
-          <textarea
+          <label className="label-field" htmlFor="f-observacoes">Observações Internas</label>
+          <textarea id="f-observacoes"
             className="input-field text-xs"
             rows={2}
-            placeholder="Anotacoes internas: indicacao, observacoes sobre o cliente, etc."
+            placeholder="Anotações internas: indicação, observações sobre o cliente, etc."
             value={data.observacoesInternas || ''}
             onChange={(e) => updateData({ observacoesInternas: e.target.value })}
           />
@@ -1925,7 +1947,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
-              Campos obrigatorios faltando
+              Campos obrigatórios faltando
               <button onClick={() => { setValidationErrors(null); setGlobalFieldErrors({}); }}
                 className="ml-auto text-white/70 hover:text-white cursor-pointer text-lg leading-none">&times;</button>
             </div>
@@ -1946,19 +1968,26 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           </div>
         )}
 
-        {/* Completion indicator */}
+        {/* Completion indicator
+            (auditoria 01/08/2026 — item 274) Os 5 botoes ficavam DESABILITADOS com o
+            formulario incompleto, e a unica pista era esta frase generica. O painel que
+            LISTA o que falta (com rolagem ate o campo, destaque e pulso) existe desde
+            sempre dentro do handleValidatedAction — e nunca rodava, porque o clique
+            estava bloqueado. Agora os botoes seguem com CARA de inativos (aria-disabled)
+            mas aceitam o clique: quem clica descobre exatamente o que falta e vai parar
+            no campo. Enquanto salva, o botao continua realmente desabilitado. */}
         {!isFormComplete && !validationErrors && (
           <div className="p-2 rounded-lg text-[10px] font-bold uppercase text-center tracking-wide"
             style={{ background: '#FFF8ED', color: '#92400E', border: '1px solid #FDE68A' }}>
-            Preencha todos os campos para salvar
+            Faltam campos obrigatórios — clique em um botão para ver quais
           </div>
         )}
 
         <button
           onClick={() => handleValidatedAction(onSave)}
           onMouseDown={ripple}
-          disabled={saving || !isFormComplete}
-          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving} aria-disabled={!isFormComplete}
+          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
           style={{ background: '#1B3A5C' }}
         >
           {/* (ux-5) Texto reflete edicao de contrato carregado */}
@@ -1967,8 +1996,8 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         <button
           onClick={() => handleValidatedAction(() => { if (onPdfSave) onPdfSave(); })}
           onMouseDown={ripple}
-          disabled={saving || !isFormComplete}
-          className="btn-ripple btn-press w-full py-3 rounded-lg font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving} aria-disabled={!isFormComplete}
+          className="btn-ripple btn-press w-full py-3 rounded-lg font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 text-white disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
           style={{ background: 'linear-gradient(135deg, #1B3A5C, #2D5A8C)' }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -1979,29 +2008,29 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             try {
               const { generateContractDocx } = await import('../utils/docxGenerator');
               await generateContractDocx(data);
-            } catch (err) { alert('Erro ao gerar DOCX: ' + err.message); }
+            } catch (err) { console.error('[FormPanel] DOCX:', err); toast.error('Erro ao gerar DOCX: ' + friendlyError(err)); }
           })}
-          disabled={saving || !isFormComplete}
-          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: '#EEF4FF', color: '#1B3A5C', border: '1px solid #C0D0E8' }}
+          disabled={saving} aria-disabled={!isFormComplete}
+          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
+          style={{ background: '#EEF4FF', color: 'var(--cbc-text-primary, #1B3A5C)', border: '1px solid #C0D0E8' }}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
           Exportar DOCX (Word)
         </button>
         <button
           onClick={() => handleValidatedAction(() => { if (onProcuracaoPdf) onProcuracaoPdf(); })}
-          disabled={saving || !isFormComplete}
-          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: '#EEF4FF', color: '#1B3A5C', border: '1px solid #C0D0E8' }}
+          disabled={saving} aria-disabled={!isFormComplete}
+          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
+          style={{ background: '#EEF4FF', color: 'var(--cbc-text-primary, #1B3A5C)', border: '1px solid #C0D0E8' }}
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-          Gerar Procuracao (sem assinatura)
+          Gerar Procuração (sem assinatura)
         </button>
         <button
           onClick={() => handleValidatedAction(onSendZapSign)}
           onMouseDown={ripple}
-          disabled={saving || !isFormComplete}
-          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={saving} aria-disabled={!isFormComplete}
+          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
           style={{ background: '#0F2035' }}
         >
           Enviar para ZapSign
@@ -2024,8 +2053,8 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-sm font-bold mb-2" style={{ color: '#1B3A5C' }}>Limpar Formulario?</h3>
-              <p className="text-xs text-gray-500 mb-4">Todos os dados preenchidos serao apagados. Esta acao nao pode ser desfeita.</p>
+              <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>Limpar Formulario?</h3>
+              <p className="text-xs text-gray-500 mb-4">Todos os dados preenchidos serão apagados. Esta ação não pode ser desfeita.</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowClearConfirm(false)}

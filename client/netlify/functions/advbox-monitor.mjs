@@ -13,12 +13,21 @@ const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
 export default async (req) => {
   try {
-    await fetch(`${SELF_URL}/.netlify/functions/advbox-monitor-worker-background`, {
+    const r = await fetch(`${SELF_URL}/.netlify/functions/advbox-monitor-worker-background`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ trigger: req.headers.get('x-netlify-event') === 'schedule' ? 'cron' : 'manual' }),
     });
-    await heartbeat('advbox-monitor', true, 'worker disparado'); // (observ-2)
+    // (auditoria 01/08 — item 95) O heartbeat de SUCESSO nao pode viver aqui.
+    // Este arquivo so DESPACHA o worker; o trabalho de verdade (paginacao do ADVBOX,
+    // notas, espelho) acontece no advbox-monitor-worker-background, que leva minutos.
+    // Gravar "ok" aqui significa: worker morre no meio -> painel continua VERDE. E o
+    // mesmo padrao que o proprio asaas-sync-boletos-background documenta como causa de
+    // uma falha que passou batida em julho.
+    // Aqui registramos apenas que o DESPACHO saiu (e se falhou), com o proprio nome
+    // 'advbox-monitor-dispatch'. O heartbeat de 'advbox-monitor' (o vigiado pelo
+    // watchdog) e gravado pelo WORKER quando ele termina de verdade.
+    await heartbeat('advbox-monitor-dispatch', r.ok, r.ok ? 'worker aceito' : `HTTP ${r.status} ao despachar`);
     return new Response(JSON.stringify({ ok: true, dispatched: true }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });

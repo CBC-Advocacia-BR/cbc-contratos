@@ -1,6 +1,21 @@
+// ⚠️ ATENCAO (descoberto na auditoria de 01/08/2026, ao tentar VER esta tela no navegador):
+// ESTE ARQUIVO NAO ESTA LIGADO AO APP. Nenhum componente importa `ClientFormLink` nem
+// `ClientPublicForm`, e nada no App.jsx le o parametro `?clientForm=` que o QR Code gera.
+// Ou seja: hoje o QR Code do cadastro do cliente NAO funciona — quem escaneia cai na tela
+// de login. (A tabela `client_forms` continua existindo no banco, com os envios antigos.)
+//
+// As melhorias de 01/08 aqui dentro (validacao de CPF, foco no campo que falta, erro em
+// portugues, aviso de privacidade — itens 269/270/271 da auditoria) foram mantidas para
+// que o fluxo volte JA CORRIGIDO se for religado. Religar exige uma decisao do Paulo:
+// tratar `?clientForm=` no App antes da tela de login e renderizar <ClientPublicForm/>.
 import { useState, useEffect, useRef } from 'react';
 import { CheckIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { maskCPF, maskRG, maskCEP } from '../utils/masks';
+import { validateCPF } from '../utils/validation';
+import { friendlyError } from '../utils/friendlyError';
+
+// (item 270) nome amigavel de cada campo obrigatorio, para a mensagem de erro
+const ROTULOS = { nome: 'Nome completo', cpf: 'CPF', email: 'E-mail' };
 // qrcode importado dinamicamente no useEffect (lazy) - #112
 
 /**
@@ -188,6 +203,16 @@ export function ClientPublicForm({ formId }) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  // (auditoria 01/08 — item 270) qual campo esta com problema, p/ marcar em vermelho
+  const [campoErro, setCampoErro] = useState('');
+  const refs = { nome: useRef(null), cpf: useRef(null), email: useRef(null) };
+  // rola ate o campo e foca — no celular a mensagem do rodape podia nem estar visivel
+  const focarCampo = (campo) => {
+    const el = refs[campo]?.current;
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.focus(), 250);
+  };
 
   const handle = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -212,10 +237,32 @@ export function ClientPublicForm({ formId }) {
   };
 
   const submit = async () => {
-    if (!form.nome || !form.cpf || !form.email) {
-      setError('Preencha nome, CPF e email');
+    // (auditoria 01/08 — itens 269/270) Esta e a tela que o CLIENTE ve depois de ler o
+    // QR Code. Antes ela: (a) dizia so "Preencha nome, CPF e email" no rodape, sem marcar
+    // o campo nem levar o foco ate ele (no celular a mensagem podia nem estar visivel);
+    // (b) nao validava o CPF, embora o projeto ja tenha `validateCPF` com digito
+    // verificador — CPF errado so aparecia depois, ja na montagem do contrato; e
+    // (c) em caso de falha mostrava a mensagem CRUA do banco, em ingles
+    // ("new row violates row-level security policy"), e o cliente desistia.
+    const faltando = [];
+    if (!form.nome?.trim()) faltando.push('nome');
+    if (!form.cpf?.trim()) faltando.push('cpf');
+    if (!form.email?.trim()) faltando.push('email');
+    if (faltando.length) {
+      setCampoErro(faltando[0]);
+      setError(faltando.length === 1
+        ? `Falta preencher: ${ROTULOS[faltando[0]]}.`
+        : `Faltam preencher: ${faltando.map((f) => ROTULOS[f]).join(', ')}.`);
+      focarCampo(faltando[0]);
       return;
     }
+    if (!validateCPF(form.cpf)) {
+      setCampoErro('cpf');
+      setError('Esse CPF não parece válido. Confira os números e tente de novo.');
+      focarCampo('cpf');
+      return;
+    }
+    setCampoErro('');
     setSending(true);
     setError('');
     try {
@@ -225,7 +272,9 @@ export function ClientPublicForm({ formId }) {
       if (dbErr) throw dbErr;
       setSent(true);
     } catch (e) {
-      setError(e.message);
+      // erro tecnico vira frase em portugues; o detalhe fica no console para suporte
+      console.error('[ClientFormQR] envio falhou:', e?.message || e);
+      setError(friendlyError(e, 'Não foi possível enviar seus dados agora. Tente de novo em instantes ou avise o escritório.'));
     } finally {
       setSending(false);
     }
@@ -239,13 +288,15 @@ export function ClientPublicForm({ formId }) {
             <CheckCircleIcon className="w-14 h-14 text-green-500" aria-hidden="true" />
           </div>
           <h2 className="text-xl font-bold mb-2" style={{ color: '#1B3A5C' }}>Dados Enviados!</h2>
-          <p className="text-sm text-gray-500">Seus dados foram recebidos pelo escritorio. Pode fechar esta pagina.</p>
+          <p className="text-sm text-gray-500">Seus dados foram recebidos pelo escritório. Pode fechar esta página.</p>
         </div>
       </div>
     );
   }
 
   const inputClass = "w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-300";
+  // (item 270) destaque do campo que impediu o envio — erro so no rodape passava batido
+  const inputClassErro = "w-full border-2 border-red-500 bg-red-50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300";
 
   return (
     <div className="min-h-[100dvh] p-4 pb-8" style={{ background: '#F0F4F8' }}>
@@ -258,12 +309,12 @@ export function ClientPublicForm({ formId }) {
         <div className="bg-white rounded-2xl shadow p-5 space-y-3">
           <div>
             <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Nome Completo *</label>
-            <input className={inputClass} type="text" autoComplete="name" enterKeyHint="next" value={form.nome} onChange={e => handle('nome', e.target.value)} placeholder="Nome completo" />
+            <input ref={refs.nome} className={campoErro === 'nome' ? inputClassErro : inputClass} type="text" autoComplete="name" enterKeyHint="next" value={form.nome} onChange={e => handle('nome', e.target.value)} placeholder="Nome completo" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">CPF *</label>
-              <input className={inputClass} type="text" value={form.cpf} onChange={e => handle('cpf', maskCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} enterKeyHint="next" />
+              <input ref={refs.cpf} className={campoErro === 'cpf' ? inputClassErro : inputClass} type="text" value={form.cpf} onChange={e => handle('cpf', maskCPF(e.target.value))} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} enterKeyHint="next" />
             </div>
             <div>
               <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">RG</label>
@@ -272,7 +323,7 @@ export function ClientPublicForm({ formId }) {
           </div>
           <div>
             <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Email *</label>
-            <input className={inputClass} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.email} onChange={e => handle('email', e.target.value)} placeholder="email@exemplo.com" />
+            <input ref={refs.email} className={campoErro === 'email' ? inputClassErro : inputClass} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={form.email} onChange={e => handle('email', e.target.value)} placeholder="email@exemplo.com" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -280,7 +331,7 @@ export function ClientPublicForm({ formId }) {
               <input className={inputClass} type="text" enterKeyHint="next" value={form.nacionalidade} onChange={e => handle('nacionalidade', e.target.value)} />
             </div>
             <div>
-              <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Profissao</label>
+              <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Profissão</label>
               <input className={inputClass} type="text" enterKeyHint="next" value={form.profissao} onChange={e => handle('profissao', e.target.value)} placeholder="Ex: empresario" />
             </div>
           </div>
@@ -301,8 +352,8 @@ export function ClientPublicForm({ formId }) {
               <input className={inputClass} type="text" autoComplete="postal-code" value={form.cep} onChange={e => handleCEP(maskCEP(e.target.value))} placeholder="00000-000" inputMode="numeric" maxLength={9} enterKeyHint="next" />
             </div>
             <div className="col-span-2">
-              <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Endereco</label>
-              <input className={inputClass} type="text" autoComplete="address-line1" enterKeyHint="next" value={form.endereco} onChange={e => handle('endereco', e.target.value)} placeholder="Rua, numero" />
+              <label className="text-[10px] font-bold uppercase text-gray-500 block mb-1">Endereço</label>
+              <input className={inputClass} type="text" autoComplete="address-line1" enterKeyHint="next" value={form.endereco} onChange={e => handle('endereco', e.target.value)} placeholder="Rua, número" />
             </div>
           </div>
           <div>
@@ -324,13 +375,25 @@ export function ClientPublicForm({ formId }) {
             </div>
           </div>
 
-          {error && <div className="text-xs text-red-600 text-center font-medium">{error}</div>}
+          {/* (item 270) role="alert" faz o leitor de tela anunciar o erro na hora */}
+          {error && (
+            <div role="alert" className="text-xs text-red-600 text-center font-medium">{error}</div>
+          )}
 
           <button onClick={submit} disabled={sending}
             className="w-full py-3.5 rounded-lg text-white font-bold text-sm cursor-pointer transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: '#1B3A5C' }}>
             {sending ? 'Enviando...' : 'Enviar Dados'}
           </button>
+
+          {/* (auditoria 01/08 — item 271) Aviso de privacidade. A tela pede CPF, RG e
+              endereco sem dizer quem recebe e para que — e o PRIMEIRO contato digital do
+              cliente com o escritorio, e a LGPD exige informar a finalidade. */}
+          <p className="text-[11px] leading-relaxed text-gray-500 text-center pt-1">
+            Seus dados são usados apenas para preparar seu contrato e a procuração, ficam
+            protegidos por sigilo profissional e não são compartilhados com terceiros.
+            Dúvidas ou pedido de exclusão: fale com o escritório.
+          </p>
         </div>
 
         <p className="text-[9px] text-gray-400 text-center mt-4">

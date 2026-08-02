@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../Toast';
+import ConfirmDestructive from '../ConfirmDestructive';
 import {
   BookmarkIcon,
   BookmarkSquareIcon,
@@ -75,8 +76,14 @@ export default function ViewsManager({ currentFilters, onApplyView }) {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!confirm(`Excluir view "${name}"?`)) return;
+  // (auditoria 01/08/2026 — item 267) sai o `confirm()` do navegador, entra a mesma caixa
+  // do resto do app em modo simples (excluir uma visao salva e reversivel: basta recriar).
+  const [confirmarExclusao, setConfirmarExclusao] = useState(null);
+
+  const handleDelete = (id, name) => setConfirmarExclusao({ id, name });
+
+  const excluirDeVerdade = async ({ id, name }) => {
+    setConfirmarExclusao(null);
     try {
       const { error } = await supabase.from('user_views').delete().eq('id', id);
       if (error) throw error;
@@ -184,7 +191,7 @@ export default function ViewsManager({ currentFilters, onApplyView }) {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
-                  placeholder="Ex: Pendencias do mes"
+                  placeholder="Ex: Pendências do mês"
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-navy focus:outline-none"
                 />
               </div>
@@ -209,6 +216,18 @@ export default function ViewsManager({ currentFilters, onApplyView }) {
           </div>
         </div>
       )}
+
+      {/* (item 267) confirmacao no visual do app, sem exigir digitacao */}
+      <ConfirmDestructive
+        isOpen={!!confirmarExclusao}
+        title="Excluir visão salva?"
+        message={confirmarExclusao ? `A visão "${confirmarExclusao.name}" será removida. Você pode criá-la de novo depois.` : ''}
+        confirmLabel="Excluir"
+        exigirDigitacao={false}
+        danger={false}
+        onConfirm={() => excluirDeVerdade(confirmarExclusao)}
+        onCancel={() => setConfirmarExclusao(null)}
+      />
     </div>
   );
 }

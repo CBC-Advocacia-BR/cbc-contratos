@@ -109,7 +109,7 @@ export default function BotIntencoes() {
       <div className="card p-4 grid md:grid-cols-12 gap-2 items-end">
         <div className="md:col-span-2">
           <label className="text-[11px] font-bold uppercase opacity-60">Chave</label>
-          <input className="input-field w-full text-sm" value={draft.intent_key} onChange={e => setDraft(d => ({ ...d, intent_key: e.target.value }))} placeholder="ex.: indicacao" />
+          <input className="input-field w-full text-sm" value={draft.intent_key} onChange={e => setDraft(d => ({ ...d, intent_key: e.target.value }))} placeholder="ex.: indicação" />
         </div>
         <div className="md:col-span-3">
           <label className="text-[11px] font-bold uppercase opacity-60">Nome</label>

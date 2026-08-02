@@ -6,7 +6,10 @@
  */
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { filtroInadimplencia } from '../lib/statusTokens';
 import MoneyValue from './ui/MoneyValue';
+import { ymdLocal } from '../utils/format';
+import { fetchAllPaged } from '../utils/supabasePaged';
 
 function Tendencia({ atual, antigo }) {
   if (antigo == null || antigo === 0) return null;
@@ -41,13 +44,17 @@ export default function InadimplenciaStrip({ refreshToken = 0, current = null })
           .order('dia', { ascending: false }).limit(1);
         if (vivo) setRef((hist && hist[0]) || null);
         if (!current) {
-          const hoje = new Date().toISOString().slice(0, 10);
-          const { data: bols } = await supabase.from('asaas_boletos')
+          const hoje = ymdLocal();
+          // (auditoria 01/08 — item 224) `.limit(5000)` nao levanta o teto de 1000 do
+          // PostgREST: a faixa de inadimplencia exibida no topo da aba pararia de crescer
+          // em silencio assim que os vencidos passassem de mil.
+          const bols = await fetchAllPaged(() => supabase.from('asaas_boletos')
             // (#L12) inclui DUNNING_REQUESTED (negativação) — faz parte do bucket OPEN
             // canônico (ver lib/statusTokens). Antes o fallback subcontava a inadimplência.
             .select('customer_cpf, customer_name, value, due_date')
-            .or(`status.eq.OVERDUE,status.eq.DUNNING_REQUESTED,and(status.eq.PENDING,due_date.lt.${hoje})`)
-            .limit(5000);
+            // (item 248) filtro canonico — status novo do Asaas entra pelo statusTokens
+            .or(filtroInadimplencia(hoje))
+            .order('id'));
           const grupos = new Set();
           let total = 0, maior = 0;
           const agora = new Date(hoje).getTime();

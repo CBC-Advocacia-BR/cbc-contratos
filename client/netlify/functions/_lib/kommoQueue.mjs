@@ -41,8 +41,12 @@ export async function enqueue({ kind, payload = {}, source = null, dedupeKey = n
 
 /** Reivindica atomicamente UM job pendente pelo id (pending -> processing). */
 export async function claimById(id) {
+  // (auditoria 01/08 — item 105) NAO zerar `attempts` aqui. A versao anterior gravava
+  // attempts:0 ao reivindicar, apagando o historico de falhas do job: o teto de
+  // MAX_ATTEMPTS nunca era alcancado por este caminho e um job quebrado podia girar
+  // indefinidamente sem nunca virar 'failed' (e portanto sem nunca gerar alerta).
   const { data } = await db.from('kommo_queue')
-    .update({ status: 'processing', attempts: 0, updated_at: nowIso() })
+    .update({ status: 'processing', updated_at: nowIso() })
     .eq('id', id).eq('status', 'pending').select('*');
   return data && data.length ? data[0] : null;
 }
@@ -85,8 +89,19 @@ export async function fail(job, errMsg) {
 /** Solta jobs presos em 'processing' ha mais de X min (worker morreu no meio). */
 export async function reclaimStuck(minutes = 5) {
   const cutoff = new Date(Date.now() - minutes * 60000).toISOString();
-  await db.from('kommo_queue').update({ status: 'pending', updated_at: nowIso() })
+  // (auditoria 01/08 — item 105) A versao anterior devolvia o job para 'pending' SEM
+  // contar a tentativa. Um job que sempre estoura o tempo da function (o "job veneno")
+  // voltava para a fila para sempre: nunca chegava a MAX_ATTEMPTS, nunca virava
+  // 'failed' e por isso nunca disparava o alerta critico — so aparecia como "pendente
+  // antigo", que e apenas um aviso. Agora cada resgate CONTA como tentativa, entao o
+  // job problematico acaba parando em 'failed' e sendo reportado.
+  const { data: presos } = await db.from('kommo_queue')
+    .select('id, attempts')
     .eq('status', 'processing').lt('updated_at', cutoff);
+  for (const job of presos || []) {
+    await fail(job, `preso em processing por mais de ${minutes} min (worker morreu no meio)`);
+  }
+  return (presos || []).length;
 }
 
 /** Resumo da fila para o painel do Monitor. */

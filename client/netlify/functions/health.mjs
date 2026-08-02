@@ -2,6 +2,8 @@
  * Health check endpoint — verifies all integrations are reachable
  * GET https://contratos-cbc.netlify.app/.netlify/functions/health
  */
+import { APPS_SCRIPT_URL } from './_lib/drive.mjs';
+
 
 const ASAAS_KEY = process.env.ASAAS_API_KEY;
 const SUPABASE_URL = 'https://vygczeepvoyaehfchxko.supabase.co';
@@ -54,11 +56,15 @@ export default async (req) => {
     }),
     // (chatguru removal 2026-05) checkService('chatguru') removido
     checkService('google-apps-script', async () => {
-      const r = await fetch('https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec', {
-        method: 'POST', headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ test: true }), redirect: 'manual',
-      });
-      if (r.status !== 302) throw new Error('Expected redirect, got ' + r.status);
+      // (auditoria 01/08 — item 136) Era um POST, que faz o Apps Script EXECUTAR de
+      // verdade. Como o /health é chamado pelo app e ainda aquecido pelo keep-warm, isso
+      // consumia a cota diária de execuções do Google só para perguntar "você está de
+      // pé?" — e, no limite, a cota podia acabar justo quando um contrato precisasse ser
+      // arquivado. GET não roda o doPost: continua provando que a URL responde (302 para
+      // a página de execução), sem gastar execução.
+      const r = await fetch(APPS_SCRIPT_URL, { method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(10000) });
+      // 302 = URL viva (o Apps Script sempre redireciona); 200 também serve.
+      if (r.status !== 302 && r.status !== 200) throw new Error('Expected redirect, got ' + r.status);
     }),
   ]);
 

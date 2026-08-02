@@ -5,7 +5,7 @@
 // (fix 28/07/2026) exigia SUPABASE_SERVICE_ROLE_KEY, que nunca foi configurada: a funcao
 // retornava 500 'Missing SUPABASE env vars' a cada 15 min DESDE SEMPRE (nenhum heartbeat
 // jamais gravado) e os lembretes nunca disparariam. Passa a usar o `db` do botDb.
-import { db as sb, heartbeat } from './_lib/botDb.mjs';
+import { db as sb, heartbeat, logAdvbox } from './_lib/botDb.mjs';
 
 export const config = {
   schedule: '*/15 * * * *',  // (perf 31/05) a cada 15 min (era 5) — reduz 66% das execucoes; lembrete pode atrasar ate 15min, aceitavel
@@ -52,6 +52,7 @@ export default async () => {
   }
 
   let fired = 0;
+  const falhas = []; // (item 97)
   let reSched = 0;
 
   for (const r of due) {
@@ -76,10 +77,15 @@ export default async () => {
       }
       fired++;
     } catch (err) {
-      console.error('[reminder-cron] fire', r.id, err);
+      // (auditoria 01/08 — item 97) A falha ia SO para o console da Netlify (que expira) e
+      // o heartbeat era gravado como "tudo certo" logo abaixo: um lembrete que nunca
+      // dispara ficava invisivel para sempre. Agora vai para o Monitor e reprova a rodada.
+      falhas.push(String(err?.message || err).slice(0, 120));
+      await logAdvbox('lembrete', 'erro', `Lembrete ${r.id} nao disparou: ${err?.message || err}`.slice(0, 300), { id: r.id });
     }
   }
 
-  await heartbeat('reminder-cron', true, `${fired} disparados`); // (observ-2)
+  await heartbeat('reminder-cron', falhas.length === 0,
+    `${fired} disparados${falhas.length ? ` — ${falhas.length} falha(s): ${falhas[0]}` : ''}`);
   return new Response(JSON.stringify({ ok: true, fired, reSched, total: due.length }));
 };

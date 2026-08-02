@@ -41,6 +41,14 @@ import {
   ChevronUpIcon,
 } from '@heroicons/react/24/outline';
 
+// (auditoria 01/08 — item 178) Guard de visibilidade dos timers do Monitor.
+// Esta tela tem 7 relogios (de 2 a 30 segundos) que consultavam o banco mesmo com a
+// janela MINIMIZADA ou em outra aba — num dia inteiro com o Monitor aberto no fundo, sao
+// milhares de consultas sem ninguem olhando. O App.jsx ja usa esse mesmo guard no
+// health-check e na varredura de automacoes; aqui faltava.
+// Ao voltar para a aba, o timer roda na proxima batida (no maximo 30s de atraso).
+const abaVisivel = () => typeof document === 'undefined' || !document.hidden;
+
 // (#126) HEALTH_URL removido — migrado para Edge Function via API.health() abaixo
 const POLL_INTERVAL = 30000;
 
@@ -366,7 +374,7 @@ function AutomationHistory() {
       setLoading(false);
     }
     fetch_();
-    const interval = setInterval(fetch_, 15000);
+    const interval = setInterval(() => { if (abaVisivel()) fetch_(); }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -412,7 +420,7 @@ function AsaasErrorLog() {
       if (mounted) { setErrors(data || []); setLoading(false); }
     };
     load();
-    const t = setInterval(load, 30000);
+    const t = setInterval(() => { if (abaVisivel()) load(); }, 30000);
     return () => { mounted = false; clearInterval(t); };
   }, []);
   return (
@@ -529,7 +537,7 @@ function AuditLogRow({ log, onOpenContract }) {
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-gray-600">
             <div><span className="font-bold uppercase">Log ID:</span> <span className="font-mono">{log.id}</span></div>
             <div><span className="font-bold uppercase">Contrato ID:</span> <span className="font-mono break-all">{log.contrato_id || '—'}</span></div>
-            <div><span className="font-bold uppercase">Usuario:</span> {log.user_email || 'system'}</div>
+            <div><span className="font-bold uppercase">Usuário:</span> {log.user_email || 'system'}</div>
             <div><span className="font-bold uppercase">Quando:</span> {ts}</div>
           </div>
 
@@ -646,7 +654,7 @@ function AuditoriaContratos() {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
   useEffect(() => {
-    const t = setInterval(fetchLogs, 30000);
+    const t = setInterval(() => { if (abaVisivel()) fetchLogs(); }, 30000);
     return () => clearInterval(t);
   }, [fetchLogs]);
 
@@ -674,7 +682,7 @@ function AuditoriaContratos() {
           className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#1B3A5C] bg-white dark:bg-gray-800"
           style={{ color: 'var(--cbc-text-primary, #1A2E52)' }}
         >
-          <option value="">Todas as acoes</option>
+          <option value="">Todas as ações</option>
           <option value="insert">Criados</option>
           <option value="update">Atualizados</option>
           <option value="archive">Arquivados</option>
@@ -683,7 +691,7 @@ function AuditoriaContratos() {
         </select>
         <input
           type="email"
-          placeholder="Filtrar por email do usuario..."
+          placeholder="Filtrar por email do usuário..."
           value={filterUser}
           onChange={e => setFilterUser(e.target.value)}
           className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-[#1B3A5C] flex-1 min-w-[180px] bg-white dark:bg-gray-800"
@@ -704,7 +712,7 @@ function AuditoriaContratos() {
       ) : logs.length === 0 ? (
         <div className="text-sm text-gray-500 italic inline-flex items-center gap-1.5">
           <CheckCircleIcon className="w-4 h-4 text-gray-400" aria-hidden="true" />
-          Nenhuma acao registrada ainda.
+          Nenhuma ação registrada ainda.
         </div>
       ) : (
         <div className="space-y-1 max-h-96 overflow-y-auto">
@@ -742,7 +750,7 @@ function DeadLetterSection() {
 
   useEffect(() => {
     fetchDead();
-    const interval = setInterval(fetchDead, 30000);
+    const interval = setInterval(() => { if (abaVisivel()) fetchDead(); }, 30000);
     return () => clearInterval(interval);
   }, [fetchDead]);
 
@@ -828,7 +836,7 @@ function DriveFailedSection() {
 
   useEffect(() => {
     fetchFailed();
-    const interval = setInterval(fetchFailed, 30000);
+    const interval = setInterval(() => { if (abaVisivel()) fetchFailed(); }, 30000);
     return () => clearInterval(interval);
   }, [fetchFailed]);
 

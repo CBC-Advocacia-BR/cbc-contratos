@@ -255,9 +255,17 @@ describe('montarPreenchimento', () => {
 
   it('vincular SOBRESCREVE a 1a msg de um vinculo anterior (lead diferente)', () => {
     const r = montarPreenchimento(
-      { contato: {}, tags: [], cliente: null, leadCriadoEm: '2026-01-01T00:00:00Z' },
+      { contato: {}, tags: [], cliente: null, leadCriadoEm: '2026-01-01T12:00:00Z' },
       { dataPrimeiraMensagem: '2020-05-05' }, // valor de um lead vinculado antes
     );
+    expect(r.campos.dataPrimeiraMensagem).toBe('2026-01-01');
+  });
+
+  it('1a msg noturna usa o DIA LOCAL, nao o dia UTC (fix 31/07/2026)', () => {
+    // 22h30 local: a oeste de Greenwich o dia UTC ja e o seguinte — o form
+    // deve ficar com o dia em que o cliente de fato mandou a mensagem.
+    const noturno = new Date(2026, 0, 1, 22, 30).toISOString();
+    const r = montarPreenchimento({ contato: {}, tags: [], cliente: null, leadCriadoEm: noturno });
     expect(r.campos.dataPrimeiraMensagem).toBe('2026-01-01');
   });
 

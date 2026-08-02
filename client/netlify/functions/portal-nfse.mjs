@@ -14,7 +14,13 @@
 import { PDFDocument } from "pdf-lib";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://vygczeepvoyaehfchxko.supabase.co";
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// (auditoria 01/08/2026 — item 87) Esta function exigia SUPABASE_SERVICE_ROLE_KEY, que
+// NUNCA foi configurada no Netlify: respondia erro de "config" para todo mundo, desde
+// sempre. Agora cai para a chave anonima, como as demais functions do projeto ja fazem
+// (_lib/botDb.mjs). As RPCs chamadas aqui sao SECURITY DEFINER e validam o token do
+// portal por dentro, entao a chave anonima basta — o segredo continua sendo o token.
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5Z2N6ZWVwdm95YWVoZmNoeGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjgxNDYsImV4cCI6MjA4OTcwNDE0Nn0.dFk9CC48V1SlDuFNmtJOkfKf6LSz46aUg6Mpbd7xUjo";
 const PAGOS = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH", "DUNNING_RECEIVED"]);
 const MAX_NOTAS = 40, MAX_BYTES = 5 * 1024 * 1024;
 

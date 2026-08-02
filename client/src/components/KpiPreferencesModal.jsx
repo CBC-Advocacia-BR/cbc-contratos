@@ -2,8 +2,11 @@
 import React from 'react';
 import { XMarkIcon, ArrowPathIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { KPI_KEYS, KPI_META, DEFAULT_KPIS } from '../hooks/useKpiPreferences';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 export default function KpiPreferencesModal({ selected, onToggle, onReset, onSelectAll, onClose }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.6)' }}
@@ -28,7 +31,7 @@ export default function KpiPreferencesModal({ selected, onToggle, onReset, onSel
         {/* Body */}
         <div className="p-4 max-h-[60vh] overflow-y-auto">
           <p className="text-[11px] mb-3" style={{ color: 'var(--cbc-text-secondary)' }}>
-            Selecione os KPIs que voce deseja visualizar no seu Dashboard. A escolha e persistida localmente por usuario.
+            Selecione os KPIs que você deseja visualizar no seu Dashboard. A escolha e persistida localmente por usuário.
           </p>
 
           <div className="space-y-1.5">
@@ -79,7 +82,7 @@ export default function KpiPreferencesModal({ selected, onToggle, onReset, onSel
               style={{ background: 'transparent', color: '#D97706', border: '1px solid #FCD34D' }}
             >
               <ArrowPathIcon className="w-3 h-3" aria-hidden="true" />
-              Padrao
+              Padrão
             </button>
             <button
               onClick={onClose}

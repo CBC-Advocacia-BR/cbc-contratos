@@ -1,3 +1,4 @@
+
 /**
  * save-to-drive-direct
  * Variante de save-to-drive sem dependencia do ZapSign.
@@ -8,9 +9,11 @@
  * assinados off-line e queremos arquiva-los na pasta do Drive sem
  * passar pelo fluxo ZapSign.
  */
+import { extractFolderId, APPS_SCRIPT_URL } from './_lib/drive.mjs';
 
-const APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec';
+// (auditoria 01/08 — item 38) URL do Apps Script vem de _lib/drive.mjs (era copiada em
+// 4 arquivos). ⚠️ Esta versao nem lia a variavel de ambiente: mesmo configurando
+// APPS_SCRIPT_URL no Netlify, esta function continuaria usando a URL antiga.
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -22,13 +25,7 @@ const CORS = {
 // Aceita folders/ID, /u/0/folders/ID, open?id=ID, folderview?id=ID e remove o
 // sufixo "-drive_fs" que o Google Drive para Desktop cola no id (artefato).
 // DUPLICADO em save-to-drive.mjs e src/utils/driveRetry.js — manter em sincronia.
-function extractFolderId(driveUrl) {
-  if (!driveUrl || typeof driveUrl !== 'string') return null;
-  const match = driveUrl.match(/(?:folders\/|[?&]id=)([a-zA-Z0-9_-]+)/);
-  if (!match) return null;
-  const id = match[1].replace(/-drive_fs$/, '');
-  return id || null;
-}
+// (item 101) extractFolderId agora vem de _lib/drive.mjs (era copiado em 3 arquivos)
 
 async function callAppsScript(payload) {
   // Step 1: POST -> 302 redirect

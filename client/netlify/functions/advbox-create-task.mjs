@@ -19,6 +19,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { diaBrtDe } from './_lib/dataBrt.mjs';
 
 const ADVBOX_TOKEN = process.env.ADVBOX_TOKEN;
 const ADVBOX_URL = 'https://app.advbox.com.br/api/v1';
@@ -68,7 +69,7 @@ const TASK_TEMPLATES = {
 };
 
 function toYMD(d) {
-  return d.toISOString().slice(0, 10);
+  return diaBrtDe(d);
 }
 
 export default async (req) => {

@@ -2,6 +2,13 @@
 // Endpoint Edge: /api/zapsign  |  Fallback: /.netlify/functions/zapsign-proxy
 import { API } from './apiEndpoints';
 
+// (auditoria 01/08 — item 113) Regua de assinatura do proprio ZapSign.
+// LEMBRETE_A_CADA_DIAS = 1 -> e-mail diario ao signatario que ainda nao assinou
+// (decisao Paulo 01/08). Se virar incomodo, 2 ou 3 ja reduz muito sem perder a cobranca.
+// DIAS_PARA_ASSINAR = prazo no documento: cria urgencia e evita link vivo para sempre.
+const LEMBRETE_A_CADA_DIAS = 1;
+const DIAS_PARA_ASSINAR = 30;
+
 async function callProxy(body) {
   // API.zapsign ja define method/headers/body corretos e faz fallback em caso de falha
   return API.zapsign(body);
@@ -16,12 +23,23 @@ async function callProxy(body) {
 export async function sendToZapSign({ base64Pdf, name, signers, folderPath = '/CBC Contratos/', contratoId }) {
   // (integ-4) external_id estavel por contrato; timestamp so como fallback
   const externalId = contratoId ? `cbc-contrato-${contratoId}` : `cbc-${Date.now()}`;
+  // (auditoria 01/08 — item 113) Prazo + lembrete AUTOMATICO do proprio ZapSign.
+  // Ate aqui o documento nascia sem prazo e sem lembrete: quem nao assinava so era
+  // cobrado se alguem lembrasse de cutucar na mao — resultado, 35 contratos parados ha
+  // mais de 7 dias. Sao dois campos da API v1, sem custo (o envio e por e-mail; o
+  // WhatsApp do ZapSign custa R$ 0,50 e nao usamos porque o link ja vai pelo Kommo).
+  // Decisao do Paulo (01/08): lembrar TODO DIA.
+  // ⚠️ `reminder_every_n_days` so vale na CRIACAO — o PUT de atualizacao nao aceita esse
+  // campo. Os documentos ja enviados sao cobertos pelo cron zapsign-lembrete-cron.mjs.
+  const prazo = new Date(Date.now() + DIAS_PARA_ASSINAR * 86400000);
   const body = {
     action: 'create',
     name,
     base64_pdf: base64Pdf,
     lang: 'pt-br',
     disable_signer_emails: false,
+    reminder_every_n_days: LEMBRETE_A_CADA_DIAS,
+    date_limit_to_sign: prazo.toISOString().slice(0, 10), // API aceita YYYY-MM-DD
     brand_primary_color: '#0f1c3f',
     external_id: externalId,
     folder_path: folderPath,

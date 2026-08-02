@@ -101,6 +101,20 @@ echo "[5/5] Publicando em producao..."
 # publicamos SEM --site.
 mkdir -p .netlify
 printf '{\n\t"siteId": "%s"\n}\n' "$SITE_ID" > .netlify/state.json
+
+# (auditoria 01/08 — item 156) Mapas de codigo NAO vao para producao.
+# O build gera .map (sourcemap: 'hidden') para que um erro do Sentry possa ser lido em
+# codigo legivel em vez de "a.b is not a function" no arquivo minificado. Mas publicar os
+# .map junto com o site entrega o CODIGO-FONTE inteiro a qualquer visitante.
+# Por isso: os mapas ficam no dist local (dao para depurar aqui) e sao APAGADOS logo
+# antes de subir. Quando o envio ao Sentry for configurado (SENTRY_AUTH_TOKEN +
+# org/projeto), o upload entra AQUI, antes do rm.
+MAPAS=$(find dist -name '*.map' 2>/dev/null | wc -l | tr -d ' ')
+if [ "$MAPAS" != "0" ]; then
+  echo "[deploy] removendo $MAPAS mapa(s) de codigo do dist (nao vao para producao)"
+  find dist -name '*.map' -delete
+fi
+
 NETLIFY_AUTH_TOKEN="$NETLIFY_AUTH_TOKEN" npx netlify-cli deploy \
   --prod \
   --dir=dist \

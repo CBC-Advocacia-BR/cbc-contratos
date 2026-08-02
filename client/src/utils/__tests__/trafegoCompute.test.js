@@ -158,9 +158,47 @@ describe('computeComercialMensal — do anuncio ao contrato', () => {
     const jun = r[0];
     expect(jun.leads).toBe(435);
     expect(jun.videochamadas).toBe(2); // excluida fora
-    expect(jun.enviados).toBe(2);      // assinado enviado em jun + enviado_zapsign (cancelado fora)
+    // (auditoria 01/08 — item 227) 3, nao 2: o contrato com zapsign_sent_at
+    // '2026-07-01T00:00:00Z' foi enviado as 21h de 30/JUNHO em Brasilia e agora conta no
+    // mes CERTO. O valor 2 anterior era a leitura UTC (o mesmo defeito que jogava a
+    // videochamada das 21h do dia 31 para o mes seguinte) codificada no teste.
+    expect(jun.enviados).toBe(3);
     expect(jun.assinados).toBe(1);
     expect(jun.custoPorAssinado).toBe(6960);
+  });
+
+  // (auditoria 01/08 — item 227) trava o comportamento de fuso: enquanto o compute lia
+  // `String(iso).slice(0,7)` (UTC), tudo que acontecia entre 21h e 00h no Brasil caia no
+  // mes seguinte. TZ fixa em America/Sao_Paulo (vitest.setup.js) torna isto deterministico.
+  it('usa o mes LOCAL (BRT), nao o UTC, em datas noturnas de virada de mes', () => {
+    const noturno = computeComercialMensal({
+      mensal: [],
+      // 21h de 30/06 em Brasilia == 00h de 01/07 em UTC
+      videochamadas: [{ status: 'realizada', scheduled_at: '2026-07-01T00:00:00Z' }],
+      contratos: [{ status: 'assinado', signed_at: '2026-07-01T02:30:00Z', arquivado_em: null }],
+      meses: 2,
+      agora: AGORA,
+    });
+    const [jun, jul] = noturno;
+    expect(jun.videochamadas).toBe(1); // 30/06 21h BRT — junho
+    expect(jul.videochamadas).toBe(0);
+    expect(jun.assinados).toBe(1);     // 30/06 23h30 BRT — junho
+    expect(jul.assinados).toBe(0);
+  });
+
+  // (auditoria 01/08 — item 221) campanhas de [VAGA]/RH sao curriculo, nao lead de venda.
+  // Os KPIs do topo da aba ja as excluiam; este bloco somava tudo e o custo por assinado
+  // saia artificialmente barato.
+  it('exclui campanhas de VAGA/RH da captacao do bloco comercial', () => {
+    const comRh = computeComercialMensal({
+      mensal: [
+        { mes: '2026-06-01', campaign_name: 'CBC | Distrato', conversas_iniciadas: 400, leads_form: 35, gasto: 6960 },
+        { mes: '2026-06-01', campaign_name: '[VAGA] Advogado', conversas_iniciadas: 128, leads_form: 0, gasto: 500 },
+      ],
+      videochamadas: [], contratos: [], meses: 2, agora: AGORA,
+    });
+    expect(comRh[0].leads).toBe(435);  // 128 curriculos fora
+    expect(comRh[0].gasto).toBe(6960); // gasto da campanha de RH tambem fora
   });
 
   it('assinado usa data efetiva (advbox_date como fallback) e mes sem assinatura -> custo null', () => {

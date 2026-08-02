@@ -4,6 +4,7 @@
  */
 
 import { enqueue, claimById, claimBatch, complete, fail, reclaimStuck } from './kommoQueue.mjs';
+import { paraCampoKommo, persistiuIgual } from './kommoText.mjs';
 
 const KOMMO_TOKEN = process.env.KOMMO_TOKEN || '';
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/api/v4';
@@ -66,7 +67,7 @@ export async function bulkPatchLeads(items) {
   for (let i = 0; i < items.length; i += 250) {
     const chunk = items.slice(i, i + 250).map(it => ({
       id: Number(it.id),
-      custom_fields_values: [{ field_id: Number(it.fieldId), values: [{ value: it.value === '' ? null : String(it.value) }] }],
+      custom_fields_values: [{ field_id: Number(it.fieldId), values: [{ value: it.value === '' ? null : paraCampoKommo(String(it.value)) }] }],
     }));
     if (!chunk.length) continue;
     const r = await kommoFetch('/leads', { method: 'PATCH', body: JSON.stringify(chunk) }, 'PATCH');
@@ -116,14 +117,16 @@ export function firstLeadId(contact) {
 // "Melhor ter fila do que falhar." Operacoes diretas abaixo sao executadas pelo
 // drain/worker (NAO enfileiram, p/ nao recursar).
 
+// (31/07) todo valor de CAMPO passa por paraCampoKommo: o Kommo trunca o campo
+// silenciosamente no 1o emoji fora do BMP (PATCH 200, valor cortado — caso Leomara).
 async function opLeadField({ leadId, fieldId, value }) {
-  const v = (value === '' || value == null) ? null : String(value);
+  const v = (value === '' || value == null) ? null : paraCampoKommo(String(value));
   const r = await kommoFetch(`/leads/${leadId}`, { method: 'PATCH', body: JSON.stringify({ custom_fields_values: [{ field_id: Number(fieldId), values: [{ value: v }] }] }) }, 'PATCH');
   if (!r.ok) throw new Error(`Kommo PATCH lead ${leadId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 120)}`);
   return true;
 }
 async function opContactField({ contactId, fieldId, value }) {
-  const v = (value === '' || value == null) ? null : String(value);
+  const v = (value === '' || value == null) ? null : paraCampoKommo(String(value));
   const r = await kommoFetch(`/contacts/${contactId}`, { method: 'PATCH', body: JSON.stringify({ custom_fields_values: [{ field_id: Number(fieldId), values: [{ value: v }] }] }) }, 'PATCH');
   if (!r.ok) throw new Error(`Kommo PATCH contact ${contactId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 120)}`);
   return true;
@@ -132,7 +135,7 @@ async function opLeadMove({ leadId, pipelineId, statusId, fieldId, value }) {
   const body = {};
   if (pipelineId) body.pipeline_id = Number(pipelineId);
   if (statusId) body.status_id = Number(statusId);
-  if (fieldId) body.custom_fields_values = [{ field_id: Number(fieldId), values: [{ value: value == null ? null : String(value) }] }];
+  if (fieldId) body.custom_fields_values = [{ field_id: Number(fieldId), values: [{ value: value == null ? null : paraCampoKommo(String(value)) }] }];
   const r = await kommoFetch(`/leads/${leadId}`, { method: 'PATCH', body: JSON.stringify(body) }, 'PATCH');
   if (!r.ok) throw new Error(`Kommo move lead ${leadId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 120)}`);
   return true;
@@ -169,13 +172,25 @@ async function opCobrancaSend({ leadId, fieldId, value, fieldId2, value2, botId 
   // (cobranca 06/07/2026) grava LINK (fieldId) e, se vier, o PIX copia-e-cola (fieldId2)
   // no lead num UNICO PATCH — continua 2 chamadas por devedor (1 PATCH + 1 bot), sem custo
   // extra. Depois roda o Salesbot, que ecoa esses campos no botao "Boleto atualizado".
-  const norm = (v) => (v === '' || v == null ? null : String(v));
+  const norm = (v) => (v === '' || v == null ? null : paraCampoKommo(String(v)));
   const cfv = [];
-  if (fieldId)  cfv.push({ field_id: Number(fieldId),  values: [{ value: norm(value)  }] });
-  if (fieldId2) cfv.push({ field_id: Number(fieldId2), values: [{ value: norm(value2) }] });
+  const esperados = [];
+  if (fieldId)  { const v = norm(value);  cfv.push({ field_id: Number(fieldId),  values: [{ value: v }] }); esperados.push([Number(fieldId),  v]); }
+  if (fieldId2) { const v = norm(value2); cfv.push({ field_id: Number(fieldId2), values: [{ value: v }] }); esperados.push([Number(fieldId2), v]); }
   if (cfv.length) {
     const r = await kommoFetch(`/leads/${leadId}`, { method: 'PATCH', body: JSON.stringify({ custom_fields_values: cfv }) }, 'PATCH');
     if (!r.ok) throw new Error(`Kommo PATCH lead ${leadId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 120)}`);
+    // (31/07) verificacao pos-gravacao ANTES do Salesbot: o Kommo aceita o PATCH
+    // e trunca o campo em silencio (1o caractere fora do BMP). Se o persistido
+    // divergir do enviado, o bot NAO roda — melhor nenhuma mensagem do que uma
+    // mensagem pela metade sem o link (caso Leomara 31/07).
+    const lead = await kGet(`/leads/${leadId}`);
+    for (const [fid, esperado] of esperados) {
+      const lido = extractFieldValue(lead, fid);
+      if (!persistiuIgual(esperado, lido)) {
+        throw new Error(`KOMMO_TRUNCOU campo ${fid} do lead ${leadId}: enviado ${String(esperado || '').length} chars, persistido ${String(lido || '').length}`);
+      }
+    }
   }
   await opSalesbot({ botId, entityId: leadId });
   return true;

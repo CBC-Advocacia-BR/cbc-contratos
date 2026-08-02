@@ -11,8 +11,9 @@
  *  - POST { listFields:true } -> diagnostico dos campos custom (contatos/leads)
  * Auth (exceto scheduled): body.key | header x-bot-key === BOT_PANEL_KEY
  */
-import { db } from './_lib/botDb.mjs';
+import { db, logAdvbox } from './_lib/botDb.mjs';
 import { kommoConfigured, listCustomFields, extractPhones, kommoGet } from './_lib/kommo.mjs';
+import { verificarGatilho, respostaNegada } from './_lib/gatilho.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
@@ -32,13 +33,18 @@ function telOf(contact) {
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
-  const isScheduled = req.headers.get('x-netlify-event') === 'schedule' || req.method === 'GET';
+  // (auditoria 01/08 — item 9) ANTES: `|| req.method === 'GET'` fazia QUALQUER acesso
+  // pelo navegador ser tratado como "veio do agendador" — e o bloco de checagem de chave
+  // abaixo era pulado. Bastava abrir a URL para disparar o robo (aqui, inclusive
+  // backfills que consomem cota paga de API de terceiros). Agora: ou vem do agendador
+  // da Netlify (cabecalho x-netlify-event), ou apresenta a BOT_PANEL_KEY.
+  const gatilho = verificarGatilho(req, { agendada: true });
+  if (!gatilho.ok) return respostaNegada(gatilho);
+  const isScheduled = gatilho.origem === 'cron';
   let body = {};
   if (req.method === 'POST') body = await req.json().catch(() => ({}));
-  if (!isScheduled) {
-    const key = body.key || req.headers.get('x-bot-key') || '';
-    if (key !== PANEL_KEY) return new Response(JSON.stringify({ error: 'unauthorized' }), { status: 401, headers: JSONH });
-  }
+  // (item 9) a checagem de chave ja foi feita por verificarGatilho() acima —
+  // o bloco antigo daqui so olhava body.key/cabecalho e barrava o disparo via ?key=.
 
   try {
     if (!kommoConfigured()) return new Response(JSON.stringify({ error: 'KOMMO_TOKEN ausente' }), { status: 500, headers: JSONH });
@@ -101,17 +107,41 @@ export default async (req) => {
 
     // auto-encadeia as proximas paginas (scheduled/chain) -> cobre TODAS as ~73 paginas
     // sem estourar o timeout de uma function. Cada hop e uma invocacao nova.
+    // (auditoria 01/08 — item 108) TETO DE SALTOS. Cada rodada chamava a proxima sem
+    // nenhum limite: se o criterio de fim falhasse (mudanca na API do Kommo, resposta
+    // inesperada), a function ficaria se chamando indefinidamente, queimando invocacoes e
+    // cota do Kommo — e sem ninguem perceber, porque cada salto responde "success".
+    // ~73 paginas hoje; 150 da folga de 2x e ainda para se algo sair do controle.
+    const MAX_SALTOS = 150;
+    const salto = Number(body.salto) || 0;
     const next = fim ? null : page;
-    if (next && (isScheduled || body.chain)) {
+    const vaiEncadear = !!next && (isScheduled || body.chain) && salto < MAX_SALTOS;
+    if (next && (isScheduled || body.chain) && !vaiEncadear) {
+      await logAdvbox('kommo', 'aviso',
+        `Sync de leads parou no teto de ${MAX_SALTOS} saltos (pagina ${next}) — verificar se o criterio de fim continua valendo`,
+        { pagina: next, saltos: salto });
+    }
+    if (vaiEncadear) {
       const base = process.env.URL || 'https://contratos-cbc.netlify.app';
-      fetch(`${base}/.netlify/functions/kommo-leads-sync`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: PANEL_KEY, page: next, chain: true }),
-      }).catch(() => {});
+      // aguarda o despacho: sem await, um salto perdido interrompia a varredura no meio
+      // e o resultado parcial passava por completo (o `.catch` engolia a falha).
+      try {
+        const r = await fetch(`${base}/.netlify/functions/kommo-leads-sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-bot-key': PANEL_KEY },
+          body: JSON.stringify({ key: PANEL_KEY, page: next, chain: true, salto: salto + 1 }),
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      } catch (e) {
+        await logAdvbox('kommo', 'erro',
+          `Sync de leads: falha ao encadear a pagina ${next} — varredura interrompida: ${String(e.message || e).slice(0, 120)}`,
+          { pagina: next });
+      }
     }
     return new Response(JSON.stringify({
       success: true, contatos_processados: contatos, com_telefone: comTel,
-      leads_gravados: leadsGravados, ultima_pagina: lastPage, next, encadeado: !!(next && (isScheduled || body.chain)),
+      leads_gravados: leadsGravados, ultima_pagina: lastPage, next, encadeado: vaiEncadear,
     }), { headers: JSONH });
   } catch (e) {
     return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500, headers: JSONH });

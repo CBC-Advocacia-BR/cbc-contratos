@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 // Key for tracking which version the user has seen
 const SEEN_VERSION_KEY = 'cbc_seen_version';
@@ -475,6 +476,8 @@ export function NewVersionBanner({ onClick }) {
 }
 
 export default function ChangeLog({ onClose }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const [expanded, setExpanded] = useState(VERSIONS[0]?.version);
 
   // Mark as seen when opening
@@ -488,7 +491,7 @@ export default function ChangeLog({ onClose }) {
         <div className="p-5 pb-3 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold" style={{ color: '#1B3A5C' }}>Historico de Versoes</h2>
+              <h2 className="text-lg font-bold" style={{ color: '#1B3A5C' }}>Histórico de Versões</h2>
               <p className="text-[11px] text-gray-400 mt-0.5">CBC Contratos — Todas as atualizacoes</p>
             </div>
             <button onClick={onClose}

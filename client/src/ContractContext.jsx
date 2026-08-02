@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CLAUSULAS_PADRAO } from './data/clausulas';
+// (item 197) precisa saber QUANDO o usuario logou para trocar a gaveta do rascunho
+import { supabase } from './lib/supabase';
 
 const ContractContext = createContext();
 
@@ -99,14 +101,81 @@ function loadFromStorage() {
   return null;
 }
 
+/** O rascunho tem algum conteudo digitado? (usado na migracao anon -> usuario) */
+function temConteudo(d) {
+  if (!d) return false;
+  const c = d.contratantes?.[0] || {};
+  return !!(c.nome || c.cpf || c.email || d.resort || d.tipoAcao);
+}
+
 export function ContractProvider({ children }) {
   const [data, setData] = useState(() => loadFromStorage() || defaultState);
   const [currentStep, setCurrentStep] = useState(0);
 
+  // (auditoria 01/08 — item 197) O rascunho e guardado numa "gaveta" por e-mail
+  // (getStorageKey). O problema: quando o app abre ANTES do login, a gaveta e a `anon`;
+  // se a pessoa loga na MESMA aba, a chave muda para a do e-mail dela, mas o estado em
+  // memoria continua o da gaveta anonima. Resultado: ela nao via o proprio rascunho e,
+  // na primeira tecla, gravava o formulario vazio POR CIMA do rascunho verdadeiro.
+  // Agora o provider reage ao login:
+  //   - se a gaveta do usuario tem rascunho, ele e carregado;
+  //   - se nao tem e havia algo digitado como anonimo, esse conteudo MIGRA para a gaveta
+  //     dele (ninguem perde o que estava preenchendo quando a sessao expirou e voltou).
+  const chaveRef = useRef(getStorageKey());
   useEffect(() => {
-    try {
-      localStorage.setItem(getStorageKey(), JSON.stringify(data));
-    } catch { /* ignore — quota exceeded or private browsing */ }
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      const nova = getStorageKey();
+      if (nova === chaveRef.current) return;
+      const anterior = chaveRef.current;
+      chaveRef.current = nova;
+      try {
+        const salvo = localStorage.getItem(nova);
+        if (salvo) {
+          setData(JSON.parse(salvo));           // rascunho do usuario tem prioridade
+        } else {
+          setData((atual) => {
+            if (temConteudo(atual)) {
+              localStorage.setItem(nova, JSON.stringify(atual)); // migra o que estava digitado
+              if (anterior.endsWith('_anon')) localStorage.removeItem(anterior);
+              return atual;
+            }
+            return atual;
+          });
+        }
+      } catch { /* storage indisponivel — segue com o estado atual */ }
+    });
+    return () => sub?.subscription?.unsubscribe?.();
+  }, []);
+
+  // (auditoria 01/08 — item 170) Gravacao do rascunho com ATRASO (debounce).
+  // Antes rodava a cada mudanca de `data`, ou seja, a cada TECLA digitada: serializava o
+  // contrato inteiro (com todas as clausulas) e ainda relia o token de sessao dentro do
+  // getStorageKey() — duas leituras e duas serializacoes por caractere. E o que fazia o
+  // formulario "travar" no iPad e em maquina fraca.
+  // O atraso sozinho traria um risco novo: fechar a aba (ou trocar de app no celular)
+  // dentro da janela de 500 ms perderia as ultimas letras digitadas. Por isso a gravacao
+  // tambem acontece na hora quando a pagina e escondida/fechada — `visibilitychange`
+  // e o gancho confiavel no iOS, onde `beforeunload` costuma nao disparar.
+  const dataRef = useRef(data);
+
+  useEffect(() => {
+    // atualiza o ref DENTRO do efeito (nunca durante o render — o React Compiler
+    // proibe, e com razao: escrita em ref no render quebra renderizacao concorrente)
+    dataRef.current = data;
+    const gravar = () => {
+      try {
+        localStorage.setItem(getStorageKey(), JSON.stringify(dataRef.current));
+      } catch { /* ignore — quota exceeded or private browsing */ }
+    };
+    const t = setTimeout(gravar, 500);
+    const aoEsconder = () => { if (document.visibilityState === 'hidden') gravar(); };
+    document.addEventListener('visibilitychange', aoEsconder);
+    window.addEventListener('pagehide', gravar);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('visibilitychange', aoEsconder);
+      window.removeEventListener('pagehide', gravar);
+    };
   }, [data]);
 
   const updateData = useCallback((updates) => {

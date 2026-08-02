@@ -6,6 +6,7 @@ import { sendToZapSign } from '../utils/zapsignService';
 import { DocumentIcon, CloudArrowUpIcon, Cog6ToothIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolid } from '@heroicons/react/24/solid';
 import { useRipple } from '../hooks/useRipple';
+import { useModalEscape } from '../hooks/useModalEscape';
 
 // (ux-12) Traduz erros do ZapSign (tecnicos/ingles) para mensagens claras em PT
 function traduzErroZapSign(err) {
@@ -78,6 +79,8 @@ function SendProgress({ currentStep }) {
 }
 
 export default function ZapSignModal({ onClose, onSaveAfterSend }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const { data } = useContract();
   const [loading, setLoading] = useState(false);
   const [loadingType, setLoadingType] = useState('');

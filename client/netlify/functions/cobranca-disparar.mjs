@@ -13,13 +13,19 @@
 import { db, getConfig, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { enqueueKommo, kommoConfigured } from './_lib/kommo.mjs';
 import { avaliarElegibilidade, dedupeKey, digits } from './_lib/cobranca.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
 const PANEL_KEY = process.env.BOT_PANEL_KEY || '';
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, x-bot-key' };
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('cobranca-disparar', async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS });
   const body = await req.json().catch(() => ({}));
   const key = req.headers.get('x-bot-key') || body.key || '';
@@ -44,7 +50,7 @@ export default async (req) => {
 
     const { data, error } = await db.rpc('cobranca_inadimplentes', { p_chave: RPC_SECRET });
     if (error) throw new Error(error.message);
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = diaBrt();
     const selset = new Set(cpfs);
     const selecionados = (data || []).filter((d) => selset.has(digits(d.cpf)));
 
@@ -97,4 +103,4 @@ export default async (req) => {
     await logAdvbox('asaas', 'erro', `cobranca-disparar: ${e.message}`.slice(0, 300), {});
     return json({ ok: false, error: e.message }, 500);
   }
-};
+}, { origem: 'cobranca' });

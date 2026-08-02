@@ -10,6 +10,11 @@ import StatusPill from './ui/StatusPill';
 import MoneyValue from './ui/MoneyValue';
 import FreshnessChip from './ui/FreshnessChip';
 import { isPaidStatus, isNeutralStatus, isRemovedStatus } from '../lib/statusTokens';
+import { ymLocal, ymdLocal } from '../utils/format';
+// (auditoria 01/08/2026 — item 266) a caixa cinza do `alert()` do navegador trava a tela
+// inteira, sai do visual do app e nao diz de onde veio. O toast oficial ja existe.
+import { useToast } from './Toast';
+import { friendlyError } from '../utils/friendlyError';
 import {
   CreditCardIcon,
   DocumentIcon,
@@ -551,7 +556,7 @@ const DueDateEditor = memo(function DueDateEditor({ contract, onUpdate }) {
   const h = contract.dados?.honorarios || {};
   const currentDate = h.dataPrimeiraParcela || '';
   const isLaunched = !!contract._launched;
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = ymdLocal();
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -597,7 +602,7 @@ const DueDateEditor = memo(function DueDateEditor({ contract, onUpdate }) {
 
   if (isLaunched) {
     return (
-      <div className="text-gray-500 cursor-not-allowed" title="Boleto Asaas ja emitido — alterar vencimento no painel Asaas">
+      <div className="text-gray-500 cursor-not-allowed" title="Boleto Asaas já emitido — alterar vencimento no painel Asaas">
         {fmtD(currentDate)}
       </div>
     );
@@ -717,7 +722,7 @@ const Row = memo(function Row({ index, style, data }) {
       <div className="px-2 w-[40px] text-center" onClick={e => e.stopPropagation()}>
         {isExcluded ? (
           <button onClick={() => onRestore?.(c)}
-            title="Restaurar para a lista de cobrancas"
+            title="Restaurar para a lista de cobranças"
             className="text-gray-400 hover:text-green-600 transition-colors cursor-pointer"
             aria-label="Restaurar contrato">
             <ArrowPathIcon className="w-3.5 h-3.5 inline" aria-hidden="true" />
@@ -764,7 +769,7 @@ async function genReport(allContracts) {
   const w = pdf.internal.pageSize.getWidth();
   const now = new Date();
   const monthStr = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  const currentYM = now.toISOString().slice(0, 7); // YYYY-MM
+  const currentYM = ymLocal(now); // YYYY-MM em hora local (nunca UTC)
 
   // Header
   pdf.setFontSize(16); pdf.setTextColor(26, 46, 82);
@@ -852,6 +857,7 @@ async function genReport(allContracts) {
 
 // ─── Main Panel ───
 export default function AsaasPanel() {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const { user } = useAuth();
   const userEmail = user?.email || '';
   const [contracts, setContracts] = useState([]);
@@ -924,14 +930,28 @@ export default function AsaasPanel() {
       } catch { /* ignora cache invalido */ }
     }
     try {
+      // (auditoria 01/08 — item 173) Antes vinha a coluna `dados` INTEIRA — o contrato
+      // completo, com todas as clausulas (5-20 KB por linha) — de TODOS os assinados, so
+      // para ler tres coisas: honorarios, numContratantes e o nome do 2o contratante.
+      // Agora so esses tres caminhos do JSON descem do banco (mesma tecnica ja aplicada
+      // no Dashboard e no ContratosTab em 31/05). O objeto `dados` e remontado abaixo,
+      // entao nenhum trecho da tela precisou mudar.
+      // ⚠️ Seguro para a edicao de data da 1a parcela: aquele fluxo RELE o `dados`
+      // completo do banco antes de mesclar e salvar (ver EditarDataParcela).
       const { data, error: dbError } = await supabase.from('contratos')
-        .select('id, nome_contratante1, nome_contratante2, cpf_contratante1, resort, honorarios_total, honorarios_parcelas, status, created_at, created_by, dados, asaas_status, asaas_customer_id, asaas_payments, asaas_verified_by, asaas_verified_at, asaas_excluded_at, asaas_excluded_by, asaas_excluded_reason')
+        .select('id, nome_contratante1, nome_contratante2, cpf_contratante1, resort, honorarios_total, honorarios_parcelas, status, created_at, created_by, honorarios_j:dados->honorarios, numContratantes_j:dados->numContratantes, contratantes_j:dados->contratantes, asaas_status, asaas_customer_id, asaas_payments, asaas_verified_by, asaas_verified_at, asaas_excluded_at, asaas_excluded_by, asaas_excluded_reason')
         .eq('status', 'assinado').order('created_at', { ascending: false });
       if (dbError) throw dbError;
       const list = (data || []).filter(c => {
-        const h = c.dados?.honorarios;
+        const h = c.honorarios_j;
         return h && !h.somenteExito && (Number(h.total) || 0) > 0;
-      }).map(c => ({ ...c, _launched: c.asaas_status === 'launched' || launchedMap[c.id], _excluded: !!c.asaas_excluded_at }));
+      }).map(({ honorarios_j, numContratantes_j, contratantes_j, ...c }) => ({
+        ...c,
+        // remonta o formato que o resto do componente ja espera
+        dados: { honorarios: honorarios_j, numContratantes: numContratantes_j, contratantes: contratantes_j },
+        _launched: c.asaas_status === 'launched' || launchedMap[c.id],
+        _excluded: !!c.asaas_excluded_at,
+      }));
       setContracts(list);
       setLoadError('');
       try { sessionStorage.setItem('asaas_contracts_cache', JSON.stringify({ data: list, ts: Date.now() })); } catch { /* best-effort: cache de sessao opcional */ }
@@ -945,8 +965,19 @@ export default function AsaasPanel() {
   useEffect(() => { fetch_(true); }, []); // eslint-disable-line
 
   // Revalidate on focus
+  // (auditoria 01/08 — item 174) Com uma pausa minima entre recargas. Antes, todo
+  // alt-tab (ir ao Kommo e voltar, abrir o WhatsApp e voltar) refazia a consulta
+  // completa desta aba — que e das mais pesadas do sistema. Duas idas ao Kommo em
+  // sequencia custavam duas varreduras inteiras sem nenhum dado novo no meio.
+  const ultimoFetchRef = useRef(0);
   useEffect(() => {
-    const onFocus = () => fetch_(false);
+    const PAUSA_MS = 2 * 60 * 1000; // 2 min: dado do Asaas nao muda mais rapido que isso
+    const onFocus = () => {
+      const agora = Date.now();
+      if (agora - ultimoFetchRef.current < PAUSA_MS) return;
+      ultimoFetchRef.current = agora;
+      fetch_(false);
+    };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [fetch_]);
@@ -1008,7 +1039,7 @@ export default function AsaasPanel() {
     }
     try {
       // Busca em lotes de customer_id (evita URL gigante no .in()).
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = ymdLocal();
       const ymStr = todayStr.slice(0, 7);
       let rows = [];
       const CHUNK = 80;
@@ -1114,10 +1145,15 @@ export default function AsaasPanel() {
       setExcludeModal(null);
       setExcludeReason('');
     } catch (e) {
-      alert('Erro ao excluir: ' + (e.message || 'desconhecido'));
+      toast.error('Erro ao excluir: ' + friendlyError(e));
     }
   };
-  const handleRestore = async (contract) => {
+  // (auditoria — item 266) `handleRestore` entra no `itemData` memoizado que alimenta a
+  // lista virtualizada. Como agora ele fecha sobre o `toast`, precisa ser estavel: sem
+  // useCallback, ou o memo se recria a cada render (perdendo o ganho da virtualizacao)
+  // ou a linha chama uma versao defasada da funcao. `toast` e estavel desde a memoizacao
+  // do provider; `setContracts` e setter de estado (estavel por definicao).
+  const handleRestore = useCallback(async (contract) => {
     if (!window.confirm(`Restaurar "${contract.nome_contratante1}" para a lista de cobranças?`)) return;
     try {
       await supabase.from('contratos').update({
@@ -1133,9 +1169,9 @@ export default function AsaasPanel() {
         asaas_excluded_reason: null,
       } : c));
     } catch (e) {
-      alert('Erro ao restaurar: ' + (e.message || 'desconhecido'));
+      toast.error('Erro ao restaurar: ' + friendlyError(e));
     }
-  };
+  }, [toast]);
 
   const resorts = useMemo(() => [...new Set(contracts.map(c => c.resort).filter(Boolean))].sort(), [contracts]);
   const creators = useMemo(() => [...new Set(contracts.map(c => c.created_by).filter(Boolean))].sort(), [contracts]);
@@ -1233,8 +1269,8 @@ export default function AsaasPanel() {
   // do PDF (genReport) — agora e o indicador UNICO do topo da aba.
   const lancadoMes = useMemo(() => {
     const now = new Date();
-    const ymAtual = now.toISOString().slice(0, 7);
-    const ymAnterior = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
+    const ymAtual = ymLocal(now);
+    const ymAnterior = ymLocal(new Date(now.getFullYear(), now.getMonth() - 1, 1));
     let mesVal = 0, mesN = 0, antVal = 0, antN = 0;
     for (const c of contracts) {
       if (!c._launched || c._excluded) continue;
@@ -1267,7 +1303,7 @@ export default function AsaasPanel() {
     onDone: handleDone, onRowClick: setDrawerContract, onNFClick: setNFModalContract,
     onExclude: handleExcludeRequest, onRestore: handleRestore,
     onUpdateDueDate: handleUpdateDueDate,
-  }), [filtered, compact, nfMap, payStatusByContract, highlightedIds, userEmail, handleUpdateDueDate]);
+  }), [filtered, compact, nfMap, payStatusByContract, highlightedIds, userEmail, handleUpdateDueDate, handleRestore]);
 
   // (#96) Skeleton na primeira carga
   if (loading && contracts.length === 0 && !loadError) {

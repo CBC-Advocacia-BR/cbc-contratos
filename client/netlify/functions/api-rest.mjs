@@ -10,10 +10,12 @@
  * Auth: Bearer token or api_key query param
  */
 import { createClient } from '@supabase/supabase-js';
+import { chavesDaEnv, autorizado, CACHE_PRIVADO } from './_lib/apiAuth.mjs';
+import { fetchAllPaged } from './_lib/paged.mjs';
+import { checkRateLimitShared, rateLimitResponse } from './rate-limit.mjs';
 
 const SUPABASE_URL = 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5Z2N6ZWVwdm95YWVoZmNoeGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjgxNDYsImV4cCI6MjA4OTcwNDE0Nn0.dFk9CC48V1SlDuFNmtJOkfKf6LSz46aUg6Mpbd7xUjo';
-const API_KEYS = (process.env.REST_API_KEYS || 'cbc-api-2026').split(',').map(k => k.trim());
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const CORS = {
@@ -23,19 +25,21 @@ const CORS = {
   'Content-Type': 'application/json',
 };
 
-// (#156) Cache agressivo em GET — integradores externos repuxam e podem servir cache
-// Mutations (POST) sempre sem cache
-const GET_CACHE = { 'Cache-Control': 'public, max-age=120, s-maxage=120, stale-while-revalidate=60' };
+// (auditoria 01/08 — item 16) O GET servia `public, s-maxage=120` numa resposta que
+// leva nome, CPF e e-mail dos clientes. A CDN guarda POR URL e nao enxerga o cabecalho
+// de senha: uma requisicao sem chave nenhuma podia receber o cache de um integrador
+// autenticado. Agora GET e POST usam o mesmo cabecalho privado.
 const NO_CACHE  = { 'Cache-Control': 'no-cache, no-store, must-revalidate' };
 function headersFor(method) {
-  return method === 'GET' ? { ...CORS, ...GET_CACHE } : { ...CORS, ...NO_CACHE };
+  return method === 'GET' ? { ...CORS, ...CACHE_PRIVADO } : { ...CORS, ...NO_CACHE };
 }
 
+// (itens 13/14/20) senha de fabrica ('cbc-api-2026', publicada no repositorio) deixou de
+// valer; comparacao em tempo constante; `?api_key=` so em modo legado.
 function checkAuth(req) {
-  const auth = req.headers.get('authorization') || '';
-  const token = auth.replace('Bearer ', '').trim();
-  const urlKey = new URL(req.url).searchParams.get('api_key');
-  return API_KEYS.includes(token) || API_KEYS.includes(urlKey);
+  const { chaves, erro } = chavesDaEnv('REST_API_KEYS');
+  if (erro) return { ok: false, erro };
+  return { ok: autorizado(req, chaves, { permitirUrl: true }), erro: null };
 }
 
 export default async (req) => {
@@ -54,8 +58,21 @@ export default async (req) => {
     }), { headers: headersFor('GET') });
   }
 
+  // (auditoria 01/08 — item 19) Limite de requisicoes ANTES da checagem de chave: sem
+  // isto dava para testar chaves em massa (forca bruta) ou baixar a base inteira em
+  // loop. O limitador compartilhado (contado no banco) ja existia no projeto e so nao
+  // tinha sido ligado aqui. Bucket proprio para nao competir com a cota do portal.
+  const rl = await checkRateLimitShared(req, { bucket: 'api-rest', max: 60, windowSeconds: 60 });
+  if (!rl.allowed) return rateLimitResponse();
+
   // Auth for all other endpoints
-  if (!checkAuth(req)) {
+  const auth = checkAuth(req);
+  // (item 13) env ausente/fraca: 503 com motivo, em vez de continuar aberto aceitando a
+  // senha publicada no repositorio. Erro explicito e diagnosticavel no Monitor.
+  if (auth.erro) {
+    return new Response(JSON.stringify({ error: auth.erro }), { status: 503, headers: headersFor(req.method) });
+  }
+  if (!auth.ok) {
     return new Response(JSON.stringify({ error: 'Unauthorized. Provide api_key param or Authorization Bearer token.' }), { status: 401, headers: headersFor(req.method) });
   }
 
@@ -100,9 +117,14 @@ export default async (req) => {
     // GET /api/contratos/:id — single
     if (path.startsWith('/contratos/') && req.method === 'GET') {
       const id = path.replace('/contratos/', '');
+      // (auditoria 01/08 — item 17) Era `select('*')`: a listagem escolhia colunas com
+      // cuidado, mas o DETALHE devolvia a linha inteira do banco — observacoes internas,
+      // dados bancarios, o JSONB `dados` completo e as colunas de automacao. Um
+      // integrador externo enxergava muito mais do que precisa. Mesmas colunas da
+      // listagem + os campos de acompanhamento que fazem sentido para quem integra.
       const { data, error } = await supabase
         .from('contratos')
-        .select('*')
+        .select('id, created_at, updated_at, nome_contratante1, cpf_contratante1, email_contratante1, nome_contratante2, cpf_contratante2, resort, tipo_acao, honorarios_total, honorarios_parcelas, honorarios_valor_parcela, honorarios_percentual_exito, data_primeira_parcela, status, created_by, signed_at, zapsign_sent_at, advbox_date, arquivado_em, origem_cliente')
         .eq('id', id)
         .single();
       if (error) throw error;
@@ -147,10 +169,13 @@ export default async (req) => {
 
     // GET /api/stats — dashboard stats
     if (path === '/stats' && req.method === 'GET') {
-      const { data, error } = await supabase
+      // (auditoria 01/08 — item 88) Sem paginacao o PostgREST corta em 1000 linhas e os
+      // TOTAIS saem menores que a realidade — um relatorio que mente sem avisar. E o
+      // mesmo defeito que bagunçou o funil em julho, aqui na porta de saida da API.
+      const data = await fetchAllPaged(() => supabase
         .from('contratos')
-        .select('id, status, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, created_at, created_by, signed_at, origem_cliente');
-      if (error) throw error;
+        .select('id, status, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, created_at, created_by, signed_at, origem_cliente')
+        .order('id'));
 
       const stats = {
         total: data.length,

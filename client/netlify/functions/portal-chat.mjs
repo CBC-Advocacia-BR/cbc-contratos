@@ -12,24 +12,31 @@
 // ⚠️ Se você está sincronizando esta pasta com o "set da produção": este
 // arquivo é NOVO (2026-07-02, módulo chat) — não apagar. Ver CHAT-PORTAL.md.
 
+import { checkRateLimitShared } from './rate-limit.mjs';
+
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://vygczeepvoyaehfchxko.supabase.co";
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// (auditoria 01/08/2026 — item 87) Esta function exigia SUPABASE_SERVICE_ROLE_KEY, que
+// NUNCA foi configurada no Netlify: respondia erro de "config" para todo mundo, desde
+// sempre. Agora cai para a chave anonima, como as demais functions do projeto ja fazem
+// (_lib/botDb.mjs). As RPCs chamadas aqui sao SECURITY DEFINER e validam o token do
+// portal por dentro, entao a chave anonima basta — o segredo continua sendo o token.
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5Z2N6ZWVwdm95YWVoZmNoeGtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMjgxNDYsImV4cCI6MjA4OTcwNDE0Nn0.dFk9CC48V1SlDuFNmtJOkfKf6LSz46aUg6Mpbd7xUjo";
 
 const H = { "Content-Type": "application/json", "Cache-Control": "private, no-store" };
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: H });
 
-// rate-limit em memória por IP (mesmo padrão de portal-data.mjs)
-const WINDOW_MS = 60_000, MAX_REQ = 40;
-const bucket = new Map();
-function rateLimited(req) {
-  const ip = req.headers.get("x-nf-client-connection-ip") || (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "?";
-  const now = Date.now();
-  const e = bucket.get(ip);
-  if (!e || now - e.start > WINDOW_MS) { bucket.set(ip, { count: 1, start: now }); return false; }
-  e.count++;
-  return e.count > MAX_REQ;
+// (auditoria 01/08 — itens 41/109) O limitador daqui era em MEMORIA: cada instancia da
+// function tinha o proprio contador, entao o teto de 40/min quase nunca era atingido de
+// verdade — bastava cair em instancias diferentes. O comentario dizia "mesmo padrao de
+// portal-data.mjs", mas o portal-data ja tinha migrado para o limitador COMPARTILHADO
+// (contado no banco, vale entre instancias). Aqui ficou para tras.
+// De quebra sai o `setInterval` no nivel do modulo, que em serverless so segurava o
+// processo acordado sem necessidade.
+async function rateLimited(req) {
+  const rl = await checkRateLimitShared(req, { bucket: 'portal-chat', max: 40, windowSeconds: 60 });
+  return !rl.allowed;
 }
-setInterval(() => { const now = Date.now(); for (const [k, e] of bucket) if (now - e.start > WINDOW_MS * 2) bucket.delete(k); }, 300_000);
 
 async function rpc(fn, args) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
@@ -49,7 +56,7 @@ async function rpc(fn, args) {
 export default async (req) => {
   if (req.method !== "POST") return json({ ok: false, erro: "metodo" }, 405);
   if (!SERVICE_KEY) return json({ ok: false, erro: "config" }, 500);
-  if (rateLimited(req)) return json({ ok: false, erro: "limite", msg: "Muitas requisições — aguarde um instante." }, 429);
+  if (await rateLimited(req)) return json({ ok: false, erro: "limite", msg: "Muitas requisições — aguarde um instante." }, 429);
 
   let body;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "corpo" }, 400); }

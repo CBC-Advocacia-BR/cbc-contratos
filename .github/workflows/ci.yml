@@ -2,15 +2,24 @@ name: CI
 
 # Roda build + testes + verificacao de sintaxe das functions a cada push/PR.
 # BUILD e TESTES sao portao (falha = bloqueia).
-# LINT e informativo por enquanto (baseline conhecido de ~55 erros em 06/07/2026;
-# em sua maioria react-hooks/static-components cosmeticos). A meta (auditoria #54)
-# e "congelar e nao piorar": travar o CI so quando surgir erro NOVO fora do baseline.
+# LINT tem TRAVA DE NAO-PIORAR (auditoria 01/08/2026 — item 302): o baseline real do
+# codigo vivo e 19 erros; passou disso, o CI reprova. Antes era `|| echo warning`, ou
+# seja, um erro NOVO passava exatamente igual ao baseline velho e ninguem via.
+# (Os 42 problemas que vinham de `client/backups/` sairam da conta: arquivo morto
+# lintado como vivo. Ficaram os 19 reais.)
 
 on:
   push:
     branches: ['**']
   pull_request:
     branches: ['**']
+
+# (item 305) Push numa branch com PR aberto disparava DOIS jobs identicos, e um push
+# novo nao cancelava o anterior — minutos gastos a toa. Aqui, cada ref tem no maximo
+# uma execucao viva.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-lint:
@@ -50,5 +59,55 @@ jobs:
           done
           exit $fail
 
-      - name: Lint (informativo até o baseline ser zerado)
-        run: npm run lint || echo "::warning::Lint encontrou problemas (baseline conhecido). Não bloqueia o build por enquanto."
+      # (item 302) Trava de "nao piorar": conta os erros e compara com o baseline.
+      # Erro novo reprova; corrigir erro antigo e bem-vindo (basta baixar o numero aqui).
+      - name: Lint (portão de não-piorar — baseline 19 erros)
+        env:
+          BASELINE_ERROS: 19
+        run: |
+          set -o pipefail
+          npx eslint . -f json > /tmp/eslint.json || true
+          erros=$(node -e "const r=require('/tmp/eslint.json');console.log(r.reduce((s,f)=>s+f.errorCount,0))")
+          echo "Erros de lint: $erros (baseline $BASELINE_ERROS)"
+          if [ "$erros" -gt "$BASELINE_ERROS" ]; then
+            npx eslint . || true
+            echo "::error::Lint piorou: $erros erros (baseline $BASELINE_ERROS). Corrija o erro NOVO."
+            exit 1
+          fi
+          if [ "$erros" -lt "$BASELINE_ERROS" ]; then
+            echo "::notice::Lint melhorou ($erros < $BASELINE_ERROS). Baixe BASELINE_ERROS em .github/workflows/ci.yml para travar o ganho."
+          fi
+
+      # (item 301) As 2 edge functions (Deno/TypeScript) nunca eram verificadas por
+      # NADA: nao entram no build do Vite, nem no `node --check`, nem nos testes — e
+      # servem /api/health e o proxy do ZapSign em producao. `deno check` custa segundos.
+      - name: Edge functions (Deno) — verificação de tipos
+        run: |
+          curl -fsSL https://deno.land/install.sh | DENO_INSTALL="$HOME/.deno" sh -s -- -y >/dev/null 2>&1 || true
+          export PATH="$HOME/.deno/bin:$PATH"
+          if command -v deno >/dev/null; then
+            deno check netlify/edge-functions/*.ts
+          else
+            echo "::warning::Deno indisponível no runner — pulando verificação das edge functions."
+          fi
+
+      # (itens 300/305) Cobertura com PISO (thresholds em vitest.config.js). Deixou de ser
+      # informativa: sem piso, um modulo grande sem teste derrubava o numero em silencio.
+      # A regra e "nao pode piorar" — ao subir a cobertura, suba os pisos junto.
+      - name: Cobertura (portão de não-piorar)
+        run: npm run test:coverage -- --reporter=basic
+
+      # (item 306) Falha de seguranca em dependencia. Portao so para CRITICA: as libs
+      # que processam arquivo (jspdf, pdf-lib, tesseract) sao onde isso importa de verdade.
+      # ⚠️ EXCECAO CONHECIDA: `xlsx@0.18.5` tem 2 avisos (prototype pollution + ReDoS) sem
+      # correcao no npm — a SheetJS saiu do registro e so publica no CDN proprio. Analisado
+      # em 02/08/2026: os dois exigem LER planilha maliciosa, e o app so ESCREVE
+      # (XLSX.utils.* + XLSX.writeFile em 5 telas, zero XLSX.read). Sem exposicao real;
+      # migrar para o CDN da SheetJS e decisao a parte.
+      - name: Auditoria de dependências (portão só para crítica)
+        run: |
+          npm audit --audit-level=critical --omit=dev || {
+            echo "::error::Dependência com falha CRÍTICA. Rode 'npm audit' em client/."
+            exit 1
+          }
+          npm audit --omit=dev 2>&1 | tail -15 || true

@@ -25,6 +25,15 @@ export async function exportContratosToExcel(data, opts = {}) {
     'Criado em': fmtData(c.created_at),
     'Assinado em': fmtData(c.signed_at || (c.status === 'assinado' ? c.advbox_date : null)),
     'Arquivado em': fmtData(c.arquivado_em),
+    // (auditoria 01/08 — item 255) Campos de ANALISE que faltavam: sem eles, quem quisesse
+    // cruzar qualquer coisa no Excel (de onde veio o cliente, quanto tempo levou da 1a
+    // mensagem ate assinar, quem vendeu, se ja distribuiu) precisava voltar ao sistema ou
+    // pedir uma consulta no banco. Sao dados que a propria tela ja carrega.
+    'Origem do Cliente': c.origem_cliente || c.dados?.origemCliente || c.oc || '',
+    '1a Mensagem': fmtData(c.data_primeira_mensagem || c.dados?.dataPrimeiraMensagem || c.dpm),
+    'Vendedora': c.vendedora_email || '',
+    'Distribuido em': fmtData(c.peticao_distribuida_em),
+    'No do Processo': c.advbox_process_number || '',
   }));
 
   const ws = XLSX.utils.json_to_sheet(rows);

@@ -17,7 +17,10 @@ import { exportContratosToExcel } from '../utils/excelExport';
 import { SkeletonDashboard } from './Skeleton';
 import ErrorState from './ErrorState';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
-import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil } from '../utils/funilSources';
+import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil, fetchMetaAdsDiarioFunil } from '../utils/funilSources';
+import { fetchAllPaged } from '../utils/supabasePaged';
+// (item 234) frescor das fontes do funil — denuncia sync parado
+import { buscarFrescorFunil } from '../utils/frescorFontes';
 import { celebrations, getMonthlyGoal } from '../utils/celebrations';
 import { useKpiPreferences } from '../hooks/useKpiPreferences';
 import KpiPreferencesModal from './KpiPreferencesModal';
@@ -65,13 +68,18 @@ let _cachedFull = false;
 // demanda (botao "carregar tudo") ou automaticamente quando o filtro exige.
 // (#306) Comparativo mês a mês (deltas dos KPIs + comparador de meses) é restrito
 // aos sócios — mesma lista do Dashboard Sócios / App.jsx.
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+// (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
+import { SOCIOS_EMAILS, ADS_CUSTO_EMAILS } from '../utils/acessos';
+// (auditoria 01/08/2026 — item 266) a caixa cinza do `alert()` do navegador trava a tela
+// inteira, sai do visual do app e nao diz de onde veio. O toast oficial ja existe.
+import { useToast } from './Toast';
+import { friendlyError } from '../utils/friendlyError';
 
 // (leads Meta 14/07/2026) Investimento e custo por lead das campanhas sao dado
 // financeiro sensivel: visiveis SO para socios + Lorenza (pedido do Paulo). Os
 // DEMAIS usuarios veem a contagem de leads no funil, mas nem recebem a coluna
 // `gasto` do banco (select condicional) — nada de esconder so no CSS.
-const ADS_CUSTO_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+
 
 const JANELA_MESES = 18;
 function inicioJanela(now = new Date()) {
@@ -110,9 +118,12 @@ function horaCurta(date) {
 }
 
 export default function Dashboard() {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [allContratos, setAllContratos] = useState(_cachedContratos || []);
   const [videochamadas, setVideochamadas] = useState([]); // etapas do funil vindas da agenda (vw_funil_videochamadas)
   const [metaAds, setMetaAds] = useState([]);             // 1a etapa do funil: leads de campanha (meta_ads_mensal)
+  const [metaAdsDiario, setMetaAdsDiario] = useState([]); // (item 229) mesma etapa dia a dia — preferida quando existe
+  const [frescor, setFrescor] = useState(null);           // (item 234) 'de quando sao estes numeros'
   const [loading, setLoading] = useState(!_cachedContratos);
   const [refreshing, setRefreshing] = useState(false);
   // (perf-fe-7) true quando o fetch atual ja trouxe o historico completo (sem janela)
@@ -148,20 +159,20 @@ export default function Dashboard() {
     else setLoading(true);
     setError('');
     try {
-      let query = supabase
-        .from('contratos')
-        .select(SELECT_COLS)
-        .order('created_at', { ascending: false })
-        .limit(20000);
-      if (!full) {
-        // (#L9) janela por created_at OU signed_at OU advbox_date: um contrato criado ha
-        // mais de JANELA_MESES mas ASSINADO recentemente precisa entrar — senao subconta
-        // assinaturas/meta do mes corrente (que usam a data efetiva de assinatura).
-        const ini = inicioJanela().toISOString();
-        query = query.or(`created_at.gte.${ini},signed_at.gte.${ini},advbox_date.gte.${ini}`);
-      }
-      const { data, error: dbError } = await query;
-      if (dbError) throw dbError;
+      // (auditoria 01/08 — item 222) O `.limit(20000)` NAO levantava o teto de 1000
+      // linhas do PostgREST: passava despercebido so porque a carteira ainda cabe.
+      // Agora pagina de verdade, com ordem TOTAL (created_at empata; `id` desempata).
+      const ini = full ? null : inicioJanela().toISOString();
+      const data = await fetchAllPaged(() => {
+        let q = supabase.from('contratos').select(SELECT_COLS);
+        if (ini) {
+          // (#L9) janela por created_at OU signed_at OU advbox_date: um contrato criado ha
+          // mais de JANELA_MESES mas ASSINADO recentemente precisa entrar — senao subconta
+          // assinaturas/meta do mes corrente (que usam a data efetiva de assinatura).
+          q = q.or(`created_at.gte.${ini},signed_at.gte.${ini},advbox_date.gte.${ini}`);
+        }
+        return q.order('created_at', { ascending: false }).order('id', { ascending: false });
+      });
       const normalizados = (data || []).map(normalizeContrato);
       // (perf #15) As 3 views de funil sao independentes entre si e da consulta
       // principal — rodam em PARALELO (Promise.allSettled) em vez de 3 awaits em fila,
@@ -170,7 +181,7 @@ export default function Dashboard() {
       // (fix funil 28/07/2026) As 4 consultas passaram a vir de utils/funilSources.js,
       // que PAGINA com .range(). Sem isso o PostgREST cortava em 1000 linhas e as
       // etapas de videochamada (view com 2.883 linhas) exibiam ~60% do real.
-      const [distR, gpR, vcR, maR] = await Promise.allSettled([
+      const [distR, gpR, vcR, maR, mdR] = await Promise.allSettled([
         fetchProcessosDistribuidos(),
         fetchProcessosGuiaPaga(),
         fetchVideochamadasFunil(),
@@ -178,6 +189,12 @@ export default function Dashboard() {
         // A coluna `gasto` só vem para quem pode ver investimento/CPL (sócios + Lorenza)
         // — os demais nem recebem o dado no navegador.
         fetchMetaAdsFunil(canSeeAdsCusto),
+        // (auditoria 01/08 — item 229) MESMO dado, dia a dia: em período que não é mês
+        // fechado (7d, 90d, personalizado) o mensal fazia o mês inteiro entrar na conta e
+        // a taxa "% dos leads agendaram" saía errada por construção. O compute prefere o
+        // diário quando existe e cai no mensal como reserva (histórico antes do espelho
+        // diário, que só começa em 15/07/2026).
+        fetchMetaAdsDiarioFunil(),
       ]);
       // (etapa "Distribuídos") tem nº de processo no ADVBOX. Merge por advbox_lawsuit_id.
       if (distR.status === 'fulfilled') {
@@ -193,6 +210,9 @@ export default function Dashboard() {
       setVideochamadas(vcR.status === 'fulfilled' ? vcR.value : []);
       // (etapa "Leads de campanha") tabela vazia/erro -> etapa some do funil, sem quebrar.
       setMetaAds(maR.status === 'fulfilled' ? maR.value : []);
+      setMetaAdsDiario(mdR.status === 'fulfilled' ? mdR.value : []);
+      // (item 234) best-effort: se falhar, a tela so nao mostra o carimbo
+      buscarFrescorFunil().then(setFrescor).catch(() => setFrescor(null));
       _cachedContratos = normalizados;
       _cachedFull = full;
       setAllContratos(normalizados);
@@ -225,7 +245,6 @@ export default function Dashboard() {
   precisaRef.current = precisaHistoricoCompleto;
   useEffect(() => {
     fetchContratos({ silent: !!_cachedContratos, full: _cachedFull || precisaRef.current });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchContratos]);
 
   // Mantém o cache do módulo em dia (inclusive com eventos realtime)
@@ -305,10 +324,10 @@ export default function Dashboard() {
   const dash = useMemo(
     () => computeDashboard(
       allContratos,
-      { periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados, videochamadas, metaAds },
+      { periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados, videochamadas, metaAds, metaAdsDiario },
       getMonthlyGoal()
     ),
-    [allContratos, videochamadas, metaAds, periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados]
+    [allContratos, videochamadas, metaAds, metaAdsDiario, periodo, dataInicio, dataFim, resort, tipoAcao, incluirArquivados]
   );
 
   // (perf #14) Escopo FILTRADO para os widgets pesados (mapa + heatmap temporal).
@@ -348,21 +367,28 @@ export default function Dashboard() {
     if (exporting) return;
     setExporting(true);
     try {
-      const { data, error: dbError } = await supabase
-        .from('contratos')
-        .select('id, nome_contratante1, cpf_contratante1, email_contratante1, nome_contratante2, cpf_contratante2, resort, tipo_acao, honorarios_total, honorarios_parcelas, honorarios_valor_parcela, honorarios_percentual_exito, data_primeira_parcela, status, created_by, zapsign_doc_token, created_at, signed_at, advbox_date, arquivado_em')
-        .order('created_at', { ascending: false });
-      if (dbError) throw dbError;
+      // (auditoria 01/08 — item 223) Sem paginacao o Excel omitia contratos em silencio
+      // assim que a base passasse de 1000 linhas: relatorio entregue ao socio incompleto
+      // e sem nenhuma marca disso no arquivo.
+      const data = await fetchAllPaged(() =>
+        supabase
+          .from('contratos')
+          // (item 255) as 5 ultimas colunas alimentam os campos de analise do Excel
+          // (origem, 1a mensagem, vendedora, distribuicao, nº do processo). Sem elas no
+          // select, as colunas novas sairiam VAZIAS na planilha.
+          .select('id, nome_contratante1, cpf_contratante1, email_contratante1, nome_contratante2, cpf_contratante2, resort, tipo_acao, honorarios_total, honorarios_parcelas, honorarios_valor_parcela, honorarios_percentual_exito, data_primeira_parcela, status, created_by, zapsign_doc_token, created_at, signed_at, advbox_date, arquivado_em, vendedora_email, peticao_distribuida_em, advbox_process_number, origem_cliente:dados->>origemCliente, data_primeira_mensagem:dados->>dataPrimeiraMensagem')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false }));
       const ids = new Set(dash.idsFiltrados);
       const rows = (data || []).filter((r) => ids.has(r.id));
       // (R7) inclui created_by; (R10) nome do arquivo leva o recorte exportado
       await exportContratosToExcel(rows, { periodoLabel: dash.scope.periodoLabel });
     } catch (err) {
-      alert('Erro ao exportar: ' + (err?.message || err));
+      toast.error('Erro ao exportar: ' + friendlyError(err));
     } finally {
       setExporting(false);
     }
-  }, [dash.idsFiltrados, dash.scope.periodoLabel, exporting]);
+  }, [dash.idsFiltrados, dash.scope.periodoLabel, exporting, toast]);
 
   // ─── Estados de carregamento / erro ───
   if (loading && allContratos.length === 0) return <SkeletonDashboard />;
@@ -553,7 +579,7 @@ export default function Dashboard() {
           {/* ─── Pipeline ─── */}
           <SectionTitle hint={dash.scope.periodoLabel}>Pipeline de contratos</SectionTitle>
           {/* Funil largura total. O Status atual foi mesclado no card herói do topo (Indicadores). */}
-          <FunnelCard funil={dash.funil} delay={40} mostrarInvestimento={canSeeAdsCusto} />
+          <FunnelCard funil={dash.funil} delay={40} mostrarInvestimento={canSeeAdsCusto} frescor={frescor} />
 
           {/* (12/06) Comparador de meses — independe do filtro de período.
               (#306 · 20/06) Restrito aos sócios (Paulo e Bruno). */}

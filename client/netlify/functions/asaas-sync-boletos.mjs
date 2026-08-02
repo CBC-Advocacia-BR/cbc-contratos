@@ -14,6 +14,7 @@
  */
 import { STATUSES, processBlock, nextBlock, mirrorState } from './_lib/asaasMirror.mjs';
 import { logAdvbox } from './_lib/botDb.mjs';
+import { verificarGatilho, respostaNegada } from './_lib/gatilho.mjs';
 
 const BASE_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
@@ -22,7 +23,11 @@ export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: CORS });
 
   // Scheduled: dispara o worker background e encerra rapido
-  const isScheduled = req.headers.get('x-netlify-event') === 'schedule' || !req.method || req.method === 'GET';
+  // (auditoria 01/08 — item 9) `|| !req.method || req.method === 'GET'` fazia um simples
+  // acesso pelo navegador disparar o robo de sincronizacao (que roda por minutos).
+  const gatilho = verificarGatilho(req, { agendada: true });
+  if (!gatilho.ok) return respostaNegada(gatilho);
+  const isScheduled = gatilho.origem === 'cron';
 
   try {
     if (isScheduled) {

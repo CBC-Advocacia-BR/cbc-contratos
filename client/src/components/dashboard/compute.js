@@ -19,6 +19,8 @@
 // (fix funil 28/07/2026) Mesma detecção de campanha de RH usada pela aba Tráfego —
 // importada da fonte única em _lib/metaAds.mjs, nunca reimplementada aqui.
 import { isCampanhaRh } from '../../../netlify/functions/_lib/metaAds.mjs';
+// (auditoria 01/08 — item 227) dia/mes LOCAL a partir da string ISO do banco.
+import { ymdOf } from '../../utils/format';
 
 const DAY_MS = 86400000;
 const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -180,9 +182,16 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
   // distRange SEGUE o período selecionado ("Tudo" = tudo; não cai mais no mês corrente). Usado pelas
   // etapas de videochamada — contadas por DATA DO EVENTO (não cohort de contrato).
   const distRange = range;
+  // (auditoria 01/08 — item 227) `String(d).slice(0,10)` pegava o dia em UTC: o PostgREST
+  // devolve scheduled_at em UTC, entao uma videochamada das 21h BRT de 31/07 chega como
+  // "2026-08-01T00:30:00Z" e era contada no DIA (e no MES) seguinte. ymdOf converte para o
+  // dia LOCAL antes do corte — e deixa data-so passar direto (converter "2026-07-31" com
+  // new Date() a trataria como meia-noite UTC e recuaria um dia no Brasil).
   const noIntervalo = (d, r) => {
     if (!d) return false;
-    const t = new Date(String(d).slice(0, 10) + 'T12:00:00').getTime();
+    const dia = ymdOf(d);
+    if (!dia) return false;
+    const t = new Date(dia + 'T12:00:00').getTime();
     if (r.start && t < r.start.getTime()) return false;
     if (r.end && t > r.end.getTime()) return false;
     return true;
@@ -209,6 +218,13 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
     funil.agendadas = vcAconteceram.length;
     funil.realizadas = vcAconteceram.filter((v) => v.status === 'realizada' || v.status === 'fechou').length;
     funil.futuras = vcValidas.length - vcAconteceram.length;
+    // (auditoria 01/08 — item 231) De ONDE veio o "compareceu": auditoria do Meet
+    // (objetivo — quem entrou na sala) ou COR da agenda (marcada a mao pela equipe).
+    // Ate maio/2026 tudo era cor; de junho em diante o Meet tem precedencia. Somar os
+    // dois sem dizer faz comparacao de mes a mes parecer tendencia quando e so mudanca
+    // de criterio. A tela mostra a mistura quando ela e relevante.
+    funil.comparecimentoPorMeet = vcAconteceram.filter((v) => v.origem_status === 'meet').length;
+    funil.comparecimentoPorCor = vcAconteceram.filter((v) => v.origem_status === 'cor').length;
     funil.excluidas = vcTodas.length - vcValidas.length;
     funil.pctComparecimento = funil.agendadas > 0 ? Math.round((funil.realizadas / funil.agendadas) * 100) : null;
   }
@@ -219,28 +235,47 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
   // INTERSECTAM o período (mês parcial conta inteiro; o mês corrente é atualizado pelo cron
   // diário). NÃO filtra por resort/tipo (campanha não tem resort). Sem dados no período,
   // a etapa fica ausente e o widget a oculta.
-  if (Array.isArray(filters.metaAds) && filters.metaAds.length) {
+  // (auditoria 01/08 — item 229) DIÁRIO tem precedência sobre o mensal.
+  // O mensal fazia todo mês que apenas INTERSECTA o período entrar INTEIRO na conta:
+  // num filtro de 7 dias, as calls eram do período e os leads do mês todo, então
+  // "% dos leads agendaram" estava errado por construção (sempre para menos). O espelho
+  // diário existe desde 15/07/2026 — antes disso só há mensal, que segue como reserva.
+  // `granularidadeLeads` sai no resultado para a tela poder avisar quando o número
+  // ainda vem do mês inteiro (mais honesto que exibir uma taxa que não fecha).
+  const diario = Array.isArray(filters.metaAdsDiario) ? filters.metaAdsDiario : [];
+  const usaDiario = diario.length > 0;
+  if (usaDiario || (Array.isArray(filters.metaAds) && filters.metaAds.length)) {
     const iniMes = (ym) => new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)) - 1, 1);
     const fimMes = (ym) => new Date(Number(ym.slice(0, 4)), Number(ym.slice(5, 7)), 0, 23, 59, 59, 999);
     let leads = 0;
     let gasto = 0;
-    for (const m of filters.metaAds) {
-      if (!m || !m.mes) continue;
-      // (fix funil 28/07/2026) Campanhas de VAGA/RH são currículos p/ o escritório, não
-      // clientes — MESMA regra que a aba Tráfego já aplicava (decisão Paulo 16/07). Sem
-      // isso jul/26 contava 128 candidatos a advogado como lead e o CPL saía barato
-      // demais (R$ 13,81 em vez de R$ 17,43).
-      if (isCampanhaRh(m.campaign_name)) continue;
-      const ym = String(m.mes).slice(0, 7);
-      if (distRange.start && fimMes(ym) < distRange.start) continue;
-      if (distRange.end && iniMes(ym) > distRange.end) continue;
-      leads += (Number(m.conversas_iniciadas) || 0) + (Number(m.leads_form) || 0);
-      gasto += Number(m.gasto) || 0;
+    // (fix funil 28/07/2026) Campanhas de VAGA/RH são currículos p/ o escritório, não
+    // clientes — MESMA regra que a aba Tráfego já aplicava (decisão Paulo 16/07). Sem
+    // isso jul/26 contava 128 candidatos a advogado como lead e o CPL saía barato
+    // demais (R$ 13,81 em vez de R$ 17,43).
+    if (usaDiario) {
+      for (const d of diario) {
+        if (!d || !d.dia || isCampanhaRh(d.campaign_name)) continue;
+        // `dia` é data-só ("2026-07-31"): noIntervalo/ymdOf deixam passar sem drift de fuso.
+        if (!noIntervalo(d.dia, distRange)) continue;
+        leads += (Number(d.conversas_iniciadas) || 0) + (Number(d.leads_form) || 0);
+        gasto += Number(d.gasto) || 0;
+      }
+    } else {
+      for (const m of filters.metaAds) {
+        if (!m || !m.mes || isCampanhaRh(m.campaign_name)) continue;
+        const ym = String(m.mes).slice(0, 7);
+        if (distRange.start && fimMes(ym) < distRange.start) continue;
+        if (distRange.end && iniMes(ym) > distRange.end) continue;
+        leads += (Number(m.conversas_iniciadas) || 0) + (Number(m.leads_form) || 0);
+        gasto += Number(m.gasto) || 0;
+      }
     }
     if (leads > 0 || gasto > 0) {
       funil.leadsMeta = leads;
       funil.leadsMetaGasto = gasto;
       funil.leadsMetaCpl = leads > 0 ? Math.round((gasto / leads) * 100) / 100 : null;
+      funil.granularidadeLeads = usaDiario ? 'diaria' : 'mensal';
       // conversões lead->agendada são pequenas (2 dígitos de leads p/ 1 de call) — 1 casa decimal
       funil.pctLeadAgendada = leads > 0 && typeof funil.agendadas === 'number'
         ? Math.round((funil.agendadas / leads) * 1000) / 10
@@ -427,9 +462,18 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
   };
 
   // ─── KPIs (valores brutos; ícone/cor ficam na camada visual) ───
-  const ticketMedio = assinadosList.length > 0
-    ? sum(assinadosList, (c) => Number(c.honorarios_total) || 0) / assinadosList.length
+  // (auditoria 01/08 — item 228) Ticket medio dos honorarios INICIAIS conta apenas os
+  // contratos que TEM honorario inicial. Antes dividia pelo total de assinados, incluindo
+  // os de "Somente Exito" (que valem R$ 0 de entrada por definicao) — o resultado nao era
+  // o ticket de ninguem: caia conforme o escritorio fechava mais contratos de exito.
+  // A aba Trafego ja calculava assim; as duas telas mostravam numeros diferentes para a
+  // mesma coisa. `ticketMedioBase` sai no resultado para a tela poder dizer sobre quantos
+  // contratos a media foi feita (item 232).
+  const assinadosComValor = assinadosList.filter((c) => (Number(c.honorarios_total) || 0) > 0);
+  const ticketMedio = assinadosComValor.length > 0
+    ? sum(assinadosComValor, (c) => Number(c.honorarios_total) || 0) / assinadosComValor.length
     : null;
+  const ticketMedioBase = assinadosComValor.length;
 
   const temposAssinatura = assinadosList
     .map((c) => {
@@ -479,12 +523,23 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
       sub: `${porStatus.assinado} de ${enviadosEver} enviados`, fmt: 'pct',
     },
     ticket_medio: hasPeriodo
-      ? {
-        label: 'Ticket médio (iniciais)',
-        value: assinadosJanelaList.length > 0 ? receitaJanela / assinadosJanelaList.length : null,
-        sub: `assinaturas de ${janelaLabel}`, fmt: 'brl',
-      }
-      : { label: 'Ticket médio (iniciais)', value: ticketMedio, sub: 'contratos assinados no escopo', fmt: 'brl' },
+      ? (() => {
+        // (item 228/232) mesma regra na janela filtrada: so quem tem honorario inicial,
+        // e o rotulo diz sobre quantos contratos a media foi calculada.
+        const comValor = assinadosJanelaList.filter((c) => (Number(c.honorarios_total) || 0) > 0);
+        const soma = sum(comValor, (c) => Number(c.honorarios_total) || 0);
+        return {
+          label: 'Ticket médio (iniciais)',
+          value: comValor.length > 0 ? soma / comValor.length : null,
+          sub: `${comValor.length} contrato${comValor.length === 1 ? '' : 's'} com honorário inicial · ${janelaLabel}`,
+          fmt: 'brl',
+        };
+      })()
+      : {
+        label: 'Ticket médio (iniciais)', value: ticketMedio,
+        sub: `${ticketMedioBase} contrato${ticketMedioBase === 1 ? '' : 's'} com honorário inicial`,
+        fmt: 'brl',
+      },
     tempo_medio_assinatura: {
       label: 'Criação → assinatura', value: tempoMedioAssinatura !== null ? `${tempoMedioAssinatura.toFixed(1)}d` : null,
       sub: tempoMedianaAssinatura !== null ? `mediana ${tempoMedianaAssinatura}d · metade assina em até isso` : 'tempo médio no escopo',
@@ -593,6 +648,7 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
 
   // ─── Jornada de compra (1ª mensagem → assinatura) — usa assinatura efetiva ───
   const jornadaCasos = [];
+  const jornadaIgnorados = []; // (item 257) datas inconsistentes — contadas, nao descartadas
   assinadosList.forEach((c) => {
     const primMsg = c.dados?.dataPrimeiraMensagem;
     const dt = getSignedDate(c);
@@ -602,11 +658,20 @@ export function computeDashboard(all, filters = {}, goal = 15, now = new Date())
     const dias = Math.round((dt - inicio) / DAY_MS);
     if (dias >= 0 && dias < 365) {
       jornadaCasos.push({ nome: c.nome_contratante1 || 'N/I', resort: c.resort || 'N/I', dias });
+    } else {
+      // (auditoria 01/08 — item 257) Caso FORA da faixa: data invertida (1a mensagem
+      // depois da assinatura) ou muito antiga. Antes sumia da mediana em silencio, e
+      // ninguem sabia que existia cadastro com data errada para corrigir. Agora e
+      // contado e a tela pode mostrar "N casos ignorados por data inconsistente" —
+      // um cadastro errado deixa de ser invisivel e vira fila de correcao.
+      jornadaIgnorados.push({ nome: c.nome_contratante1 || 'N/I', dias });
     }
   });
   const jornadaDias = jornadaCasos.map((j) => j.dias);
   const jornada = {
     casos: jornadaCasos,
+    ignorados: jornadaIgnorados.length,
+    ignoradosCasos: jornadaIgnorados.slice(0, 10), // amostra p/ o drill-down
     total: jornadaCasos.length,
     media: avg(jornadaDias),
     mediana: median(jornadaDias),

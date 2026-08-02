@@ -1,4 +1,7 @@
+import { useModalEscape } from '../hooks/useModalEscape';
 export default function ShortcutsGuide({ onClose }) {
+  // (auditoria 01/08/2026 — item 278) Esc fecha o modal (este so e montado quando aberto)
+  useModalEscape(true, onClose);
   const isMac = navigator.platform.includes('Mac');
   const mod = isMac ? '⌘' : 'Ctrl';
 

@@ -6,6 +6,7 @@
 // REGRA v2 (decisao Paulo 16/07): campanhas de VAGA (RH) ficam FORA de toda a
 // captacao — so aparecem flagadas na tabela.
 import { isCampanhaRh } from '../../../netlify/functions/_lib/metaAds.mjs';
+import { ymOf } from '../../utils/format';
 
 export { isCampanhaRh };
 
@@ -19,7 +20,16 @@ export const PIORES_GASTO_MIN = 50;         // ranking dos piores: gasto minimo 
 export const DONUT_TOP = 6;
 
 // origens de contrato que contam como "veio da Meta" (dados->origemCliente)
-export const ORIGENS_META = ['facebook', 'instagram', 'trafego pago', 'tráfego pago', 'anuncio', 'anúncio', 'meta', 'whatsapp'];
+// (auditoria 01/08 — item 254) 'formulario' FALTAVA: e a opcao do formulario que
+// corresponde aos lead forms da Meta, entao "assinados com origem Meta" saia menor que
+// a realidade. As opcoes reais do FormPanel sao: Facebook, Trafego pago, Formulario,
+// Google, Indicacao, Instagram, Organico, Outros.
+// ⚠️ PREMISSA A CONFIRMAR COM O PAULO: se "Formulario" for usado tambem para o
+// formulario publico do QR Code (captacao propria, nao paga), esta linha passa a
+// INFLAR o indicador — nesse caso basta remover 'formulario' daqui.
+// 'whatsapp' fica na lista por causa de registros ANTIGOS gravados em texto livre
+// (click-to-WhatsApp e a principal origem Meta), mesmo nao sendo opcao do dropdown hoje.
+export const ORIGENS_META = ['facebook', 'instagram', 'trafego pago', 'tráfego pago', 'anuncio', 'anúncio', 'meta', 'whatsapp', 'formulario', 'formulário'];
 
 const num = (v) => Number(v) || 0;
 const leadsDe = (r) => num(r.conversas_iniciadas) + num(r.leads_form);
@@ -402,16 +412,25 @@ export function computeComercialMensal({ mensal, videochamadas, contratos, bolet
     let leads = 0;
     let gasto = 0;
     for (const m of mensal || []) {
-      if (String(m.mes).slice(0, 7) === mes) {
+      // (auditoria 01/08 — item 221) Campanhas de [VAGA]/RH sao CURRICULO, nao lead de
+      // venda (decisao Paulo 16/07). Os KPIs do topo da aba ja as excluiam; este bloco
+      // nao — o mesmo mes mostrava captacao maior aqui e o custo por assinado saia
+      // artificialmente barato. Precisa do `campaign_name` no select (TrafegoPanel).
+      if (isCampanhaRh(m.campaign_name)) continue;
+      // `mes` da meta_ads_mensal e data-so ("2026-07-01"): ymOf devolve direto, sem drift.
+      if (ymOf(m.mes) === mes) {
         leads += num(m.conversas_iniciadas) + num(m.leads_form);
         gasto += num(m.gasto);
       }
     }
-    const vcs = (videochamadas || []).filter((v) => v.scheduled_at && v.status !== 'excluida' && String(v.scheduled_at).slice(0, 7) === mes).length;
-    const enviados = ativos.filter((c) => c.zapsign_sent_at && String(c.zapsign_sent_at).slice(0, 7) === mes).length;
+    // (item 227) ymOf em vez de slice(0,7) na string crua: `scheduled_at` chega em UTC,
+    // entao uma call das 21h BRT do dia 31 era contada no MES SEGUINTE — divergindo do
+    // Dashboard ao lado. Vale igual p/ envio e assinatura (assinatura noturna do dia 31).
+    const vcs = (videochamadas || []).filter((v) => v.scheduled_at && v.status !== 'excluida' && ymOf(v.scheduled_at) === mes).length;
+    const enviados = ativos.filter((c) => c.zapsign_sent_at && ymOf(c.zapsign_sent_at) === mes).length;
     const assinadosLista = ativos.filter((c) => {
       const dt = dataAssinatura(c);
-      return dt && String(dt).slice(0, 7) === mes;
+      return dt && ymOf(dt) === mes;
     });
     const assinados = assinadosLista.length;
     const receita = assinadosLista.reduce((s, c) => s + num(c.honorarios_total), 0);
@@ -424,8 +443,17 @@ export function computeComercialMensal({ mensal, videochamadas, contratos, bolet
       const cpf = String(b.cpf || '').replace(/\D/g, '');
       return cpfs.has(cpf) ? s + num(b.valor) : s;
     }, 0);
+    // (auditoria 01/08 — item 238) O MES CORRENTE esta sempre incompleto (o sync so
+    // fechou ate ontem), mas saia na serie igual aos meses fechados: um grafico com
+    // "agosto" no terceiro dia parece uma queda enorme quando e so o mes comecando.
+    // `parcial` + `diasDecorridos` deixam a tela avisar em vez de o leitor adivinhar.
+    const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+    const parcial = mes === mesAtual;
     return {
-      mes, leads, gasto, videochamadas: vcs, enviados, assinados,
+      mes, parcial,
+      diasDecorridos: parcial ? agora.getDate() : null,
+      diasDoMes: parcial ? new Date(agora.getFullYear(), agora.getMonth() + 1, 0).getDate() : null,
+      leads, gasto, videochamadas: vcs, enviados, assinados,
       custoPorAssinado: assinados > 0 ? gasto / assinados : null,
       custoPorVideochamada: vcs > 0 ? gasto / vcs : null,
       custoPorEnviado: enviados > 0 ? gasto / enviados : null,

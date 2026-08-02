@@ -1,0 +1,39 @@
+# (auditoria 01/08/2026 — item 306) Vigilancia de dependencias.
+#
+# POR QUE: o app depende de bibliotecas que processam ARQUIVO DE TERCEIRO — jspdf e
+# pdf-lib montam o contrato que o cliente assina, xlsx le planilha, tesseract le a foto
+# da CNH. Sao exatamente as bibliotecas onde uma falha de seguranca importa. Hoje nao ha
+# nada avisando: um CVE em qualquer uma delas ficaria anos sem ninguem saber.
+#
+# Cadencia MENSAL de proposito: semanal viraria ruido e o repo tem 1 mantenedor.
+# Agrupado por tipo para nao abrir 20 pull requests separados — mas as correcoes de
+# SEGURANCA vem em PR proprio (o Dependabot sempre separa alertas de seguranca).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: monthly
+      day: monday
+      time: '09:00'
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'deps'
+    groups:
+      # atualizacoes de patch/minor juntas: quase sempre entram sem drama
+      seguras:
+        update-types: ['minor', 'patch']
+    ignore:
+      # major exige leitura de changelog e teste manual — nao entra por automacao
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # o proprio CI: uma acao desatualizada e um risco de supply chain silencioso
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: America/Sao_Paulo
+    commit-message:
+      prefix: 'ci'

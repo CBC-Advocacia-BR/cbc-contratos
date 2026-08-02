@@ -364,7 +364,7 @@ export function ActionStrip({ acoes, onNavigate }) {
 // Funil "de verdade": 3 etapas (criados ⊇ enviados ⊇ assinados) como barras
 // centradas que afunilam. A queda % entre etapas aparece no degrau; a
 // conversão total (criação → assinatura) fica em destaque no rodapé.
-export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false }) {
+export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false, frescor = null }) {
   // (videochamadas) etapas do TOPO vindas da agenda — contadas por data do evento.
   const temVideo = typeof funil.agendadas === 'number';
   // (leads Meta 14/07/2026) 1a etapa: leads das campanhas (conversas iniciadas + forms),
@@ -383,7 +383,27 @@ export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false }) {
     ] : []),
     ...(temVideo ? [
       { label: 'Videochamada agendada', valor: funil.agendadas, cor: 'var(--cbc-info)', pct: temLeads ? funil.pctLeadAgendada : null, pctLabel: 'dos leads agendaram', nota: funil.futuras > 0 ? `+${funil.futuras} a realizar nos próximos dias` : null },
-      { label: 'Videochamada realizada', valor: funil.realizadas, cor: 'var(--cbc-info)', pct: funil.pctComparecimento, pctLabel: 'compareceram' },
+      // (auditoria 01/08 — item 232) O percentual sozinho engana quando a amostra e
+      // pequena: "60% compareceram" pode ser 3 de 5. Mostrando "de N agendadas" ao lado,
+      // quem le sabe o peso do numero antes de decidir. Abaixo de 10 eventos o percentual
+      // some e fica so a contagem — nesse volume a variacao e ruido, nao tendencia.
+      {
+        label: 'Videochamada realizada', valor: funil.realizadas, cor: 'var(--cbc-info)',
+        pct: funil.agendadas >= 10 ? funil.pctComparecimento : null,
+        pctLabel: `compareceram (de ${funil.agendadas} agendadas)`,
+        nota: funil.agendadas > 0 && funil.agendadas < 10
+          ? `${funil.realizadas} de ${funil.agendadas} — poucos eventos para calcular percentual`
+          // (item 231) Avisa quando o período MISTURA as duas réguas de comparecimento.
+          // Só aparece se as duas tiverem peso relevante (>=15% cada) — num período todo
+          // Meet ou todo cor, o aviso seria ruído.
+          : (() => {
+            const m = funil.comparecimentoPorMeet || 0;
+            const c = funil.comparecimentoPorCor || 0;
+            const t = m + c;
+            if (!t || m / t < 0.15 || c / t < 0.15) return null;
+            return `${m} verificadas pelo Meet e ${c} pela cor da agenda — critérios diferentes no mesmo período`;
+          })(),
+      },
     ] : []),
     { label: 'Contratos enviados para assinatura', valor: funil.enviados, cor: 'var(--cbc-navy-light)', pct: null, scopeBreak: temVideo || temLeads },
     { label: 'Assinados', valor: funil.assinados, cor: 'var(--cbc-success)', pct: funil.pctAssinatura },
@@ -513,6 +533,30 @@ export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false }) {
           <span className="text-[10px]" style={{ color: 'var(--cbc-text-muted)' }}>dos enviados assinaram</span>
         </span>
       </div>
+
+      {/* (auditoria 01/08 — item 234) De quando sao estes numeros.
+          Se o sync da agenda ou da Meta parar, o funil segue mostrando valores
+          plausiveis — so que velhos — e ninguem percebe (foi o que aconteceu com 4 crons
+          que ficaram meses mortos). Aqui a defasagem fica visivel: em dia, uma linha
+          discreta; atrasado, um aviso ambar dizendo QUAL fonte esta parada. */}
+      {frescor && (
+        <div className="mt-2 pt-2 text-[10px] leading-snug" style={{ borderTop: '1px solid var(--cbc-border)' }}>
+          {frescor.atrasadas.length > 0 ? (
+            <div style={{ color: 'var(--cbc-warning)' }}>
+              <span className="font-bold">Atenção:</span>{' '}
+              {frescor.atrasadas.map((f) => f.rotulo).join(', ')}{' '}
+              {frescor.atrasadas.length === 1 ? 'não sincroniza' : 'não sincronizam'} há um tempo —
+              os números dessa(s) etapa(s) podem estar desatualizados.
+            </div>
+          ) : (
+            frescor.maisAntiga && (
+              <div style={{ color: 'var(--cbc-text-muted)' }}>
+                Fontes sincronizadas até {frescor.maisAntiga.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </div>
+            )
+          )}
+        </div>
+      )}
     </DashCard>
   );
 }

@@ -36,7 +36,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+// (auditoria 01/08 — item 296) As contas puras (janela do periodo, degrau da faixa e
+// aplicabilidade da promocao) sairam daqui para `_lib/comissaoCalculo.mjs` e ganharam
+// testes: o resultado desta function vira PAGAMENTO, e um erro de um dia na janela ou de
+// um degrau na faixa nao aparece em lugar nenhum — so na conferencia manual.
+import { getPeriodFromMonth, currentPeriodFromDate, getFaixa, isPromocaoAplicavel } from './_lib/comissaoCalculo.mjs';
 import { heartbeat } from './_lib/botDb.mjs';
+import { comCaptura } from './_lib/comCaptura.mjs';
 
 const SUPABASE_URL = 'https://vygczeepvoyaehfchxko.supabase.co';
 const SUPABASE_KEY =
@@ -74,56 +80,6 @@ const DEFAULT_CONFIG = {
 // Converte "YYYY-MM" em periodo {start, end} onde end = dia (diaInicio-1) do mes informado
 // e start = dia diaInicio do mes anterior.
 // Ex: month="2026-04", diaInicio=20 -> start="2026-03-20", end="2026-04-19"
-function getPeriodFromMonth(yyyymm, diaInicio = 20) {
-  const [year, month] = yyyymm.split('-').map(Number);
-  // mes 1-12 => Date UTC mes eh 0-11
-  const endDate = new Date(Date.UTC(year, month - 1, diaInicio - 1, 23, 59, 59));
-  const startDate = new Date(Date.UTC(year, month - 2, diaInicio, 0, 0, 0));
-  return {
-    start: startDate.toISOString().slice(0, 10),
-    end: endDate.toISOString().slice(0, 10),
-  };
-}
-
-// Descobre o periodo corrente baseado na data passada (default: agora).
-// - Se hoje <  dia de inicio: periodo termina no dia (diaInicio-1) deste mes
-// - Se hoje >= dia de inicio: periodo termina no dia (diaInicio-1) do proximo mes
-function currentPeriodFromDate(date = new Date(), diaInicio = 20) {
-  const d = new Date(date);
-  const day = d.getUTCDate();
-  let year = d.getUTCFullYear();
-  let month = d.getUTCMonth() + 1; // 1-12
-
-  if (day < diaInicio) {
-    return getPeriodFromMonth(`${year}-${String(month).padStart(2, '0')}`, diaInicio);
-  }
-  month += 1;
-  if (month > 12) {
-    month = 1;
-    year += 1;
-  }
-  return getPeriodFromMonth(`${year}-${String(month).padStart(2, '0')}`, diaInicio);
-}
-
-// ─── LOGICA DE FAIXAS ───────────────────────────────────────────────
-
-// Dado um array de faixas [{min,max,valor}, ...] e um contador cumulativo,
-// retorna {faixa: "min-max", valor: R$}
-function getFaixa(faixas, count) {
-  if (!Array.isArray(faixas)) return null;
-  for (const f of faixas) {
-    const min = Number(f.min);
-    const max = f.max === null || f.max === undefined ? null : Number(f.max);
-    if (count >= min && (max === null || count <= max)) {
-      return {
-        faixa: `${min}-${max ?? '+'}`,
-        valor: Number(f.valor) || 0,
-      };
-    }
-  }
-  return null;
-}
-
 // ─── LOADERS ────────────────────────────────────────────────────────
 
 async function loadConfig() {
@@ -180,15 +136,6 @@ async function loadPromocoesAtivas(start, end) {
 }
 
 // Verifica se a promocao eh aplicavel ao contrato (resort, tipo_acao, datas)
-function isPromocaoAplicavel(promo, contrato) {
-  const sigDate = (contrato.signed_at || '').slice(0, 10);
-  if (!sigDate) return false;
-  if (sigDate < promo.data_inicio || sigDate > promo.data_fim) return false;
-  if (promo.resort_filtro && promo.resort_filtro !== contrato.resort) return false;
-  if (promo.tipo_acao_filtro && promo.tipo_acao_filtro !== contrato.tipo_acao) return false;
-  return true;
-}
-
 // (perf-be-5) Carrega TODOS os contratos assinados do periodo de UMA vez (sem
 // filtrar por vendedora) e o mapa de guias correspondente de UMA vez, antes do
 // loop de duplas. Substitui as 2 queries em serie que rodavam por dupla.
@@ -505,7 +452,11 @@ async function saveComissao(result) {
 
 // ─── HANDLER PRINCIPAL ──────────────────────────────────────────────
 
-export default async (req) => {
+// (auditoria 01/08 — item 155) `comCaptura` leva qualquer erro NAO TRATADO desta
+// function para o console do Monitor (advbox_api_log), com metodo/caminho/pilha.
+// Antes, um erro que escapasse dos try/catch internos virava um console.error no
+// painel da Netlify — retencao curta — e sumia. Aqui e onde mora o dinheiro.
+export default comCaptura('commission-calculator', async (req) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('', {
@@ -590,7 +541,7 @@ export default async (req) => {
       { status: 500, headers: CORS },
     );
   }
-};
+}, { origem: 'vendas', heartbeatEmFalha: true });
 
 // Cron: todo dia 20 as 03:05 UTC (00:05 BRT)
 // Formato: minuto hora dia mes dia_da_semana

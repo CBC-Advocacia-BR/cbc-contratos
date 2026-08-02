@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { friendlyError } from '../utils/friendlyError';
+import { ymLocal, ymdLocal } from '../utils/format';
+import { fetchAllPaged } from '../utils/supabasePaged';
 import { SkeletonBoletos } from './Skeleton';
 import ErrorState from './ErrorState';
 import RelatorioBoletosModal from './RelatorioBoletosModal';
@@ -207,7 +209,7 @@ async function genExecutivePDF(stats) {
   const blob = pdf.output('blob');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `Relatorio_Boletos_${now.toISOString().slice(0, 7)}.pdf`;
+  a.download = `Relatorio_Boletos_${ymLocal(now)}.pdf`;
   a.click();
 }
 
@@ -471,7 +473,7 @@ function BoletoRow({ boleto, isClosest, onCopyPix, onOpenNF, onPreview, onToast,
         borderLeft: isClosest ? '2px solid var(--cbc-navy)' : '2px solid transparent',
         background: isClosest ? 'var(--cbc-warning-bg)' : undefined,
       }}>
-      {isClosest && <FireIcon className="mr-2 w-4 h-4" style={{ color: 'var(--cbc-warning)' }} aria-label="Boleto com vencimento mais proximo" title="Boleto com vencimento mais próximo" />}
+      {isClosest && <FireIcon className="mr-2 w-4 h-4" style={{ color: 'var(--cbc-warning)' }} aria-label="Boleto com vencimento mais próximo" title="Boleto com vencimento mais próximo" />}
       {isPending && urgencyColor !== 'transparent' && (
         <span className="mr-2 w-2 h-2 rounded-full shrink-0" style={{ background: urgencyColor }} aria-hidden="true" />
       )}
@@ -589,7 +591,7 @@ const ClientCard = memo(function ClientCard({ customer, statusFilter, compact, c
   // carregados ou o statusFilter mudam.
   const filteredBoletos = useMemo(() => {
     if (!boletos || boletos.length === 0) return [];
-    const _todayStr = new Date().toISOString().slice(0, 10);
+    const _todayStr = ymdLocal();
     return boletos.filter(b => {
       const paid = isPaidStatus(b.status);
       const neutral = isNeutralStatus(b.status);
@@ -1011,7 +1013,8 @@ export default function BoletosPanel({ userEmail = '' }) {
       await fetchData();
       setTimeout(() => setSyncProgress(null), 1500);
     } catch (e) {
-      showToast('⚠️ Erro: ' + e.message);
+      console.error('[BoletosPanel]', e);
+      showToast('⚠️ Erro: ' + friendlyError(e));
       setSyncProgress(null);
     } finally {
       setSyncing(false);
@@ -1035,7 +1038,7 @@ export default function BoletosPanel({ userEmail = '' }) {
         showToast(`Kommo: ${re.enfileirado || 0} atualizado(s) · ${ok} ok · ${re.erro || 0} erro(s)`);
       }
       else showToast('⚠️ ' + (d.error || 'erro ao sincronizar Kommo'));
-    } catch (e) { showToast('⚠️ ' + e.message); }
+    } catch (e) { console.error('[BoletosPanel]', e); showToast('⚠️ ' + friendlyError(e)); }
     finally { setKommoSyncing(false); }
   };
 
@@ -1140,8 +1143,12 @@ export default function BoletosPanel({ userEmail = '' }) {
   // (#21) mapa CPF -> kommo_lead_id (do cadastro unico) p/ o botao "Kommo" nos cards
   useEffect(() => {
     let live = true;
-    supabase.from('clientes').select('cpf_cnpj, kommo_lead_id').not('kommo_lead_id', 'is', null).limit(6000)
-      .then(({ data }) => {
+    // (auditoria 01/08 — item 226) `.limit(6000)` entregava 1000: so os primeiros mil
+    // clientes (em ordem arbitraria) ganhavam o atalho "Kommo" no card. Para os demais o
+    // botao sumia sem explicacao e parecia problema do Kommo.
+    fetchAllPaged(() => supabase.from('clientes')
+      .select('cpf_cnpj, kommo_lead_id').not('kommo_lead_id', 'is', null).order('id'))
+      .then((data) => {
         if (!live) return;
         const m = new Map();
         for (const r of data || []) {

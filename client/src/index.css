@@ -106,6 +106,31 @@ html, body {
     @apply border-red-500 focus:ring-red-500 focus:border-red-500;
     background-color: #FEF2F2 !important;
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+    /* (auditoria 01/08/2026 — item 275) O campo invalido era sinalizado SO por COR
+       (borda e fundo vermelhos). Quem nao distingue vermelho — cerca de 1 em cada 12
+       homens — via um campo igual aos outros e nao entendia por que o formulario nao
+       avancava. O simbolo de aviso e um sinal de FORMA, que independe de enxergar cor.
+       SVG embutido como data URI porque o CSP do projeto barra recurso externo, e
+       ::after nao funciona em <input>. */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23DC2626'%3E%3Cpath fill-rule='evenodd' d='M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z' clip-rule='evenodd'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.6rem center !important;
+    background-size: 1rem 1rem !important;
+    padding-right: 2.1rem;
+  }
+  /* select ja tem a setinha na direita — o aviso vai um pouco mais para dentro */
+  select.input-error { background-position: right 1.8rem center !important; padding-right: 3.2rem; }
+  /* (auditoria 01/08 — item 261) No modo escuro o campo com erro ficava ILEGIVEL: o
+     fundo rosa-claro acima e !important e o texto herda `.dark .input-field`
+     (text-gray-100). Resultado: texto quase branco sobre rosa quase branco — a pessoa
+     erra um campo e nao consegue mais ler o que digitou. Aqui o fundo vira um vermelho
+     escuro que mantem o sinal de erro E o contraste do texto claro. */
+  .dark .input-error {
+    background-color: #3B1214 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23F87171'%3E%3Cpath fill-rule='evenodd' d='M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z' clip-rule='evenodd'/%3E%3C/svg%3E") !important;
+    border-color: #F87171;
+    color: #FEE2E2;
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
   }
 
   /* Shake animation for validation errors */
@@ -290,6 +315,14 @@ html, body {
   --cbc-navy-dark: #0F2035;
   --cbc-gold: #C9A84C;
   --cbc-gold-dark: #B8860B;
+  /* (auditoria 01/08/2026 — item 286) DOURADO PARA TEXTO.
+     Medido: #C9A84C sobre branco da 2,29:1 e #B8860B da 3,25:1 — o minimo para texto e
+     4,5:1. Sobre o creme dos cards fica pior ainda (2,07 e 2,94). Na pratica, numeros de
+     comissao e do funil ficavam apagados em monitor comum e sumiam com claridade na sala.
+     O dourado da MARCA nao muda: sobre navy ele passa (5,09:1) e continua em detalhes,
+     bordas e no cabecalho. Este token existe SO para texto dourado sobre fundo claro:
+     #8A6A12 da 5,06:1 no branco e 4,58:1 no creme. */
+  --cbc-gold-text: #8A6A12;
   --cbc-cream: #F0F4F8;
   /* (a11y 26/06) escurecidos p/ texto/icone passar WCAG AA (>=4.5:1) sobre o tint de 10%
      no light (ressalva aberta da auditoria 20/06). As superficies bg/border continuam com o
@@ -392,6 +425,9 @@ html, body {
   --cbc-accent-hover: #E6C757;
   --cbc-gold: #F4CE46;
   --cbc-gold-dark: #D4AF37;
+  /* (item 286) no tema escuro o problema se inverte: dourado escuro sobre fundo preto
+     tambem falha. Texto dourado aqui usa o dourado CLARO (11,91:1 sobre #0F1620). */
+  --cbc-gold-text: #F4CE46;
   --cbc-header-bg: #0A0F1A;
   --cbc-header-text: #F4CE46;
   --cbc-shadow: 0 1px 6px rgba(0,0,0,.45);
@@ -1376,6 +1412,15 @@ button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
 input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--cbc-navy);
   outline-offset: 2px;
+}
+/* (auditoria 01/08 — item 262) `--cbc-navy` (#1B3A5C) e azul-marinho ESCURO e nao e
+   redefinido no tema escuro: sobre o card #111827 o anel de foco praticamente some, e
+   quem navega por Tab a noite nao enxerga onde esta. No escuro o foco usa o dourado da
+   marca, que tem contraste de sobra contra o fundo escuro. */
+:root.dark input:focus-visible,
+:root.dark select:focus-visible,
+:root.dark textarea:focus-visible {
+  outline-color: var(--cbc-gold);
 }
 
 /* ─── Pull-to-refresh visual upgrade ─── */

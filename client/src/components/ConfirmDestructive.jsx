@@ -4,6 +4,12 @@ import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 // (#16) Confirmacao com digitacao obrigatoria para acoes destrutivas irreversiveis.
 // Usuario precisa digitar exatamente `confirmText` para habilitar o botao.
 // ESC cancela, Enter confirma (se match).
+// (auditoria 01/08/2026 — item 267) MODO SIMPLES (`exigirDigitacao={false}`).
+// Existiam DUAS protecoes diferentes no app: esta caixa (digitar a palavra) e o
+// `confirm()` cinza do navegador — e o usuario nunca sabia qual ia receber. Mas obrigar
+// a digitar "DELETAR" para arquivar um lead e exagero que ensina a clicar no automatico.
+// Agora e uma caixa so, com dois niveis: acao IRREVERSIVEL exige digitar a palavra;
+// acao reversivel (arquivar, excluir comentario, excluir visao salva) pede so o clique.
 export default function ConfirmDestructive({
   isOpen,
   title = 'Confirmar acao destrutiva',
@@ -14,19 +20,22 @@ export default function ConfirmDestructive({
   onConfirm,
   onCancel,
   danger = true,
+  exigirDigitacao = true,
 }) {
   const [typed, setTyped] = useState('');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
-  const match = typed.trim().toUpperCase() === String(confirmText).trim().toUpperCase();
+  const botaoRef = useRef(null); // (item 267) alvo do foco no modo simples
+  const match = !exigirDigitacao || typed.trim().toUpperCase() === String(confirmText).trim().toUpperCase();
 
   // Reset state + autofocus on open
   useEffect(() => {
     if (isOpen) {
       setTyped('');
       setLoading(false);
-      // Foco automatico (delay pra animacao do modal)
-      const t = setTimeout(() => { inputRef.current?.focus(); }, 80);
+      // Foco automatico (delay pra animacao do modal). No modo simples nao ha campo:
+      // o foco vai para o botao de confirmar, para o Enter funcionar do teclado.
+      const t = setTimeout(() => { (inputRef.current || botaoRef.current)?.focus(); }, 80);
       return () => clearTimeout(t);
     }
   }, [isOpen]);
@@ -104,6 +113,7 @@ export default function ConfirmDestructive({
           </div>
         </div>
 
+        {exigirDigitacao && (
         <div className="mb-4">
           <label className="block text-[10px] font-bold uppercase tracking-wide mb-1.5" style={{ color: 'var(--cbc-text-secondary, #4B5563)' }}>
             Para confirmar, digite <span className="font-mono px-1.5 py-0.5 rounded" style={{ background: '#FEE2E2', color: '#B91C1C' }}>{confirmText}</span>
@@ -134,6 +144,7 @@ export default function ConfirmDestructive({
             </p>
           )}
         </div>
+        )}
 
         <div className="flex gap-2 justify-end">
           <button
@@ -149,7 +160,9 @@ export default function ConfirmDestructive({
             {cancelLabel}
           </button>
           <button
+            ref={botaoRef}
             onClick={handleConfirm}
+            onKeyDown={handleKeyDown}
             disabled={!match || loading}
             className="px-4 py-2 rounded-lg text-white text-sm font-bold cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             style={{

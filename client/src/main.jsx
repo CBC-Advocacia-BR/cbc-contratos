@@ -15,7 +15,12 @@ if (SENTRY_ENABLED) {
   sentryInit({
     dsn: SENTRY_DSN,
     environment: 'production',
-    release: import.meta.env.VITE_APP_VERSION || 'unknown',
+    // (auditoria 01/08 — item 157) A versao (release) era `VITE_APP_VERSION || 'unknown'`
+    // — uma env que nunca foi configurada, entao TODO erro chegava como "unknown". Depois
+    // de um incidente a primeira pergunta e sempre "esse erro nasceu em qual deploy?", e
+    // nao dava para responder. O build ja injeta o identificador do commit
+    // (__BUILD_SHA__, em vite.config.js) — e ele que identifica a versao no ar.
+    release: (typeof __BUILD_SHA__ !== 'undefined' && __BUILD_SHA__) || import.meta.env.VITE_APP_VERSION || 'unknown',
     tracesSampleRate: 0.1, // 10% das transacoes para performance
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0.1, // grava replay so quando ha erro

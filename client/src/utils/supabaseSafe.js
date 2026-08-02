@@ -1,3 +1,11 @@
+// ⚠️ CODIGO INATIVO (auditoria 01/08/2026 — item 215)
+// Nenhum arquivo do app importa este modulo hoje (conferido por varredura em src/).
+// Mantido no repositorio porque a REGRA #1 do projeto proibe apagar arquivos — mas NAO
+// confie nele como se estivesse rodando: se precisar deste comportamento, confirme
+// primeiro que alguem realmente o chama.
+// ⚠️ ATENCAO ESPECIAL: comentarios no App.jsx citavam este modulo como se ele estivesse
+// PROTEGENDO as consultas ao banco. Ele nao esta ligado a nada — as consultas sao feitas
+// direto pelo cliente do Supabase.
 // (resilience 28/04) Wrapper para queries Supabase com timeout + notificacao
 // automatica via CustomEvent. NAO migra queries existentes — introduz um utilitario
 // para uso gradual quando arquivos forem mexidos.

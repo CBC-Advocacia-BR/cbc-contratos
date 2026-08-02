@@ -19,7 +19,23 @@ import { supabase } from '../lib/supabase';
 
 // Constroi o row para insert na tabela contratos.
 // IMPORTANTE: usa as mesmas colunas flat do fluxo padrao (App.jsx::buildContratoRow).
-function buildContractRow(data, userEmail) {
+// (auditoria 01/08/2026 — item 298) EXPORTADA para poder ser testada: e ela que decide
+// o que vai para cada coluna do contrato importado. Se um campo for para o lugar errado,
+// o contrato entra no sistema com cara de certo — honorario no campo errado, CPF do
+// contratante 2 vazio, resort "outro" gravado como a palavra "outro" — e ninguem percebe
+// ate alguem conferir a mao. Nao ha nenhuma validacao depois deste ponto.
+// (auditoria 01/08/2026 — item 298, achado PELO TESTE) `Number(v || 0)` NAO protege
+// contra texto: `'abc' || 0` e `'abc'` (string e truthy), entao `Number('abc')` = NaN — e
+// NaN entra numa coluna `numeric` do Postgres sem reclamar. A partir dali, QUALQUER soma
+// que inclua essa linha vira NaN: receita do Dashboard, ticket medio, projecao dos socios.
+// Um contrato basta para zerar a confianca no numero da tela inteira.
+// Hoje nao ha nenhuma linha com NaN no banco (conferido em 02/08) — isto e prevencao.
+const num = (v) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+export function buildContractRow(data, userEmail) {
   const c1 = data.contratantes?.[0] || {};
   const c2 = data.numContratantes === 2 ? (data.contratantes?.[1] || {}) : {};
   const honorarios = data.honorarios || {};
@@ -54,14 +70,14 @@ function buildContractRow(data, userEmail) {
     email_contratante2: c2.email || null,
     resort: resort || '',
     tipo_acao: tipoAcao || '',
-    honorarios_total: honorarios.somenteExito ? 0 : Number(honorarios.total || 0),
-    honorarios_parcelas: honorarios.somenteExito ? 0 : Number(honorarios.parcelas || 0),
+    honorarios_total: honorarios.somenteExito ? 0 : num(honorarios.total),
+    honorarios_parcelas: honorarios.somenteExito ? 0 : num(honorarios.parcelas),
     honorarios_valor_parcela: honorarios.somenteExito
       ? 0
-      : Number(honorarios.valorParcela || 0),
+      : num(honorarios.valorParcela),
     honorarios_percentual_exito: honorarios.somenteIniciais
       ? 0
-      : Number(honorarios.percentualExito || 0),
+      : num(honorarios.percentualExito),
     data_primeira_parcela: honorarios.dataPrimeiraParcela || null,
     status: 'assinado',
     signed_at: signedAt,
@@ -243,8 +259,8 @@ export async function processImport({
     updateStep('asaas', 'running');
     try {
       const honorarios = data.honorarios || {};
-      const total = Number(honorarios.total || 0);
-      const parcelas = Number(honorarios.parcelas || 0);
+      const total = num(honorarios.total);
+      const parcelas = num(honorarios.parcelas);
       if (total <= 0 || parcelas <= 0) {
         throw new Error('honorarios iniciais nao definidos');
       }
@@ -325,8 +341,8 @@ export function checkAutomacaoRequisitos(data, anexos) {
       (anexos?.contratoPdf?.base64 || anexos?.procuracaoPdf?.base64)
     ),
     asaas: !!(
-      Number(honorarios.total || 0) > 0 &&
-      Number(honorarios.parcelas || 0) > 0 &&
+      num(honorarios.total) > 0 &&
+      num(honorarios.parcelas) > 0 &&
       honorarios.dataPrimeiraParcela
     ),
     // (chatguru removal) chatguru: removido

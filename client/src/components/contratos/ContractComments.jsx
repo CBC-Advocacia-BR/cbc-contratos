@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../Toast';
+import ConfirmDestructive from '../ConfirmDestructive';
 import {
   ChatBubbleLeftEllipsisIcon,
   PaperAirplaneIcon,
@@ -127,8 +128,16 @@ export default function ContractComments({ contratoId, currentUserEmail, current
     }
   };
 
-  const handleDelete = async (c) => {
-    if (!confirm('Excluir este comentario?')) return;
+  // (auditoria 01/08/2026 — item 267) Era o `confirm()` cinza do navegador: outra caixa,
+  // outro visual, fora do app — e o usuario nunca sabia qual protecao ia receber.
+  // Agora e a MESMA caixa das demais confirmacoes, em modo simples (sem digitar palavra):
+  // excluir comentario e reversivel o bastante para nao exigir digitacao.
+  const [confirmarExclusao, setConfirmarExclusao] = useState(null);
+
+  const handleDelete = (c) => setConfirmarExclusao(c);
+
+  const excluirDeVerdade = async (c) => {
+    setConfirmarExclusao(null);
     try {
       const { error } = await supabase.from('contrato_comentarios').delete().eq('id', c.id);
       if (error) throw error;
@@ -248,6 +257,17 @@ export default function ContractComments({ contratoId, currentUserEmail, current
           Enviar
         </button>
       </div>
+
+      {/* (item 267) mesma caixa de confirmacao do resto do app, em modo simples */}
+      <ConfirmDestructive
+        isOpen={!!confirmarExclusao}
+        title="Excluir comentario?"
+        message={confirmarExclusao ? `"${String(confirmarExclusao.body || '').slice(0, 90)}${(confirmarExclusao.body || '').length > 90 ? '…' : ''}"` : ''}
+        confirmLabel="Excluir"
+        exigirDigitacao={false}
+        onConfirm={() => excluirDeVerdade(confirmarExclusao)}
+        onCancel={() => setConfirmarExclusao(null)}
+      />
     </div>
   );
 }

@@ -32,4 +32,8 @@ export default async (req) => {
   }
 };
 
-export const config = { schedule: '* * * * *' }; // a cada minuto
+export const config = { // (auditoria 01/08 — item 186) era '* * * * *': 43.200 invocacoes/mes, quase todas
+  // encontrando a fila VAZIA. A cada 3 min o atraso maximo de uma nota/mensagem passa
+  // de 1 para 3 minutos (irrelevante para o caso de uso) e o custo cai 2/3. O botao
+  // "Processar agora" do Monitor continua drenando na hora quando alguem precisa.
+  schedule: '*/3 * * * *' }; // a cada 3 min (item 186)

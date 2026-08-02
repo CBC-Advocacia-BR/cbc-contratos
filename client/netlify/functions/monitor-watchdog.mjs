@@ -31,6 +31,45 @@ const CRON_SLA = {
   // Existe um vigia proprio no banco (jobid 30), mas ele morre junto se o pg_cron cair;
   // esta linha poe um sistema INDEPENDENTE (Netlify) olhando o silencio.
   'meta-capi-eventos': 90,           // 1x/hora
+  // ─── (auditoria 01/08/2026 — item 141) 13 jobs batiam ponto NO VAZIO ───
+  // Eles gravavam heartbeat e o watchdog nao os conhecia, entao o `continue` abaixo os
+  // descartava: se parassem numa sexta, ninguem saberia — exatamente o que aconteceu
+  // com os 4 crons mortos descobertos em 28/07. O BACKUP era o caso mais grave: o
+  // watchdog vigiava o 'db-backup-cron' (que nunca roda) e ignorava o 'backup-diario'
+  // (que e o backup de verdade, no Drive).
+  'backup-diario': 26 * 60,              // 1x/dia 03h BRT — unico backup do banco
+  'meta-ads-sync': 26 * 60,              // 1x/dia 07h
+  'meta-trafego-sync': 26 * 60,          // 1x/dia 07h10
+  'kommo-asaas-sync': 14 * 60,           // 2x/dia (07h/19h)
+  'kommo-view-check': 90,                // a cada 30min
+  'kommo-leads-sync': 90,                // a cada 30min
+  'kommo-sla-sync': 90,                  // a cada 30min
+  'agenda-videochamadas-sync': 90,       // a cada 45min — alimenta o funil
+  'meet-auditoria-sync': 26 * 60,        // 1x/dia — comparecimento das calls
+  'advbox-vendas-sync': 14 * 60,         // 3x/dia (06h/12h/18h)
+  'clientes-reconciliar': 26 * 60,       // 1x/dia — cadastro unico
+  'cobranca-conciliar': 26 * 60,         // 1x/dia
+  'zapsign-lembrete-cron': 26 * 60,      // (item 113) 1x/dia 09h BRT — cobranca de assinatura
+  // (auditoria 01/08 — item 249) `cobranca-regua` VOLTA a ser vigiada. Ela foi tirada em
+  // 20/06 por dois motivos: a regua de mensagens esta desligada (kill-switch) e o SLA de
+  // 30h dava falso-positivo no fim de semana. Acontece que a MESMA function grava o
+  // `inadimplencia_snapshot` — FORA do if da regua, ou seja, ele roda de qualquer jeito e
+  // e o UNICO gravador do historico de inadimplencia. Sem vigilancia, se ele parar, o
+  // grafico e o "vs. 27 dias atras" congelam parecendo ESTABILIDADE.
+  // SLA de 80h resolve o falso-positivo: ela roda seg-sex, entao de sexta 10h30 ate
+  // segunda 10h30 sao ~72h de silencio legitimo.
+  'cobranca-regua': 80 * 60,
+  // (auditoria 01/08 — item 149) WEBHOOKS tambem entram, mas com prazo generoso: o ritmo
+  // deles depende do mundo real, nao de um cron. Com ~477 parcelas vencendo por mes, o
+  // Asaas manda evento quase todo dia — 3 dias de silencio absoluto significa integracao
+  // quebrada (URL trocada, webhook desativado no painel), nao "mes fraco".
+  // O do ZapSign fica de fora de proposito: e normal passar dias sem ninguem assinar; o
+  // heartbeat dele serve para consulta no Monitor, sem virar alarme falso.
+  'asaas-webhook': 72 * 60,
+  // (item 128) vigia das credenciais das integracoes — 1x/dia as 08h BRT
+  'tokens-vigia-cron': 26 * 60,
+  // (item 162) verificacao semanal do backup — segundas 08h30 BRT (8 dias de folga)
+  'backup-verificar-cron': 8 * 24 * 60,
 };
 
 export default async () => {
@@ -77,13 +116,18 @@ export default async () => {
     const agora = Date.now();
     for (const hb of hbs || []) {
       const sla = CRON_SLA[hb.job];
+      // (auditoria 01/08 — item 142) O `continue` por falta de SLA vinha ANTES da
+      // checagem de falha: um cron fora da lista que roda todo dia e FALHA todo dia
+      // ficava verde no e-mail. Agora a falha e reportada mesmo sem SLA definido —
+      // "nao sei o ritmo dele" nunca deve significar "nao me importo se ele quebrou".
+      if (hb.ok === false) {
+        await logAdvbox('monitor', 'aviso', `Cron rodou com erro: ${hb.job}`, { job: hb.job });
+      }
       if (!sla) continue;
       const idadeMin = hb.last_run_at ? (agora - new Date(hb.last_run_at).getTime()) / 60000 : Infinity;
       if (idadeMin > sla) {
         out.crons_parados.push(hb.job);
         await logAdvbox('monitor', 'erro', `Cron sem rodar ha ${Math.round(idadeMin)} min (limite ${sla}): ${hb.job}`, { job: hb.job });
-      } else if (hb.ok === false) {
-        await logAdvbox('monitor', 'aviso', `Cron rodou com erro: ${hb.job}`, { job: hb.job });
       }
     }
   } catch { /* tabela pode estar vazia */ }
@@ -130,6 +174,38 @@ export default async () => {
     }
   } catch { /* automation_log pode nao existir */ }
 
+  // 3.6) CONTRATO ASSINADO SEM COBRANCA LANCADA (auditoria 01/08 — item 120) ----
+  // O boleto so nasce quando alguem abre a aba Asaas e clica em "lancar". Nao havia
+  // NADA vigiando isso: um contrato assinado, com honorario inicial combinado, podia
+  // ficar semanas sem cobranca — dinheiro ja vendido parado, e o cliente sem receber
+  // nada. Aqui o sistema passa a cobrar sozinho.
+  // Regra: assinado ha mais de 3 dias, com honorario inicial > 0, sem asaas_status e
+  // nao arquivado. Os 3 dias dao folga para o fluxo normal (assina sexta, lanca segunda).
+  out.sem_cobranca = [];
+  try {
+    const corte = new Date(Date.now() - 3 * 86400000).toISOString();
+    const { data: pendentes } = await db.from('contratos')
+      .select('id, nome_contratante1, honorarios_total, signed_at, advbox_date, updated_at')
+      .eq('status', 'assinado')
+      .is('arquivado_em', null)
+      .is('asaas_status', null)
+      .gt('honorarios_total', 0)
+      .order('signed_at', { ascending: true })
+      .limit(50);
+    for (const c of pendentes || []) {
+      // data efetiva de assinatura (mesma cascata do app: signed_at -> advbox_date -> updated_at)
+      const assinadoEm = c.signed_at || c.advbox_date || c.updated_at;
+      if (!assinadoEm || assinadoEm > corte) continue;   // assinado ha menos de 3 dias
+      const dias = Math.floor((Date.now() - new Date(assinadoEm).getTime()) / 86400000);
+      out.sem_cobranca.push(`${c.nome_contratante1 || 'contrato'} — assinado ha ${dias} dias, sem cobranca lancada`);
+    }
+    if (out.sem_cobranca.length) {
+      await logAdvbox('asaas', 'aviso',
+        `${out.sem_cobranca.length} contrato(s) assinado(s) ha mais de 3 dias SEM cobranca lancada no Asaas`,
+        { total: out.sem_cobranca.length });
+    }
+  } catch { /* coluna asaas_status pode nao existir em ambientes antigos */ }
+
   // 4) E-MAIL DE ALERTA CRITICO (auditoria #88/#89) ------------------------
   // Decisao do Paulo (06/07): e-mail para paulo@advocaciacbc.com SOMENTE em erro
   // CRITICO — integracao caida, robo parado no prazo, ou jobs Kommo perdidos. Avisos
@@ -140,6 +216,11 @@ export default async () => {
     ...out.crons_parados.map((j) => `Robo parado (nao rodou no prazo): ${j}`),
     ...(out.kommo_failed ? [`Fila Kommo: ${out.kommo_failed} job(s) FALHARAM (nota/mensagem/lead pode ter se perdido)`] : []),
     ...out.automacao_falhou,
+    // (item 120) contrato assinado sem cobranca e dinheiro parado — entra no e-mail,
+    // resumido, para nao transformar o alerta numa lista de 50 nomes.
+    ...(out.sem_cobranca.length
+      ? [`${out.sem_cobranca.length} contrato(s) assinado(s) ha mais de 3 dias SEM cobranca lancada no Asaas (ex.: ${out.sem_cobranca[0]})`]
+      : []),
   ];
   out.email = 'nenhum critico';
   if (criticos.length) {

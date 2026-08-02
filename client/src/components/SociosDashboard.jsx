@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../AuthContext';
 import { SkeletonDashboard } from './Skeleton';
 import ErrorState from './ErrorState';
+import { fetchAllPaged } from '../utils/supabasePaged';
 import {
   CurrencyDollarIcon,
   BanknotesIcon,
@@ -30,7 +31,8 @@ import {
   EyeIcon,
 } from '@heroicons/react/24/outline';
 
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+// (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
+import { SOCIOS_EMAILS } from '../utils/acessos';
 
 function formatCurrency(val) {
   if (!val && val !== 0) return 'R$ 0,00';
@@ -397,14 +399,14 @@ function PeriodPicker({ periodo, onChange, periodoInicioDia = 20 }) {
   return (
     <div className="inline-flex items-center gap-1 rounded-lg px-1 py-1"
       style={{ background: 'var(--cbc-bg-subtle)', border: '1px solid var(--cbc-border)' }}>
-      <button onClick={goPrev} className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" aria-label="Periodo anterior">
+      <button onClick={goPrev} className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" aria-label="Período anterior">
         <ChevronLeftIcon className="w-4 h-4" style={{ color: 'var(--cbc-text-primary)' }} />
       </button>
       <button onClick={goCurrent} className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 cursor-pointer"
-        style={{ color: 'var(--cbc-text-primary)' }} title="Voltar para periodo atual">
+        style={{ color: 'var(--cbc-text-primary)' }} title="Voltar para período atual">
         {formatPeriodLabel(periodo)}
       </button>
-      <button onClick={goNext} className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" aria-label="Proximo periodo">
+      <button onClick={goNext} className="p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer" aria-label="Próximo período">
         <ChevronRightIcon className="w-4 h-4" style={{ color: 'var(--cbc-text-primary)' }} />
       </button>
     </div>
@@ -583,7 +585,7 @@ function ComissoesMensaisWidget() {
       {tableMissing && (
         <div className="rounded-lg p-3 text-[11px] mb-3"
           style={{ background: 'rgba(217,119,6,0.1)', color: '#D97706', border: '1px solid rgba(217,119,6,0.3)' }}>
-          Tabelas de vendas ainda nao foram criadas no Supabase. Execute <code>supabase_vendas_comissoes.sql</code> para habilitar este modulo.
+          O módulo de comissões ainda não foi ativado neste sistema. Fale com o Paulo para habilitar.
         </div>
       )}
 
@@ -616,7 +618,7 @@ function ComissoesMensaisWidget() {
               </div>
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Split vendedoras (70%)</div>
-                <div className="text-lg md:text-xl font-bold mt-1" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCurrency(totals.vend)}</div>
+                <div className="text-lg md:text-xl font-bold mt-1" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCurrency(totals.vend)}</div>
                 <div className="text-[10px] font-bold uppercase tracking-wider mt-2" style={{ color: 'var(--cbc-text-secondary)' }}>Split assistentes (30%)</div>
                 <div className="text-lg md:text-xl font-bold mt-0.5" style={{ color: '#1B3A5C' }}>{formatCurrency(totals.assist)}</div>
               </div>
@@ -635,7 +637,7 @@ function ComissoesMensaisWidget() {
             <SectionHeader Icon={UsersIcon} title="Detalhe por dupla (vendedora + assistente)" subtitle="Clique em detalhes para ver contratos" />
             {comissoes.length === 0 ? (
               <div className="text-center py-6 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-                {tableMissing ? 'Nao ha dados porque as tabelas ainda nao foram criadas.' : 'Nenhuma comissao calculada neste periodo.'}
+                {tableMissing ? 'O modulo de comissoes ainda nao foi ativado.' : 'Nenhuma comissao calculada neste periodo.'}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -647,13 +649,13 @@ function ComissoesMensaisWidget() {
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contr.</th>
                       <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Inic.</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Exito</th>
+                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Êxito</th>
                       <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bonus 100?</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vend. 70%</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assist. 30%</th>
                       <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Acoes</th>
+                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -687,7 +689,7 @@ function ComissoesMensaisWidget() {
                             )}
                           </td>
                           <td className="py-2 px-2 text-right font-bold" style={{ color: '#1B3A5C' }}>{formatCurrency(c.total_bruto)}</td>
-                          <td className="py-2 px-2 text-right" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCompactBRL(c.valor_vendedora)}</td>
+                          <td className="py-2 px-2 text-right" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCompactBRL(c.valor_vendedora)}</td>
                           <td className="py-2 px-2 text-right" style={{ color: '#1B3A5C' }}>{formatCompactBRL(c.valor_assistente)}</td>
                           <td className="py-2 px-2 text-center">
                             {c.status === 'paga' ? (
@@ -781,7 +783,7 @@ function ComissaoDetalhesModal({ comissao, onClose }) {
         <div className="text-[11px]" style={{ color: '#DC2626' }}>{err}</div>
       ) : detalhes.length === 0 ? (
         <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-          Nenhum contrato detalhado registrado para esta comissao.
+          Nenhum contrato detalhado registrado para esta comissão.
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -792,7 +794,7 @@ function ComissaoDetalhesModal({ comissao, onClose }) {
                 <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
                 <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
                 <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo</th>
-                <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Comissao</th>
+                <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Comissão</th>
                 <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
                 <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>FDS</th>
                 <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Base</th>
@@ -918,7 +920,7 @@ function RankingDuplasWidget() {
       {tableMissing && (
         <div className="rounded-lg p-3 text-[11px] mb-3"
           style={{ background: 'rgba(217,119,6,0.1)', color: '#D97706', border: '1px solid rgba(217,119,6,0.3)' }}>
-          Modulo de vendas ainda nao configurado no banco.
+          Módulo de vendas ainda não configurado no banco.
         </div>
       )}
 
@@ -930,7 +932,7 @@ function RankingDuplasWidget() {
         <WidgetSkeleton rows={3} />
       ) : comissoes.length === 0 ? (
         <div className="text-center py-6 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-          Sem duplas com comissao calculada neste periodo.
+          Sem duplas com comissão calculada neste período.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -964,7 +966,7 @@ function RankingDuplasWidget() {
                   </div>
                   <div>
                     <div className="text-[9px] uppercase font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</div>
-                    <div className="text-xl font-bold" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCompactBRL(c.total_bruto)}</div>
+                    <div className="text-xl font-bold" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCompactBRL(c.total_bruto)}</div>
                   </div>
                 </div>
                 {meta && (
@@ -980,7 +982,7 @@ function RankingDuplasWidget() {
                 )}
                 {spark.length >= 2 && (
                   <div>
-                    <div className="text-[9px] uppercase font-bold mb-0.5" style={{ color: 'var(--cbc-text-secondary)' }}>Ultimos 6 meses</div>
+                    <div className="text-[9px] uppercase font-bold mb-0.5" style={{ color: 'var(--cbc-text-secondary)' }}>Últimos 6 meses</div>
                     <Sparkline points={spark} color="#C9A84C" height={28} />
                   </div>
                 )}
@@ -1053,7 +1055,7 @@ function DuplaDrillDownModal({ comissao, onClose }) {
             </SocioCard>
             <SocioCard>
               <div className="text-[9px] uppercase font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</div>
-              <div className="text-xl font-bold" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCompactBRL(comissao.total_bruto)}</div>
+              <div className="text-xl font-bold" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCompactBRL(comissao.total_bruto)}</div>
             </SocioCard>
             <SocioCard>
               <div className="text-[9px] uppercase font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vend. 70%</div>
@@ -1068,13 +1070,13 @@ function DuplaDrillDownModal({ comissao, onClose }) {
           {/* Historico */}
           {historico.length > 0 && (
             <div>
-              <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--cbc-text-primary)' }}>Historico ultimos 6 meses</h4>
+              <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--cbc-text-primary)' }}>Histórico últimos 6 meses</h4>
               <div className="overflow-x-auto">
                 {/* (mobile-4) min-width no phone p/ rolar lateralmente em vez de espremer as colunas */}
                 <table className="w-full text-[11px] max-sm:min-w-[480px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Periodo</th>
+                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Período</th>
                       <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contratos</th>
                       <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
                       <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vendedora</th>
@@ -1089,7 +1091,7 @@ function DuplaDrillDownModal({ comissao, onClose }) {
                         </td>
                         <td className="py-1 px-2 text-right font-bold" style={{ color: '#1B3A5C' }}>{h.contratos_count}</td>
                         <td className="py-1 px-2 text-right" style={{ color: 'var(--cbc-text-secondary)' }}>{formatCurrency(h.total_bruto)}</td>
-                        <td className="py-1 px-2 text-right" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCurrency(h.valor_vendedora)}</td>
+                        <td className="py-1 px-2 text-right" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCurrency(h.valor_vendedora)}</td>
                         <td className="py-1 px-2 text-center text-[9px]">{h.status || '—'}</td>
                       </tr>
                     ))}
@@ -1104,7 +1106,7 @@ function DuplaDrillDownModal({ comissao, onClose }) {
             <h4 className="text-xs font-bold mb-2" style={{ color: 'var(--cbc-text-primary)' }}>Contratos do periodo ({contratos.length})</h4>
             {contratos.length === 0 ? (
               <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-                Nenhum contrato no periodo. (Pode ser que `vendedora_email` ainda nao foi preenchido nos contratos.)
+                Nenhum contrato no período. Se você esperava ver contratos aqui, pode ser que a vendedora ainda não tenha sido informada neles.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1245,7 +1247,7 @@ function ExpectativaHonorariosWidget() {
       {tableMissing && (
         <div className="rounded-lg p-3 text-[11px] mb-3"
           style={{ background: 'rgba(217,119,6,0.1)', color: '#D97706', border: '1px solid rgba(217,119,6,0.3)' }}>
-          Tabela de expectativa ainda nao criada. Rode <code>supabase_vendas_comissoes.sql</code>.
+          Tabela de expectativa ainda não criada. Rode <code>supabase_vendas_comissoes.sql</code>.
         </div>
       )}
       {err && !tableMissing && (
@@ -1264,8 +1266,8 @@ function ExpectativaHonorariosWidget() {
               </div>
             </SocioCard>
             <SocioCard>
-              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Expectativa exito</div>
-              <div className="text-xl md:text-2xl font-bold mt-1" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCompactBRL(computed.receitaEsperada)}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Expectativa êxito</div>
+              <div className="text-xl md:text-2xl font-bold mt-1" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCompactBRL(computed.receitaEsperada)}</div>
               <div className="text-[9px] mt-1" style={{ color: 'var(--cbc-text-muted)' }}>
                 Matematica da expectativa · {computed.comExpectativa} com referencia
               </div>
@@ -1281,10 +1283,10 @@ function ExpectativaHonorariosWidget() {
 
           {/* Pivo resort x tipo */}
           <SocioCard>
-            <SectionHeader Icon={BuildingOffice2Icon} title="Expectativa por Resort x Tipo de Acao" subtitle="Total projetado de exito" />
+            <SectionHeader Icon={BuildingOffice2Icon} title="Expectativa por Resort x Tipo de Ação" subtitle="Total projetado de êxito" />
             {resortsLista.length === 0 ? (
               <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-                Sem expectativas cadastradas ou sem contratos casando com referencia.
+                Sem expectativas cadastradas ou sem contratos casando com referência.
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -1310,7 +1312,7 @@ function ExpectativaHonorariosWidget() {
                               {computed.pivot[r][t] ? formatCompactBRL(computed.pivot[r][t]) : '—'}
                             </td>
                           ))}
-                          <td className="py-2 px-2 text-right font-bold" style={{ color: 'var(--cbc-gold-dark)' }}>{formatCompactBRL(total)}</td>
+                          <td className="py-2 px-2 text-right font-bold" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{formatCompactBRL(total)}</td>
                         </tr>
                       );
                     })}
@@ -1403,7 +1405,7 @@ function MetasIndividuaisWidget() {
       {tableMissing && (
         <div className="rounded-lg p-3 text-[11px] mb-3"
           style={{ background: 'rgba(217,119,6,0.1)', color: '#D97706', border: '1px solid rgba(217,119,6,0.3)' }}>
-          Tabela de metas ainda nao criada. Rode <code>supabase_vendas_comissoes.sql</code> e cadastre metas na Parametrizacao.
+          Tabela de metas ainda não criada. Rode <code>supabase_vendas_comissoes.sql</code> e cadastre metas na Parametrizacao.
         </div>
       )}
       {err && !tableMissing && (
@@ -1484,6 +1486,8 @@ export default function SociosDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [perfilFiltro, setPerfilFiltro] = useState('todos'); // todos|vendedora|assistente|advogado|socio
+  // (auditoria 01/08 — item 217) hora da ULTIMA carga real (nao a do render)
+  const [carregadoEm, setCarregadoEm] = useState(null);
 
   // Gate de acesso — somente socios
   const allowed = useMemo(() => {
@@ -1498,23 +1502,32 @@ export default function SociosDashboard() {
       // Buscar contratos
       // (bug-6) +advbox_date (data efetiva de assinatura igual ao Dashboard) e +arquivado_em
       // (computeSociosStats exclui arquivados das metricas; so a taxa de conversao usa o conjunto completo)
-      const { data: cData, error: cErr } = await supabase
+      // (auditoria 01/08 — item 219) SEM paginacao o PostgREST cortava em 1000 linhas.
+      // Nos contratos ainda cabia; nos BOLETOS nao: o espelho tem ~11 mil e a tela dos
+      // socios recebia so os 1.000 de vencimento MAIS ANTIGO. Receita projetada,
+      // inadimplencia e "top clientes" estavam sendo calculados sobre menos de 10% da
+      // carteira — numeros de dinheiro errados na tela que decide o mes.
+      const cData = await fetchAllPaged(() => supabase
         .from('contratos')
         .select('id, nome_contratante1, resort, tipo_acao, honorarios_total, status, created_at, updated_at, signed_at, advbox_date, arquivado_em, created_by, updated_by')
-        .order('created_at', { ascending: false });
-      if (cErr) throw cErr;
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }));
       setContratos(cData || []);
 
       // Buscar boletos (tabela asaas_boletos — tolerancia a tabela ausente)
       try {
-        const { data: bData } = await supabase
+        // ordem TOTAL: due_date empata em massa (varios boletos vencem no mesmo dia),
+        // entao `id` entra como desempate — sem isso paginar duplica/perde linhas.
+        const bData = await fetchAllPaged(() => supabase
           .from('asaas_boletos')
           .select('id, status, value, due_date, customer_id, customer, customer_name')
-          .order('due_date', { ascending: true });
+          .order('due_date', { ascending: true })
+          .order('id', { ascending: true }));
         setBoletos(bData || []);
       } catch {
         setBoletos([]);
       }
+      setCarregadoEm(new Date()); // (item 217) carimbo do dado, nao do desenho da tela
 
       // Buscar perfis (user_permissions) p/ coluna Perfil na tabela de produtividade
       try {
@@ -1558,12 +1571,12 @@ export default function SociosDashboard() {
     return (
       <div className="h-full w-full flex items-center justify-center p-6" style={{ background: 'var(--cbc-bg)' }}>
         <div className="max-w-md text-center">
-          <BriefcaseIcon className="w-14 h-14 mx-auto mb-4" style={{ color: 'var(--cbc-gold, #C9A84C)' }} aria-hidden="true" />
+          <BriefcaseIcon className="w-14 h-14 mx-auto mb-4" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }} aria-hidden="true" />
           <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--cbc-text-primary)' }}>
-            Acesso restrito aos socios
+            Acesso restrito aos sócios
           </h2>
           <p className="text-sm" style={{ color: 'var(--cbc-text-secondary)' }}>
-            Esta area e exclusiva dos socios da CBC. Se voce acredita que deveria ter acesso, entre em contato com o administrador.
+            Esta área e exclusiva dos sócios da CBC. Se você acredita que deveria ter acesso, entre em contato com o administrador.
           </p>
         </div>
       </div>
@@ -1577,7 +1590,7 @@ export default function SociosDashboard() {
       <div className="h-full flex items-center justify-center" style={{ background: 'var(--cbc-bg)' }}>
         <ErrorState
           icon={<ExclamationTriangleIcon className="w-8 h-8 text-amber-500" aria-hidden="true" />}
-          title="Nao foi possivel carregar o dashboard"
+          title="Não foi possível carregar o dashboard"
           message="Verifique sua conexao com a internet."
           suggestion="Se o problema persistir, recarregue a pagina ou tente novamente."
           onRetry={() => { setError(''); fetchAll(); }}
@@ -1604,10 +1617,14 @@ export default function SociosDashboard() {
           </div>
           <div>
             <h1 className="text-lg md:text-xl font-bold tracking-wide" style={{ color: 'var(--cbc-text-primary)' }}>
-              Dashboard dos Socios
+              Dashboard dos Sócios
             </h1>
             <p className="text-[11px] md:text-xs" style={{ color: 'var(--cbc-text-secondary)' }}>
-              Visao estrategica — acesso restrito · Atualizado em {new Date().toLocaleString('pt-BR')}
+              {/* (auditoria 01/08 — item 217) `new Date()` aqui era a hora do DESENHO da
+                  tela: o carimbo mudava sozinho a cada re-render, dando a impressao de que
+                  o dado tinha acabado de ser atualizado mesmo sem nenhuma busca nova.
+                  Agora mostra a hora da ULTIMA CARGA de verdade. */}
+              Visao estrategica — acesso restrito{carregadoEm ? ` · Atualizado em ${carregadoEm.toLocaleString('pt-BR')}` : ''}
             </p>
           </div>
         </div>
@@ -1623,17 +1640,17 @@ export default function SociosDashboard() {
       {/* ═══ NOVAS SECOES PRIORITARIAS DE VENDAS/COMISSOES ═══ */}
 
       {/* Comissoes do Mes */}
-      <Accordion Icon={BanknotesIcon} title="Comissoes do Mes" subtitle="Fechamento mensal da dupla vendedora+assistente" defaultOpen={true}>
+      <Accordion Icon={BanknotesIcon} title="Comissões do Mês" subtitle="Fechamento mensal da dupla vendedora+assistente" defaultOpen={true}>
         <ComissoesMensaisWidget />
       </Accordion>
 
       {/* Ranking de Duplas */}
-      <Accordion Icon={TrophyIcon} title="Ranking de Duplas" subtitle="Podio de vendas do periodo" defaultOpen={false}>
+      <Accordion Icon={TrophyIcon} title="Ranking de Duplas" subtitle="Pódio de vendas do período" defaultOpen={false}>
         <RankingDuplasWidget />
       </Accordion>
 
       {/* Expectativa de Honorarios */}
-      <Accordion Icon={ChartBarIcon} title="Expectativa de Honorarios" subtitle="Projecao de receita futura por resort e tipo" defaultOpen={false}>
+      <Accordion Icon={ChartBarIcon} title="Expectativa de Honorários" subtitle="Projeção de receita futura por resort e tipo" defaultOpen={false}>
         <ExpectativaHonorariosWidget />
       </Accordion>
 
@@ -1650,7 +1667,7 @@ export default function SociosDashboard() {
           <SocioCard accent>
             <div className="flex items-start justify-between mb-2">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Receita do Mes</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Receita do Mês</div>
                 <div className="text-xl md:text-2xl font-bold mt-1" style={{ color: navyColor }}>{formatCompactBRL(stats.receita.atual)}</div>
               </div>
               {stats.receita.delta !== null && (
@@ -1672,14 +1689,14 @@ export default function SociosDashboard() {
           <SocioCard>
             <div className="flex items-center gap-2 mb-1">
               <BanknotesIcon className="w-4 h-4" style={{ color: successColor }} />
-              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Projecao ate fim do mes</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Projeção até fim do mês</div>
             </div>
             <div className="text-xl md:text-2xl font-bold mt-1" style={{ color: successColor }}>{formatCompactBRL(stats.projecao.total)}</div>
             <div className="text-[11px] mt-1" style={{ color: 'var(--cbc-text-secondary)' }}>
               R$ {Number(stats.projecao.total).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} a receber ({stats.projecao.count} boletos)
             </div>
             <div className="text-[9px] mt-2" style={{ color: 'var(--cbc-text-muted)' }}>
-              Baseado em boletos pendentes com vencimento ate o fim do mes
+              Baseado em boletos pendentes com vencimento até o fim do mês
             </div>
           </SocioCard>
 
@@ -1696,7 +1713,7 @@ export default function SociosDashboard() {
             <div className="grid grid-cols-3 gap-1 mt-2">
               <div className="text-center rounded px-1 py-1" style={{ background: 'rgba(220,38,38,0.1)' }}>
                 <div className="text-[11px] font-bold" style={{ color: dangerColor }}>{stats.inadimplencia.buckets.b30.length}</div>
-                <div className="text-[8px]" style={{ color: 'var(--cbc-text-muted)' }}>ate 30d</div>
+                <div className="text-[8px]" style={{ color: 'var(--cbc-text-muted)' }}>até 30d</div>
               </div>
               <div className="text-center rounded px-1 py-1" style={{ background: 'rgba(220,38,38,0.18)' }}>
                 <div className="text-[11px] font-bold" style={{ color: dangerColor }}>{stats.inadimplencia.buckets.b60.length}</div>
@@ -1712,7 +1729,7 @@ export default function SociosDashboard() {
 
         {/* Top 10 contratos do ano */}
         <SocioCard>
-          <SectionHeader Icon={TrophyIcon} title={`Top 10 Maiores Contratos ${new Date().getFullYear()}`} subtitle="Ordenados por honorarios totais" />
+          <SectionHeader Icon={TrophyIcon} title={`Top 10 Maiores Contratos ${new Date().getFullYear()}`} subtitle="Ordenados por honorários totais" />
           {stats.topContratos.length === 0 ? (
             <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>Nenhum contrato assinado no ano.</div>
           ) : (
@@ -1746,11 +1763,11 @@ export default function SociosDashboard() {
       </Accordion>
 
       {/* ═══ SECAO B — OPERACIONAL ═══ */}
-      <Accordion Icon={FunnelIcon} title="Operacional" subtitle="Funil de conversao e metricas de tempo">
+      <Accordion Icon={FunnelIcon} title="Operacional" subtitle="Funil de conversão e métricas de tempo">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Funil */}
           <SocioCard>
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--cbc-text-secondary)' }}>Funil de Conversao</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--cbc-text-secondary)' }}>Funil de Conversão</div>
             {(() => {
               const steps = [
                 { label: 'Leads (pipeline)', count: stats.funil.leads, color: '#5E6675' },
@@ -1792,14 +1809,14 @@ export default function SociosDashboard() {
             <SocioCard>
               <div className="flex items-center gap-2 mb-2">
                 <ClockIcon className="w-4 h-4" style={{ color: navyColor }} />
-                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Tempo Medio Lead → Assinatura</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Tempo Médio Lead → Assinatura</div>
               </div>
               <div className="text-2xl md:text-3xl font-bold" style={{ color: navyColor }}>
                 {stats.tempoMedioDias === null ? '—' : `${stats.tempoMedioDias.toFixed(1)}`}
                 <span className="text-sm font-normal ml-1" style={{ color: 'var(--cbc-text-muted)' }}>dias</span>
               </div>
               <div className="text-[10px] mt-2" style={{ color: 'var(--cbc-text-muted)' }}>
-                Media calculada de todos os contratos ja assinados
+                Média calculada de todos os contratos já assinados
               </div>
             </SocioCard>
 
@@ -1807,8 +1824,8 @@ export default function SociosDashboard() {
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircleIcon className="w-4 h-4" style={{ color: successColor }} />
                 {/* (bug-5) rotulo ajustado: agora e conversao real (criados -> assinados), nao assinados/cancelados */}
-                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Taxa de Conversao (6 meses)</div>
-                <span title="Percentual de contratos criados nos ultimos 6 meses que chegaram a assinar. Arquivados sem assinatura contam como perda. Nao inclui rascunhos." className="cursor-help">
+                <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--cbc-text-secondary)' }}>Taxa de Conversão (6 meses)</div>
+                <span title="Percentual de contratos criados nos últimos 6 meses que chegaram a assinar. Arquivados sem assinatura contam como perda. Não inclui rascunhos." className="cursor-help">
                   <InformationCircleIcon className="w-3.5 h-3.5" style={{ color: 'var(--cbc-text-muted)' }} />
                 </span>
               </div>
@@ -1816,7 +1833,7 @@ export default function SociosDashboard() {
                 {stats.taxaExito === null ? '—' : `${stats.taxaExito.toFixed(1)}%`}
               </div>
               <div className="text-[10px] mt-2" style={{ color: 'var(--cbc-text-muted)' }}>
-                Criados que assinaram nos ultimos 6 meses
+                Criados que assinaram nos últimos 6 meses
               </div>
             </SocioCard>
           </div>
@@ -1824,7 +1841,7 @@ export default function SociosDashboard() {
       </Accordion>
 
       {/* ═══ SECAO C — EQUIPE ═══ */}
-      <Accordion Icon={UsersIcon} title="Equipe" subtitle="Produtividade e ranking do mes">
+      <Accordion Icon={UsersIcon} title="Equipe" subtitle="Produtividade e ranking do mês">
         {/* Ranking top 3 */}
         {stats.topAdv.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
@@ -1851,8 +1868,8 @@ export default function SociosDashboard() {
         <SocioCard>
           <SectionHeader
             Icon={ScaleIcon}
-            title="Produtividade por Advogado (mes atual)"
-            subtitle="Criados, assinados, taxa e ticket medio"
+            title="Produtividade por Advogado (mês atual)"
+            subtitle="Criados, assinados, taxa e ticket médio"
             rightSlot={
               <select
                 value={perfilFiltro}
@@ -1862,7 +1879,7 @@ export default function SociosDashboard() {
                 aria-label="Filtrar por perfil"
               >
                 <option value="todos">Todos</option>
-                <option value="socio">Socio</option>
+                <option value="socio">Sócio</option>
                 <option value="advogado">Advogado</option>
                 <option value="vendedora">Vendedora</option>
                 <option value="assistente">Assistente</option>
@@ -1904,7 +1921,7 @@ export default function SociosDashboard() {
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Criados</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assinados</th>
                       <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Taxa</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ticket Medio</th>
+                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ticket Médio</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1929,7 +1946,7 @@ export default function SociosDashboard() {
       </Accordion>
 
       {/* ═══ SECAO D — ESTRATEGICO ═══ */}
-      <Accordion Icon={ChartBarIcon} title="Estrategico" subtitle="Crescimento, top resorts e acoes mais rentaveis">
+      <Accordion Icon={ChartBarIcon} title="Estrategico" subtitle="Crescimento, top resorts e ações mais rentáveis">
         {/* Crescimento YoY */}
         <SocioCard className="mb-3">
           <SectionHeader Icon={ArrowTrendingUpIcon}
@@ -1977,7 +1994,7 @@ export default function SociosDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Top 5 resorts */}
           <SocioCard>
-            <SectionHeader Icon={BuildingOffice2Icon} title="Top 5 Resorts" subtitle="Volume e ticket medio" />
+            <SectionHeader Icon={BuildingOffice2Icon} title="Top 5 Resorts" subtitle="Volume e ticket médio" />
             {stats.topResorts.length === 0 ? (
               <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>Sem dados.</div>
             ) : (
@@ -2009,7 +2026,7 @@ export default function SociosDashboard() {
 
           {/* Tipos mais rentaveis */}
           <SocioCard>
-            <SectionHeader Icon={CurrencyDollarIcon} title="Tipo de Acao Mais Rentavel" subtitle="Somatorio de honorarios por tipo" />
+            <SectionHeader Icon={CurrencyDollarIcon} title="Tipo de Ação Mais Rentável" subtitle="Somatório de honorários por tipo" />
             {stats.tiposRentaveis.length === 0 ? (
               <div className="text-center py-4 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>Sem dados.</div>
             ) : (

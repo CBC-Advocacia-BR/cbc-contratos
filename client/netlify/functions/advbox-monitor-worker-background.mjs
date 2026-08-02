@@ -16,7 +16,7 @@ import * as adv from './_lib/advbox.mjs';
 import {
   db, markNotePosted, getLawsuitLeadMap, hashKey,
   getVisibilityConfig, isHiddenFromClient, syncCatalog, logAdvbox,
-  bulkUpsertSyncItems,
+  bulkUpsertSyncItems, heartbeat,
 } from './_lib/botDb.mjs';
 import { postNote } from './_lib/kommo.mjs';
 
@@ -299,6 +299,14 @@ export default async () => {
     `Sincronização concluída: ${stats.movimentos_novos} andamentos, ${stats.tarefas_criadas + stats.tarefas_concluidas} tarefas, ${stats.notas_postadas} notas Kommo${stats.erros.length ? ` — ${stats.erros.length} erro(s)` : ''}`,
     stats);
   console.log('[advbox-monitor]', JSON.stringify(stats));
+
+  // (auditoria 01/08 — item 95) O heartbeat de 'advbox-monitor' agora e gravado AQUI,
+  // no fim do trabalho de verdade. Antes ele era gravado pelo DESPACHANTE, logo apos
+  // disparar este worker: se o worker morresse no meio (timeout, erro de rede, deploy),
+  // o painel continuava verde e ninguem ficava sabendo. `ok=false` quando houve erro na
+  // rodada faz o watchdog reportar em vez de engolir.
+  await heartbeat('advbox-monitor', stats.erros.length === 0,
+    `${stats.movimentos_novos} andamentos, ${stats.tarefas_criadas + stats.tarefas_concluidas} tarefas${stats.erros.length ? `, ${stats.erros.length} erro(s)` : ''}`);
 
   // dispara o snapshot de cadastros (carteira/clientes/financeiro) EM SEQUENCIA
   // — nunca em paralelo com o monitor, para o conjunto respeitar 15 req/min

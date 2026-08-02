@@ -83,7 +83,7 @@ export default function DriveFolderModal({ contract, onClose, onSaved }) {
               Atribuir pasta do Google Drive
             </h3>
             <p className="text-[12px] leading-relaxed" style={{ color: 'var(--cbc-text-secondary, #4B5563)' }}>
-              Cole o link da pasta compartilhada com o Apps Script do escritorio. Apos salvar, as automacoes
+              Cole o link da pasta compartilhada com o Apps Script do escritório. Após salvar, as automações
               de upload vao ser tentadas automaticamente.
             </p>
           </div>
@@ -116,7 +116,7 @@ export default function DriveFolderModal({ contract, onClose, onSaved }) {
           />
           {folderUrl && !valid && (
             <p className="text-[11px] mt-1.5" style={{ color: '#DC2626' }}>
-              Link invalido. Use o formato: <span className="font-mono">drive.google.com/drive/folders/XXXXX</span>
+              Link inválido. Use o formato: <span className="font-mono">drive.google.com/drive/folders/XXXXX</span>
             </p>
           )}
           {valid && (
@@ -132,7 +132,7 @@ export default function DriveFolderModal({ contract, onClose, onSaved }) {
         >
           <ExclamationTriangleIcon className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#B45309' }} aria-hidden="true" />
           <div className="text-[11px] leading-relaxed" style={{ color: '#92400E' }}>
-            Certifique-se que a pasta esta compartilhada com a conta do Apps Script com permissao de editor.
+            Certifique-se que a pasta esta compartilhada com a conta do Apps Script com permissão de editor.
             Sem isso, o upload vai continuar falhando.
           </div>
         </div>

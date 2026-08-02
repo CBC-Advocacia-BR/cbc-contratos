@@ -82,7 +82,7 @@ export default function NotificationCenter({ userEmail, onOpenPrefs }) {
         type="button"
         onClick={() => setOpen(o => !o)}
         className="relative p-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-        title="Notificacoes"
+        title="Notificações"
         aria-label={`Notificacoes${unread > 0 ? ` (${unread} nao lidas)` : ''}`}
       >
         {unread > 0 ? (
@@ -102,7 +102,7 @@ export default function NotificationCenter({ userEmail, onOpenPrefs }) {
           <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between bg-gray-50">
             <div className="flex items-center gap-1.5">
               <BellAlertIcon className="w-4 h-4 text-navy" aria-hidden="true" />
-              <span className="text-[11px] font-bold uppercase text-navy">Notificacoes</span>
+              <span className="text-[11px] font-bold uppercase text-navy">Notificações</span>
               {unread > 0 && (
                 <span className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">
                   {unread} nao lida{unread > 1 ? 's' : ''}
@@ -129,7 +129,7 @@ export default function NotificationCenter({ userEmail, onOpenPrefs }) {
             ) : items.length === 0 ? (
               <div className="px-4 py-8 text-center text-[11px] text-gray-400">
                 <BellIcon className="w-8 h-8 mx-auto mb-2 text-gray-300" aria-hidden="true" />
-                Sem notificacoes ainda
+                Sem notificações ainda
               </div>
             ) : (
               items.map(n => {

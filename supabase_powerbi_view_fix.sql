@@ -1,0 +1,34 @@
+-- ============================================================================
+-- supabase_powerbi_view_fix.sql
+-- Migracao `powerbi_contratos_arquivados_e_assinatura_efetiva` — APLICADA 01/08/2026.
+-- (auditoria — itens 242/243/244/245)
+--
+-- EFEITO MEDIDO NO BANCO APOS APLICAR (303 contratos):
+--   37 arquivados agora podem ser excluidos no Power BI (antes iam junto na conta)
+--   25 contratos assinados SEM signed_at foram resgatados pela cascata de data
+--    1 cadastro sem honorario nenhum deixou de se passar por "Somente Iniciais"
+--
+-- ⚠️ COMPATIBILIDADE: nenhuma coluna existente foi removida/renomeada (o Power BI quebra
+-- se uma coluna some). As 4 novas entram no FIM: arquivado_em, ativo,
+-- data_assinatura_efetiva, mes_assinatura.
+--
+-- Para pegar a definicao COMPLETA e atual (esta migracao usa CREATE OR REPLACE):
+--   select pg_get_viewdef('public.vw_powerbi_contratos'::regclass, true);
+--
+-- Resumo das 4 correcoes:
+--  242) faltava `arquivado_em` -> app e Power BI fechavam o mesmo mes com numeros diferentes
+--  243) usava so `signed_at` -> agora COALESCE(signed_at, advbox_date, updated_at), a
+--       mesma regra do app (contratos antigos sem signed_at sumiam das contagens mensais)
+--  244) CASE de tipo_honorario sem ramo 0/0 -> "Sem honorario (revisar)"
+--  245) cast de dataPrimeiraMensagem sem guarda -> regex '^\d{4}-\d{2}-\d{2}' antes de
+--       converter; UM texto malformado derrubava a view inteira e travava o refresh
+-- ============================================================================
+-- (definicao completa aplicada via MCP; ver pg_get_viewdef acima)
+-- Trechos-chave:
+--   CASE WHEN status = 'assinado' THEN COALESCE(signed_at, advbox_date, updated_at) END AS data_assinatura_efetiva
+--   CASE WHEN status = 'assinado' THEN to_char(COALESCE(signed_at, advbox_date, updated_at), 'YYYY-MM') END AS mes_assinatura
+--   (arquivado_em IS NULL) AS ativo
+--   CASE WHEN (dados->>'dataPrimeiraMensagem') ~ '^\d{4}-\d{2}-\d{2}' AND signed_at IS NOT NULL
+--        THEN signed_at::date - (left(dados->>'dataPrimeiraMensagem',10))::date END AS jornada_compra_dias
+alter view public.vw_powerbi_contratos set (security_invoker = false);
+grant select on public.vw_powerbi_contratos to powerbi_cbc;

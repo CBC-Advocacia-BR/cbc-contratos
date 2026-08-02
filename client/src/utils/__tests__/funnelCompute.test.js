@@ -1,6 +1,6 @@
 // (#8/#17) Protege a logica da Saude do Funil: contagens, conversoes, mediana e gargalos.
 import { describe, it, expect } from 'vitest';
-import { computeFunnel, mediana, dataAssinatura } from '../../components/funnel/funnelCompute';
+import { computeFunnel, computeSla, mediana, dataAssinatura } from '../../components/funnel/funnelCompute';
 
 const NOW = new Date('2026-06-25T12:00:00Z');
 
@@ -138,9 +138,11 @@ describe('computeFunnel — leads de campanha Meta (1a etapa do funil, 14/07/202
     { mes: '2026-04-01', conversas_iniciadas: 50, leads_form: 0, gasto: 500 },   // 2a campanha do mesmo mes
     { mes: '2026-05-01', conversas_iniciadas: 150, leads_form: 10, gasto: 1999.5 },
   ];
+  // (item 230) as calls comecam em abr/2026 — DEPOIS do 1o mes com lead (mar/2026),
+  // como na vida real (leads da Meta desde jul/2024, agenda so a partir de mar/2025).
   const vc = [
-    { status: 'realizada', scheduled_at: '2026-06-20T10:00:00Z' },
-    { status: 'agendada', scheduled_at: '2026-06-10T10:00:00Z' },
+    { status: 'realizada', scheduled_at: '2026-05-20T10:00:00Z' },
+    { status: 'agendada', scheduled_at: '2026-04-10T10:00:00Z' },
   ];
   const r = computeFunnel([], NOW, vc, metaRows);
 
@@ -159,8 +161,26 @@ describe('computeFunnel — leads de campanha Meta (1a etapa do funil, 14/07/202
     expect(r.leadsMeta.desde).toBe('2026-03');
   });
 
-  it('conversao lead -> videochamada agendada (sobre as que aconteceram)', () => {
-    expect(r.leadsMeta.pctAgendada).toBeCloseTo((2 / 515) * 100, 5);
+  // (auditoria 01/08/2026 — item 230) O percentual compara JANELAS IGUAIS: so os meses em
+  // que as duas fontes existem. Antes dividia TODAS as calls por TODOS os leads, jogando no
+  // denominador meses sem nenhuma call possivel — em producao isso exibia 24,4% no lugar de
+  // 29,0%, porque ~1.900 leads (R$ 36 mil) eram anteriores ao registro das videochamadas.
+  it('conversao lead -> videochamada usa so os meses em que as DUAS fontes existem', () => {
+    // calls a partir de 2026-04 -> leads de 2026-03 (105) ficam FORA do denominador
+    const leadsNaJanela = 250 + 160; // abr + mai
+    expect(r.leadsMeta.pctAgendada).toBeCloseTo((2 / leadsNaJanela) * 100, 5);
+    expect(r.leadsMeta.janelaComparavel).toEqual({
+      desde: '2026-04', leads: leadsNaJanela, calls: 2, mesesIgnorados: 1,
+    });
+    // o TOTAL de leads exibido segue sendo all-time (nao muda o numero da barra)
+    expect(r.leadsMeta.total).toBe(515);
+  });
+
+  it('sem meses em comum -> percentual null (nao inventa conversao)', () => {
+    const soFuturo = [{ status: 'realizada', scheduled_at: '2026-06-20T10:00:00Z' }];
+    const r2 = computeFunnel([], NOW, soFuturo, metaRows);
+    expect(r2.leadsMeta.pctAgendada).toBe(null);
+    expect(r2.leadsMeta.total).toBe(515);
   });
 
   it('sem dados Meta -> leadsMeta null (painel oculta a etapa)', () => {
@@ -200,5 +220,52 @@ describe('computeFunnel — campanhas de VAGA/RH fora da captação (fix 28/07/2
 
   it('só campanha de RH -> leadsMeta null (painel oculta a etapa)', () => {
     expect(computeFunnel([], NOW, [], [metaRows[1]]).leadsMeta).toBe(null);
+  });
+});
+
+// (auditoria 01/08/2026 — item 239) SLA de 1a resposta ao lead: medido desde 11/07 pelo
+// worker do Kommo e ate hoje invisivel. O numero que importa nao e o tempo medio — e
+// quantos leads nunca receberam resposta nenhuma (75 de 217 em 02/08).
+describe('computeSla — atendimento ao lead (item 239)', () => {
+  const dias = [
+    { dia: '2026-07-11', leads_com_conversa: 10, atendidos: 8, sla_mediano_min: 20, sla_humano_mediano_min: 25, engajaram: 6 },
+    { dia: '2026-07-12', leads_com_conversa: 5, atendidos: 2, sla_mediano_min: 90, sla_humano_mediano_min: 120, engajaram: 1 },
+    { dia: '2026-07-13', leads_com_conversa: 0, atendidos: 0, sla_mediano_min: null, sla_humano_mediano_min: null, engajaram: 0 },
+  ];
+
+  it('soma os dias e destaca quem nunca foi respondido', () => {
+    const r = computeSla(dias);
+    expect(r.leads).toBe(15);
+    expect(r.atendidos).toBe(10);
+    expect(r.nuncaRespondidos).toBe(5);
+    expect(r.pctNuncaRespondidos).toBeCloseTo((5 / 15) * 100, 5);
+    expect(r.desde).toBe('2026-07-11');
+  });
+
+  it('tempo do periodo e PONDERADO pelos atendidos (dia de 2 leads nao pesa igual a dia de 8)', () => {
+    const r = computeSla(dias);
+    // media simples das medianas daria 55 min; o certo aqui e (20*8 + 90*2)/10 = 34
+    expect(r.minutosAteResponder).toBeCloseTo(34, 5);
+    expect(r.minutosAteHumano).toBeCloseTo((25 * 8 + 120 * 2) / 10, 5);
+  });
+
+  it('dia sem lead nao entra na contagem nem no tempo', () => {
+    expect(computeSla(dias).dias).toBe(2);
+  });
+
+  it('engajamento e medido sobre quem FOI atendido, nao sobre o total', () => {
+    expect(computeSla(dias).pctEngajou).toBeCloseTo((7 / 10) * 100, 5);
+  });
+
+  it('sem dados -> null (o painel oculta o bloco em vez de mostrar zeros)', () => {
+    expect(computeSla([])).toBe(null);
+    expect(computeSla(null)).toBe(null);
+    expect(computeSla([{ dia: '2026-07-11', leads_com_conversa: 0, atendidos: 0 }])).toBe(null);
+  });
+
+  it('todos atendidos -> nenhum silencio e percentual 100', () => {
+    const r = computeSla([{ dia: '2026-08-01', leads_com_conversa: 4, atendidos: 4, sla_mediano_min: 5, engajaram: 4 }]);
+    expect(r.nuncaRespondidos).toBe(0);
+    expect(r.pctAtendidos).toBe(100);
   });
 });

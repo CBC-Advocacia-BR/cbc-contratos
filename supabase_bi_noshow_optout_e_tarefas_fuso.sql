@@ -1,0 +1,48 @@
+-- ============================================================================
+-- supabase_bi_noshow_optout_e_tarefas_fuso.sql
+-- Migracoes APLICADAS em 02/08/2026 (auditoria — itens 259 e 246).
+--   1) noshow_acervo_respeita_optout
+--   2) bi_tarefas_alias_data_agendada_e_fuso_brt
+-- Definicoes completas aplicadas via MCP. Para ver a versao vigente:
+--   select pg_get_viewdef('public.vw_noshow_acervo'::regclass, true);
+--   select pg_get_viewdef('public.vw_bi_tarefas'::regclass, true);
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- ITEM 259 — o acervo de no-show nao respeitava quem pediu para nao ser contatado
+-- ----------------------------------------------------------------------------
+-- A view `vw_noshow_acervo` marca hoje 423 pessoas como `elegivel_recuperacao`, e essa
+-- flag e exatamente a fila do disparo de resgate por WhatsApp (ainda nao ligado). Ela
+-- ja cruzava "compareceu em outra call", "virou contrato", "ja e cliente" e "reagendou"
+-- — mas NAO cruzava a lista de opt-out (`bot_config.cobranca.optout_cpfs`), que a regua
+-- de cobranca respeita desde sempre. Bastaria ligar o disparo para escrever justamente
+-- para quem pediu silencio.
+--
+-- O opt-out e por CPF e o acervo e por TELEFONE, entao os CPFs sao resolvidos em
+-- telefones pelo cadastro unico (`clientes.telefone` + `cliente_telefones`), no mesmo
+-- formato canonico DDD+8 do resto da view.
+--
+-- Colunas novas: `pediu_nao_contatar` (no FIM) e o valor 'pediu_nao_contatar' em
+-- `situacao`; `elegivel_recuperacao` passou a exigir NOT pediu_nao_contatar.
+-- Medido em 02/08: 1 CPF na lista -> 2 telefones -> 0 elegiveis afetados (aquele CPF
+-- ja saia por 'ja_cliente'). Total/elegiveis inalterados (615/423). A trava e
+-- PREVENTIVA: a lista cresce e o disparo ainda nem foi ligado.
+
+-- ----------------------------------------------------------------------------
+-- ITEM 246 — nome enganoso e regua de fuso divergente na vw_bi_tarefas
+-- ----------------------------------------------------------------------------
+-- (a) `data_criacao` NAO e a data de criacao da tarefa: e a data AGENDADA (campo `date`
+--     do /posts do ADVBOX). Ja estava documentado e seguia enganando quem monta visual
+--     ("tarefas criadas por mes" na verdade e "tarefas agendadas para o mes"). A criacao
+--     real ja existe em `data_criacao_real`. Alias novo **`data_agendada`** no FIM da
+--     view; `data_criacao` continua existindo (Power BI quebra se coluna SOME, nunca se
+--     coluna e adicionada).
+--
+-- (b) O status 'atrasada' comparava o prazo com `current_date` — e o TimeZone deste banco
+--     e UTC — enquanto `vw_bi_carga_atual` usa a data de Sao Paulo. Das 21h a meia-noite
+--     BRT o banco ja virou o dia e as duas views mostram contagens de "atrasada"
+--     incompativeis no MESMO painel. Agora as duas usam BRT.
+--
+-- Conferido apos aplicar: 30.275 tarefas, 110 atrasadas (identico), data_agendada igual
+-- a data_criacao em 100% das linhas, e as 3 views dependentes intactas
+-- (carga 634 / produtividade 29.537 / pre-distribuicao 1.436).

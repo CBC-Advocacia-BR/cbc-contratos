@@ -13,7 +13,10 @@
  */
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { supabase } from '../lib/supabase';
+import { filtroInadimplencia } from '../lib/statusTokens';
 import MoneyValue from './ui/MoneyValue';
+import { ymdLocal } from '../utils/format';
+import { fetchAllPaged } from '../utils/supabasePaged';
 
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
 
@@ -87,11 +90,16 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
 
   const loadBoletos = useCallback(async () => {
     try {
-      const hoje = new Date().toISOString().slice(0, 10);
-      const { data: rows } = await supabase.from('asaas_boletos')
+      const hoje = ymdLocal();
+      // (auditoria 01/08 — item 224) O `.limit(5000)` dava falsa seguranca: o PostgREST
+      // corta em 1000 linhas de qualquer jeito. Com ~11,7 mil boletos no espelho, no dia
+      // em que os vencidos passarem de 1000 a lista de quem cobrar (e o total em aberto)
+      // simplesmente PARA de crescer na tela, sem erro nenhum. Ordem total por `id`.
+      const rows = await fetchAllPaged(() => supabase.from('asaas_boletos')
         .select('id, customer_name, customer_cpf, value, due_date, status, invoice_url, bank_slip_url, pix_copy_paste')
-        .or(`status.eq.OVERDUE,status.eq.DUNNING_REQUESTED,and(status.eq.PENDING,due_date.lt.${hoje})`)
-        .limit(5000);
+        // (item 248) filtro canonico — status novo do Asaas entra pelo statusTokens
+        .or(filtroInadimplencia(hoje))
+        .order('id'));
       setBoletos(rows || []);
     } catch { setBoletos([]); }
   }, []);
@@ -99,9 +107,11 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const loadMetrics = useCallback(async () => {
     try {
       const desde = new Date(Date.now() - 90 * 86400000).toISOString();
-      const { data: rows } = await supabase.from('cobranca_disparos')
+      // (item 224) mesma armadilha do `.limit(5000)`: as metricas de disparo eram
+      // calculadas sobre uma fatia de 1000 linhas assim que a regua ganhasse volume.
+      const rows = await fetchAllPaged(() => supabase.from('cobranca_disparos')
         .select('template_name, resultado, pago, dias_ate_pagamento, total_em_aberto_no_disparo, disparado_em')
-        .gte('disparado_em', desde).limit(5000);
+        .gte('disparado_em', desde).order('disparado_em').order('id'));
       setMetrics(rows || []);
     } catch { setMetrics([]); }
   }, []);

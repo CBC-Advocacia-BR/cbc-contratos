@@ -1,0 +1,40 @@
+-- ============================================================================
+-- supabase_backup_whitelist_fix.sql
+-- Migracao `backup_whitelist_tabelas_nao_regeraveis` — APLICADA 01/08/2026.
+-- (auditoria — itens 79/161)
+--
+-- CONTEXTO: a whitelist do backup congelou em 17/07/2026 (51 tabelas) e tudo que nasceu
+-- depois ficou de fora em silencio. A varredura encontrou 4 tabelas com dado
+-- INSUBSTITUIVEL fora da copia:
+--   cliente_parcelas    (74.674) parcelas MINERADAS dos PDFs do Drive — nao vem de API
+--   cliente_telefones   (5.129)  historico consolidado de telefones
+--   kommo_lead_conversa (217)    vinculo agenda<->Kommo (resultado de matching)
+--   resort_alias        (106)    dicionario de-para de resort, construido A MAO
+-- Whitelist passou de 51 -> 55 tabelas.
+--
+-- Ficam FORA de proposito (regeraveis por backfill/sync, e sao as maiores):
+--   bot_sync_state (98k), bot_processed_messages (24k), bot_tarefas_abertas_snapshot.
+--
+-- item 161: `backup_tabelas_fora()` nova — lista tabelas do CBC COM DADOS que nao estao
+-- na whitelist. O backup-worker chama a cada rodada e registra aviso no Monitor, para
+-- que uma tabela nova nunca mais fique sem copia sem ninguem saber.
+-- ============================================================================
+-- (definicao completa aplicada via MCP; para ver a atual:
+--    select pg_get_functiondef(oid) from pg_proc where proname='_backup_whitelist';
+--    select * from public.backup_tabelas_fora(); )
+revoke all on function public.backup_tabelas_fora() from anon;
+grant execute on function public.backup_tabelas_fora() to authenticated;
+
+-- ============================================================================
+-- ADENDO 02/08/2026 — migracao `backup_whitelist_portal_diagnostico` (whitelist 55 -> 56)
+-- ============================================================================
+-- O `backup-verificar-cron` (item 162) rodou pela PRIMEIRA VEZ e acusou:
+-- `portal_diagnostico_historico` tem dados e estava FORA do backup.
+-- Conferido: 7 linhas, retrato SEMANAL da saude do portal desde 15/06/2026 (contratos
+-- ativos, clientes no ADVBOX, links ativos, inconsistencias). Serie historica — o estado
+-- de uma semana passada nao se recalcula, so se perde. Pequena e nao-regeravel = criterio
+-- da whitelist. Incluida.
+--
+-- ✔️ Vale registrar: os dois alarmes que a auditoria criou apontaram a MESMA tabela de
+-- forma independente — a RPC `backup_tabelas_fora()` (item 161, chamada pelo worker) e a
+-- verificacao semanal (item 162). Depois da inclusao: `backup_tabelas_fora()` = 0 linhas.

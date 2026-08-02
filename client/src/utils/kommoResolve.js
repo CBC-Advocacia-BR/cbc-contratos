@@ -9,6 +9,7 @@
 import { RESORTS } from '../data/clausulas';
 import { maskPhone, maskCPF, maskCNPJ, maskCEP, maskRG } from './masks';
 import { detectGenderByName } from './genderDetector';
+import { ymdLocal } from './format';
 
 // telefone do Kommo pode vir "55DD+numero" -> padrao do form "(DD) numero".
 // dropa o codigo de pais 55 SO quando ele existe (12-13 digitos), nunca de um
@@ -106,14 +107,14 @@ export function normalizeEstadoCivil(v) {
   return ''; // desconhecido/separado/regime de bens -> usuario preenche
 }
 
-// data (ISO/timestamp) -> 'YYYY-MM-DD' sem deslocamento de fuso
+// data (ISO/timestamp) -> 'YYYY-MM-DD'. So-data (sem hora) passa direto; com hora
+// converte para o DIA LOCAL (timestamptz noturno em UTC ja e o dia seguinte).
 function fmtDateISO(v) {
   if (!v) return '';
   const s = String(v);
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const d = new Date(s);
-  return isNaN(d) ? '' : d.toISOString().slice(0, 10);
+  return isNaN(d) ? '' : ymdLocal(d);
 }
 
 // raw = { contato:{telefone,email}, tags:[nome], cliente:linha_clientes|null,

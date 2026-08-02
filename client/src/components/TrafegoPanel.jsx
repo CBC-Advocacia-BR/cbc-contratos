@@ -21,9 +21,12 @@ import {
   montarResumoPeriodo, computeRecomendacoes, FREQ_SATURACAO,
 } from './trafego/compute';
 import { atualizarAgora, executarAcao } from './trafego/api';
+import { fetchAllPaged } from '../utils/supabasePaged';
+import { fetchVideochamadasFunil } from '../utils/funilSources';
 
 const SERIF = "'Cormorant Garamond', Georgia, serif";
-const TRAFEGO_ACAO_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+// (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
+import { TRAFEGO_ACAO_EMAILS } from '../utils/acessos';
 const BOLETO_PAGO = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED'];
 
 const fmtInt = (n) => (n || 0).toLocaleString('pt-BR');
@@ -242,30 +245,25 @@ export default function TrafegoPanel() {
     const t0 = performance.now();
     try {
       const corte = diaStr(new Date(Date.now() - 200 * 86400000));
-      const pagina = async (query) => {
-        const out = [];
-        for (let de = 0; de < 30000; de += 1000) {
-          const { data, error } = await query.range(de, de + 999);
-          if (error) throw error;
-          out.push(...(data || []));
-          if (!data || data.length < 1000) break;
-        }
-        return out;
-      };
-      const buscarDiario = () => pagina(
+      // (auditoria 01/08 — itens 85/220/221/222) O `pagina()` local foi trocado pelo
+      // helper compartilhado utils/supabasePaged.js. Alem de acabar com a 3a copia do
+      // mesmo laco, o helper conserta um DEFEITO desta versao: ela reusava o MESMO query
+      // builder em todas as paginas, e o PostgREST acumula os modificadores — a partir da
+      // 2a pagina o .range() vinha errado. O helper recebe uma FABRICA (() => builder).
+      const buscarDiario = () => fetchAllPaged(() =>
         supabase.from('meta_ads_diario')
           .select('dia, level, entity_id, campaign_id, gasto, conversas_iniciadas, leads_form, impressoes, alcance, cliques, cliques_link, frequencia, video_3s, video_thruplay, video_p25, video_p50, video_p75, video_p100, synced_at')
           .gte('dia', corte)
           .order('dia', { ascending: true }).order('level', { ascending: true }).order('entity_id', { ascending: true })
       );
-      const buscarBreakdown = () => pagina(
+      const buscarBreakdown = () => fetchAllPaged(() =>
         supabase.from('meta_ads_breakdown')
           .select('dia, tipo, chave, gasto, conversas_iniciadas, leads_form, impressoes, cliques_link')
           .gte('dia', corte)
           .order('dia', { ascending: true }).order('tipo', { ascending: true }).order('chave', { ascending: true })
       );
       // (v2 #91) boletos pagos p/ payback (paginado; so colunas necessarias)
-      const buscarBoletos = () => pagina(
+      const buscarBoletos = () => fetchAllPaged(() =>
         supabase.from('asaas_boletos')
           .select('customer_cpf, value, status')
           .in('status', BOLETO_PAGO)
@@ -273,24 +271,39 @@ export default function TrafegoPanel() {
       );
       const [camp, ads, sets, dia2, bd, men, vc, ctr, cfg, bol] = await Promise.all([
         supabase.from('meta_campanhas').select('*').order('nome'),
-        supabase.from('meta_anuncios').select('ad_id, campaign_id, nome, status, thumbnail_url, permalink'),
-        supabase.from('meta_conjuntos').select('adset_id, campaign_id, nome, status, orcamento_diario'),
+        // catalogos ja perto do teto (648 anuncios em 07/26) — paginados antes de estourar
+        fetchAllPaged(() => supabase.from('meta_anuncios')
+          .select('ad_id, campaign_id, nome, status, thumbnail_url, permalink').order('ad_id')),
+        fetchAllPaged(() => supabase.from('meta_conjuntos')
+          .select('adset_id, campaign_id, nome, status, orcamento_diario').order('adset_id')),
         buscarDiario(),
         buscarBreakdown(),
-        supabase.from('meta_ads_mensal').select('mes, conversas_iniciadas, leads_form, gasto'),
-        supabase.from('vw_funil_videochamadas').select('status, scheduled_at'),
-        supabase.from('contratos').select("id, status, zapsign_sent_at, signed_at, advbox_date, updated_at, arquivado_em, honorarios_total, cpf_contratante1, origem:dados->>origemCliente").order('created_at', { ascending: false }).limit(20000),
+        // (item 221) `campaign_name` FALTAVA aqui: sem ele o computeComercialMensal nao
+        // conseguia aplicar isCampanhaRh e as campanhas de [VAGA]/RH voltavam a contar
+        // como lead de venda no bloco "Do anuncio ao contrato" — enquanto os KPIs do topo
+        // da MESMA aba ja as excluiam. Ordem total: mes empata, campaign_id desempata.
+        fetchAllPaged(() => supabase.from('meta_ads_mensal')
+          .select('mes, campaign_name, conversas_iniciadas, leads_form, gasto')
+          .order('mes').order('campaign_id')),
+        // (item 220) mesma FONTE UNICA do Dashboard/Saude do Funil. Antes esta tela lia a
+        // view de 2.883 linhas sem paginar e recebia 1.000 — as videochamadas do bloco
+        // comercial vinham pela metade, divergindo do Dashboard ao lado.
+        fetchVideochamadasFunil(),
+        // (item 222) `.limit(20000)` nao levanta o teto de 1000 do PostgREST.
+        fetchAllPaged(() => supabase.from('contratos')
+          .select("id, status, zapsign_sent_at, signed_at, advbox_date, updated_at, arquivado_em, honorarios_total, cpf_contratante1, origem:dados->>origemCliente")
+          .order('created_at', { ascending: false }).order('id', { ascending: false })),
         supabase.from('bot_config').select('value').eq('key', 'meta_trafego').maybeSingle(),
         buscarBoletos(),
       ]);
       setCampanhas(camp.data || []);
-      setAnuncios(ads.data || []);
-      setConjuntos(sets.data || []);
+      setAnuncios(ads);
+      setConjuntos(sets);
       setDiario(dia2);
       setBreakdown(bd);
-      setMensal(men.data || []);
-      setVideochamadas(vc.data || []);
-      setContratos((ctr.data || []).map((c) => ({ ...c, cpf: c.cpf_contratante1 })));
+      setMensal(men);
+      setVideochamadas(vc);
+      setContratos((ctr || []).map((c) => ({ ...c, cpf: c.cpf_contratante1 })));
       setBoletosPagos(bol.map((b) => ({ cpf: b.customer_cpf, valor: b.value })));
       setAlertCfg({ ativo: true, cpl_mult: 2, cpl_gasto_min_dia: 100, queda_leads_pct: 50, freq_alta: 3, gasto_sem_lead_min: 150, ...(cfg.data?.value?.alertas || {}) });
       setMetas(cfg.data?.value?.metas || {});
@@ -623,7 +636,7 @@ export default function TrafegoPanel() {
               <SecTitle>Meta de leads · {fmtMes(t.metaMensal.mes)}</SecTitle>
               <div className="flex items-center gap-3 text-[12px]" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
                 <span><strong style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{fmtInt(t.metaMensal.leads)}</strong> até agora</span>
-                <span>projeção <strong style={{ color: 'var(--cbc-gold-dark, #B8860B)' }}>{fmtInt(t.metaMensal.projecaoLeads)}</strong></span>
+                <span>projeção <strong style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{fmtInt(t.metaMensal.projecaoLeads)}</strong></span>
                 {podeOperar && (
                   <label className="flex items-center gap-1.5">meta:
                     <input type="number" className="input-field w-24 !py-1" defaultValue={metas.leads_mes || ''} placeholder="ex. 600"
@@ -656,7 +669,7 @@ export default function TrafegoPanel() {
               <ul className="space-y-1.5">
                 {recs.slice(0, 5).map((r, i) => (
                   <li key={i} className="text-[12.5px] leading-snug flex gap-2">
-                    <span style={{ color: 'var(--cbc-gold, #C9A84C)' }}>➜</span><span className="opacity-95">{r.texto}</span>
+                    <span style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>➜</span><span className="opacity-95">{r.texto}</span>
                   </li>
                 ))}
               </ul>
@@ -747,7 +760,7 @@ export default function TrafegoPanel() {
                     <td className="px-2.5 py-2 text-right">{fmtBRL(c.orcamento_diario)}</td>
                     <td className="px-2.5 py-2 text-right font-semibold">{fmtBRL(c.gasto)}</td>
                     <td className="px-2.5 py-2 text-right">{fmtInt(c.leads)}</td>
-                    <td className="px-2.5 py-2 text-right" style={{ color: 'var(--cbc-gold-dark, #B8860B)' }}>{c.leadsHoje ? `+${c.leadsHoje}` : '—'}</td>
+                    <td className="px-2.5 py-2 text-right" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{c.leadsHoje ? `+${c.leadsHoje}` : '—'}</td>
                     <td className="px-2.5 py-2 text-right">{fmtBRL(c.cpl, 2)}</td>
                     <td className="px-2.5 py-2 text-right">{fmtPct(c.ctr, 2)}</td>
                     <td className="px-2.5 py-2 text-right">{fmtBRL(c.cpm, 2)}</td>
@@ -946,7 +959,19 @@ export default function TrafegoPanel() {
                   const maxF = Math.max(m.leads, 1);
                   return (
                     <tr key={m.mes} style={{ borderTop: '1px solid var(--cbc-border, #E5E7EB)' }}>
-                      <td className="px-4 py-2 font-semibold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{fmtMes(m.mes)}</td>
+                      {/* (auditoria 01/08 — item 238) O mes corrente esta sempre INCOMPLETO
+                          (o sync fechou ate ontem), mas aparecia na tabela igual aos meses
+                          fechados: "agosto" no dia 3 parece uma queda enorme quando e so o
+                          mes comecando. A marca "parcial" evita a leitura errada. */}
+                      <td className="px-4 py-2 font-semibold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
+                        {fmtMes(m.mes)}
+                        {m.parcial && (
+                          <span className="ml-1 text-[9px] font-normal" style={{ color: 'var(--cbc-warning, #D97706)' }}
+                            title={`Mês em andamento: ${m.diasDecorridos} de ${m.diasDoMes} dias. Não dá para comparar com meses fechados.`}>
+                            parcial ({m.diasDecorridos}/{m.diasDoMes}d)
+                          </span>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-right">{fmtInt(m.leads)} <span className="text-[9px]" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>{m.taxaLeadVc != null ? `${fmtNum(m.taxaLeadVc, 1)}%→` : ''}</span></td>
                       <td className="px-2 py-2 text-right">{fmtInt(m.videochamadas)} <span className="text-[9px]" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>{m.taxaVcEnviado != null ? `${fmtNum(m.taxaVcEnviado, 1)}%→` : ''}</span></td>
                       <td className="px-2 py-2 text-right">{fmtInt(m.enviados)} <span className="text-[9px]" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>{m.taxaEnviadoAssinado != null ? `${fmtNum(m.taxaEnviadoAssinado, 1)}%→` : ''}</span></td>
@@ -961,7 +986,7 @@ export default function TrafegoPanel() {
                       </td>
                       <td className="px-2 py-2 text-right">{fmtBRL(m.custoPorVideochamada, 0)}</td>
                       <td className="px-2 py-2 text-right">{fmtBRL(m.custoPorEnviado, 0)}</td>
-                      <td className="px-2 py-2 text-right font-bold" style={{ color: 'var(--cbc-gold-dark, #B8860B)' }}>{fmtBRL(m.custoPorAssinado, 0)}</td>
+                      <td className="px-2 py-2 text-right font-bold" style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>{fmtBRL(m.custoPorAssinado, 0)}</td>
                       <td className="px-2 py-2 text-right">{fmtBRL(m.ticketMedio, 0)}</td>
                       <td className="px-2 py-2 text-right">{fmtBRL(m.receita, 0)}</td>
                       <td className="px-2 py-2 pr-4 text-right font-bold" style={{ color: m.paybackPct != null && m.paybackPct >= 100 ? 'var(--cbc-success, #16A34A)' : 'var(--cbc-text-primary, #1B3A5C)' }}>{m.paybackPct != null ? `${m.paybackPct}%` : '—'}</td>

@@ -140,7 +140,7 @@ export default function SupabaseHealthMonitor() {
 
       {status === 'error' && (
         <div className="mt-3 bg-red-50 border border-red-200 p-3 rounded text-sm dark:bg-red-900/20 dark:border-red-800/50">
-          <strong className="text-red-800 dark:text-red-300">Atencao</strong>
+          <strong className="text-red-800 dark:text-red-300">Atenção</strong>
           <span className="text-red-700 dark:text-red-300">
             : Supabase nao esta respondendo. Reinicie o projeto em https://supabase.com/dashboard se persistir &gt;5 minutos.
           </span>

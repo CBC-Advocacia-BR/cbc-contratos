@@ -4,7 +4,7 @@ self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim(
 
 self.addEventListener('push', function (e) {
   var d = {};
-  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { corpo: e.data && e.data.text() }; }
+  try { d = e.data ? e.data.json() : {}; } catch { d = { corpo: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.titulo || 'CBC Advogados', {
     body: d.corpo || 'Há uma novidade no seu caso. Toque para ver.',
     icon: '/favicon.png',

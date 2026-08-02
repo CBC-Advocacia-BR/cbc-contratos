@@ -45,9 +45,17 @@ export default defineConfig({
         // Outras libs ficam em chunks auto-gerados para deixar Rolldown otimizar hoisting do helper.
         manualChunks(id) {
           if (!id.includes('node_modules')) return
-          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) return 'vendor-react'
-          if (id.includes('@supabase')) return 'vendor-supabase'
+          // (auditoria 01/08 — item 169) ORDEM IMPORTA. O teste `id.includes('/react/')`
+          // casa com QUALQUER pacote cujo caminho contenha "/react/" — inclusive
+          // `@sentry/react` e `@heroicons/react`. Como ele vinha ANTES, as regras de
+          // @sentry (linha abaixo) e dos icones nunca disparavam: os dois iam parar no
+          // vendor-react, que TODO usuario baixa antes de ver a tela (o `vendor-sentry`
+          // citado no HEAVY_LAZY nem chegava a existir no dist). Agora os casos
+          // especificos vem primeiro e o React usa caminho ancorado em node_modules.
           if (id.includes('@sentry')) return 'vendor-sentry'
+          if (id.includes('@heroicons')) return 'vendor-icons'
+          if (id.includes('react-dom') || id.includes('node_modules/react/') || id.includes('scheduler')) return 'vendor-react'
+          if (id.includes('@supabase')) return 'vendor-supabase'
           // Libs PESADAS e carregadas sob demanda (lazy). Nomea-las com chunk fixo faz a
           // lista HEAVY_LAZY do modulePreload (abaixo) finalmente exclui-las do preload
           // inicial -> primeiro carregamento mais leve. So entram quando a feature e usada.
@@ -78,8 +86,16 @@ export default defineConfig({
         return deps.filter(d => !HEAVY_LAZY.some(k => d.includes(k)));
       },
     },
-    // Source maps so em desenvolvimento (economiza bandwidth em prod)
-    sourcemap: false,
+    // (auditoria 01/08 — item 156) `hidden` em vez de false: GERA os mapas de codigo,
+    // mas NAO adiciona o comentario //# sourceMappingURL no bundle. Ou seja:
+    //  - o navegador do usuario nao baixa nada a mais (zero custo de banda, que era o
+    //    motivo do `false` original);
+    //  - os arquivos .map ficam no dist para serem enviados ao Sentry no deploy.
+    // Sem eles, todo erro de tela branca chega como "a.b is not a function" num arquivo
+    // minificado — ilegivel, e impossivel saber qual linha do nosso codigo quebrou.
+    // ⚠️ Os .map NAO devem ser publicados junto com o site (expoem o codigo-fonte). Ver a
+    // regra de bloqueio em public/_headers e o passo de envio ao Sentry no deploy.sh.
+    sourcemap: 'hidden',
     // Avisa se bundle passar de 650kb. Os chunks grandes (vendor-pdf/pdflib/excel/docx) sao
     // LAZY (so carregam quando a feature e usada) e ficam fora do preload inicial -> nao pesam
     // no primeiro paint. Limite em 650 evita falso-alarme mas ainda avisa se um chunk EAGER inchar.

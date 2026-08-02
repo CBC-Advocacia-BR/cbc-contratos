@@ -15,6 +15,7 @@ import { useDebounce } from '../hooks/useDebounce'; // (#119)
 // (resilience 28/04) Cache IndexedDB dos ultimos 100 contratos — fallback offline
 import { cacheContracts, getCachedContracts } from '../utils/contractsCache';
 import { maskCPF } from '../utils/masks';
+import { ymdLocal } from '../utils/format';
 import StatusPill from './ui/StatusPill';
 import AutomationPipeline from './ui/AutomationPipeline';
 import {
@@ -85,7 +86,7 @@ function AdvboxSyncButton({ dados, dataAssinatura, contractId, existingLawsuitId
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...dados,
-          dataAssinatura: dataAssinatura || new Date().toISOString().split('T')[0],
+          dataAssinatura: dataAssinatura || ymdLocal(),
           // (#7) idempotencia: reusa processo/clientes ja criados em vez de duplicar.
           existingLawsuitId: existingLawsuitId || null,
           existingCustomers: existingCustomers || null,
@@ -274,7 +275,20 @@ function SaveToDriveButton({ contract, onRequestDestructiveConfirm, onShowToast 
         return;
       }
       // Fallback sem modal
-      if (!confirm('Este contrato ja possui arquivos no Drive. Subir novamente vai duplicar. Confirmar?')) return;
+      // (auditoria 01/08/2026 — item 267) unico `confirm()` ALCANCAVEL desta tela — os
+      // outros 3 sao fallback de `onRequestDestructiveConfirm`, que o App.jsx sempre passa.
+      // Este avisa sobre DUPLICAR arquivo no Drive do escritorio: merece a caixa do app.
+      const segue = await new Promise((resolve) => {
+        onRequestDestructiveConfirm?.({
+          title: 'Subir de novo para o Drive?',
+          message: 'Este contrato ja tem arquivos na pasta. Subir de novo vai DUPLICAR os documentos la dentro.',
+          confirmLabel: 'Subir mesmo assim',
+          exigirDigitacao: false,
+          onConfirm: () => { onRequestDestructiveConfirm(null); resolve(true); },
+          onCancel: () => { onRequestDestructiveConfirm(null); resolve(false); },
+        }) || resolve(window.confirm('Este contrato ja possui arquivos no Drive. Subir novamente vai duplicar. Confirmar?'));
+      });
+      if (!segue) return;
       await doUpload();
       return;
     }
@@ -303,7 +317,7 @@ function SaveToDriveButton({ contract, onRequestDestructiveConfirm, onShowToast 
         <button
           onClick={handleSave}
           disabled={status === 'loading'}
-          title="Subir de novo (cria duplicata — exige confirmacao)"
+          title="Subir de novo (cria duplicata — exige confirmação)"
           className="px-2 py-1.5 text-[9px] font-bold uppercase rounded-lg cursor-pointer transition-all border border-gray-200 text-gray-500 hover:bg-gray-50"
         >
           {status === 'loading' ? '...' : 'Subir de novo'}
@@ -1632,7 +1646,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
       setError(erros > 0 ? msg : '');
       // Recarrega pra refletir estado real do banco
       await fetchContratos();
-    } catch (err) { setError('Erro ao arquivar lote: ' + err.message); }
+    } catch (err) { console.error('[ContratosTab]', err); setError('Erro ao arquivar lote: ' + friendlyError(err)); }
     finally { setDeleting(false); }
   };
 
@@ -1727,7 +1741,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
           <button
             onClick={() => setImportModalOpen(true)}
             className="btn-outline text-xs flex items-center gap-1.5 whitespace-nowrap shrink-0"
-            title="Importar contrato ja assinado (externo ao fluxo padrao)"
+            title="Importar contrato já assinado (externo ao fluxo padrão)"
           >
             <DocumentArrowUpIcon className="w-4 h-4" aria-hidden="true" />
             <span className="hidden md:inline">Importar contrato assinado</span>
@@ -1755,7 +1769,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
             style={showArquivados
               ? { background: '#FEF3C7', borderColor: '#F59E0B', color: '#92400E' }
               : { background: 'transparent', borderColor: '#D1D5DB', color: '#6B7280' }}
-            title="Mostrar somente contratos arquivados (soft delete)"
+            title="Mostrar somente os contratos arquivados (arquivar não apaga — da para desarquivar depois)"
           >
             <input
               type="checkbox"
@@ -1903,7 +1917,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-medium text-gray-600">Voce ainda nao tem contratos salvos</p>
+                    <p className="text-sm font-medium text-gray-600">Você ainda não tem contratos salvos</p>
                     <p className="text-xs mt-1 text-gray-400 mb-4">Crie seu primeiro contrato para comecar.</p>
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('cbc:switchTab', { detail: { tab: 'novo' } }))}
@@ -1964,11 +1978,11 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                         <p className="text-gray-700">{detail.resort}</p>
                       </div>
                       <div>
-                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Tipo de Acao</span>
+                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Tipo de Ação</span>
                         <p className="text-gray-700">{detail.tipo_acao}</p>
                       </div>
                       <div>
-                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Honorarios Iniciais</span>
+                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Honorários Iniciais</span>
                         <p className="text-gray-700">
                           {detail.dados?.honorarios?.somenteExito
                             ? 'Sem honorarios iniciais'
@@ -1978,7 +1992,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Honorarios de Exito</span>
+                        <span className="text-gray-500 uppercase font-bold text-[10px] tracking-wide">Honorários de Êxito</span>
                         <p className="text-gray-700">
                           {detail.dados?.honorarios?.somenteIniciais
                             ? 'Sem honorarios de exito'
@@ -2081,9 +2095,9 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                       <div className="bg-yellow-50 border border-yellow-300 p-3 rounded-lg my-2 flex items-start gap-3">
                         <ExclamationTriangleIcon className="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-bold text-yellow-800">Pasta Google Drive nao atribuida</div>
+                          <div className="text-sm font-bold text-yellow-800">Pasta Google Drive não atribuída</div>
                           <div className="text-xs text-yellow-700 mt-1">
-                            As automacoes de upload nao rodam ate voce atribuir uma pasta do Drive.
+                            As automações de upload não rodam até você atribuir uma pasta do Drive.
                           </div>
                         </div>
                         <button
@@ -2117,12 +2131,12 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                           )}
                           {detail.drive_error_code === 'FOLDER_NOT_FOUND' && (
                             <div className="text-xs text-red-600 mt-2">
-                              A pasta do Drive nao foi encontrada ou o script nao tem acesso. Troque a pasta e tente novamente.
+                              A pasta do Drive não foi encontrada ou o script não tem acesso. Troque a pasta e tente novamente.
                             </div>
                           )}
                           {detail.drive_error_code === 'NO_PERMISSION' && (
                             <div className="text-xs text-red-600 mt-2">
-                              O Apps Script nao tem permissao de editor na pasta. Compartilhe e tente de novo.
+                              O Apps Script não tem permissão de editor na pasta. Compartilhe e tente de novo.
                             </div>
                           )}
                         </div>
@@ -2177,7 +2191,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                       {/* (QW#12) retry manual do ADVBOX direto no contrato quando deu erro
                           ou ficou pendente — reaproveita o AdvboxSyncButton (antes nao era usado) */}
                       {detail.status === 'assinado' && (detail.advbox_status === 'error' || !detail.advbox_status) && detail.dados && (
-                        <AdvboxSyncButton dados={detail.dados} contractId={detail.id} dataAssinatura={detail.signed_at ? String(detail.signed_at).split('T')[0] : undefined} existingLawsuitId={detail.advbox_lawsuit_id} existingCustomers={detail.advbox_data?.customers} />
+                        <AdvboxSyncButton dados={detail.dados} contractId={detail.id} dataAssinatura={detail.signed_at ? ymdLocal(new Date(detail.signed_at)) : undefined} existingLawsuitId={detail.advbox_lawsuit_id} existingCustomers={detail.advbox_data?.customers} />
                       )}
                       {detail.status === 'assinado' && detail.zapsign_doc_token && detail.dados?.linkGoogleDrive && (
                         <SaveToDriveButton

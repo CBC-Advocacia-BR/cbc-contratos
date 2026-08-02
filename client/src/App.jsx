@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef, useLayoutEffect, lazy,
 import * as Sentry from '@sentry/react';
 import { reportErro } from './utils/reportError';
 import { supabase } from './lib/supabase';
+import { ymdLocal } from './utils/format';
 import { ContractProvider, useContract } from './ContractContext';
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginScreen from './components/LoginScreen';
@@ -72,7 +73,8 @@ function prefetchTab(key) {
 
 const ASAAS_USERS = ['paulo@advocaciacbc.com', 'paulo.conforto@outlook.com', 'bruno@advocaciacbc.com', 'anderson@advocaciacbc.com', 'lorenza@advocaciacbc.com', 'lucas@advocaciacbc.com'];
 // (#306) Socios — emails com acesso ao Dashboard Socios (restrito por email, nao por is_admin)
-const SOCIOS_EMAILS = ['paulo@advocaciacbc.com', 'bruno@advocaciacbc.com', 'lorenza@advocaciacbc.com'];
+// (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
+import { SOCIOS_EMAILS } from './utils/acessos';
 
 // (v6.2.0) Controle de retry do upload para Google Drive
 // - MAX_ATTEMPTS: apos X falhas, marca 'failed' e para de tentar
@@ -309,8 +311,20 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="error-boundary-fallback">
           <ExclamationTriangleIcon className="w-12 h-12 text-amber-500" aria-hidden="true" />
-          <div className="text-sm font-bold text-gray-700">Algo deu errado nesta secao</div>
-          <div className="text-xs text-gray-500 max-w-sm">{this.state.error?.message}</div>
+          <div className="text-sm font-bold text-gray-700">Algo deu errado nesta seção</div>
+          {/* (auditoria 01/08 — item 284) Antes aparecia a mensagem CRUA do JavaScript
+              ("Cannot read properties of undefined"), que nao diz nada a quem usa e ainda
+              assusta. O texto tecnico continua util para o suporte: vai para o console e
+              fica atras de um <details> que so quem quiser abre. */}
+          <div className="text-xs text-gray-500 max-w-sm">
+            Recarregue a página. Se continuar, avise o suporte informando em qual tela aconteceu.
+          </div>
+          {this.state.error?.message && (
+            <details className="text-[10px] text-gray-400 max-w-sm">
+              <summary className="cursor-pointer">Detalhes tecnicos</summary>
+              <div className="mt-1 break-words">{this.state.error.message}</div>
+            </details>
+          )}
           <button onClick={() => this.setState({ hasError: false, error: null })}
             className="px-4 py-2 rounded-lg text-xs font-bold text-white cursor-pointer" style={{ background: '#1B3A5C' }}>
             Tentar novamente
@@ -503,14 +517,26 @@ function AppContent() {
   const device = useDeviceType();
   useEffect(() => { applyDeviceClass(device); }, [device]);
   // badge da aba Portal: conta dúvidas pendentes (recarrega ao trocar de aba + a cada 2 min)
+  // (auditoria 01/08 — item 218) Dois desperdicios corrigidos:
+  //  1) rodava para TODO usuario, mesmo quem nao tem a aba Portal (o selo nem aparece
+  //     para essa pessoa) — agora so conta para quem pode ver;
+  //  2) `mainTab` estava nas dependencias, entao CADA troca de aba destruia o timer,
+  //     disparava uma consulta nova e recomecava a contagem de 2 min. Trocar de aba nao
+  //     muda o numero de duvidas pendentes.
+  // Tambem pula quando a aba do navegador esta oculta, como o resto do App ja faz.
+  const podeVerPortal = !!userPerms?.tabs?.portal;
   useEffect(() => {
+    if (!podeVerPortal) { setPortalPendentes(0); return; }
     let vivo = true;
-    const contar = () => supabase.from('portal_perguntas').select('id', { count: 'exact', head: true }).eq('status', 'pendente')
-      .then(({ count }) => { if (vivo) setPortalPendentes(count || 0); }).catch(() => {});
+    const contar = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      supabase.from('portal_perguntas').select('id', { count: 'exact', head: true }).eq('status', 'pendente')
+        .then(({ count }) => { if (vivo) setPortalPendentes(count || 0); }).catch(() => {});
+    };
     contar();
     const t = setInterval(contar, 120000);
     return () => { vivo = false; clearInterval(t); };
-  }, [mainTab]);
+  }, [podeVerPortal]);
 
   // (#16) Confirmacao destrutiva global — permite qualquer tab disparar
   const [destructiveConfirm, setDestructiveConfirm] = useState(null);
@@ -518,9 +544,17 @@ function AppContent() {
   const [saveDecision, setSaveDecision] = useState(null);
   // (#17) Undo system global (10s timeout)
   const undoCtrl = useUndo(10000);
-  // (resilience 28/04) Banner global de degradacao do Supabase. Disparado pelo
-  // utilitario safeQuery (utils/supabaseSafe.js) ou por fallback de cache em
-  // ContratosTab. Auto-hide em 30s.
+  // (auditoria 01/08 — item 194) Ponte entre os atalhos de teclado e as acoes do
+  // formulario. O efeito que registra o atalho roda uma vez e nao lista essas funcoes
+  // nas dependencias — sem este ref ele congelaria a versao antiga delas (e um segundo
+  // Ctrl+S criava um contrato DUPLICADO em vez de atualizar o ja salvo). O ref e
+  // reatribuido a cada render, logo abaixo da definicao das funcoes.
+  const acoesRef = useRef({ salvar: () => {}, preSend: () => {} });
+  // (resilience 28/04) Banner global de degradacao do Supabase, disparado por fallback de
+  // cache no ContratosTab. Auto-hide em 30s.
+  // (auditoria 01/08 — item 215) A mencao a `safeQuery (utils/supabaseSafe.js)` foi
+  // REMOVIDA daqui: aquele modulo NAO esta ligado a nada — ninguem o importa. O comentario
+  // dava a entender que existia uma camada de protecao nas consultas, e nao existe.
   const [supabaseDegraded, setSupabaseDegraded] = useState(null);
   useEffect(() => {
     const handler = (e) => {
@@ -703,7 +737,7 @@ function AppContent() {
             if (claimed?.length > 0) {
               try {
                 // (#18) data de fechamento = data REAL da assinatura (signed_at), nao a data do sync.
-                const dataAssin = c.signed_at ? new Date(c.signed_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+                const dataAssin = ymdLocal(c.signed_at ? new Date(c.signed_at) : new Date());
                 const advResp = await fetch('/.netlify/functions/advbox-sync', {
                   method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -733,7 +767,7 @@ function AppContent() {
                 if (advResult.warnings?.length) {
                   try { await supabase.from('automation_log').insert({ contract_id: c.id, action: 'kommo', status: 'aviso', details: { warnings: advResult.warnings }, client_name: c.dados?.contratantes?.[0]?.nome }); } catch { /* log best-effort */ }
                 }
-                console.log('ADVBOX:', c.id, advOk ? 'OK' : advResult.warnings);
+                // (item 203/24) resultado ja gravado em automation_log acima — console removido
               } catch (e) {
                 await supabase.from('contratos').update({ advbox_status: 'error', advbox_date: new Date().toISOString() }).eq('id', c.id);
                 try { await supabase.from('automation_log').insert({ contract_id: c.id, action: 'advbox', status: 'error', details: { error: e.message }, client_name: c.dados?.contratantes?.[0]?.nome }); } catch { /* log best-effort */ }
@@ -854,7 +888,7 @@ function AppContent() {
                     client_name: d.contratantes?.[0]?.nome,
                   });
                 } catch { /* log best-effort */ }
-                console.log('Drive:', c.id, driveResult.files?.length, 'arquivo(s)');
+                // (item 203/24) resultado ja gravado em automation_log acima — console removido
               } catch (e) {
                 const errCode = e?.code || 'GENERIC';
                 const errMsg = e?.message || String(e);
@@ -976,8 +1010,15 @@ function AppContent() {
       }
       switch (e.key) {
         case 'k': e.preventDefault(); setShowSearch(s => !s); break;
-        case 's': e.preventDefault(); handleSaveContract(); break;
-        case 'Enter': e.preventDefault(); handlePreSendCheck(); break;
+        // (auditoria 01/08 — item 194) via REF, nunca a funcao capturada direto.
+        // Este efeito nao tem `handleSaveContract` nas dependencias, entao o atalho
+        // guardava a versao da funcao de quando o efeito rodou. Depois do 1o
+        // salvamento, essa versao antiga ainda achava que o contrato nunca tinha sido
+        // salvo e um segundo Ctrl+S INSERIA um registro novo em vez de atualizar —
+        // duplicando o contrato do mesmo cliente (a mesma familia do caso Fernanda,
+        // so que ao contrario). O ref sempre aponta para a versao atual.
+        case 's': e.preventDefault(); acoesRef.current.salvar(); break;
+        case 'Enter': e.preventDefault(); acoesRef.current.preSend(); break;
         case 'n': e.preventDefault(); setDestructiveConfirm({
           title: 'Limpar formulario?',
           message: 'Todos os dados preenchidos serao perdidos. Esta acao nao pode ser desfeita.',
@@ -1145,6 +1186,13 @@ function AppContent() {
     setShowChecklist(true);
   }, [data]);
 
+  // (auditoria 01/08 — item 194) Mantem o ref dos atalhos apontando SEMPRE para a versao
+  // atual das acoes. Dentro de useEffect: escrever em ref durante o render quebra
+  // renderizacao concorrente (o React Compiler acusa "Cannot access refs during render").
+  useEffect(() => {
+    acoesRef.current = { salvar: handleSaveContract, preSend: handlePreSendCheck };
+  }, [handleSaveContract, handlePreSendCheck]);
+
   const handlePdfPreview = useCallback(async () => {
     // (#97) Inicia progresso
     setPdfProgress({ phase: 'prepare', value: 0, label: 'Iniciando...' });
@@ -1273,9 +1321,9 @@ function AppContent() {
           </button>
         </div>
       )}
-      {/* (resilience 28/04) Banner global de degradacao Supabase. Disparado por
-          safeQuery (utils/supabaseSafe.js) ou fallback de cache em ContratosTab.
-          Auto-hide em 30s, dismissable. */}
+      {/* (resilience 28/04) Banner global de degradacao Supabase, disparado por fallback de
+          cache no ContratosTab. Auto-hide em 30s, dismissable.
+          (item 215) supabaseSafe.js nao participa disto — o modulo esta inativo. */}
       {supabaseDegraded && (
         <div className="shrink-0 px-4 py-2 flex items-center gap-2 text-sm border-b-2 border-amber-400 bg-amber-100 dark:bg-amber-900/30 dark:border-amber-700">
           <ExclamationTriangleIcon className="w-5 h-5 text-amber-700 dark:text-amber-300 shrink-0" aria-hidden="true" />
@@ -1506,11 +1554,31 @@ function AppContent() {
         </div>
       )}
 
-      {/* Notification bar */}
+      {/* Notification bar
+          (auditoria 01/08/2026 — item 283) A barra guardava ate 20 avisos, exibia SO o
+          primeiro e o "x" chamava setNotifications([]) — ou seja, tres contratos assinados
+          na mesma hora viravam um aviso visivel e dois apagados sem nunca terem sido lidos.
+          Agora o "x" descarta APENAS o aviso da vez (o proximo assume), o contador diz
+          quantos ainda esperam e "Limpar todos" continua existindo quando faz sentido.
+          role="status" faz o leitor de tela anunciar sem roubar o foco de quem digita. */}
       {notifications.length > 0 && (
-        <div className="shrink-0 px-3 py-1.5 text-[10px] font-bold text-white flex items-center justify-between" style={{ background: '#16A34A' }}>
-          <span>{notifications[0].message}</span>
-          <button onClick={() => setNotifications([])} className="text-white/80 hover:text-white cursor-pointer">&times;</button>
+        <div role="status" aria-live="polite"
+          className="shrink-0 px-3 py-1.5 text-[10px] font-bold text-white flex items-center justify-between gap-3"
+          style={{ background: 'var(--cbc-success, #16A34A)' }}>
+          <span className="min-w-0 truncate">{notifications[0].message}</span>
+          <span className="flex items-center gap-3 shrink-0">
+            {notifications.length > 1 && (
+              <>
+                <span className="opacity-80 tabular-nums">+{notifications.length - 1} aviso{notifications.length > 2 ? 's' : ''}</span>
+                <button onClick={() => setNotifications([])}
+                  className="text-white/80 hover:text-white underline underline-offset-2 cursor-pointer"
+                  aria-label={`Limpar todos os ${notifications.length} avisos`}>Limpar todos</button>
+              </>
+            )}
+            <button onClick={() => setNotifications((prev) => prev.slice(1))}
+              className="text-white/80 hover:text-white cursor-pointer text-sm leading-none"
+              aria-label={notifications.length > 1 ? 'Dispensar este aviso e ver o próximo' : 'Dispensar aviso'}>&times;</button>
+          </span>
         </div>
       )}
 
@@ -1599,7 +1667,10 @@ function AppContent() {
           </div>
         )
       ) : mainTab === 'contratos' ? (
-        <TabScrollContainer key={`tab-${mainTab}`} tabKey="contratos" className="flex-1 overflow-hidden bg-white page-enter"><Suspense fallback={<SkeletonContratosTab />}><ContratosTab onLoadContract={handleLoadContract} onRequestDestructiveConfirm={setDestructiveConfirm} onRegisterUndo={undoCtrl.register} /></Suspense></TabScrollContainer>
+        // (auditoria 01/08 — item 196) ErrorBoundary: esta era a UNICA aba sem ele — e e a
+        // mais usada do sistema. Um erro aqui derrubava o app inteiro para tela branca,
+        // em vez de mostrar "algo deu errado nesta secao" e manter o resto de pe.
+        <TabScrollContainer key={`tab-${mainTab}`} tabKey="contratos" className="flex-1 overflow-hidden bg-white page-enter"><ErrorBoundary><Suspense fallback={<SkeletonContratosTab />}><ContratosTab onLoadContract={handleLoadContract} onRequestDestructiveConfirm={setDestructiveConfirm} onRegisterUndo={undoCtrl.register} /></Suspense></ErrorBoundary></TabScrollContainer>
       ) : mainTab === 'clientes' && tabAllowed('clientes') ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonContratosTab />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="clientes" className="flex-1 overflow-hidden page-enter"><ClientesTab isAdmin={!!userPerms?.is_admin} userEmail={user?.email || ''} /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'vendas' && userPerms?.tabs?.vendas ? (
@@ -1624,8 +1695,22 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="socios" className="flex-1 overflow-hidden page-enter"><SociosDashboard /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'funil' && SOCIOS_EMAILS.includes((user?.email || '').toLowerCase()) ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="funil" className="flex-1 overflow-hidden page-enter"><FunnelHealthPanel /></TabScrollContainer></ErrorBoundary></Suspense>
-      ) : (
+      ) : tabAllowed('dashboard') ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="dashboard" className="flex-1 overflow-hidden page-enter" style={{ background: bg }}><Dashboard /></TabScrollContainer></ErrorBoundary></Suspense>
+      ) : (
+        // (auditoria 01/08 — item 195) O ramo final MOSTRAVA O DASHBOARD SEM CHECAR NADA:
+        // quem tivesse "Dashboard" desmarcado no Admin continuava vendo o Dashboard como
+        // tela de queda — e ele ainda disparava suas consultas ao banco. Agora o padrao
+        // respeita a permissao; sem nenhuma aba liberada, explica o que fazer.
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center max-w-sm">
+            <p className="text-sm font-semibold" style={{ color: 'var(--cbc-navy)' }}>Nenhuma aba liberada</p>
+            <p className="mt-2 text-xs" style={{ color: 'var(--cbc-muted, #64748b)' }}>
+              Seu usuário ainda não tem acesso a nenhuma seção do sistema.
+              Peça a um administrador para liberar as abas que você precisa.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* (mobile 06/2026) Spacer: devolve a altura do dock fixo ao layout —
@@ -1641,7 +1726,13 @@ function AppContent() {
         // (ContratosTab) avisa a equipe p/ enviar manualmente. Sem re-tentativa automatica.
         // Fire-and-forget: function idempotente (lock em kommo_assinatura) + kill-switch
         // em bot_config.kommo.assinatura.ativo.
-        if (saved?.id) {
+        // (auditoria 01/08 — item 193) A caixa "Não mandar mensagem automática" do
+        // formulário era resquício do ChatGuru e NINGUÉM lia esse campo. Depois que o
+        // disparo do link por WhatsApp entrou (02/07), ela virou uma armadilha: o
+        // operador marcava, acreditava ter bloqueado o envio, e a mensagem saía assim
+        // mesmo. Agora a caixa bloqueia de verdade.
+        const bloqueadoPeloOperador = !!data.naoMandarMensagem;
+        if (saved?.id && !bloqueadoPeloOperador) {
           fetch('/.netlify/functions/kommo-assinatura-send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-bot-key': import.meta.env.VITE_BOT_PANEL_KEY || '' },
@@ -1649,7 +1740,9 @@ function AppContent() {
             keepalive: true,
           }).catch(() => {});
         }
-        setSaveMsg('Contrato enviado para ZapSign. Dentro da janela de 24h o link segue automático pelo WhatsApp — confira a faixa no contrato.');
+        setSaveMsg(bloqueadoPeloOperador
+          ? 'Contrato enviado para ZapSign. O envio automático do link ficou BLOQUEADO (opção marcada no formulário) — mande o link manualmente pelo Kommo.'
+          : 'Contrato enviado para ZapSign. Dentro da janela de 24h o link segue automático pelo WhatsApp — confira a faixa no contrato.');
       }} />}
       {/* Global Search (Cmd+K) */}
       {showSearch && <Suspense fallback={null}><GlobalSearch onClose={() => setShowSearch(false)} onSelectContract={(c) => {
@@ -1724,15 +1817,21 @@ function AppContent() {
         onDismiss={undoCtrl.clear}
       />
 
-      {/* (#16) Modal de confirmacao destrutiva global */}
+      {/* (#16) Modal de confirmacao destrutiva global.
+          (auditoria 01/08/2026 — item 267) Passou a repassar `exigirDigitacao` e `danger`
+          (para acao reversivel pedir so o clique, sem digitar a palavra) e a CHAMAR o
+          `onCancel` de quem abriu — antes o cancelamento so fechava a caixa, e quem
+          esperasse a resposta (fluxo com await) ficaria pendurado para sempre. */}
       <ConfirmDestructive
         isOpen={!!destructiveConfirm}
         title={destructiveConfirm?.title}
         message={destructiveConfirm?.message}
         confirmText={destructiveConfirm?.confirmText || 'DELETAR'}
         confirmLabel={destructiveConfirm?.confirmLabel}
+        exigirDigitacao={destructiveConfirm?.exigirDigitacao !== false}
+        danger={destructiveConfirm?.danger !== false}
         onConfirm={destructiveConfirm?.onConfirm}
-        onCancel={() => setDestructiveConfirm(null)}
+        onCancel={() => { destructiveConfirm?.onCancel?.(); setDestructiveConfirm(null); }}
       />
 
       {/* (trava 17/07/2026) Rascunho com resort trocado: criar novo vs corrigir */}

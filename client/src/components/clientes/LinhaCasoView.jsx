@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { buscar360, buscarAcoesDrive, buscarDadosBancarios, buscarLinhaCaso } from '../../utils/clientesService';
 import { buildLinhaCaso, dataBRLC, reaisLC, idadeDe, mesBR, FASE_LABEL, acoesProprias, valorEmDiscussao } from '../../utils/linhaCaso';
+import { ymdLocal } from '../../utils/format';
 
 // telefone em (DD) 9NNNN-NNNN
 function foneBR(d) {
@@ -17,7 +18,7 @@ const SIS_LABEL = { kommo: 'Kommo', advbox: 'ADVBOX', asaas: 'Asaas', cadastro: 
 
 const TIPO_LABEL = { marco: 'Marco', etapa: 'Etapa', tribunal: 'Tribunal', equipe: 'Equipe', financeiro: 'Financeiro', relacionamento: 'Relacionamento' };
 
-function hojeISO() { return new Date().toISOString().slice(0, 10); }
+function hojeISO() { return ymdLocal(); }
 
 export default function LinhaCasoView({ row, onClose, onEditar, onAbrir }) {
   const [info, setInfo] = useState(null);

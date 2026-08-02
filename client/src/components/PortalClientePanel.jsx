@@ -15,6 +15,10 @@ import {
   Squares2X2Icon, UsersIcon, PencilSquareIcon, ChatBubbleLeftRightIcon, ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
+// (auditoria 01/08/2026 — itens 265/266) toast no lugar do alert() do navegador;
+// erro tecnico traduzido para o usuario e o cru registrado no console.
+import { useToast } from './Toast';
+import { friendlyError } from '../utils/friendlyError';
 import {
   PerguntasClientes, FaqPortal, EducacaoPortal, CorrelacaoCard,
   ContatoPortal, ReviewPortal, ExplicadorPortal, EquipePortal,
@@ -69,6 +73,7 @@ const waLink = (celular, primeiroNome, url) => {
 
 /* ---------- card de resultado da BUSCA ---------- */
 function ClienteCard({ c, onAtualizado }) {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [busy, setBusy] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [confirmaRenovar, setConfirmaRenovar] = useState(false);
@@ -78,7 +83,7 @@ function ClienteCard({ c, onAtualizado }) {
 
   const run = async (acao, fn) => {
     setBusy(acao);
-    try { await fn(); } catch (e) { alert(`Não deu certo: ${e.message}`); }
+    try { await fn(); } catch (e) { console.error('[PortalCliente]', e); toast.error(`Não deu certo: ${friendlyError(e)}`); }
     setBusy(''); setConfirmaRenovar(false); setConfirmaDesativar(false);
   };
   const gerar = () => run('gerar', async () => {
@@ -210,6 +215,7 @@ function Selo({ ok, rotulo }) {
 }
 
 function ProntoRow({ p }) {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [estado, setEstado] = useState(null); // null | {url} | 'gerando'
   const [copiado, setCopiado] = useState(false);
   const primeiro = tituloCase((p.nome || '').trim().split(/\s+/)[0]);
@@ -219,7 +225,7 @@ function ProntoRow({ p }) {
     try {
       const r = await api('create', { customer_id: p.customer_id });
       setEstado({ url: r.link });
-    } catch (e) { alert(`Não deu certo: ${e.message}`); setEstado(null); }
+    } catch (e) { console.error('[PortalCliente]', e); toast.error(`Não deu certo: ${friendlyError(e)}`); setEstado(null); }
   };
   const copiar = (url) => navigator.clipboard.writeText(url).then(() => {
     setCopiado(true); setTimeout(() => setCopiado(false), 2000);
@@ -293,13 +299,14 @@ const INC_INFO = {
 };
 
 function IncSection({ chave, dados, onAcao }) {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [aberto, setAberto] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const info = INC_INFO[chave];
   if (!info || !dados || !dados.qtd) return null;
   const agir = async (item) => {
     setBusyId(item.customer_id);
-    try { await onAcao(item); } catch (e) { alert(`Não deu certo: ${e.message}`); }
+    try { await onAcao(item); } catch (e) { console.error('[PortalCliente]', e); toast.error(`Não deu certo: ${friendlyError(e)}`); }
     setBusyId(null);
   };
   return (
@@ -577,6 +584,7 @@ function PerguntasComPush({ onPending }) {
 }
 
 export default function PortalClientePanel() {
+  const toast = useToast(); // (item 266) substitui o alert() do navegador
   const [secao, setSecao] = useState('geral');
   const [q, setQ] = useState('');
   const [resultados, setResultados] = useState(null);
@@ -625,7 +633,7 @@ export default function PortalClientePanel() {
   const exportar = async (tipo) => {
     setExportando(tipo);
     try { await (tipo === 'pdf' ? exportarPdf() : exportarExcel()); }
-    catch (e) { alert(`Exportação falhou: ${e.message}`); }
+    catch (e) { console.error('[PortalCliente] export:', e); toast.error(`Exportação falhou: ${friendlyError(e)}`); }
     setExportando('');
   };
 

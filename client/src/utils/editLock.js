@@ -1,3 +1,8 @@
+// ⚠️ CODIGO INATIVO (auditoria 01/08/2026 — item 215)
+// Nenhum arquivo do app importa este modulo hoje (conferido por varredura em src/).
+// Mantido no repositorio porque a REGRA #1 do projeto proibe apagar arquivos — mas NAO
+// confie nele como se estivesse rodando: se precisar deste comportamento, confirme
+// primeiro que alguem realmente o chama.
 import { supabase } from '../lib/supabase';
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes

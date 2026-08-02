@@ -6,39 +6,32 @@
  */
 import { db, logAdvbox } from './_lib/botDb.mjs';
 import { createKommoTask } from './_lib/kommo.mjs';
-import { rateLimitResponse } from './rate-limit.mjs';
+import { rateLimitResponse, checkRateLimitShared } from './rate-limit.mjs';
 
 const H = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' };
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: H });
 const digits = (s) => String(s || '').replace(/\D/g, '');
 
-// (seg-12) rate limit local p/ este endpoint que ESCREVE: limite mais apertado (10/min por IP)
-// que o utilitario compartilhado (30/min). Mesmo padrao de extracao de IP do rate-limit.mjs.
-// Por-instancia (em memoria) — suficiente p/ conter abuso sem KV externo.
-const RL_WINDOW_MS = 60000;
-const RL_MAX = 10;
-const rlStore = new Map();
-function checkWriteLimit(req) {
-  const ip = req.headers.get('x-nf-client-connection-ip') ||
-             req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             req.headers.get('x-real-ip') || 'unknown';
-  const now = Date.now();
-  const e = rlStore.get(ip);
-  if (!e || now - e.start > RL_WINDOW_MS) { rlStore.set(ip, { count: 1, start: now }); return true; }
-  e.count++;
-  return e.count <= RL_MAX;
+// (seg-12) rate limit deste endpoint que ESCREVE: 10/min por IP, mais apertado que o
+// padrao do utilitario compartilhado.
+// (auditoria 01/08 — itens 103/109) O limitador daqui era EM MEMORIA: cada instancia da
+// function tinha o proprio contador, entao o teto de 10/min quase nunca era atingido de
+// verdade — bastava a chamada cair em outra instancia. Como esta e uma rota PUBLICA (o
+// cliente escreve pelo portal), o limite precisa valer de verdade. O limitador
+// compartilhado (contado no banco) ja existia no projeto e e o mesmo usado pelo
+// portal-data. De quebra sai o `setInterval` no nivel do modulo, que em serverless so
+// segurava o processo acordado sem necessidade.
+async function checkWriteLimit(req) {
+  const rl = await checkRateLimitShared(req, { bucket: 'portal-pergunta', max: 10, windowSeconds: 60 });
+  return rl.allowed;
 }
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, e] of rlStore) if (now - e.start > RL_WINDOW_MS * 2) rlStore.delete(k);
-}, 300000);
 
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: H });
   if (req.method !== 'POST') return json({ ok: false }, 405);
 
   // (seg-12) rate limit por IP ANTES de processar (funcao publica do portal que grava no banco)
-  if (!checkWriteLimit(req)) return rateLimitResponse();
+  if (!await checkWriteLimit(req)) return rateLimitResponse();
 
   let body = {};
   try { body = await req.json(); } catch { return json({ ok: false, erro: 'json' }, 400); }

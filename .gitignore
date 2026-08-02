@@ -8,3 +8,14 @@ backups/
 # Local Netlify folder
 .netlify
 .superpowers/
+
+# (auditoria 01/08/2026 — item 307) PLANILHAS COM DADOS REAIS DE CLIENTES/LEADS.
+# Motivo: `exports/kommo-duplicados/*.xlsx` (7,5 MB, o maior arquivo do repo) tem leads
+# reais e ja esta no historico do Git; e havia 3 planilhas de clientes soltas na raiz,
+# a um `git add .` de entrarem tambem (acervo de no-show, funil comercial, relatorio).
+# Dado pessoal em repositorio nao "sai" quando o arquivo e apagado — fica no historico
+# para sempre. A partir daqui, planilha nao entra por acidente.
+*.xlsx
+*.xls
+*.csv
+!docs/**/*.csv

@@ -14,11 +14,12 @@
  */
 
 import { gzipSync } from 'node:zlib';
-import { db, heartbeat } from './_lib/botDb.mjs';
+import { db, heartbeat, logAdvbox } from './_lib/botDb.mjs';
+import { APPS_SCRIPT_URL } from './_lib/drive.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const PANEL_KEY = process.env.BOT_PANEL_KEY || 'cbc-bot-2026';
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzEzt-t_GDTbUKrzxTLkdOMqYS0Hz_PWcYt7uBcbj7yoKqKdUr89So8gRmsVwhT0cpI5Q/exec';
+// (auditoria 01/08 — item 38) URL do Apps Script vem de _lib/drive.mjs (era copiada em 4 arquivos)
 const BACKUP_FOLDER_ID = process.env.BACKUP_DRIVE_FOLDER_ID || '14ChK5zjMNeG9hdFAW_rSO-yRlvBFbuk4';
 
 const PAGINA = 1000;                            // teto do PostgREST por request
@@ -153,6 +154,20 @@ export default async (req) => {
       arquivos,
       duracao_s: Math.round((Date.now() - inicio) / 1000),
     };
+    // (auditoria 01/08 — item 161) Toda tabela criada daqui para frente nasceria FORA do
+    // backup em silencio — foi assim que 4 tabelas nao-regeraveis (entre elas as 74 mil
+    // parcelas mineradas do Drive) ficaram sem copia desde 17/07. A RPC compara o que
+    // existe no banco com a whitelist e devolve o que ficou de fora.
+    try {
+      const { data: fora } = await db.rpc('backup_tabelas_fora');
+      if (Array.isArray(fora) && fora.length) {
+        status.tabelas_fora = fora.map((f) => `${f.tabela} (${f.linhas})`);
+        await logAdvbox('backup', 'aviso',
+          `${fora.length} tabela(s) com dados FORA do backup: ${status.tabelas_fora.join(', ')} — avaliar se sao regeraveis; se nao, incluir em _backup_whitelist()`,
+          { tabelas: status.tabelas_fora });
+      }
+    } catch { /* a RPC pode nao existir em ambiente antigo — nunca derruba o backup */ }
+
     await gravaStatus(status);
     console.log(`backup diario OK: ${lista.length} tabelas, ${totalLinhas} linhas, ${arquivos.length} arquivo(s), ${status.duracao_s}s`);
     // (observ 28/07) heartbeat: o backup do banco so tinha status em bot_config — o
