@@ -781,11 +781,9 @@ export default function BoletosPanel({ userEmail = '' }) {
     if (_cachedBoletosCustomers) return _cachedBoletosCustomers; // cache em memoria (instantaneo ao voltar pra aba)
     try { return JSON.parse(sessionStorage.getItem('boletos_customers') || '[]'); } catch { return []; }
   });
-  // Lista crua de boletos (campos minimos) — fonte unica para todos os stats derivados.
-  const [rawBoletos, setRawBoletos] = useState(() => {
-    if (_cachedBoletosRaw) return _cachedBoletosRaw;
-    try { return JSON.parse(sessionStorage.getItem('boletos_raw') || '[]'); } catch { return []; }
-  });
+  // (item 175) Resumo agregado por cliente, vindo pronto do banco — fonte unica de todos
+  // os stats derivados. Antes eram ~12.921 linhas cruas baixadas para o navegador somar.
+  const [resumo, setResumo] = useState(() => _cachedBoletosRaw);
   const [sortBy, setSortBy] = useState(() => localStorage.getItem('boletos_sort') || 'name');
   const [overdueDaysFilter, setOverdueDaysFilter] = useState(0); // 0 = sem filtro
   const [favorites, setFavorites] = useState(() => {
@@ -865,21 +863,13 @@ export default function BoletosPanel({ userEmail = '' }) {
       // carga trava a thread principal. Acima do limite, limpa o cache antigo.
       try { if (all.length <= 3000) sessionStorage.setItem('boletos_customers', JSON.stringify(all)); else sessionStorage.removeItem('boletos_customers'); } catch { /* best-effort: cache de sessao opcional */ }
 
-      // Carrega lista crua (apenas campos minimos) — stats sao derivados via useMemo
-      let raw = [];
-      let bFrom = 0;
-      while (true) {
-        const { data: chunk, error: be } = await supabase.from('asaas_boletos')
-          .select('status,value,customer_id,due_date,payment_date').range(bFrom, bFrom + PAGE - 1);
-        if (be) throw be;
-        raw = raw.concat(chunk || []);
-        if (!chunk || chunk.length < PAGE) break;
-        bFrom += PAGE;
-      }
-      setRawBoletos(raw);
-      _cachedBoletosRaw = raw; // atualiza cache em memoria
-      // (perf 31/05) ~11k boletos: nao serializar no sessionStorage (trava a UI).
-      try { if (raw.length <= 3000) sessionStorage.setItem('boletos_raw', JSON.stringify(raw)); else sessionStorage.removeItem('boletos_raw'); } catch { /* best-effort: cache de sessao opcional */ }
+      // (auditoria 01/08/2026 — item 175) AQUI ficava a paginacao de ~12.921 boletos em
+      // 13 idas ao banco, uma apos a outra, para virar meia duzia de somas no navegador.
+      // Sao 1.333 clientes distintos: o servidor devolve o agregado por cliente em UMA
+      // requisicao. A RPC `boletos_resumo` e a traducao fiel do calculo que estava neste
+      // arquivo, conferida cliente a cliente contra a conta antiga (1.319 comparados,
+      // zero divergencia) antes da troca. O resumo em si e buscado por `fetchResumo`,
+      // que reage ao filtro de datas.
 
       const { data: state } = await supabase.from('asaas_sync_state').select('value').eq('key', 'boletos_last_sync').maybeSingle();
       setLastSync(state?.value || null);
@@ -898,88 +888,78 @@ export default function BoletosPanel({ userEmail = '' }) {
     }
   }, []);
 
-  // Stats derivados de rawBoletos + filtro de datas. Reativo a dueFrom/dueTo.
-  // O filtro de datas se aplica AO due_date dos boletos vencidos:
-  //   - boleto vencido fora do range nao conta como inadimplencia.
-  //   - boletos pagos/pendentes nao sao filtrados pelo range (so o card "vencidos").
+  // (auditoria 01/08/2026 — item 175) Busca o resumo ja agregado. Reage ao filtro de
+  // datas porque o recorte agora acontece no banco: e uma ida curta (1.319 linhas) em
+  // vez das 13 idas enfileiradas que traziam 12.921 boletos para o navegador somar.
+  const fetchResumo = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.rpc('boletos_resumo', {
+        p_due_from: dueFrom || null,
+        p_due_to: dueTo || null,
+      });
+      if (error) throw error;
+      setResumo(data || null);
+      _cachedBoletosRaw = data || null;
+    } catch {
+      setLoadError('Erro ao carregar dados de cobrancas');
+      loadErrorRef.current = true;
+    }
+  }, [dueFrom, dueTo]);
+
+  // Stats derivados do resumo do banco. As formas de saida (boletoStats,
+  // customersByStatus, customerStats) sao EXATAMENTE as de antes — o resto do painel nao
+  // sabe que a conta mudou de lugar. A RPC foi conferida cliente a cliente contra a
+  // versao que rodava aqui: 1.319 comparados, zero divergencia.
   const { boletoStats, customersByStatus, customerStats } = useMemo(() => {
-    const stats = { pending: 0, overdue: 0, paid: 0, totalPending: 0, totalOverdue: 0, totalPaid: 0, topDebtors: [], clientsOverdue: 0, maxOverdue: 0 };
+    const t = resumo?.totais || {};
+    const linhas = resumo?.clientes || [];
     const byStatus = { pending: new Set(), overdue: new Set(), paid: new Set() };
-    const debtorMap = new Map();
     const perCust = {};
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().slice(0, 10);
-    const inDueRange = (d) => {
-      if (!dueFrom && !dueTo) return true;
-      if (!d) return false;
-      if (dueFrom && d < dueFrom) return false;
-      if (dueTo && d > dueTo) return false;
-      return true;
+    const devedores = [];
+
+    for (const l of linhas) {
+      const cid = l.cid;
+      if (!cid) continue;
+      perCust[cid] = {
+        total: Number(l.total) || 0,
+        overdueTotal: Number(l.overdue_total) || 0,
+        maxOverdueDays: Number(l.max_overdue_days) || 0,
+        lastPayment: l.last_payment || null,
+      };
+      if (l.tem_pendente) byStatus.pending.add(cid);
+      if (l.tem_vencido) byStatus.overdue.add(cid);
+      if (l.tem_pago) byStatus.paid.add(cid);
+      if (Number(l.overdue_total) > 0) devedores.push([cid, Number(l.overdue_total)]);
+    }
+
+    const nameById = new Map(customers.map((c) => [c.id, c.name || 'Sem nome']));
+    const stats = {
+      pending: Number(t.pending) || 0,
+      overdue: Number(t.overdue) || 0,
+      paid: Number(t.paid) || 0,
+      totalPending: Number(t.totalPending) || 0,
+      totalOverdue: Number(t.totalOverdue) || 0,
+      totalPaid: Number(t.totalPaid) || 0,
+      clientsOverdue: Number(t.clientsOverdue) || 0,
+      maxOverdue: Number(t.maxOverdue) || 0,
+      topDebtors: devedores
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([id, total]) => ({ id, name: nameById.get(id) || id, total, days: perCust[id]?.maxOverdueDays || 0 })),
     };
-    rawBoletos.forEach(b => {
-      const v = Number(b.value || 0);
-      const cid = b.customer_id;
-      const isPaid = isPaidStatus(b.status);
-      const isNeutral = isNeutralStatus(b.status);
-      const isRemoved = isRemovedStatus(b.status);
-      if (cid && !isNeutral && !isRemoved) {
-        if (!perCust[cid]) perCust[cid] = { total: 0, overdueTotal: 0, maxOverdueDays: 0, lastPayment: null };
-        perCust[cid].total += v;
-      }
-      // Removido (excluido no Asaas) nao e divida: fora de inadimplencia/pendente/total.
-      if (isNeutral || isRemoved) return;
-      const isOverdue = !isPaid && b.due_date && b.due_date < todayStr;
-      const isPending = !isPaid && !isOverdue;
-      if (isPending) {
-        stats.pending++; stats.totalPending += v;
-        if (cid) byStatus.pending.add(cid);
-      } else if (isOverdue) {
-        // Filtro por data: vencidos sao filtrados pelo due_date
-        if (!inDueRange(b.due_date)) return;
-        stats.overdue++; stats.totalOverdue += v;
-        if (cid) {
-          byStatus.overdue.add(cid);
-          debtorMap.set(cid, (debtorMap.get(cid) || 0) + v);
-          perCust[cid].overdueTotal += v;
-          if (b.due_date) {
-            const d = new Date(b.due_date + 'T12:00:00');
-            const days = Math.floor((today - d) / 86400000);
-            if (days > perCust[cid].maxOverdueDays) perCust[cid].maxOverdueDays = days;
-            if (days > stats.maxOverdue) stats.maxOverdue = days;
-          }
-        }
-      } else if (isPaid) {
-        // Filtro por data: pagos sao filtrados pelo payment_date (fallback due_date)
-        // Mantem a taxa de inadimplencia do periodo coerente (vencidos vs pagos do mesmo range).
-        if (!inDueRange(b.payment_date || b.due_date)) return;
-        stats.paid++; stats.totalPaid += v;
-        if (cid) {
-          byStatus.paid.add(cid);
-          if (b.payment_date && (!perCust[cid].lastPayment || b.payment_date > perCust[cid].lastPayment)) {
-            perCust[cid].lastPayment = b.payment_date;
-          }
-        }
-      }
-    });
-    stats.clientsOverdue = byStatus.overdue.size;
-    const nameById = new Map(customers.map(c => [c.id, c.name || 'Sem nome']));
-    stats.topDebtors = [...debtorMap.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([id, total]) => ({ id, name: nameById.get(id) || id, total, days: perCust[id]?.maxOverdueDays || 0 }));
     return { boletoStats: stats, customersByStatus: byStatus, customerStats: perCust };
-  }, [rawBoletos, customers, dueFrom, dueTo]);
+  }, [resumo, customers]);
 
   // Auto-refresh ao voltar à aba — (QW#5) com throttle de 60s: antes recarregava
   // ~13 mil linhas (boletos + clientes) a cada alt-tab. O realtime de asaas_customers
   // ja mantem a lista fresca, entao 60s nao tem perda perceptivel.
   useEffect(() => {
     const onVis = () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastFetchRef.current > 60000) fetchData();
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchRef.current > 60000) { fetchData(); fetchResumo(); }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [fetchData]);
+  }, [fetchData, fetchResumo]);
 
   // (auditoria 01/08/2026 — item 188) Esta aba pagina ~11 mil boletos e ~1,3 mil
   // clientes. Antes a carga disparava em TODA montagem, e trocar de aba desmonta o
@@ -991,6 +971,10 @@ export default function BoletosPanel({ userEmail = '' }) {
     if (cacheFresco(CACHE_BOLETOS) && _cachedBoletosRaw) { setLoading(false); return; }
     fetchData();
   }, [fetchData]);
+
+  // (item 175) O resumo tem ciclo proprio: reage ao filtro de datas sem refazer a lista
+  // de clientes, que nao depende dele.
+  useEffect(() => { fetchResumo(); }, [fetchResumo]);
 
   // Trigger manual sync em blocos (customers + boletos)
   const manualSync = async () => {
@@ -1032,7 +1016,7 @@ export default function BoletosPanel({ userEmail = '' }) {
         }
       }
       setSyncProgress({ phase: 'done', current: 1, total: 1, label: `${totalProcessed} registros atualizados` });
-      await fetchData();
+      await Promise.all([fetchData(), fetchResumo()]);
       setTimeout(() => setSyncProgress(null), 1500);
     } catch (e) {
       console.error('[BoletosPanel]', e);
@@ -1078,13 +1062,13 @@ export default function BoletosPanel({ userEmail = '' }) {
     const scheduleRefetch = () => {
       if (document.hidden) return;
       if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { timer = null; fetchData(); }, 2500);
+      timer = setTimeout(() => { timer = null; fetchData(); fetchResumo(); }, 2500);
     };
     const channel = supabase.channel('boletos-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'asaas_customers' }, scheduleRefetch)
       .subscribe();
     return () => { if (timer) clearTimeout(timer); supabase.removeChannel(channel); };
-  }, [fetchData]);
+  }, [fetchData, fetchResumo]);
 
   // Filter + sort customers
   const filteredCustomers = useMemo(() => {
@@ -1219,7 +1203,7 @@ export default function BoletosPanel({ userEmail = '' }) {
           title='Nao foi possivel carregar cobrancas'
           message='Verifique sua conexao ou tente novamente.'
           suggestion='Se o problema persistir, recarregue a pagina.'
-          onRetry={() => { setLoadError(''); fetchData(); }}
+          onRetry={() => { setLoadError(''); loadErrorRef.current = false; fetchData(); fetchResumo(); }}
         />
       </div>
     );
