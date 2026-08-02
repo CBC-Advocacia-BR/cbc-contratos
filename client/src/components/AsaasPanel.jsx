@@ -9,7 +9,8 @@ import { usePersistedFilter } from '../hooks/usePersistedFilters';
 import StatusPill from './ui/StatusPill';
 import MoneyValue from './ui/MoneyValue';
 import FreshnessChip from './ui/FreshnessChip';
-import { isPaidStatus, isNeutralStatus, isRemovedStatus } from '../lib/statusTokens';
+// (item 175) os classificadores de status saiam daqui para o banco junto com o calculo
+// (RPC asaas_agregado_clientes) — a fonte unica agora e o comentario da propria funcao.
 import { ymLocal, ymdLocal } from '../utils/format';
 // (auditoria 01/08/2026 — item 266) a caixa cinza do `alert()` do navegador trava a tela
 // inteira, sai do visual do app e nao diz de onde veio. O toast oficial ja existe.
@@ -1038,44 +1039,24 @@ export default function AsaasPanel() {
       return;
     }
     try {
-      // Busca em lotes de customer_id (evita URL gigante no .in()).
-      const todayStr = ymdLocal();
-      const ymStr = todayStr.slice(0, 7);
-      let rows = [];
-      const CHUNK = 80;
-      for (let i = 0; i < custIds.length; i += CHUNK) {
-        const slice = custIds.slice(i, i + CHUNK);
-        const { data, error } = await supabase.from('asaas_boletos')
-          .select('customer_id,status,value,due_date,payment_date')
-          .in('customer_id', slice);
-        if (error) throw error;
-        rows = rows.concat(data || []);
-      }
-      let recebidoMes = 0, emAberto = 0, vencido = 0;
-      let nRecebidoMes = 0, nEmAberto = 0, nVencido = 0;
-      // ranking p/ pior status: vencido(3) > pendente(2) > pago(1) > nada(0)
-      const rank = { OVERDUE: 3, PENDING: 2, RECEIVED: 1 };
-      const worstByCustomer = {}; // customer_id -> codigo do pior status
-      for (const b of rows) {
-        const val = Number(b.value) || 0;
-        const st = b.status;
-        if (isRemovedStatus(st) || isNeutralStatus(st)) continue; // removidos/neutros nao contam
-        let bucketStatus = null;
-        if (isPaidStatus(st)) {
-          bucketStatus = 'RECEIVED';
-          if ((b.payment_date || '').slice(0, 7) === ymStr) { recebidoMes += val; nRecebidoMes++; }
-        } else {
-          // OPEN: vencido se due_date < hoje, senao pendente
-          const venc = (b.due_date || '') && (b.due_date < todayStr);
-          if (venc) { bucketStatus = 'OVERDUE'; vencido += val; nVencido++; }
-          else { bucketStatus = 'PENDING'; emAberto += val; nEmAberto++; }
-        }
-        if (bucketStatus && b.customer_id) {
-          const prev = worstByCustomer[b.customer_id];
-          if (!prev || rank[bucketStatus] > rank[prev]) worstByCustomer[b.customer_id] = bucketStatus;
-        }
-      }
-      setBoletoAgg({ recebidoMes, emAberto, vencido, nRecebidoMes, nEmAberto, nVencido, statusByCustomer: worstByCustomer });
+      // (auditoria 01/08/2026 — item 175, mesma falha do painel de Boletos) AQUI ficava
+      // a busca em lotes de 80 clientes que baixava ~2.114 boletos para calcular seis
+      // numeros e o pior status de cada um dos 177 clientes. A RPC devolve os 177 em uma
+      // requisicao. `asaas_agregado_clientes` e a traducao fiel do que rodava aqui —
+      // conferida contra a conta antiga antes da troca (recebido no mes, em aberto e
+      // vencido identicos; 1.996 linhas viraram 167).
+      const { data: agg, error } = await supabase.rpc('asaas_agregado_clientes', { p_cids: custIds });
+      if (error) throw error;
+      const t = agg?.totais || {};
+      setBoletoAgg({
+        recebidoMes: Number(t.recebidoMes) || 0,
+        emAberto: Number(t.emAberto) || 0,
+        vencido: Number(t.vencido) || 0,
+        nRecebidoMes: Number(t.nRecebidoMes) || 0,
+        nEmAberto: Number(t.nEmAberto) || 0,
+        nVencido: Number(t.nVencido) || 0,
+        statusByCustomer: agg?.porCliente || {},
+      });
       const { data: state } = await supabase.from('asaas_sync_state')
         .select('value').eq('key', 'boletos_last_sync').maybeSingle();
       setBoletoSync(state?.value || new Date().toISOString());
