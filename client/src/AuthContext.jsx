@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from './lib/supabase';
+import { limparCacheAba } from './utils/cacheAba';
 
 const AuthContext = createContext(null);
 
@@ -122,6 +123,10 @@ export function AuthProvider({ children }) {
     try {
       await supabase.auth.signOut();
     } catch { /* best-effort */ }
+    // (auditoria 01/08/2026 — item 188) O cache de aba guarda carteira, boletos e
+    // clientes: CPF e valor de cobranca em memoria. Nao pode sobreviver a troca de
+    // usuario na mesma aba do navegador.
+    limparCacheAba();
     setUser(null);
   }, []);
 

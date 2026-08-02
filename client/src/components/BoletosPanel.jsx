@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { friendlyError } from '../utils/friendlyError';
 import { ymLocal, ymdLocal } from '../utils/format';
 import { fetchAllPaged } from '../utils/supabasePaged';
+import { cacheFresco, gravarCacheAba } from '../utils/cacheAba';
 import { SkeletonBoletos } from './Skeleton';
 import ErrorState from './ErrorState';
 import RelatorioBoletosModal from './RelatorioBoletosModal';
@@ -771,6 +772,9 @@ function ClientDetails({ clientName, boletos, compact, onCopyPix, onOpenNF, onPr
 // condicionado a customers.length===0, entao nao pisca ao mostrar o cache.
 let _cachedBoletosCustomers = null;
 let _cachedBoletosRaw = null;
+// (item 188) chave da validade compartilhada — o carimbo de hora vive em cacheAba.js,
+// fora do ciclo de vida do React, para sobreviver a desmontagem da aba.
+const CACHE_BOLETOS = 'boletos:lista';
 
 export default function BoletosPanel({ userEmail = '' }) {
   const [customers, setCustomers] = useState(() => {
@@ -833,11 +837,13 @@ export default function BoletosPanel({ userEmail = '' }) {
 
   // (QW#5) marca a hora do ultimo fetch p/ throttlar o refetch ao voltar a aba
   const lastFetchRef = useRef(0);
+  const loadErrorRef = useRef(false); // (item 188) carga que falhou nao carimba validade
 
   // Fetch customers (paginado) + stats agregadas
   const fetchData = useCallback(async () => {
     setLoading(true);
     setLoadError('');
+    loadErrorRef.current = false;
     const PAGE = 1000;
     try {
       // Customers
@@ -881,8 +887,15 @@ export default function BoletosPanel({ userEmail = '' }) {
     } catch {
       // (#100) Mensagem generica + ErrorState inline
       setLoadError('Erro ao carregar dados de cobrancas');
+      loadErrorRef.current = true;
     }
-    finally { setLoading(false); lastFetchRef.current = Date.now(); }
+    finally {
+      setLoading(false);
+      lastFetchRef.current = Date.now();
+      // (item 188) so carimba a validade se a carga deu certo; erro nao pode
+      // "congelar" a tela com o que sobrou da tentativa anterior
+      if (!loadErrorRef.current) gravarCacheAba(CACHE_BOLETOS, true);
+    }
   }, []);
 
   // Stats derivados de rawBoletos + filtro de datas. Reativo a dueFrom/dueTo.
@@ -968,7 +981,16 @@ export default function BoletosPanel({ userEmail = '' }) {
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [fetchData]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // (auditoria 01/08/2026 — item 188) Esta aba pagina ~11 mil boletos e ~1,3 mil
+  // clientes. Antes a carga disparava em TODA montagem, e trocar de aba desmonta o
+  // painel: ir ao Dashboard e voltar cinco segundos depois refazia tudo. O cache em
+  // memoria daqui ja evitava o skeleton, mas nao a rede — o `lastFetchRef` que
+  // limitaria isso e um useRef, que zera junto com o componente. Agora o carimbo de
+  // hora vive fora do React (utils/cacheAba.js): dentro de 5 minutos, nao consulta.
+  useEffect(() => {
+    if (cacheFresco(CACHE_BOLETOS) && _cachedBoletosRaw) { setLoading(false); return; }
+    fetchData();
+  }, [fetchData]);
 
   // Trigger manual sync em blocos (customers + boletos)
   const manualSync = async () => {

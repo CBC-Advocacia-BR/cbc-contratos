@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { cacheFresco, gravarCacheAba } from '../utils/cacheAba';
 import { useAuth } from '../AuthContext';
 import { ymdLocal } from '../utils/format';
 import { usePersistedFilter } from '../hooks/usePersistedFilters';
@@ -418,10 +419,19 @@ export default function VendasPanel() {
   // (admin-override) admin sem vendedora selecionada tambem carrega (visao consolidada)
   useEffect(() => {
     if (vendedoraEmail || isAdmin) {
+      // (auditoria 01/08/2026 — item 188) Trocar de aba desmonta o painel, entao voltar
+      // aqui refazia as 4 consultas do zero. As tres de apoio (leads, promocoes, regras)
+      // mudam raramente e sao as mais desnecessarias de repetir; a carteira em si segue
+      // recarregando sempre, porque e o que o vendedor esta acompanhando. A chave leva o
+      // e-mail: trocar de vendedora nunca reaproveita a carteira de outra pessoa.
       fetchContratos();
-      fetchLeads();
-      fetchPromocoes();
-      fetchRegras();
+      const chave = `vendas:apoio:${vendedoraEmail || 'consolidado'}`;
+      if (!cacheFresco(chave)) {
+        fetchLeads();
+        fetchPromocoes();
+        fetchRegras();
+        gravarCacheAba(chave, true);
+      }
     }
   }, [vendedoraEmail, isAdmin, fetchContratos, fetchLeads, fetchPromocoes, fetchRegras]);
 
