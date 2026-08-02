@@ -256,7 +256,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const acionaveisHoje = useMemo(() => devs.filter((d) => d.elegivel).map((d) => digits(d.cpf)), [devs]);
   const selecionarHoje = useCallback(() => {
     setSel(new Set(acionaveisHoje));
-    flash(acionaveisHoje.length ? `🎯 ${acionaveisHoje.length} devedor(es) de hoje selecionados` : 'Nenhum devedor elegível hoje.');
+    flash(acionaveisHoje.length ? `🎯 ${acionaveisHoje.length} devedor(es) de hoje selecionados` : 'Nenhum devedor elegível hoje — todos já foram acionados recentemente ou estão fora da régua.');
   }, [acionaveisHoje, flash]);
 
   const copy = useCallback(async (txt, msg) => {

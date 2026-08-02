@@ -1,0 +1,37 @@
+-- ============================================================================
+-- supabase_bi_ltv_coorte.sql — APLICADO 02/08/2026 (auditoria — itens 250 e 252)
+-- Migracoes: `bi_ltv_cac_coorte` + `bi_coorte_pagamento_fix_soma`
+-- Ver a versao vigente:
+--   select pg_get_viewdef('public.vw_bi_ltv_cliente'::regclass, true);
+--   select pg_get_viewdef('public.vw_bi_coorte_pagamento'::regclass, true);
+-- ============================================================================
+--
+-- Dois numeros que o sistema TINHA como responder e nunca respondeu — o dado sempre
+-- esteve la, faltava a conta. Base: 12.921 boletos, 9.490 pagos, R$ 3,05 milhoes
+-- recebidos de 1.333 clientes, sem nenhuma visao por pessoa nem por safra.
+--
+-- ── 250 · vw_bi_ltv_cliente ────────────────────────────────────────────────────
+-- Quanto cada cliente JA PAGOU (nao o que foi contratado), quanto ainda deve, quantas
+-- parcelas venceram e ha quantos meses paga. MEDIDO em 02/08: 1.316 clientes,
+-- R$ 3.046.748 recebidos, R$ 916.708 a receber, LTV mediano R$ 2.500, 809 clientes
+-- quitaram tudo, 60 com parcela vencida.
+--
+-- ── 252 · vw_bi_coorte_pagamento ───────────────────────────────────────────────
+-- "Da safra que assinou em julho, quanto entrou em 30/60/90 dias?" MEDIDO:
+--   07/26 · 54 contratos · R$ 180.160 contratado · 3,2% em 30d
+--   06/26 · 36 contratos · R$ 116.100 · 7,8% em 30d · 11,5% em 90d
+--   05/26 · 24 contratos · R$  75.800 · 8,9% em 30d · 21,7% em 90d
+--   04/26 · 45 contratos · R$ 135.750 · 6,7% em 30d · 21,4% em 90d · 24,6% total
+-- (percentuais baixos sao esperados: o honorario e parcelado em 10-12 vezes)
+--
+-- 🐛 ERRO QUE EU COMETI E CORRIGI NA HORA: a 1a versao usava
+-- `sum(distinct honorarios_total)` para escapar da multiplicacao causada pelo join com
+-- os boletos. Isso COLAPSA contratos de mesmo valor: julho apareceu com R$ 20.260 em
+-- vez de R$ 180.160. O certo e agregar os DOIS lados separadamente (contratado por
+-- safra de um lado, recebido por safra do outro) e so entao juntar.
+--
+-- ⚠️ ARMADILHA DO POSTGRES: subtrair duas colunas `date` devolve INTEIRO (dias), nao
+-- intervalo — `extract(epoch from ...)` quebra. A conta de meses divide os dias por 30.
+--
+-- ⚠️ A ligacao contrato <-> cadastro do Asaas e pelo CPF so-digitos: e a unica chave que
+-- casa de verdade entre os dois lados (o id do Asaas nao vive no contrato).

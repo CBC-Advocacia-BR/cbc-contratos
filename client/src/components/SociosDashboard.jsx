@@ -637,7 +637,10 @@ function ComissoesMensaisWidget() {
             <SectionHeader Icon={UsersIcon} title="Detalhe por dupla (vendedora + assistente)" subtitle="Clique em detalhes para ver contratos" />
             {comissoes.length === 0 ? (
               <div className="text-center py-6 text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
-                {tableMissing ? 'O modulo de comissoes ainda nao foi ativado.' : 'Nenhuma comissao calculada neste periodo.'}
+                {/* (item 295) o vazio diz o que fazer, nao so que esta vazio */}
+                {tableMissing
+                  ? 'O módulo de comissões ainda não foi ativado neste sistema. Fale com o Paulo para ligar.'
+                  : 'Nenhuma comissão calculada neste período. O cálculo roda no dia 20 — ou escolha outro mês acima.'}
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../Toast';
 import ConfirmDestructive from '../ConfirmDestructive';
+import { friendlyError } from '../../utils/friendlyError';
 import {
   ChatBubbleLeftEllipsisIcon,
   PaperAirplaneIcon,
@@ -105,7 +106,13 @@ export default function ContractComments({ contratoId, currentUserEmail, current
       // Realtime trara o novo registro; nao precisa reload
       toast.success('Comentario adicionado');
     } catch (err) {
-      toast.error('Falha ao comentar: ' + err.message);
+      console.error('[ContractComments] comentar:', err);
+      // (auditoria 01/08/2026 — item 268) O texto continua no campo (nao limpamos em
+      // caso de erro), entao "Tentar de novo" reenvia exatamente o mesmo comentario —
+      // sem obrigar a pessoa a redigitar o que ja escreveu.
+      toast.error('Falha ao comentar: ' + friendlyError(err), {
+        action: { label: 'Tentar de novo', onClick: () => handleSubmit() },
+      });
     } finally {
       setPosting(false);
     }
@@ -124,7 +131,8 @@ export default function ContractComments({ contratoId, currentUserEmail, current
       setEditing(null);
       toast.success('Comentario atualizado');
     } catch (err) {
-      toast.error('Falha ao editar: ' + err.message);
+      console.error('[ContractComments] editar:', err);
+      toast.error('Falha ao editar: ' + friendlyError(err));
     }
   };
 

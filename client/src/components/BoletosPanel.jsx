@@ -1472,7 +1472,12 @@ export default function BoletosPanel({ userEmail = '' }) {
           </div>
         ) : filteredCustomers.length === 0 ? (
           <div className="text-center text-gray-400 text-sm py-12">
-            {debouncedSearch ? 'Nenhum cliente encontrado para a busca.' : 'Nenhum cliente sincronizado. Clique em "Sync Asaas".'}
+            {/* (auditoria 01/08/2026 — item 295) Estado vazio que so diz "nao ha nada" deixa a
+              pessoa parada: ela nao sabe se e problema, se e o filtro, ou o que fazer.
+              Cada um destes agora termina com o PROXIMO PASSO. */}
+            {debouncedSearch
+              ? `Nenhum cliente encontrado para "${debouncedSearch}". Confira a grafia ou tente pelo CPF.`
+              : 'Nenhum cliente sincronizado ainda. Use o botao "Sync Asaas" acima para trazer os cadastros.'}
           </div>
         ) : (
           // (perf-fe-11) Mantido o .map (sem react-window) DE PROPOSITO. Diferente da aba

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useModalEscape } from '../hooks/useModalEscape';
+import { friendlyError } from '../utils/friendlyError';
 
 const PRESETS = [
   { label: 'Em 1 hora',     hours: 1 },
@@ -60,7 +61,11 @@ export default function ReminderModal({ contratoId, contratoNome, userEmail, onC
       toast.success(`Lembrete agendado para ${when}`);
       onClose();
     } catch (err) {
-      toast.error('Falha ao agendar: ' + err.message);
+      console.error('[ReminderModal]', err);
+      // (item 265/268) mensagem em portugues + a chance de re-tentar sem refazer o formulario
+      toast.error('Falha ao agendar: ' + friendlyError(err), {
+        action: { label: 'Tentar de novo', onClick: () => handleSave() },
+      });
     } finally {
       setSaving(false);
     }

@@ -132,7 +132,7 @@ export default function RelatorioBoletosModal({ open, onClose }) {
     try {
       if (f.tipo === 'inadimplencia') { await gerarInadimplencia(tipo); setBusy(''); return; }
       const rows = await buscar();
-      if (!rows.length) { setErro('Nenhum boleto encontrado com esses filtros.'); setBusy(''); return; }
+      if (!rows.length) { setErro('Nenhum boleto encontrado com esses filtros. Amplie o período ou tire o filtro de status e tente de novo.'); setBusy(''); return; }
       const total = rows.reduce((s, r) => s + r.valor, 0);
       const liquido = rows.reduce((s, r) => s + r.liquido, 0);
       const nome = `boletos_${f.ini || 'inicio'}_${f.fim || 'hoje'}`;

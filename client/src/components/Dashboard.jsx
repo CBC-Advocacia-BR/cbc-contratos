@@ -384,11 +384,24 @@ export default function Dashboard() {
       // (R7) inclui created_by; (R10) nome do arquivo leva o recorte exportado
       await exportContratosToExcel(rows, { periodoLabel: dash.scope.periodoLabel });
     } catch (err) {
-      toast.error('Erro ao exportar: ' + friendlyError(err));
+      console.error('[Dashboard] export:', err);
+      // (auditoria 01/08/2026 — item 268) O toast ja aceitava botao de acao e NENHUM
+      // `toast.error` do app usava. Quem caia numa falha de rede tinha de reencontrar
+      // sozinho o botao que disparou a operacao — numa tela que exige rolar ate o topo,
+      // reabrir o menu e refazer o filtro. Exportar e idempotente: re-tentar e seguro.
+      toast.error('Erro ao exportar: ' + friendlyError(err), {
+        action: { label: 'Tentar de novo', onClick: () => handleExportExcelRef.current?.() },
+      });
     } finally {
       setExporting(false);
     }
   }, [dash.idsFiltrados, dash.scope.periodoLabel, exporting, toast]);
+
+  // (item 268) ref para o botao "Tentar de novo" chamar a versao ATUAL da funcao — sem
+  // isto o callback congelaria a versao do render em que o erro aconteceu (mesmo defeito
+  // do item 194, o Ctrl+S que duplicava contrato).
+  const handleExportExcelRef = useRef(null);
+  useEffect(() => { handleExportExcelRef.current = handleExportExcel; }, [handleExportExcel]);
 
   // ─── Estados de carregamento / erro ───
   if (loading && allContratos.length === 0) return <SkeletonDashboard />;

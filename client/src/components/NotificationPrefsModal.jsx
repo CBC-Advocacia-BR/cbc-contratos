@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { Cog6ToothIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { friendlyError } from '../utils/friendlyError';
 
 const EVENTS = [
   { id: 'signature', label: 'Contrato assinado',       desc: 'Quando um cliente termina de assinar' },
@@ -62,7 +63,11 @@ export default function NotificationPrefsModal({ userEmail, onClose }) {
       toast.success('Preferencias salvas');
       onClose();
     } catch (err) {
-      toast.error('Falha ao salvar: ' + err.message);
+      console.error('[NotificationPrefsModal]', err);
+      // (item 265/268) mensagem em portugues + a chance de re-tentar sem refazer o formulario
+      toast.error('Falha ao salvar: ' + friendlyError(err), {
+        action: { label: 'Tentar de novo', onClick: () => handleSave() },
+      });
     } finally {
       setSaving(false);
     }
