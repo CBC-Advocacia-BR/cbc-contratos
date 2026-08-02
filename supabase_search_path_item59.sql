@@ -37,3 +37,45 @@ alter function public.fone_chave(text)                      set search_path = pu
 alter function public.portal_funil()                        set search_path = public, pg_temp;
 alter function public.portal_instituicao()                  set search_path = public, pg_temp;
 alter function public.trg_set_zapsign_sent_at()             set search_path = public, pg_temp;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Auditoria 01/08/2026 — item 106 (gravacao de status que se sobrescrevia)
+-- Aplicado em 02/08/2026 (migracao bot_config_merge_atomico_item106)
+-- ═══════════════════════════════════════════════════════════════════════════
+-- `setBackfillStatus` LIA, mesclava em JavaScript e REGRAVAVA. Entre a leitura e a
+-- gravacao cabe outra escrita: worker e watchdog gravando juntos faziam o "onde parei"
+-- voltar atras, e o backfill reprocessava (ou pulava) um trecho sem ninguem perceber.
+-- Achado no caminho: DUAS functions gravam a MESMA chave `kommo` (kommo-assinatura-send
+-- e kommo-asaas-sync), entao uma apagava a descoberta da outra — inclusive o bot_id e o
+-- field_id de que o envio do link de assinatura por WhatsApp depende.
+-- Provado no banco: duas escritas concorrentes que antes se atropelariam agora resultam
+-- em {"fase":"andamentos","cursor":10,"heartbeat":"ok"} — as duas sobrevivem.
+create or replace function public.bot_config_merge(
+  p_chave text, p_key text, p_patch jsonb
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare v_valor jsonb;
+begin
+  if not public._bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
+  if p_key is null or p_patch is null or jsonb_typeof(p_patch) <> 'object' then
+    raise exception 'parametros invalidos';
+  end if;
+  insert into public.bot_config (key, value, updated_at)
+  values (p_key, p_patch, now())
+  on conflict (key) do update
+    set value = coalesce(public.bot_config.value, '{}'::jsonb) || excluded.value,
+        updated_at = now()
+  returning value into v_valor;
+  return v_valor;
+end;
+$$;
+
+comment on function public.bot_config_merge(text, text, jsonb) is
+  'Item 106 — mescla atomica de um pedaco de configuracao/estado em bot_config. Substitui '
+  'o padrao ler-mesclar-regravar do setBackfillStatus, em que duas escritas concorrentes '
+  '(worker e watchdog) faziam o cursor do backfill voltar atras em silencio.';
+
+revoke all on function public.bot_config_merge(text, text, jsonb) from public, anon;

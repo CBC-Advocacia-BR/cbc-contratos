@@ -12,7 +12,7 @@
  * Kill-switch: bot_config.kommo.assinatura.ativo (default false). Config incompleta
  * (sem Salesbot/campo) NAO consome o disparo unico — sai antes do lock.
  */
-import { db, getConfig, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { db, getConfig, logAdvbox, heartbeat, mergeConfig } from './_lib/botDb.mjs';
 import {
   kommoConfigured, kommoGet, kommoPost, findCustomFieldByName,
   enqueueKommo, drainNow, postNote, mainContactOfLead,
@@ -24,11 +24,18 @@ const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin'
 const json = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 
 // Cacheia field_id/bot_id descobertos em bot_config.kommo.assinatura (padrao kommo-asaas-sync).
+// (auditoria 01/08/2026 — item 106) DUAS functions gravam a chave `kommo`: esta e a
+// kommo-asaas-sync. Com ler-mesclar-regravar em JavaScript, quem gravasse por ultimo
+// apagava a descoberta da outra — o field_id do carne ou, pior, o bot_id e o field_id da
+// assinatura, que o envio do link por WhatsApp precisa para funcionar. O mergeConfig faz
+// a juncao dentro do banco, entao as chaves IRMAS sobrevivem sempre.
+// A leitura abaixo continua existindo porque a mescla do jsonb e rasa e `assinatura` e um
+// objeto aninhado: ela protege os campos DENTRO de assinatura; a atomicidade protege os
+// campos ao lado dela, que era onde estava a colisao real.
 async function salvarConfigAssinatura(patch) {
   const { data } = await db.from('bot_config').select('value').eq('key', 'kommo').maybeSingle();
-  const value = data?.value || {};
-  value.assinatura = { ...(value.assinatura || {}), ...patch };
-  await db.from('bot_config').upsert({ key: 'kommo', value, updated_at: new Date().toISOString() });
+  const atual = data?.value?.assinatura || {};
+  await mergeConfig('kommo', { assinatura: { ...atual, ...patch } });
 }
 
 // Campo "CBC Assinatura" no lead: config -> busca por nome -> cria (textarea).

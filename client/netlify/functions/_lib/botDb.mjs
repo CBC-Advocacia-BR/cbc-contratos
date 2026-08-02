@@ -255,11 +255,39 @@ export async function getBackfillStatus() {
   const { data } = await db.from('bot_config').select('value').eq('key', 'backfill_status').maybeSingle();
   return data?.value || null;
 }
-export async function setBackfillStatus(patch) {
-  const cur = (await getBackfillStatus()) || {};
-  const value = { ...cur, ...patch, updated_at: new Date().toISOString() };
-  await db.from('bot_config').upsert({ key: 'backfill_status', value, updated_at: new Date().toISOString() });
+/**
+ * (auditoria 01/08/2026 — item 106) Mescla um pedaco do estado em bot_config.
+ *
+ * ANTES isto era ler + mesclar em JavaScript + regravar, e entre a leitura e a gravacao
+ * cabia outra escrita: quando o worker do backfill e o watchdog gravavam ao mesmo tempo,
+ * o segundo escrevia por cima do primeiro e o "onde parei" VOLTAVA ATRAS — o backfill
+ * reprocessava (ou pulava) um trecho sem ninguem perceber.
+ *
+ * Agora a mescla acontece dentro do banco, numa instrucao so, sob o bloqueio de linha do
+ * UPDATE: duas gravacoes concorrentes se enfileiram e as duas sobrevivem.
+ *
+ * Sem BOT_RPC_SECRET no ambiente, cai no caminho antigo — degradar e melhor do que parar
+ * de gravar estado, e o caminho antigo e o que sempre existiu.
+ */
+export async function mergeConfig(key, patch) {
+  const corpo = { ...patch, updated_at: new Date().toISOString() };
+  if (process.env.BOT_RPC_SECRET) {
+    const { data, error } = await db.rpc('bot_config_merge', {
+      p_chave: process.env.BOT_RPC_SECRET,
+      p_key: key,
+      p_patch: corpo,
+    });
+    if (!error) return data;
+  }
+  // caminho antigo (sem o segredo): sujeito a corrida, mas melhor do que nao gravar
+  const { data: cur } = await db.from('bot_config').select('value').eq('key', key).maybeSingle();
+  const value = { ...(cur?.value || {}), ...corpo };
+  await db.from('bot_config').upsert({ key, value, updated_at: new Date().toISOString() });
   return value;
+}
+
+export async function setBackfillStatus(patch) {
+  return mergeConfig('backfill_status', patch);
 }
 
 export async function markNotePosted(kind, itemKey, leadId) {

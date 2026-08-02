@@ -17,7 +17,7 @@
  *  - POST { leadId }          -> escopa a um lead
  * Auth (exceto scheduled): body.key | header x-bot-key === BOT_PANEL_KEY
  */
-import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat, mergeConfig } from './_lib/botDb.mjs';
 import {
   kommoConfigured, findCustomFieldByName, getEntity, extractFieldValue,
   mainContactOfLead, extrairLeadId, extrairHostKommo,
@@ -39,8 +39,12 @@ async function resolveAsaasField() {
   }
   const found = await findCustomFieldByName('Asaas');
   if (!found) return { fieldId: null, entity: null, missing: true };
-  const novo = { ...cfg, field_id_asaas: found.field_id, asaas_entity: found.entity, asaas_field_name: found.name, asaas_field_type: found.type };
-  await db.from('bot_config').upsert({ key: 'kommo', value: novo, updated_at: new Date().toISOString() });
+  // (item 106) mescla atomica: a kommo-assinatura-send grava a MESMA chave `kommo` e,
+  // com ler-mesclar-regravar, uma apagava a descoberta da outra.
+  await mergeConfig('kommo', {
+    field_id_asaas: found.field_id, asaas_entity: found.entity,
+    asaas_field_name: found.name, asaas_field_type: found.type,
+  });
   return { fieldId: Number(found.field_id), entity: found.entity, discovered: true, fieldName: found.name, fieldType: found.type };
 }
 

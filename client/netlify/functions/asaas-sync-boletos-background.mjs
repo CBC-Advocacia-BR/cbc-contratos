@@ -13,20 +13,18 @@
  * advbox_api_log origem 'asaas' (aparece no Monitor ADVBOX).
  */
 import { STATUSES, processBlock, nextBlock, reconcileStaleOpen, mirrorState } from './_lib/asaasMirror.mjs';
-import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat, mergeConfig } from './_lib/botDb.mjs';
 
 const TIME_BUDGET_MS = 11.5 * 60 * 1000;
 const BASE_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 const SELF = `${BASE_URL}/.netlify/functions/asaas-sync-boletos-background`;
 
+// (auditoria 01/08/2026 — item 106) Era ler-mesclar-regravar: entre a leitura e a
+// gravacao cabia outra escrita, e o cursor do sync podia voltar atras em silencio. A
+// mescla passou para dentro do banco (mergeConfig), sob o bloqueio de linha.
 async function setStatus(patch) {
   try {
-    const { data } = await db.from('bot_config').select('value').eq('key', 'asaas_sync_status').maybeSingle();
-    await db.from('bot_config').upsert({
-      key: 'asaas_sync_status',
-      value: { ...(data?.value || {}), ...patch },
-      updated_at: new Date().toISOString(),
-    });
+    await mergeConfig('asaas_sync_status', patch);
   } catch { /* status nao e critico */ }
 }
 
