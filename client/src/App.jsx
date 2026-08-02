@@ -1507,9 +1507,14 @@ function AppContent() {
         </div>
       </header>
 
-      {/* Tabs — hidden em mobile small + tablet portrait (substituido por dock flutuante) */}
+      {/* Tabs — hidden em mobile small + tablet portrait (substituido por dock flutuante).
+          (auditoria 01/08/2026 — item 281) `backgroundColor` em vez de `background`: o
+          atalho `background` zera o `background-image`, e e nele que mora o indicador de
+          "tem mais aba para o lado" definido no index.css. Mesma armadilha dos itens
+          290/292 — estilo inline vence o CSS e apaga o que a classe fez.
+          A cor vai tambem numa variavel, para a sombra nascer e sumir na cor do tema. */}
       {!dockVisible && (
-        <div style={{ background: tabBg }} className="cbc-toptabs flex shrink-0 overflow-x-auto scrollbar-hide">
+        <div style={{ backgroundColor: tabBg, '--cbc-tabbar-bg': tabBg }} className="cbc-toptabs flex shrink-0 overflow-x-auto scrollbar-hide">
           {/* (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios */}
           {/* (mobile 06/2026) filtro extraído p/ tabAllowed — compartilhado com o sheet mobile */}
           {allowedTabKeys.map((tab, idx) => {

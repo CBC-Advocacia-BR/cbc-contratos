@@ -1511,14 +1511,14 @@ export default function AsaasPanel() {
           <table className="w-full text-[11px] max-sm:min-w-[820px]">
             <thead className="sticky top-0 bg-white border-b border-gray-200">
               <tr className="text-left text-gray-500 font-bold uppercase text-[9px]">
-                <th className="px-3 py-2">Cliente</th>
-                <th className="px-2">CPF</th>
-                <th className="px-2">Resort</th>
-                <th className="px-2 text-right">Valor</th>
-                <th className="px-2">Excluído em</th>
-                <th className="px-2">Por</th>
-                <th className="px-2">Motivo</th>
-                <th className="px-2 text-center">Ação</th>
+                <th scope="col" className="px-3 py-2">Cliente</th>
+                <th scope="col" className="px-2">CPF</th>
+                <th scope="col" className="px-2">Resort</th>
+                <th scope="col" className="px-2 text-right">Valor</th>
+                <th scope="col" className="px-2">Excluído em</th>
+                <th scope="col" className="px-2">Por</th>
+                <th scope="col" className="px-2">Motivo</th>
+                <th scope="col" className="px-2 text-center">Ação</th>
               </tr>
             </thead>
             <tbody>

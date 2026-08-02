@@ -95,7 +95,7 @@ export default function BotGlossario() {
       <div className="card overflow-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-[11px] uppercase opacity-60 border-b">
-            <th className="p-2">Termo</th><th className="p-2">Tipo</th><th className="p-2">Tradução</th><th className="p-2">Prior.</th><th className="p-2"></th>
+            <th scope="col" className="p-2">Termo</th><th scope="col" className="p-2">Tipo</th><th scope="col" className="p-2">Tradução</th><th scope="col" className="p-2">Prior.</th><th scope="col" className="p-2"></th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {rows.filter(r => r.active).map(r => (

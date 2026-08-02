@@ -12,7 +12,7 @@ const KIND_LABEL = { movement: '⚖️ Andamento', task_created: '📋 Tarefa cr
 function Th({ col, sort, onSort, children }) {
   const arrow = sort.col === col ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
   return (
-    <th className="p-2 cursor-pointer select-none hover:opacity-100" onClick={() => onSort(col)} title="Clique para ordenar">
+    <th scope="col" className="p-2 cursor-pointer select-none hover:opacity-100" onClick={() => onSort(col)} title="Clique para ordenar">
       {children}{arrow}
     </th>
   );
@@ -136,7 +136,7 @@ export default function BotNovidades() {
               <Th col="event_date" sort={sort} onSort={toggleSort}>Data</Th>
               <Th col="processo" sort={sort} onSort={toggleSort}>Processo / Cliente</Th>
               <Th col="title" sort={sort} onSort={toggleSort}>Detalhe</Th>
-              <th className="p-2">Kommo</th><th className="p-2 text-right">Ações</th>
+              <th scope="col" className="p-2">Kommo</th><th scope="col" className="p-2 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">

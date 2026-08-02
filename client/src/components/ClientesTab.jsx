@@ -284,14 +284,14 @@ export default function ClientesTab({ isAdmin = false, userEmail = '' }) {
         <div className="card">
           <table>
             <thead><tr>
-              {isAdmin && <th style={{ width: 30 }}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="selecionar todos" /></th>}
-              <th>Nome</th><th>CPF / CNPJ</th><th>Tipo</th><th>Telefone</th>
-              <th className="sortable" onClick={() => onSort('idade')}>Idade{seta('idade')}</th>
-              <th className="sortable" onClick={() => onSort('cidade')}>Cidade/UF{seta('cidade')}</th>
-              <th>Pasta</th>
-              <th>Presença</th>
-              <th className="sortable" onClick={() => onSort('atualizado')}>Atualizado{seta('atualizado')}</th>
-              <th>Ações</th>
+              {isAdmin && <th scope="col" style={{ width: 30 }}><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="selecionar todos" /></th>}
+              <th scope="col">Nome</th><th scope="col">CPF / CNPJ</th><th scope="col">Tipo</th><th scope="col">Telefone</th>
+              <th scope="col" className="sortable" onClick={() => onSort('idade')}>Idade{seta('idade')}</th>
+              <th scope="col" className="sortable" onClick={() => onSort('cidade')}>Cidade/UF{seta('cidade')}</th>
+              <th scope="col">Pasta</th>
+              <th scope="col">Presença</th>
+              <th scope="col" className="sortable" onClick={() => onSort('atualizado')}>Atualizado{seta('atualizado')}</th>
+              <th scope="col">Ações</th>
             </tr></thead>
             <tbody>
               {visiveis.map((r) => (

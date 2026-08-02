@@ -645,17 +645,17 @@ function ComissoesMensaisWidget() {
                 <table className="w-full text-[11px] max-sm:min-w-[820px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Dupla</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contr.</th>
-                      <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Inic.</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Êxito</th>
-                      <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bonus 100?</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vend. 70%</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assist. 30%</th>
-                      <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ações</th>
+                      <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Dupla</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contr.</th>
+                      <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Inic.</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Sub. Êxito</th>
+                      <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bonus 100?</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vend. 70%</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assist. 30%</th>
+                      <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -791,15 +791,15 @@ function ComissaoDetalhesModal({ comissao, onClose }) {
           <table className="w-full text-[11px] max-sm:min-w-[700px]">
             <thead>
               <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
-                <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
-                <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo</th>
-                <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Comissão</th>
-                <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
-                <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>FDS</th>
-                <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Base</th>
-                <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Peso</th>
-                <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Final</th>
+                <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
+                <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
+                <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo</th>
+                <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Comissão</th>
+                <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Faixa</th>
+                <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>FDS</th>
+                <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Base</th>
+                <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Peso</th>
+                <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Final</th>
               </tr>
             </thead>
             <tbody>
@@ -1076,11 +1076,11 @@ function DuplaDrillDownModal({ comissao, onClose }) {
                 <table className="w-full text-[11px] max-sm:min-w-[480px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Período</th>
-                      <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contratos</th>
-                      <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
-                      <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vendedora</th>
-                      <th className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
+                      <th scope="col" className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Período</th>
+                      <th scope="col" className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Contratos</th>
+                      <th scope="col" className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Bruto</th>
+                      <th scope="col" className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vendedora</th>
+                      <th scope="col" className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1114,12 +1114,12 @@ function DuplaDrillDownModal({ comissao, onClose }) {
                 <table className="w-full text-[11px] max-sm:min-w-[520px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
-                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
-                      <th className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo</th>
-                      <th className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Honor.</th>
-                      <th className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
-                      <th className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>FDS</th>
+                      <th scope="col" className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
+                      <th scope="col" className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
+                      <th scope="col" className="text-left py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo</th>
+                      <th scope="col" className="text-right py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Honor.</th>
+                      <th scope="col" className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Status</th>
+                      <th scope="col" className="text-center py-1 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>FDS</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1294,11 +1294,11 @@ function ExpectativaHonorariosWidget() {
                 <table className="w-full text-[11px] max-sm:min-w-[640px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort \ Tipo</th>
+                      <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort \ Tipo</th>
                       {tiposLista.map(t => (
-                        <th key={t} className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>{t}</th>
+                        <th scope="col" key={t} className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>{t}</th>
                       ))}
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Total</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1425,13 +1425,13 @@ function MetasIndividuaisWidget() {
             <table className="w-full text-[11px] max-sm:min-w-[560px]">
               <thead>
                 <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                  <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vendedora</th>
-                  <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Meta #</th>
-                  <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Realiz. #</th>
-                  <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>% Atingido</th>
-                  <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Meta R$</th>
-                  <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Realiz. R$</th>
-                  <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>% R$</th>
+                  <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Vendedora</th>
+                  <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Meta #</th>
+                  <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Realiz. #</th>
+                  <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>% Atingido</th>
+                  <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Meta R$</th>
+                  <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Realiz. R$</th>
+                  <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>% R$</th>
                 </tr>
               </thead>
               <tbody>
@@ -1738,11 +1738,11 @@ export default function SociosDashboard() {
               <table className="w-full text-[11px] max-sm:min-w-[460px]">
                 <thead>
                   <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                    <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>#</th>
-                    <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
-                    <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
-                    <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Valor</th>
-                    <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Data</th>
+                    <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>#</th>
+                    <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Cliente</th>
+                    <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>
+                    <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Valor</th>
+                    <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Data</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1916,12 +1916,12 @@ export default function SociosDashboard() {
                 <table className="w-full text-[11px] max-sm:min-w-[540px]">
                   <thead>
                     <tr className="border-b" style={{ borderColor: 'var(--cbc-border)' }}>
-                      <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Advogado</th>
-                      <th className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Perfil</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Criados</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assinados</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Taxa</th>
-                      <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ticket Médio</th>
+                      <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Advogado</th>
+                      <th scope="col" className="text-center py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Perfil</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Criados</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Assinados</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Taxa</th>
+                      <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Ticket Médio</th>
                     </tr>
                   </thead>
                   <tbody>

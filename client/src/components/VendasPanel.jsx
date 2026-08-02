@@ -1016,27 +1016,27 @@ function PlanilhaView({ contratos, guias, promocoes, onUpdate, onOpenDrawer, sav
       <table className="text-[11px] w-full border-collapse" style={{ background: 'var(--cbc-surface, white)' }}>
         <thead className="sticky top-0 z-10">
           <tr style={{ background: COLORS.navy, color: 'white' }}>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Cliente</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Tel</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Chat</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Resort</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Pasta</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Origem</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">1 Contato</th>
-            <th className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Assin.</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Docs</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Tipo</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Protocolo</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">N Processo</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Guia</th>
-            <th className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Agenda</th>
-            <th className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">FDS</th>
-            <th className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Promo</th>
-            <th className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">Cota</th>
-            <th className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">Honor.</th>
-            <th className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">% Ex.</th>
-            <th className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Dia</th>
-            <th className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Com.</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Cliente</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Tel</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Chat</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Resort</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Pasta</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Origem</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">1 Contato</th>
+            <th scope="col" className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Assin.</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Docs</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Tipo</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Protocolo</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">N Processo</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Guia</th>
+            <th scope="col" className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Agenda</th>
+            <th scope="col" className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">FDS</th>
+            <th scope="col" className="px-2 py-2 text-left font-bold uppercase tracking-wider text-[9px]">Promo</th>
+            <th scope="col" className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">Cota</th>
+            <th scope="col" className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">Honor.</th>
+            <th scope="col" className="px-2 py-2 text-right font-bold uppercase tracking-wider text-[9px]">% Ex.</th>
+            <th scope="col" className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Dia</th>
+            <th scope="col" className="px-2 py-2 text-center font-bold uppercase tracking-wider text-[9px]">Com.</th>
           </tr>
         </thead>
         <tbody>

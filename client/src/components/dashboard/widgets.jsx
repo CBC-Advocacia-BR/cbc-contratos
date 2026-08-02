@@ -804,10 +804,10 @@ function MonthComparatorBase({ comparador, delay = 0 }) {
       <table className="w-full text-xs">
         <thead>
           <tr style={{ borderBottom: '1px solid var(--cbc-border)' }}>
-            <th className="text-left py-2 pr-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Métrica</th>
-            <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-muted)' }}>{labelOf(mesAEf)}</th>
-            <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-primary)' }}>{labelOf(mesBEf)}</th>
-            <th className="text-right py-2 pl-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Δ</th>
+            <th scope="col" className="text-left py-2 pr-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Métrica</th>
+            <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-muted)' }}>{labelOf(mesAEf)}</th>
+            <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-primary)' }}>{labelOf(mesBEf)}</th>
+            <th scope="col" className="text-right py-2 pl-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Δ</th>
           </tr>
         </thead>
         <tbody>
@@ -1381,10 +1381,10 @@ function DistribuicaoCardBase({ casos, delay = 0 }) {
               <table className="w-full text-[11px]">
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--cbc-border)' }}>
-                    {!resortFilter && <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>}
-                    <th className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo de ação</th>
-                    <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Média</th>
-                    <th className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Qtd</th>
+                    {!resortFilter && <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Resort</th>}
+                    <th scope="col" className="text-left py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Tipo de ação</th>
+                    <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Média</th>
+                    <th scope="col" className="text-right py-2 px-2 font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>Qtd</th>
                   </tr>
                 </thead>
                 <tbody>

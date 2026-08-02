@@ -304,17 +304,17 @@ export default function AdminPanel() {
             <table className="w-full text-sm max-lg:min-w-[900px]">
               <thead style={{ background: 'var(--cbc-bg-elevated, #F9FAFB)', borderBottom: '1px solid var(--cbc-border, #F3F4F6)' }}>
                 <tr>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold uppercase sticky left-0 z-20 cbc-sticky-col" style={{ color: 'var(--cbc-text-muted, #6B7280)', background: 'var(--cbc-bg-elevated, #F9FAFB)' }}>Usuário</th>
+                  <th scope="col" className="text-left px-4 py-3 text-[11px] font-bold uppercase sticky left-0 z-20 cbc-sticky-col" style={{ color: 'var(--cbc-text-muted, #6B7280)', background: 'var(--cbc-bg-elevated, #F9FAFB)' }}>Usuário</th>
                   {TAB_LIST.map(t => {
                     const TIcon = t.Icon;
                     return (
-                      <th key={t.key} className="text-center px-2 py-3 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+                      <th scope="col" key={t.key} className="text-center px-2 py-3 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
                         <TIcon className="w-4 h-4 mx-auto mb-0.5" aria-hidden="true" />
                         <div>{t.label}</div>
                       </th>
                     );
                   })}
-                  <th className="text-center px-3 py-3 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>Cargo</th>
+                  <th scope="col" className="text-center px-3 py-3 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>Cargo</th>
                 </tr>
               </thead>
               <tbody>

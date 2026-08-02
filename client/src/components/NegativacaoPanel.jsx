@@ -246,9 +246,9 @@ export default function NegativacaoPanel({ userEmail = '' }) {
               </div>
               <table className="w-full text-[13px]">
                 <thead><tr style={{ color: 'var(--cbc-text-muted,#5E6675)' }} className="text-[10px] uppercase tracking-wide">
-                  <th className="text-left px-4 py-2 w-8"></th><th className="text-left px-2 py-2">Cliente</th>
-                  <th className="text-left px-2 py-2">Atraso</th><th className="text-right px-2 py-2">Negativa · total</th>
-                  <th className="text-left px-2 py-2">Situação</th><th className="px-2 py-2"></th>
+                  <th scope="col" className="text-left px-4 py-2 w-8"></th><th scope="col" className="text-left px-2 py-2">Cliente</th>
+                  <th scope="col" className="text-left px-2 py-2">Atraso</th><th scope="col" className="text-right px-2 py-2">Negativa · total</th>
+                  <th scope="col" className="text-left px-2 py-2">Situação</th><th scope="col" className="px-2 py-2"></th>
                 </tr></thead>
                 <tbody>
                   {visiveis.map((c) => {

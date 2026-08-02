@@ -82,12 +82,12 @@ export default function PontualidadePanel() {
             <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ color: 'var(--cbc-text-soft, #64748b)', textAlign: 'left' }}>
-                  <th className="py-1.5 pr-3 font-bold uppercase text-[10px]">Vendedor</th>
-                  <th className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Pontualidade</th>
-                  <th className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Atrasos</th>
-                  <th className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Mediano</th>
-                  <th className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Pior</th>
-                  <th className="py-1.5 pl-2 font-bold uppercase text-[10px] text-center">Não veio</th>
+                  <th scope="col" className="py-1.5 pr-3 font-bold uppercase text-[10px]">Vendedor</th>
+                  <th scope="col" className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Pontualidade</th>
+                  <th scope="col" className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Atrasos</th>
+                  <th scope="col" className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Mediano</th>
+                  <th scope="col" className="py-1.5 px-2 font-bold uppercase text-[10px] text-center">Pior</th>
+                  <th scope="col" className="py-1.5 pl-2 font-bold uppercase text-[10px] text-center">Não veio</th>
                 </tr>
               </thead>
               <tbody>

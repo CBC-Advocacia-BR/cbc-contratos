@@ -492,7 +492,7 @@ export default function TrafegoPanel() {
         <p style="font-size:10.5pt; line-height:1.6;">${resumo}</p>
         <h2 style="font-size:12pt; margin:14px 0 6px;">Campanhas (captação)</h2>
         <table style="width:100%; border-collapse:collapse; font-size:9.5pt;">
-          <tr style="background:#F2F4F8;">${['Campanha', 'Gasto', 'Leads', 'CPL', 'CTR'].map((h) => `<th style="border:1px solid #E2E8F0; padding:5px 8px; text-align:left;">${h}</th>`).join('')}</tr>
+          <tr style="background:#F2F4F8;">${['Campanha', 'Gasto', 'Leads', 'CPL', 'CTR'].map((h) => `<th scope="col" style="border:1px solid #E2E8F0; padding:5px 8px; text-align:left;">${h}</th>`).join('')}</tr>
           ${t.campanhas.filter((c) => !c.rh && c.gasto > 0).slice(0, 12).map((c) => `<tr>${[c.nome, fmtBRL(c.gasto), fmtInt(c.leads), fmtBRL(c.cpl, 2), fmtPct(c.ctr, 2)].map((v, i) => `<td style="border:1px solid #E2E8F0; padding:4px 8px; ${i > 0 ? 'text-align:right;' : ''}">${v}</td>`).join('')}</tr>`).join('')}
         </table>
         ${recs.length ? `<h2 style="font-size:12pt; margin:14px 0 6px;">Recomendações</h2><ul style="font-size:10pt; line-height:1.5;">${recs.slice(0, 6).map((r) => `<li>${r.texto}</li>`).join('')}</ul>` : ''}
@@ -714,15 +714,30 @@ export default function TrafegoPanel() {
             <table className="w-full text-[12px]" style={{ minWidth: 900 }}>
               <thead>
                 <tr className="text-left text-[9.5px] uppercase tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
-                  {podeOperar && <th className="pl-4 py-2 w-8"><span className="sr-only">Selecionar</span></th>}
+                  {podeOperar && <th scope="col" className="pl-4 py-2 w-8"><span className="sr-only">Selecionar</span></th>}
                   {COLS_CAMPANHA.map((col) => (
-                    <th key={col.key} className={`px-2.5 py-2 ${col.right ? 'text-right' : ''}`}>
-                      <button className="inline-flex items-center gap-0.5 uppercase font-bold cursor-pointer" onClick={() => setSort((s) => ({ key: col.key, asc: s.key === col.key ? !s.asc : false }))}>
+                    /* (auditoria 01/08/2026 — item 279) `aria-sort` diz QUAL coluna esta
+                       ordenada e em que sentido. Antes o unico sinal era a setinha: quem
+                       usa leitor de tela clicava para ordenar e nao recebia confirmacao
+                       nenhuma de que algo mudou, nem de por qual coluna a tabela esta. */
+                    <th
+                      scope="col"
+                      key={col.key}
+                      aria-sort={sort.key === col.key ? (sort.asc ? 'ascending' : 'descending') : 'none'}
+                      className={`px-2.5 py-2 ${col.right ? 'text-right' : ''}`}
+                    >
+                      <button
+                        className="inline-flex items-center gap-0.5 uppercase font-bold cursor-pointer"
+                        onClick={() => setSort((s) => ({ key: col.key, asc: s.key === col.key ? !s.asc : false }))}
+                        title={sort.key === col.key
+                          ? `Ordenado por ${col.label} (${sort.asc ? 'crescente' : 'decrescente'}) — clique para inverter`
+                          : `Ordenar por ${col.label}`}
+                      >
                         {col.label}<ChevronUpDownIcon className={`w-3 h-3 ${sort.key === col.key ? 'opacity-100' : 'opacity-30'}`} aria-hidden="true" />
                       </button>
                     </th>
                   ))}
-                  <th className="px-2.5 py-2 text-right pr-4">Ações</th>
+                  <th scope="col" className="px-2.5 py-2 text-right pr-4">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -891,7 +906,7 @@ export default function TrafegoPanel() {
             <div className="mt-2" style={{ overflowX: 'auto' }}>
               <table className="w-full text-[11.5px]" style={{ minWidth: 480 }}>
                 <thead><tr className="text-left text-[9.5px] uppercase" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
-                  <th className="py-1.5 pr-2">Conjunto</th><th className="py-1.5 px-2 text-right">Gasto</th><th className="py-1.5 px-2 text-right">Leads</th><th className="py-1.5 px-2 text-right">CPL</th><th className="py-1.5 px-2 text-right">CTR</th>
+                  <th scope="col" className="py-1.5 pr-2">Conjunto</th><th scope="col" className="py-1.5 px-2 text-right">Gasto</th><th scope="col" className="py-1.5 px-2 text-right">Leads</th><th scope="col" className="py-1.5 px-2 text-right">CPL</th><th scope="col" className="py-1.5 px-2 text-right">CTR</th>
                 </tr></thead>
                 <tbody>
                   {t.conjuntos.slice(0, 12).map((s) => (
@@ -939,19 +954,19 @@ export default function TrafegoPanel() {
             <table className="w-full text-[11.5px]" style={{ minWidth: 1080 }}>
               <thead>
                 <tr className="text-left text-[9.5px] uppercase tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
-                  <th className="px-4 py-2">Mês</th>
-                  <th className="px-2 py-2 text-right">Leads</th>
-                  <th className="px-2 py-2 text-right">Vídeo</th>
-                  <th className="px-2 py-2 text-right">Enviados</th>
-                  <th className="px-2 py-2 text-right">Assinados</th>
-                  <th className="px-2 py-2 text-right">via Meta</th>
-                  <th className="px-2 py-2 text-right">Funil</th>
-                  <th className="px-2 py-2 text-right">R$/vídeo</th>
-                  <th className="px-2 py-2 text-right">R$/enviado</th>
-                  <th className="px-2 py-2 text-right">R$/assinado</th>
-                  <th className="px-2 py-2 text-right">Ticket</th>
-                  <th className="px-2 py-2 text-right">Receita</th>
-                  <th className="px-2 py-2 text-right pr-4">Payback</th>
+                  <th scope="col" className="px-4 py-2">Mês</th>
+                  <th scope="col" className="px-2 py-2 text-right">Leads</th>
+                  <th scope="col" className="px-2 py-2 text-right">Vídeo</th>
+                  <th scope="col" className="px-2 py-2 text-right">Enviados</th>
+                  <th scope="col" className="px-2 py-2 text-right">Assinados</th>
+                  <th scope="col" className="px-2 py-2 text-right">via Meta</th>
+                  <th scope="col" className="px-2 py-2 text-right">Funil</th>
+                  <th scope="col" className="px-2 py-2 text-right">R$/vídeo</th>
+                  <th scope="col" className="px-2 py-2 text-right">R$/enviado</th>
+                  <th scope="col" className="px-2 py-2 text-right">R$/assinado</th>
+                  <th scope="col" className="px-2 py-2 text-right">Ticket</th>
+                  <th scope="col" className="px-2 py-2 text-right">Receita</th>
+                  <th scope="col" className="px-2 py-2 text-right pr-4">Payback</th>
                 </tr>
               </thead>
               <tbody>

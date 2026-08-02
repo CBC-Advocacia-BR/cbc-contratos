@@ -93,9 +93,9 @@ export default function NotificationPrefsModal({ userEmail, onClose }) {
           <table className="w-full text-[11px]">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-1.5 px-2 font-bold uppercase text-gray-500 text-[9px] tracking-wide">Evento</th>
+                <th scope="col" className="text-left py-1.5 px-2 font-bold uppercase text-gray-500 text-[9px] tracking-wide">Evento</th>
                 {CHANNELS.map(ch => (
-                  <th key={ch.id} className="text-center py-1.5 px-2 font-bold uppercase text-gray-500 text-[9px] tracking-wide" title={ch.desc}>
+                  <th scope="col" key={ch.id} className="text-center py-1.5 px-2 font-bold uppercase text-gray-500 text-[9px] tracking-wide" title={ch.desc}>
                     {ch.label}
                   </th>
                 ))}

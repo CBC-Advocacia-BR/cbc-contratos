@@ -1791,6 +1791,26 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .cbc-toptabs button { min-width: 88px; font-size: 11px; letter-spacing: 0.5px; }
 }
 
+/* ─── (auditoria 01/08/2026 — item 281) A BARRA DE ABAS NÃO MOSTRAVA QUE HÁ MAIS ───
+   São até 15 abas com rolagem horizontal e barra de rolagem OCULTA (`scrollbar-hide`).
+   Em tela menor, quem nunca viu "Admin" ou "Param. Vendas" não descobre que existem:
+   não há seta, sombra, nem barra — a lista simplesmente parece terminar ali.
+   A sombra abaixo aparece nas bordas quando há conteúdo cortado e some quando chega ao
+   fim, usando `background-attachment: local` — truque puro de CSS, sem JavaScript e sem
+   ouvinte de rolagem (que seria mais um listener disparando a cada pixel).
+   `--cbc-navy-dark` é o fundo da barra: a sombra nasce dele e some nele. */
+.cbc-toptabs {
+  background-image:
+    linear-gradient(to right, var(--cbc-tabbar-bg, #0F2035) 30%, transparent),
+    linear-gradient(to right, transparent, var(--cbc-tabbar-bg, #0F2035) 70%),
+    radial-gradient(farthest-side at 0 50%, rgba(0,0,0,.4), rgba(0,0,0,0)),
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.4), rgba(0,0,0,0));
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  background-size: 32px 100%, 32px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
 /* ─── Timeline de automações (ContratosTab) no phone: só bolinhas ─── */
 @media (max-width: 640px) {
   .cbc-step-label { display: none; }

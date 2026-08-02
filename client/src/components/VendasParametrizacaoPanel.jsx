@@ -474,12 +474,12 @@ function DocumentosTab({ setDestructiveConfirm }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left border-b" style={{ borderColor: 'var(--cbc-border, #E5E7EB)' }}>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Documento</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Obrigatoriedade</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Condicional (se X faltar)</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ordem</th>
-                  <th className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Documento</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Obrigatoriedade</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Condicional (se X faltar)</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ordem</th>
+                  <th scope="col" className="px-3 py-2 text-[10px] font-bold uppercase text-right" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -748,11 +748,11 @@ function CatalogoDocumentosModal({ tiposDoc, onClose, onReload, setDestructiveCo
             <table className="w-full text-sm max-md:min-w-[640px]">
               <thead>
                 <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Nome</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Categoria</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
-                  <th className="text-center px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ativo</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Nome</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Categoria</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Descrição</th>
+                  <th scope="col" className="text-center px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ativo</th>
+                  <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -1130,10 +1130,10 @@ function FaixasEditor({ titulo, descricao, faixas, onChange }) {
       <table className="w-full text-sm">
         <thead>
           <tr>
-            <th className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Min</th>
-            <th className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Max (vazio = infinito)</th>
-            <th className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor por contrato (R$)</th>
-            <th className="px-2 py-1"></th>
+            <th scope="col" className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Min</th>
+            <th scope="col" className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Max (vazio = infinito)</th>
+            <th scope="col" className="text-left text-[10px] font-bold uppercase px-2 py-1" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor por contrato (R$)</th>
+            <th scope="col" className="px-2 py-1"></th>
           </tr>
         </thead>
         <tbody>
@@ -1674,13 +1674,13 @@ function MetasTab() {
           <table className="w-full text-sm max-lg:min-w-[760px]">
             <thead>
               <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
-                <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Vendedora</th>
-                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Meta Contratos</th>
-                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Meta Valor R$</th>
-                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Realizado</th>
-                <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% Atingido</th>
-                <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
-                <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
+                <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Vendedora</th>
+                <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Meta Contratos</th>
+                <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Meta Valor R$</th>
+                <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Realizado</th>
+                <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% Atingido</th>
+                <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
+                <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -1868,9 +1868,9 @@ function ExpectativaTab() {
             <table className="text-xs border-collapse">
               <thead className="sticky top-0 z-10">
                 <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase sticky left-0 z-20" style={{ color: 'var(--cbc-text-secondary, #6B7280)', background: 'var(--cbc-bg-subtle, #F9FAFB)', minWidth: 180 }}>Resort</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase sticky left-0 z-20" style={{ color: 'var(--cbc-text-secondary, #6B7280)', background: 'var(--cbc-bg-subtle, #F9FAFB)', minWidth: 180 }}>Resort</th>
                   {TIPOS_ACAO.map(t => (
-                    <th key={t} className="text-center px-3 py-2 text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: 'var(--cbc-text-secondary, #6B7280)', minWidth: 140 }}>{t}</th>
+                    <th scope="col" key={t} className="text-center px-3 py-2 text-[10px] font-bold uppercase whitespace-nowrap" style={{ color: 'var(--cbc-text-secondary, #6B7280)', minWidth: 140 }}>{t}</th>
                   ))}
                 </tr>
               </thead>
@@ -1924,13 +1924,13 @@ function ExpectativaTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ background: 'var(--cbc-bg-subtle, #F9FAFB)' }}>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Resort</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de ação</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor médio</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% praticado</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tempo (meses)</th>
-                  <th className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
-                  <th className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Resort</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tipo de ação</th>
+                  <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Valor médio</th>
+                  <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>% praticado</th>
+                  <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Tempo (meses)</th>
+                  <th scope="col" className="text-left px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Observação</th>
+                  <th scope="col" className="text-right px-3 py-2 text-[10px] font-bold uppercase" style={{ color: 'var(--cbc-text-secondary, #6B7280)' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>

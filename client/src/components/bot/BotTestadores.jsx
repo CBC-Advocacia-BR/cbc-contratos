@@ -84,7 +84,7 @@ export default function BotTestadores() {
       <div className="card overflow-auto">
         <table className="w-full text-sm">
           <thead><tr className="text-left text-[11px] uppercase opacity-60 border-b">
-            <th className="p-2">Telefone</th><th className="p-2">Testador</th><th className="p-2">Simulando cliente</th><th className="p-2">Status</th><th className="p-2"></th>
+            <th scope="col" className="p-2">Telefone</th><th scope="col" className="p-2">Testador</th><th scope="col" className="p-2">Simulando cliente</th><th scope="col" className="p-2">Status</th><th scope="col" className="p-2"></th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {rows.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-xs opacity-50">Nenhum testador cadastrado. Adicione seu celular pessoal acima.</td></tr>}
