@@ -363,10 +363,14 @@ function AutosaveIndicator({ savedAt }) {
     const t = setInterval(update, 10000);
     return () => clearInterval(t);
   }, [savedAt]);
+  // (auditoria 01/08/2026 — item 294) Era `hidden md:flex`: justamente quem preenche o
+  // contrato no celular, onde a aba pode fechar sozinha, nunca via a confirmacao de que
+  // o rascunho foi gravado. No phone fica so o visto com o texto no rotulo acessivel.
   return (
-    <span className="hidden md:flex items-center gap-1 text-[9px] font-bold text-green-300/80 bg-white/5 px-2 py-0.5 rounded-full">
-      <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-      {label}
+    <span className="flex items-center gap-1 text-[9px] font-bold text-green-300/80 bg-white/5 px-2 py-0.5 rounded-full"
+      role="status" aria-live="polite" aria-label={label} title={label}>
+      <svg className="w-2.5 h-2.5 shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+      <span className="hidden md:inline" aria-hidden="true">{label}</span>
     </span>
   );
 }
@@ -464,8 +468,12 @@ function TabScrollContainer({ tabKey, className = '', style, children, innerRef 
     } catch { /* ignore */ }
   }, [sessionKey, findScrollable]);
 
+  // (auditoria 01/08/2026 — item 282) O conteudo da aba e o painel do conjunto de abas
+  // do topo. Sem isto, a barra seria um "tablist" apontando para o nada e o leitor de
+  // tela nao diria ao que a aba se refere.
   return (
-    <div ref={containerRef} className={className} style={style}>
+    <div ref={containerRef} className={className} style={style}
+      role="tabpanel" id={`cbc-tabpanel-${tabKey}`} aria-labelledby={`cbc-tab-${tabKey}`} tabIndex={-1}>
       {children}
     </div>
   );
@@ -512,6 +520,7 @@ function AppContent() {
   const [dark, toggleDark] = useDarkMode();
   const [density, setDensity] = useDensity();
   const [showDensityMenu, setShowDensityMenu] = useState(false);
+  const densityBtnRef = useRef(null); // (item 294) devolve o foco ao fechar o menu com Esc
   // (#205) Preferencias de notificacao
   const [showNotifPrefs, setShowNotifPrefs] = useState(false);
   const isMobile = useIsMobile();
@@ -1294,6 +1303,25 @@ function AppContent() {
   };
   const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
 
+  // (auditoria 01/08/2026 — item 282) Setas/Home/End andam pelas abas, como manda o
+  // padrao WAI-ARIA. Junto com o tabIndex movel dos botoes, o Tab passa a levar direto
+  // ao conteudo em vez de percorrer as 12 abas uma a uma.
+  const onTabsKeyDown = useCallback((e) => {
+    const passos = { ArrowRight: 1, ArrowLeft: -1 };
+    let alvo = null;
+    if (e.key in passos) {
+      const i = allowedTabKeys.indexOf(mainTab);
+      if (i < 0) return;
+      alvo = allowedTabKeys[(i + passos[e.key] + allowedTabKeys.length) % allowedTabKeys.length];
+    } else if (e.key === 'Home') alvo = allowedTabKeys[0];
+    else if (e.key === 'End') alvo = allowedTabKeys[allowedTabKeys.length - 1];
+    if (!alvo) return;
+    e.preventDefault();
+    setMainTab(alvo);
+    // o foco tem de acompanhar a selecao, senao o leitor de tela nao anuncia a troca
+    requestAnimationFrame(() => document.getElementById(`cbc-tab-${alvo}`)?.focus());
+  }, [allowedTabKeys, mainTab]);
+
   // Auth loading
   if (authLoading) {
     return (
@@ -1310,6 +1338,16 @@ function AppContent() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: bg }}>
+      {/* (auditoria 01/08/2026 — item 294) Primeira parada do Tab: pula o cabecalho e a
+          barra de abas e vai direto ao conteudo. Invisivel ate receber o foco. */}
+      <a href={`#cbc-tabpanel-${mainTab}`} className="cbc-skip-link"
+        onClick={(e) => {
+          e.preventDefault();
+          const alvo = document.getElementById(`cbc-tabpanel-${mainTab}`);
+          if (alvo) { alvo.focus(); alvo.scrollIntoView({ block: 'start' }); }
+        }}>
+        Pular para o conteúdo
+      </a>
       {/* Login Anomaly Warning Banner */}
       {loginWarnings?.length > 0 && (
         <div className="shrink-0 px-4 py-2 flex items-center justify-between gap-3" style={{ background: '#FEF2F2', borderBottom: '2px solid #DC2626' }}>
@@ -1400,6 +1438,7 @@ function AppContent() {
             {!isMobile && (
             <div className="relative">
               <button
+                ref={densityBtnRef}
                 onClick={() => setShowDensityMenu(s => !s)}
                 className="p-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
                 title={`Densidade: ${density === 'compact' ? 'Compacto' : density === 'spacious' ? 'Espacoso' : 'Confortavel'}`}
@@ -1420,7 +1459,25 @@ function AppContent() {
                 <>
                   {/* Backdrop to close on outside click */}
                   <div className="fixed inset-0 z-30" onClick={() => setShowDensityMenu(false)} />
+                  {/* (auditoria 01/08/2026 — item 294) O menu abria e prendia o teclado:
+                      Esc nao fechava e as setas nao andavam entre as opcoes. */}
                   <div className="absolute right-0 top-full mt-1 w-40 rounded-lg shadow-xl py-1 z-40 overflow-hidden"
+                    role="menu" aria-label="Densidade"
+                    ref={el => { if (el && !el.dataset.focado) { el.dataset.focado = '1'; el.querySelector('button')?.focus(); } }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        setShowDensityMenu(false);
+                        densityBtnRef.current?.focus();
+                        return;
+                      }
+                      const passo = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+                      if (!passo) return;
+                      e.preventDefault();
+                      const opcoes = [...e.currentTarget.querySelectorAll('button')];
+                      const i = opcoes.indexOf(document.activeElement);
+                      opcoes[(Math.max(i, 0) + passo + opcoes.length) % opcoes.length]?.focus();
+                    }}
                     style={{ background: 'var(--cbc-bg-card)', border: '1px solid var(--cbc-border)', color: 'var(--cbc-text-primary)' }}>
                     <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider opacity-60">Densidade</div>
                     {[
@@ -1514,7 +1571,8 @@ function AppContent() {
           290/292 — estilo inline vence o CSS e apaga o que a classe fez.
           A cor vai tambem numa variavel, para a sombra nascer e sumir na cor do tema. */}
       {!dockVisible && (
-        <div style={{ backgroundColor: tabBg, '--cbc-tabbar-bg': tabBg }} className="cbc-toptabs flex shrink-0 overflow-x-auto scrollbar-hide">
+        <div style={{ backgroundColor: tabBg, '--cbc-tabbar-bg': tabBg }} className="cbc-toptabs flex shrink-0 overflow-x-auto scrollbar-hide"
+          role="tablist" aria-label="Secoes do sistema" onKeyDown={onTabsKeyDown}>
           {/* (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios */}
           {/* (mobile 06/2026) filtro extraído p/ tabAllowed — compartilhado com o sheet mobile */}
           {allowedTabKeys.map((tab, idx) => {
@@ -1543,6 +1601,8 @@ function AppContent() {
               <button onClick={() => setMainTab(tab)}
                 onMouseEnter={() => prefetchTab(tab)} onFocus={() => prefetchTab(tab)}
                 className={`flex-1 min-w-[110px] py-3 md:py-3.5 text-[12px] font-bold uppercase tracking-[1px] cursor-pointer transition-all flex items-center justify-center gap-2 relative ${mainTab === tab ? 'text-white' : 'text-white/55 hover:text-white/90 active:text-white'}`}
+                role="tab" id={`cbc-tab-${tab}`} aria-controls={`cbc-tabpanel-${tab}`}
+                aria-selected={mainTab === tab} tabIndex={mainTab === tab ? 0 : -1}
                 aria-current={mainTab === tab ? 'page' : undefined}>
                 {TabIcon && <TabIcon className="w-4 h-4" aria-hidden="true" />}
                 <span>{label}</span>
@@ -1808,7 +1868,8 @@ function AppContent() {
                 <button onClick={() => { setShowPdfPreview(false); URL.revokeObjectURL(pdfUrl); }} className="text-white/80 hover:text-white cursor-pointer text-lg">&times;</button>
               </div>
             </div>
-            <iframe src={pdfUrl} className="flex-1 w-full" style={{ border: 'none' }} />
+            {/* (item 294) sem title, o leitor de tela anuncia so "quadro" */}
+            <iframe src={pdfUrl} className="flex-1 w-full" style={{ border: 'none' }} title="Preview do contrato em PDF" />
           </div>
         </div>
       )}

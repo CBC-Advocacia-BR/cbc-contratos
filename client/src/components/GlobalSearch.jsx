@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { supabase } from '../lib/supabase';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { STATUS_TOKENS, toneStyle } from '../lib/statusTokens';
 
 export default function GlobalSearch({ onClose, onSelectContract }) {
   const [query, setQuery] = useState('');
@@ -139,11 +140,13 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
     }
   };
 
-  const statusColors = {
-    rascunho: { bg: '#F3F4F6', text: '#6B7280' },
-    enviado_zapsign: { bg: '#EFF6FF', text: '#2563EB' },
-    assinado: { bg: '#F0FDF4', text: '#16A34A' },
-    cancelado: { bg: '#FEF2F2', text: '#DC2626' },
+  // (auditoria 01/08/2026 — item 280) Eram 4 hex claros cravados: no modo escuro a
+  // etiqueta virava um retangulo quase branco no meio do painel escuro. Passa a usar a
+  // fonte unica de status (STATUS_TOKENS + toneStyle), que ja e dark-aware.
+  const selarStatus = (status) => {
+    const s = STATUS_TOKENS.contrato[status] || STATUS_TOKENS.contrato.rascunho;
+    const t = toneStyle(s.tone);
+    return { bg: t.bg, text: t.fg, label: s.label };
   };
 
   return (
@@ -156,7 +159,13 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
           <MagnifyingGlassIcon className='w-5 h-5 text-gray-400 shrink-0' aria-hidden='true' />
           {/* (fix review 12/06) sem type='search' — WebKit desktop renderizava o ✕
               nativo; inputMode basta para o teclado mobile */}
+          {/* (auditoria 01/08/2026 — item 280) O foco nunca sai do campo de digitacao: sem
+              aria-activedescendant, apertar seta movia o destaque na tela e o leitor de
+              tela continuava mudo. Agora ele anuncia o resultado destacado a cada seta. */}
           <input ref={inputRef} inputMode='search' enterKeyHint='search' value={query} onChange={e => setQuery(e.target.value)} onKeyDown={handleKeyDown}
+            role='combobox' aria-expanded={results.length > 0} aria-controls='cbc-busca-resultados'
+            aria-autocomplete='list' aria-label='Buscar contratos'
+            aria-activedescendant={results[selected] ? `cbc-busca-op-${results[selected].id}` : undefined}
             className='flex-1 text-sm outline-none placeholder-gray-400 min-w-0' placeholder='Buscar por nome, CPF, resort ou data (DD/MM/AAAA)...' />
           <kbd className='hidden md:inline text-[9px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded font-mono'>ESC</kbd>
           <button type='button' onClick={onClose} aria-label='Fechar busca'
@@ -168,8 +177,9 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
         {/* Results */}
         {/* (mobile-9) desktop mantem 350px; no phone usa altura relativa a viewport
             visivel (dvh) p/ resultados caberem acima do teclado iOS */}
-        <div className='max-h-[350px] max-sm:max-h-[45dvh] overflow-y-auto'>
-          {loading && <div className='px-4 py-3 text-[11px] text-gray-400 text-center'>Buscando...</div>}
+        <div className='max-h-[350px] max-sm:max-h-[45dvh] overflow-y-auto'
+          id='cbc-busca-resultados' role='listbox' aria-label='Resultados da busca'>
+          {loading && <div className='px-4 py-3 text-[11px] text-gray-400 text-center' role='status'>Buscando...</div>}
           {!loading && query.length >= 2 && results.length === 0 && (
             <div className='px-4 py-6 text-center text-gray-400 text-sm'>Nenhum resultado para "{query}"</div>
           )}
@@ -183,10 +193,10 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
             });
             const groupOrder = ['Assinados', 'Enviados', 'Rascunhos', 'Outros'];
             return groupOrder.filter(g => grouped[g]?.length > 0).map(g => (
-              <div key={g}>
-                <div className='text-[9px] font-bold uppercase tracking-wider text-gray-400 px-2 py-1 mt-1'>{g} ({grouped[g].length})</div>
+              <div key={g} role='group' aria-label={`${g} (${grouped[g].length})`}>
+                <div className='text-[9px] font-bold uppercase tracking-wider text-gray-400 px-2 py-1 mt-1' aria-hidden='true'>{g} ({grouped[g].length})</div>
                 {grouped[g].map(r => {
-                  const sc = statusColors[r.status] || statusColors.rascunho;
+                  const sc = selarStatus(r.status);
                   // (R6) sinaliza quando o match veio do 2o contratante (nome ou CPF) —
                   // sem isso o usuario ve so o nome do 1o e acha que achou o contrato errado.
                   const q = (query || '').trim().toLowerCase();
@@ -201,8 +211,9 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
                   );
                   return (
                     <div key={r.id}
+                      id={`cbc-busca-op-${r.id}`} role='option' aria-selected={r._flatIndex === selected}
                       onClick={() => { onSelectContract(r); onClose(); }}
-                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${r._flatIndex === selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${r._flatIndex === selected ? 'bg-blue-50 dark:bg-blue-500/15' : 'hover:bg-gray-50 dark:hover:bg-white/5'}`}>
                       <div className='flex-1 min-w-0'>
                         <div className='font-semibold text-sm truncate' style={{ color: '#1A2E52' }}>{r.nome_contratante1}</div>
                         <div className='flex items-center gap-2 text-[10px] text-gray-400'>
@@ -218,7 +229,7 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
                       </div>
                       <span className='px-2 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0'
                         style={{ background: sc.bg, color: sc.text }}>
-                        {r.status === 'enviado_zapsign' ? 'Enviado' : r.status}
+                        {sc.label}
                       </span>
                       <span className='text-sm font-bold shrink-0' style={{ color: '#1A2E52' }}>
                         {r.honorarios_total > 0 ? `R$ ${Number(r.honorarios_total).toLocaleString('pt-BR')}` : ''}

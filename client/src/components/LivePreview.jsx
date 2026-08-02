@@ -309,6 +309,7 @@ export default function LivePreview({ tab }) {
             <iframe
               ref={iframeRef}
               src={pdfUrl}
+              title={tab === 'procuracao' ? 'Procuração em PDF' : 'Contrato em PDF'}
               className="border-none"
               style={{
                 width: `${zoom}%`,

@@ -14,6 +14,15 @@ const COLUMNS = COLUMN_ORDER.map((id) => {
   return { id, label: s.label, Icon: s.Icon, fg: t.fg, bg: t.bg };
 });
 
+// (auditoria 01/08/2026 — item 294) O que dizer quando a etapa nao tem nenhum contrato.
+// "Vazio" nao distingue "esta tudo em dia" de "o filtro escondeu tudo".
+const COLUNA_VAZIA = {
+  rascunho: 'Nenhum rascunho aberto. Contratos novos aparecem aqui até serem enviados.',
+  enviado_zapsign: 'Nada aguardando assinatura no momento.',
+  assinado: 'Nenhum contrato assinado no filtro atual.',
+  cancelado: 'Nenhum contrato cancelado. É o esperado.',
+};
+
 function fmtDate(s) {
   if (!s) return '';
   const d = new Date(s);
@@ -79,8 +88,11 @@ export default function KanbanView({ contratos, onCardClick }) {
               </div>
               <div className="flex flex-col gap-1.5 flex-1 overflow-y-auto" style={{ maxHeight: '60vh' }}>
                 {col.items.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-[10px] italic py-6" style={{ color: 'var(--cbc-text-muted)' }}>
-                    Vazio
+                  /* (auditoria 01/08/2026 — item 294) A coluna vazia dizia so "Vazio":
+                     nao dava para saber se era normal ou se algum filtro escondeu tudo.
+                     Agora diz o que aquela etapa significa. */
+                  <div className="flex-1 flex items-center justify-center text-center text-[10px] italic py-6 px-2 leading-relaxed" style={{ color: 'var(--cbc-text-muted)' }}>
+                    {COLUNA_VAZIA[col.id] || 'Nenhum contrato nesta etapa.'}
                   </div>
                 ) : (
                   col.items.map(c => (

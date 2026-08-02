@@ -261,8 +261,12 @@ function Section({ title, children, defaultOpen = true, dark = false, done, icon
 
   return (
     <div className="card mb-3" id={id}>
+      {/* (auditoria 01/08/2026 — item 276) A seta virava na tela, mas o leitor de tela
+          nunca soube se a secao estava aberta ou fechada: faltava aria-expanded. */}
       <button
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={id ? `${id}-conteudo` : undefined}
         className="w-full flex items-center justify-between px-4 py-2.5 cursor-pointer text-white sticky top-0 z-[8]"
         style={{ background: dark ? '#0F2035' : '#1B3A5C' }}
       >
@@ -284,7 +288,8 @@ function Section({ title, children, defaultOpen = true, dark = false, done, icon
         </div>
         <span className={`text-white/60 transition-transform duration-300 text-xs ${open ? 'rotate-180' : ''}`}>&#9662;</span>
       </button>
-      <div ref={contentRef} className="section-content" style={{ maxHeight: maxH, padding: open ? undefined : 0 }}>
+      <div ref={contentRef} className="section-content" id={id ? `${id}-conteudo` : undefined}
+        style={{ maxHeight: maxH, padding: open ? undefined : 0 }}>
         <div className="p-4">{children}</div>
       </div>
     </div>
@@ -1327,7 +1332,12 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               const pct = s.total > 0 ? Math.round((s.filled / s.total) * 100) : 0;
               const sectionIds = ['section-contratantes', 'section-resort', 'section-honorarios', 'section-clausulas', 'section-internos'];
               return (
-                <div key={i} className="min-w-0 cursor-pointer group" onClick={() => {
+                // (auditoria 01/08/2026 — item 276) Era um <div onClick>: nao recebia foco,
+                // nao respondia ao Enter e o leitor de tela nem sabia que dava para clicar.
+                // Virou <button> de verdade, com o estado da secao dito por extenso.
+                <button key={i} type="button" className="min-w-0 cursor-pointer group text-left"
+                  aria-label={`Ir para ${s.label}: ${s.filled} de ${s.total} campos preenchidos${s.done ? ', secao completa' : ''}`}
+                  onClick={() => {
                   // (#34) Scroll to section with smooth animation
                   const el = document.getElementById(sectionIds[i]);
                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1338,11 +1348,12 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                       background: s.done ? '#22C55E' : pct > 0 ? '#C8973A' : '#E5E7EB',
                     }} />
                   </div>
-                  <div className="flex items-center justify-center gap-0.5 group-hover:scale-105 transition-transform">
+                  {/* (item 276) rotulo era 8px, ilegivel; 10px e o piso do projeto */}
+                  <div className="flex items-center justify-center gap-0.5 group-hover:scale-105 transition-transform" aria-hidden="true">
                     <ProgressIcon iconKey={s.iconKey} done={s.done} />
-                    <span className={`text-[8px] font-bold uppercase truncate ${s.done ? 'text-green-600' : pct > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.label}</span>
+                    <span className={`text-[10px] font-bold uppercase truncate ${s.done ? 'text-green-600' : pct > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{s.label}</span>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -2026,15 +2037,27 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           Gerar Procuração (sem assinatura)
         </button>
-        <button
-          onClick={() => handleValidatedAction(onSendZapSign)}
-          onMouseDown={ripple}
-          disabled={saving} aria-disabled={!isFormComplete}
-          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-          style={{ background: '#0F2035' }}
-        >
-          Enviar para ZapSign
-        </button>
+        {/* (auditoria 01/08/2026 — item 277) "Salvar", "Gerar PDF e Salvar" e "Enviar para
+            ZapSign" eram tres azuis-marinho quase iguais, empilhados: dava para mandar o
+            contrato ao cliente achando que so estava salvando. O envio e a unica acao
+            daqui que sai do escritorio e nao volta atras, entao ganhou separador, aviso e
+            o dourado da marca (7,63:1 com o texto navy) — e o icone de envio, para a
+            diferenca nao depender so da cor. */}
+        <div className="pt-2 mt-1" style={{ borderTop: '1px dashed var(--cbc-border, #C0D0E8)' }}>
+          <div className="text-[9px] font-bold uppercase tracking-wider text-center mb-1.5" style={{ color: 'var(--cbc-text-muted, #64748b)' }}>
+            Passo final · vai para o cliente
+          </div>
+          <button
+            onClick={() => handleValidatedAction(onSendZapSign)}
+            onMouseDown={ripple}
+            disabled={saving} aria-disabled={!isFormComplete}
+            className="btn-ripple btn-press w-full py-3.5 rounded-lg font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
+            style={{ background: 'var(--cbc-gold, #C9A84C)', color: '#0F2035', boxShadow: '0 2px 10px -4px rgba(201,168,76,.7)' }}
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            Enviar para assinatura (ZapSign)
+          </button>
+        </div>
         <button
           onClick={() => setShowClearConfirm(true)}
           className="w-full py-2.5 rounded-lg border border-red-300 text-red-500 font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:bg-red-50"

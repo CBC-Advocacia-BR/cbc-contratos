@@ -1580,6 +1580,34 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .btn-primary::after, .btn-outline::after, .btn-gold::after { display: none; }
 }
 
+/* (auditoria 01/08/2026 — item 294) Link "pular para o conteudo": fica fora da tela
+   ate receber o foco pelo teclado. Nao usa display:none porque isso o tiraria da
+   ordem de tabulacao, que e exatamente o que ele existe para servir. */
+.cbc-skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: 0 0 8px 8px;
+  background: var(--cbc-navy, #1B3A5C);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+  transition: top 160ms ease-out;
+}
+.cbc-skip-link:focus {
+  top: 0;
+  outline: 3px solid var(--cbc-gold, #C9A84C);
+  outline-offset: 2px;
+}
+/* o painel da aba recebe o foco pelo atalho; sem isto o navegador desenha um anel
+   grosso em volta da tela inteira */
+[role="tabpanel"]:focus { outline: none; }
+
 /* ═════════════════════════════════════════════════════════════════════════
  * MOBILE REDESIGN (12/06/2026) — iPhone + iPad Air M3
  * ═════════════════════════════════════════════════════════════════════════
