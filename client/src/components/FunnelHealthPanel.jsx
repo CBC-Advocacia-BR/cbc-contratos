@@ -6,8 +6,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { computeFunnel, computeSla } from './funnel/funnelCompute';
-import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil, fetchFunilSla } from '../utils/funilSources';
+import { computeFunnel, computeSla, computeDuracaoCalls, computeFunilPorVendedora } from './funnel/funnelCompute';
+import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil, fetchFunilSla, fetchFunilPorVendedora } from '../utils/funilSources';
 import { fetchAllPaged } from '../utils/supabasePaged';
 import PontualidadePanel from './PontualidadePanel';
 
@@ -60,6 +60,7 @@ export default function FunnelHealthPanel() {
   const [vchamadas, setVchamadas] = useState([]); // etapas Agendada/Realizada (vw_funil_videochamadas)
   const [metaAds, setMetaAds] = useState([]);     // 1a etapa: leads de campanha (meta_ads_mensal)
   const [sla, setSla] = useState([]);             // (item 239) SLA de 1a resposta por dia (vw_funil_sla)
+  const [porVendedora, setPorVendedora] = useState([]); // (item 241) comparativo por pessoa
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
@@ -103,6 +104,11 @@ export default function FunnelHealthPanel() {
       try {
         setSla(await fetchFunilSla());
       } catch { setSla([]); }
+      // (auditoria 01/08 — item 241) comparativo por vendedora; view nova, se falhar o
+      // bloco some e o resto do painel continua de pe.
+      try {
+        setPorVendedora(await fetchFunilPorVendedora());
+      } catch { setPorVendedora([]); }
       setRows(merged);
     } catch (e) {
       setErr(e.message || 'Erro ao carregar');
@@ -116,6 +122,10 @@ export default function FunnelHealthPanel() {
   const f = useMemo(() => (rows ? computeFunnel(rows, undefined, vchamadas, metaAds) : null), [rows, vchamadas, metaAds]);
   // (item 239) resumo do SLA de 1a resposta — logica pura, testada em funnelCompute.test.js
   const slaResumo = useMemo(() => computeSla(sla), [sla]);
+  // (itens 240/241) qualidade das calls e comparativo por pessoa — logica pura, testada
+  // em utils/__tests__/funilQualidade.test.js
+  const duracao = useMemo(() => computeDuracaoCalls(vchamadas), [vchamadas]);
+  const equipe = useMemo(() => computeFunilPorVendedora(porVendedora), [porVendedora]);
   const maxConv = useMemo(() => (f ? Math.max(1, ...f.tendencia.map((t) => t.conversao)) : 1), [f]);
   // Escala ÚNICA p/ TODAS as barras do funil (leads + vídeo + contratos): largura ∝ valor, maior = 100%.
   const baseFunil = useMemo(() => (f ? Math.max(f.leadsMeta?.total || 0, f.videochamadas?.agendadas || 0, f.funil.enviados, 1) : 1), [f]);
@@ -232,6 +242,72 @@ export default function FunnelHealthPanel() {
               <div className="pl-32 text-[11px] tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
                 {f.videochamadas.excluidas} excluída{f.videochamadas.excluidas > 1 ? 's' : ''} da agenda · não contam
               </div>
+            )}
+            {/* (auditoria 01/08 — item 240) A auditoria do Meet mede desde junho quanto
+                tempo o cliente ficou na sala, e o funil só usava compareceu/não: uma call
+                de 5,5 min contava igual a uma de 37 min, e quem ENTROU e saiu antes dos
+                5 min sumia junto com quem nunca abriu o link. */}
+            {duracao && duracao.realizadas > 0 && (
+              <>
+                <div className="pl-32 text-[10px] tracking-wide pt-0.5" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                  Das {fmtInt(duracao.auditadas)} conferidas pelo Meet, a call típica dura{' '}
+                  <strong style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{duracao.medianaMin} min</strong>
+                  {' · '}{duracao.curta} curta{duracao.curta !== 1 ? 's' : ''} (5-10min)
+                  {' · '}{duracao.padrao} padrão (10-20min)
+                  {' · '}{duracao.longa} longa{duracao.longa !== 1 ? 's' : ''} (20min+)
+                </div>
+                {duracao.conectouECaiu > 0 && (
+                  <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-warning, #D97706)' }}>
+                    ⚠ {fmtInt(duracao.conectouECaiu)} cliente{duracao.conectouECaiu > 1 ? 's' : ''} entr{duracao.conectouECaiu > 1 ? 'aram' : 'ou'} na sala e saiu antes dos 5 min
+                    {' '}— contam como falta, mas abriram o link (diferente das {fmtInt(duracao.naoEntrou)} que nunca entraram)
+                  </div>
+                )}
+              </>
+            )}
+            {/* (auditoria 01/08 — item 241) A view expõe vendedora_email desde sempre e
+                nenhuma tela comparava as pessoas. O percentual só aparece a partir de 10
+                calls conferidas: abaixo disso ele não distingue pessoa de acaso e viraria
+                um ranking que os dados não sustentam. */}
+            {equipe && equipe.length > 1 && (
+              <>
+                <div className="pl-32 text-[10px] font-bold uppercase tracking-[1.5px] pt-2" style={{ color: 'var(--cbc-text-muted, #6B7280)' }}>
+                  Videochamadas por vendedora
+                </div>
+                <div className="pl-32 overflow-x-auto">
+                  <table className="text-[11px] tracking-wide border-collapse">
+                    <thead>
+                      <tr style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                        <th scope="col" className="text-left font-bold uppercase text-[9px] tracking-wider pr-6 pb-1">Vendedora</th>
+                        <th scope="col" className="text-right font-bold uppercase text-[9px] tracking-wider pr-6 pb-1">Agendadas</th>
+                        <th scope="col" className="text-right font-bold uppercase text-[9px] tracking-wider pr-6 pb-1">Conferidas</th>
+                        <th scope="col" className="text-right font-bold uppercase text-[9px] tracking-wider pr-6 pb-1">Compareceu</th>
+                        <th scope="col" className="text-right font-bold uppercase text-[9px] tracking-wider pr-6 pb-1">Duração média</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {equipe.map((p) => (
+                        <tr key={p.email}>
+                          <td className="pr-6 py-0.5 capitalize" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>{p.nome}</td>
+                          <td className="pr-6 py-0.5 text-right" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>{fmtInt(p.agendadas)}</td>
+                          <td className="pr-6 py-0.5 text-right" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>{fmtInt(p.auditadas)}</td>
+                          <td className="pr-6 py-0.5 text-right font-bold" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
+                            {fmtInt(p.compareceu)}
+                            {p.pctComparecimento != null
+                              ? <span className="font-normal" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}> ({fmtPct(p.pctComparecimento)})</span>
+                              : <span className="font-normal" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}> (amostra pequena)</span>}
+                          </td>
+                          <td className="pr-6 py-0.5 text-right" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                            {p.duracaoMediaMin != null ? `${p.duracaoMediaMin} min` : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="pl-32 text-[10px] tracking-wide" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
+                  "Conferidas" = passaram pela auditoria do Meet (de junho/2026 em diante). O percentual só aparece a partir de 10 conferidas.
+                </div>
+              </>
             )}
             <div className="pl-32 text-[10px] font-bold uppercase tracking-[1.5px] pt-1" style={{ color: 'var(--cbc-text-muted, #9CA3AF)' }}>
               Contratos

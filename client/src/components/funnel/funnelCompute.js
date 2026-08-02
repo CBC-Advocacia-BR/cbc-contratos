@@ -229,3 +229,93 @@ export function computeSla(linhas) {
     pctEngajou: pct(engajaram, atendidos),
   };
 }
+
+/**
+ * (auditoria 01/08/2026 — item 240) Qualidade das videochamadas realizadas.
+ *
+ * A auditoria do Meet guarda desde junho quanto tempo o cliente ficou na sala, e o
+ * funil so usava compareceu/nao. Duas coisas se perdiam:
+ *   - entre as que "compareceram", uma de 5,5 min conta igual a uma de 37 min;
+ *   - quem ENTROU e saiu antes dos 5 min (regra de presenca ja existente) sumia junto
+ *     com quem nunca abriu o link. Sao leads muito diferentes: um viu a sala, o outro
+ *     nem tentou.
+ *
+ * So considera o que passou pela auditoria do Meet (`duracao_faixa` preenchida). Antes
+ * de jun/2026 o status vinha da COR da agenda e nao ha duracao nenhuma para ler.
+ */
+export function computeDuracaoCalls(videochamadas) {
+  const auditadas = (videochamadas || []).filter((v) => v && v.duracao_faixa);
+  if (!auditadas.length) return null;
+
+  const conta = (faixa) => auditadas.filter((v) => v.duracao_faixa === faixa).length;
+  const curta = conta('curta (5-10min)');
+  const padrao = conta('padrao (10-20min)');
+  const longa = conta('longa (20min+)');
+  const realizadas = curta + padrao + longa;
+  const caiu = auditadas.filter((v) => v.conectou_e_caiu).length;
+
+  const segundos = auditadas
+    .map((v) => Number(v.meet_cliente_seg))
+    .filter((n) => Number.isFinite(n) && n >= 300);
+
+  return {
+    auditadas: auditadas.length,
+    realizadas,
+    curta, padrao, longa,
+    conectouECaiu: caiu,
+    naoEntrou: conta('nao entrou'),
+    pctCurta: pct(curta, realizadas),
+    pctLonga: pct(longa, realizadas),
+    medianaMin: segundos.length ? Math.round((mediana(segundos) / 60) * 10) / 10 : null,
+  };
+}
+
+/**
+ * (auditoria 01/08/2026 — item 241) Comparativo por vendedora.
+ *
+ * `amostra_suficiente` vem do banco e e respeitado aqui: abaixo de 10 calls auditadas
+ * o percentual de comparecimento nao distingue pessoa de acaso, entao a linha aparece
+ * sem percentual em vez de sugerir um ranking que os dados nao sustentam (mesma regra
+ * do item 232). Sem `mes`, soma tudo; com `mes`, filtra o mes pedido (AAAA-MM).
+ */
+export function computeFunilPorVendedora(linhas, mes) {
+  const base = (linhas || []).filter((l) => l && l.vendedora_email
+    && (!mes || String(l.mes).slice(0, 7) === mes));
+  if (!base.length) return null;
+
+  const porPessoa = new Map();
+  for (const l of base) {
+    const k = l.vendedora_email;
+    const a = porPessoa.get(k) || {
+      email: k, agendadas: 0, auditadas: 0, compareceu: 0,
+      conectouECaiu: 0, naoEntrou: 0, _somaMin: 0, _pesoMin: 0,
+    };
+    a.agendadas += Number(l.agendadas) || 0;
+    a.auditadas += Number(l.auditadas) || 0;
+    a.compareceu += Number(l.compareceu) || 0;
+    a.conectouECaiu += Number(l.conectou_e_caiu) || 0;
+    a.naoEntrou += Number(l.nao_entrou) || 0;
+    // mediana de meses distintos nao se soma; media ponderada pelas calls e honesta
+    const md = Number(l.mediana_min);
+    const n = Number(l.compareceu) || 0;
+    if (Number.isFinite(md) && n > 0) { a._somaMin += md * n; a._pesoMin += n; }
+    porPessoa.set(k, a);
+  }
+
+  return [...porPessoa.values()]
+    .map((a) => ({
+      email: a.email,
+      nome: a.email.split('@')[0].replace(/[._]/g, ' '),
+      agendadas: a.agendadas,
+      auditadas: a.auditadas,
+      compareceu: a.compareceu,
+      conectouECaiu: a.conectouECaiu,
+      naoEntrou: a.naoEntrou,
+      // abaixo de 10 auditadas nao ha percentual: o numero seria ruido apresentado
+      // como avaliacao de uma pessoa
+      amostraSuficiente: a.auditadas >= 10,
+      pctComparecimento: a.auditadas >= 10 ? pct(a.compareceu, a.auditadas) : null,
+      duracaoMediaMin: a._pesoMin > 0 ? Math.round((a._somaMin / a._pesoMin) * 10) / 10 : null,
+    }))
+    .sort((x, y) => y.auditadas - x.auditadas);
+}

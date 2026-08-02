@@ -37,9 +37,33 @@ export function fetchVideochamadasFunil() {
   // o banco tinha 2.559 eventos por cor e 325 por Meet — e o funil somava tudo sem
   // sinalizar. Comparar um mes de 2025 (so cor) com julho/26 (quase todo Meet) e
   // comparar coisas medidas de formas distintas.
+  // (auditoria 01/08 — item 240) `duracao_faixa` e `conectou_e_caiu` vem junto: a
+  // auditoria do Meet mede ha meses quanto tempo o cliente ficou, e o funil so usava
+  // compareceu/nao. Duas informacoes se perdiam — call de 5,5 min contava igual a uma
+  // de 37 min, e quem ENTROU na sala e saiu antes dos 5 min sumia junto com quem nunca
+  // abriu o link (sao leads bem diferentes).
   return fetchAllPaged(() =>
-    supabase.from('vw_funil_videochamadas').select('status, scheduled_at, origem_status')
+    supabase.from('vw_funil_videochamadas')
+      .select('status, scheduled_at, origem_status, duracao_faixa, conectou_e_caiu, meet_cliente_seg')
       .order('scheduled_at').order('event_id'));
+}
+
+/**
+ * (auditoria 01/08 — item 241) Comparativo por vendedora, por mes.
+ *
+ * A view ja expunha `vendedora_email` desde sempre e nenhuma tela comparava as
+ * pessoas. Vem com `amostra_suficiente` de proposito: com menos de 10 calls
+ * auditadas o percentual de comparecimento nao distingue pessoa de acaso, e a tela
+ * usa esse sinal para nao ranquear ninguem a toa (mesma regra do item 232).
+ *
+ * Sao ~3 vendedoras x meses = dezenas de linhas; pagina pelo mesmo helper porque o
+ * teto do PostgREST nao avisa quando corta.
+ */
+export function fetchFunilPorVendedora() {
+  return fetchAllPaged(() =>
+    supabase.from('vw_funil_por_vendedora')
+      .select('vendedora_email, mes, agendadas, auditadas, compareceu, conectou_e_caiu, nao_entrou, pct_comparecimento, mediana_min, amostra_suficiente')
+      .order('mes').order('vendedora_email'));
 }
 
 /**
