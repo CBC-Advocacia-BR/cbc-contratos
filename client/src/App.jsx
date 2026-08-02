@@ -576,7 +576,15 @@ function AppContent() {
   useEffect(() => {
     const channel = supabase
       .channel('contratos-status')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'contratos' }, (payload) => {
+      // (auditoria 01/08/2026 — item 171) O FILTRO FOI PARA O SERVIDOR.
+      // Antes, TODA alteracao em `contratos` era empurrada pelo websocket para TODAS as
+      // abas abertas, e o navegador descartava o que nao interessava. 📊 Medido na
+      // auditoria dos ultimos 30 dias: 632 alteracoes, das quais **74 viraram assinado
+      // (11,7%)** — e o numero real e bem maior, porque o gatilho de auditoria ignora os
+      // campos de automacao (ADVBOX, Drive, ZapSign), que sao a maioria das gravacoes.
+      // Com `filter`, o Supabase so envia a linha que interessa: menos trafego em cada
+      // aba aberta o dia todo, e o mesmo comportamento na tela.
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'contratos', filter: 'status=eq.assinado' }, (payload) => {
         const row = payload.new;
         if (row.status === 'assinado') {
           const msg = { message: `Contrato de ${row.nome_contratante1} foi assinado!`, status: row.status, id: row.id };

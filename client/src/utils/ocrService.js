@@ -87,25 +87,36 @@ function readFileWithProgress(file, onProgress) {
 /**
  * Convert first page of PDF to image blob
  */
+// (auditoria 01/08/2026 — item 182) O PDF.js vinha de um CDN de terceiro.
+//
+// O codigo antigo injetava `<script src="https://cdnjs.cloudflare.com/...">` na pagina.
+// Um `<script>` externo roda com TODOS os poderes da pagina — e esta e a tela onde se
+// manipula CNH, CPF e RG do cliente. Se aquele endereco fosse comprometido ou sequestrado,
+// o codigo de terceiro teria acesso ao formulario inteiro. Alem disso: CDN fora do ar =
+// leitura de PDF quebrada, e a dependencia externa impedia adotar Content-Security-Policy
+// (item 21), que e a trava que barraria justamente esse tipo de injecao.
+//
+// Agora a biblioteca vem do pacote instalado (`pdfjs-dist`), carregada SOB DEMANDA — ela
+// so entra em memoria quando alguem manda um PDF para leitura, como antes. Nada sai da
+// maquina do usuario.
+let _pdfjs = null;
+async function carregarPdfjs() {
+  if (!_pdfjs) {
+    const mod = await import('pdfjs-dist');
+    // o worker tambem vem do pacote (Vite resolve e empacota); nada de rede
+    const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+    mod.GlobalWorkerOptions.workerSrc = workerUrl;
+    _pdfjs = mod;
+  }
+  return _pdfjs;
+}
+
 async function pdfToImage(file) {
-  // Use PDF.js via CDN if available, otherwise read as data URL
   const arrayBuffer = await file.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
 
-  // Try loading pdfjs
-  if (!window.pdfjsLib) {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    document.head.appendChild(script);
-    await new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-    });
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-
-  const pdf = await window.pdfjsLib.getDocument({ data: uint8Array }).promise;
+  const pdfjs = await carregarPdfjs();
+  const pdf = await pdfjs.getDocument({ data: uint8Array }).promise;
   const page = await pdf.getPage(1);
   const viewport = page.getViewport({ scale: 2 });
   const canvas = document.createElement('canvas');
