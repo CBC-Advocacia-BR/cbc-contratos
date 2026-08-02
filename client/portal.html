@@ -25,6 +25,33 @@
     --r:18px; --r-sub:16px; --r-in:12px;
     --shadow:0 1px 2px rgba(20,42,67,.05),0 8px 28px -12px rgba(20,42,67,.14);
   }
+
+  /* ─── (auditoria 01/08/2026 — item 293) MODO ESCURO DO PORTAL ───
+     O portal fixava cores claras e ignorava a preferencia do aparelho. Cliente que abre
+     para acompanhar o processo a noite — que e quando as pessoas olham — levava um
+     clarao de tela creme. E este e o unico lugar do sistema onde quem entra e o CLIENTE,
+     nao a equipe: e a cara do escritorio.
+     A tela ja era montada com variaveis, entao basta redefini-las. Cada cor de texto foi
+     MEDIDA sobre o fundo escuro (minimo 4,5:1 para texto): principal 13,1 · secundario
+     7,7 · fraco 5,09 · dourado 8,78 · pago 7,87 · aviso 8,04 · a vencer 7,72.
+     A separacao entre cartao e fundo vem da BORDA, nao do brilho — em tema escuro a
+     diferenca de luminosidade entre superficies e naturalmente pequena. */
+  @media (prefers-color-scheme: dark) {
+    :root{
+      --ink:#E8EEF5; --ink-soft:#A9BACB; --ink-faint:#8497AA;
+      --paper:#0B1522; --card:#1A2C42; --hairline:#33506F;
+      --gold:#D8B36A; --gold-soft:#3A2F1B; --gold-faint:#241D11; --gold-text:#E0C173;
+      --ok:#8FCB7A; --ok-bg:#1B2A1E; --warn:#E5B15F; --warn-bg:#2B2214;
+      --due:#E0A972; --due-bg:#2A1F16;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px -12px rgba(0,0,0,.6);
+    }
+    /* o padrao de bolinhas do fundo fica discreto demais no escuro */
+    body{ background-image:radial-gradient(rgba(216,179,106,.07) 1px,transparent 1px); }
+    /* campos e caixas brancas fixas que existem fora das variaveis */
+    input,textarea,select{ background:var(--card); color:var(--ink); border-color:var(--hairline); }
+    /* o navegador desenha controles nativos claros se nao avisarmos */
+    :root{ color-scheme: dark; }
+  }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{scroll-behavior:smooth}
   /* foco visível elegante (teclado/acessibilidade) */
@@ -140,7 +167,7 @@
   .btn:active{transform:scale(.97)}
   .btn-ouro{background:var(--ink);color:#fff;border:none}
   .btn-ouro.copiado{background:var(--ok)}
-  .btn-claro{background:#fff;color:var(--ink);border:1.5px solid var(--hairline)}
+  .btn-claro{background:var(--card);color:var(--ink);border:1.5px solid var(--hairline)}
   .btn svg{width:17px;height:17px;flex:0 0 auto}
   .secao-pagos{margin-top:26px}
   .bol.pago-card{padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
@@ -154,7 +181,7 @@
   .nf-aviso{margin-top:9px;font-size:0.71875rem;color:var(--ink-faint);display:flex;align-items:center;gap:6px}
   .nf-aviso svg{width:14px;height:14px;flex:0 0 auto}
   .nf-rodape{font-size:0.6875rem;color:var(--ink-faint);text-align:center;line-height:1.55;margin-top:14px}
-  .nf-ano{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;margin-top:10px;width:100%;border:1.5px solid var(--gold);border-radius:12px;background:#fff;font-size:0.8125rem;font-weight:800;color:var(--ink);text-decoration:none;font-family:Lato}
+  .nf-ano{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;margin-top:10px;width:100%;border:1.5px solid var(--gold);border-radius:12px;background:var(--card);font-size:0.8125rem;font-weight:800;color:var(--ink);text-decoration:none;font-family:Lato}
   .nf-ano svg{width:17px;height:17px;color:var(--gold);flex:0 0 auto}
   /* ---------- nav inferior ---------- */
   nav{
@@ -187,7 +214,7 @@
   .cmsg.meu .hora{color:rgba(255,255,255,.55)}
   .cmsg.deles{align-self:flex-start;background:var(--paper);border:1px solid var(--gold-soft);border-bottom-left-radius:4px}
   .chat-compose{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;border-top:1px solid var(--gold-soft);background:var(--paper)}
-  .chat-compose textarea{flex:1;resize:none;border:1.5px solid var(--gold-soft);border-radius:14px;padding:10px 13px;font:inherit;font-size:16px;max-height:120px;background:#fff}
+  .chat-compose textarea{flex:1;resize:none;border:1.5px solid var(--gold-soft);border-radius:14px;padding:10px 13px;font:inherit;font-size:16px;max-height:120px;background:var(--card)}
   .chat-compose textarea:focus{outline:none;border-color:var(--gold)}
   .chat-send{flex:0 0 auto;width:46px;height:46px;border-radius:50%;border:none;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer}
   .chat-send:disabled{opacity:.5}
@@ -258,13 +285,13 @@
   .ac-nota p{font-size:0.84375rem;color:var(--ink-soft)}
   /* ---------- NPS + indicacao ---------- */
     .nps-notas{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:12px}
-  .nps-n{height:48px;border-radius:10px;border:1.5px solid var(--hairline);background:#fff;padding:0;
+  .nps-n{height:48px;border-radius:10px;border:1.5px solid var(--hairline);background:var(--card);padding:0;
     font-family:'Lato';font-weight:700;font-size:0.9375rem;cursor:pointer;color:var(--ink-soft);
     transition:background .15s,color .15s,border-color .15s,transform .15s ease-out}
   .nps-n:active{transform:scale(.93)}
   .nps-n.sel{background:var(--ink);color:#fff;border-color:var(--ink);transform:scale(1.08)}
   .nps-area{width:100%;border:1.5px solid var(--hairline);border-radius:var(--r-in);padding:11px 13px;
-    font-family:'Lato';font-size:1rem;color:var(--ink);resize:vertical;background:#fff}
+    font-family:'Lato';font-size:1rem;color:var(--ink);resize:vertical;background:var(--card)}
   .badge{min-width:18px;height:18px;border-radius:9px;background:var(--gold);color:#fff;font-size:0.65625rem;
     display:inline-flex;align-items:center;justify-content:center;padding:0 5px;font-variant-numeric:tabular-nums}
   .badge[hidden]{display:none}
