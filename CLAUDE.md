@@ -33,6 +33,26 @@
 
 **12 contratos em `enviado_zapsign` NÃO recebem lembrete**: estão sem `zapsign_sent_at` (o mais antigo é de 25/05). Sem data de envio não dá para saber se o lembrete faz sentido — precisa de conferência manual.
 
+### ✅ DEPLOYADO 02/08/2026 (tarde) — mais 10 itens: portal escuro, acessibilidade, funil e as 2 maiores economias
+
+**5 deploys** (rollback do último: `./rollback.sh 6a6fc6f2d70a7c76f0ffc6f7`). **716 testes** (era 695), lint no baseline 19, smoke 200/200/200 em todos.
+
+| Item | O que mudou |
+|---|---|
+| **175** 🏆 | A aba Boletos **paginava 12.921 boletos em 13 idas ao banco** para somar 8 números. RPC `boletos_resumo()` devolve o agregado de **1.319 clientes em 1 requisição**. ⚠️ **Conferido cliente a cliente ANTES de trocar: 1.319 comparados, ZERO divergência**; filtro de julho bate com contagem independente; `set local role authenticated` ok; HTTP 200 no PostgREST |
+| **188** | Trocar de aba **desmonta** o painel — os 4 `let _cached...` que existiam evitavam o skeleton mas **não a rede** (o `lastFetchRef` é `useRef`, zera com o componente). `utils/cacheAba.js` novo: carimbo de hora fora do React, 5 min. **Não serializa** (era por isso que os 11 mil boletos nunca eram cacheados). Logout limpa tudo — há CPF e valor em memória |
+| **240** | Duração da call estava medida e ignorada. 📊 **15 pessoas ENTRARAM e saíram antes dos 5 min** e sumiam no mesmo número das 55 que nunca abriram o link — **2 delas esperaram sozinhas do início ao fim**. ⚠️ A premissa da auditoria estava meio errada: já existe corte em 300s, então call de 40s nunca contou como comparecimento |
+| **241** | `vw_funil_por_vendedora` nova. Julho: Mariana 153 conferidas/78,4% · Beatriz 63/84,1% · Emerson 13/69,2%. **% só a partir de 10 calls** — com 4, "75%" e "100%" distam de UMA call |
+| **277** | "Salvar", "Gerar PDF e Salvar" e "Enviar para ZapSign" eram 3 azuis-marinho quase iguais empilhados: dava para mandar ao cliente achando que só salvava. O envio ficou separado, no dourado (**7,63:1**, medido) e com ícone |
+| **282** | Barra de abas virou grupo de verdade: setas/Home/End + **tabIndex móvel** (o Tab pula 12 paradas e cai no conteúdo) |
+| **280** | Busca global: o foco nunca sai do campo, então as setas eram mudas → `combobox` + `aria-activedescendant`. 4 etiquetas com hex claro cravado (retângulos brancos no escuro) → `STATUS_TOKENS` |
+| **276** | Os 5 blocos de progresso eram `<div onClick>` (sem foco, sem Enter); rótulo 8px→10px; seções ganharam `aria-expanded` |
+| **293** | Portal do cliente era a **única tela sem modo escuro**. ⚠️ 5 `background:#fff` cravados escapariam das variáveis. Contrastes medidos: 13,1 / 7,7 / 5,09 / 8,78 |
+| **294** | Coluna vazia do kanban só dizia "Vazio"; 2 iframes sem `title`; link "pular para o conteúdo"; menu de densidade prendia o teclado; **o "Salvo" era `hidden md:flex`** — quem preenche no celular nunca via a confirmação |
+
+**Item 256 (resumo semanal por e-mail) fica FORA** — decisão do Paulo: não quer aviso por e-mail.
+SQL novo: `supabase_funil_duracao_e_vendedora.sql`, `supabase_boletos_resumo_item175.sql`.
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
