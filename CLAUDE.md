@@ -53,6 +53,23 @@
 **Item 256 (resumo semanal por e-mail) fica FORA** — decisão do Paulo: não quer aviso por e-mail.
 SQL novo: `supabase_funil_duracao_e_vendedora.sql`, `supabase_boletos_resumo_item175.sql`.
 
+### ✅ DEPLOYADO 02/08/2026 (noite) — a vigilância que mentia por omissão (143, 145, 148, 59, 106)
+
+**722 testes**, rollback: `./rollback.sh 6a6fd6aeafaf80ac3ada04ed`. Achados cruzando os 357 números da auditoria contra o `git log` — **79 itens nunca tinham sido citados**.
+
+**143 + 145 + 148 são a MESMA doença** e juntos explicam por que o apagão de 16 dias do backup passou:
+- **143** — o vigia percorria **quem bateu ponto**, e o heartbeat só nasce quando a function executa: cron que nunca disparou **não existia** para ele. Silêncio absoluto era lido como paz. Agora parte da lista declarativa (`CRON_SLA`) e cobra a ausência.
+- **145** — o painel usava **90 min para TODOS**: cron diário ficava "atrasado" 22h30 por dia, o painel vivia em ATENÇÃO e as pessoas pararam de olhar. Mapa extraído para **`_lib/cronSla.mjs`** (fonte única do painel e do vigia) + 6 testes travando os limites.
+- **148** — os **23 crons do pg_cron** não apareciam em painel nenhum → bloco novo no Monitor. Banco compartilhado: os 7 jobs de outros sistemas aparecem mas não alarmam aqui.
+
+🚨 **E o painel novo achou um cron falhando em silêncio no primeiro carregamento**: `cleanup-old-logs` dava `ERROR: function cleanup_old_logs() is not unique` **todo dia, com ZERO sucessos**. Causa: `public.cleanup_old_logs()` e `public.cleanup_old_logs(int DEFAULT 90)` são **ambas** chamáveis sem argumento, o que torna a primeira **inalcançável pelo nome**. Ponto de entrada único `cbc_cleanup_logs_diario()` (nada apagado; a `rh.cleanup_old_logs` de outro app ficou intacta). Ao rodar: **1.827 linhas** removidas. Estrago era pequeno (~1 MB) — o problema era o silêncio.
+
+⚠️ **Item 59: o enunciado da auditoria estava exagerado.** Ela diz "padrão de ataque conhecido em Postgres". Conferido: **nenhuma função `SECURITY DEFINER` está sem `search_path`** — as 13 são `SECURITY INVOKER`, sem escalada possível. Sobra higiene de correção. Fixadas as 13 do CBC; **não tocar** nas de extensão (pg_trgm/unaccent em `public`) nem nas de outros apps (`_prest_brl`, `fin_*`, `prest_*`, `rh.*`).
+
+**106** — `setBackfillStatus` era ler-mesclar-regravar e duas escritas concorrentes faziam o "onde parei" **voltar atrás**. 🐛 Achado pior no caminho: **duas functions gravam a MESMA chave `kommo`** (assinatura-send e asaas-sync) — uma apagava a descoberta da outra, inclusive o `bot_id`/`field_id` de que o envio do link de assinatura depende. RPC `bot_config_merge` faz o `||` de jsonb sob o bloqueio de linha. ⚠️ A mescla de jsonb é **rasa**: em `assinatura` (objeto aninhado) a leitura prévia continua necessária; a atomicidade protege as chaves irmãs, que era a colisão real.
+
+SQL: `supabase_crons_visiveis_item143_145_148.sql`, `supabase_search_path_item59.sql` (item 106 no fim do mesmo arquivo).
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
