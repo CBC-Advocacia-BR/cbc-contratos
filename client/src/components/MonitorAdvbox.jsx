@@ -7,10 +7,11 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { CRON_SLA } from '../../netlify/functions/_lib/cronSla.mjs';
 import {
   ScaleIcon, BoltIcon, SignalIcon, ChevronDownIcon, ChevronRightIcon,
   CheckCircleIcon, ExclamationTriangleIcon, EyeIcon, ArrowPathIcon,
-  ClockIcon, HeartIcon, QueueListIcon,
+  ClockIcon, HeartIcon, QueueListIcon, CircleStackIcon,
 } from '@heroicons/react/24/outline';
 
 const BOT_KEY = import.meta.env.VITE_BOT_PANEL_KEY || 'cbc-bot-2026';
@@ -70,7 +71,14 @@ const NIVEL_UI = {
 // Vermelho se ok=false ou batida muito antiga (>90 min); verde se recente.
 // Componente isolado: leitura/poll proprios, nao mexe nas secoes existentes.
 // Tolerante a tabela vazia (ainda sem heartbeats gravados) e a erro de query.
-const CRON_STALE_MIN = 90; // batida considerada velha apos 90 min
+// (auditoria 01/08/2026 — item 145) ANTES: 90 minutos para TODOS. Um cron diario ficava
+// "atrasado" 22 horas e meia por dia, o painel vivia em ATENCAO e as pessoas pararam de
+// olhar — que e exatamente o efeito que escondeu os crons mortos e o apagao do backup.
+// Agora o prazo vem do MESMO mapa que o vigia usa (netlify/functions/_lib/cronSla.mjs).
+// Quem nao esta no mapa cai no antigo 90 min, que continua sendo um padrao razoavel para
+// robo de ritmo desconhecido.
+const CRON_STALE_PADRAO = 90;
+const prazoDe = (job) => CRON_SLA[job] || CRON_STALE_PADRAO;
 function CronHeartbeats() {
   const [rows, setRows] = useState([]);
   const [carregou, setCarregou] = useState(false);
@@ -97,7 +105,7 @@ function CronHeartbeats() {
     if (r.ok === false) return 'falhou';
     if (!r.last_run_at) return 'pendente';
     const min = (Date.now() - new Date(r.last_run_at).getTime()) / 60000;
-    return min > CRON_STALE_MIN ? 'atrasado' : 'ok';
+    return min > prazoDe(r.job) ? 'atrasado' : 'ok';
   };
   const cor = { ok: '#34D399', atrasado: '#F87171', falhou: '#F87171', pendente: '#CBD5E1' };
   const algumRuim = rows.some(r => ['falhou', 'atrasado'].includes(estado(r)));
@@ -137,6 +145,100 @@ function CronHeartbeats() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// (auditoria 01/08/2026 — item 148) Os 23 crons que rodam DENTRO do Postgres (pg_cron)
+// nao apareciam em painel nenhum. Quando um para, o sintoma e mudo: view materializada
+// velha, logs crescendo, espelho congelado. Foi assim que o `cleanup-old-logs` passou a
+// falhar TODO DIA desde 26/07 sem ninguem notar — duas funcoes com o mesmo nome deixaram
+// a chamada ambigua e o job nunca teve UMA execucao bem-sucedida.
+// O banco e COMPARTILHADO com outros sistemas do escritorio: os jobs deles aparecem
+// (para nao dar a impressao de que nao existem) mas nao entram no farol daqui.
+function CronsDoBanco() {
+  const [jobs, setJobs] = useState([]);
+  const [carregou, setCarregou] = useState(false);
+  const [erro, setErro] = useState(false);
+  const [verTodos, setVerTodos] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    const carregar = async () => {
+      try {
+        const { data, error } = await supabase.rpc('cbc_pg_cron_status');
+        if (error) throw error;
+        if (vivo) { setJobs(Array.isArray(data) ? data : []); setErro(false); }
+      } catch { if (vivo) setErro(true); }
+      if (vivo) setCarregou(true);
+    };
+    carregar();
+    const t = setInterval(carregar, 300000); // 5 min: pg_cron muda devagar
+    return () => { vivo = false; clearInterval(t); };
+  }, []);
+
+  const meus = jobs.filter(j => j.do_cbc);
+  const outros = jobs.filter(j => !j.do_cbc);
+  const ruim = (j) => j.nunca_rodou || (j.ultimo_status && j.ultimo_status !== 'succeeded') || j.active === false;
+  const comProblema = meus.filter(ruim);
+  const lista = verTodos ? [...meus, ...outros] : meus;
+
+  if (carregou && !erro && jobs.length === 0) return null;
+
+  return (
+    <div className="px-4 pb-3">
+      <div className="rounded-xl bg-[#0A1626]/60 border border-white/10 p-3">
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/80">
+            <CircleStackIcon className="w-3.5 h-3.5 text-[#C9A84C]" /> Robôs do banco (pg_cron)
+          </span>
+          <div className="flex items-center gap-3">
+            {outros.length > 0 && (
+              <button type="button" onClick={() => setVerTodos(v => !v)}
+                className="text-[10px] font-mono text-white/50 hover:text-white/80 cursor-pointer underline decoration-dotted">
+                {verTodos ? 'só os deste sistema' : `+${outros.length} de outros sistemas`}
+              </button>
+            )}
+            {meus.length > 0 && (
+              <span className={`text-[11px] font-bold tracking-wider ${comProblema.length ? 'text-red-300' : 'text-emerald-300'}`}>
+                {comProblema.length ? 'ATENÇÃO' : 'EM DIA'}
+              </span>
+            )}
+          </div>
+        </div>
+        {!carregou ? (
+          <div className="text-[11px] text-white/60 font-mono">carregando…</div>
+        ) : erro ? (
+          <div className="text-[11px] text-amber-200/90 font-mono flex items-center gap-1.5">
+            <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" /> não foi possível carregar agora
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5">
+            {lista.map(j => {
+              const st = j.nunca_rodou ? 'pendente' : ruim(j) ? 'falhou' : 'ok';
+              const cores = { ok: '#34D399', falhou: '#F87171', pendente: '#CBD5E1' };
+              return (
+                <div key={j.jobid}
+                  className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${j.do_cbc ? 'bg-white/[0.04]' : 'bg-white/[0.02] opacity-60'}`}
+                  title={j.ultimo_erro ? `${j.schedule} · ${j.ultimo_erro}` : `${j.schedule}${j.do_cbc ? '' : ' · de outro sistema do escritório'}`}>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: cores[st], boxShadow: `0 0 6px ${cores[st]}` }} />
+                  <span className="text-[11px] font-mono text-white/80 truncate flex-1">{j.jobname}</span>
+                  <span className="text-[11px] font-mono text-white/70 shrink-0 tabular-nums" title={fmtDT(j.ultima_execucao)}>
+                    {j.nunca_rodou ? 'nunca' : fmtRel(j.ultima_execucao)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {comProblema.length > 0 && (
+          <div className="mt-2 text-[10px] font-mono text-red-200/90 leading-relaxed">
+            {comProblema.map(j => (
+              <div key={j.jobid}>✕ {j.jobname}: {j.nunca_rodou ? 'nunca executou' : (j.ultimo_erro || 'falhou sem mensagem').split('\n')[0].slice(0, 110)}</div>
+            ))}
           </div>
         )}
       </div>
@@ -484,6 +586,8 @@ export default function MonitorAdvbox() {
 
       {/* (observ-2) saude dos robos (crons) — apenas acrescenta, some se sem dados */}
       <CronHeartbeats />
+      {/* (item 148) os robos que rodam dentro do banco, que ate hoje nao apareciam */}
+      <CronsDoBanco />
 
       {/* (observ-14) mini-resumo de saude por servico (health_history) */}
       <HealthSummary />

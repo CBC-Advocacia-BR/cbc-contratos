@@ -7,73 +7,18 @@
  */
 import { db, recordHealth, heartbeat, logAdvbox } from './_lib/botDb.mjs';
 import { sendCriticalAlert } from './_lib/alertEmail.mjs';
+// (item 145) ritmo esperado de cada robo — o MESMO mapa que o painel do Monitor usa
+import { CRON_SLA } from './_lib/cronSla.mjs';
 
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 
 // prazo maximo (minutos) sem batida antes de considerar o cron "parado"
-const CRON_SLA = {
-  'datajud-refresh': 26 * 60,        // 1x/dia
-  'reminder-cron': 40,               // a cada 15min
-  // (20/06/2026) cobranca-regua REMOVIDA do watchdog — régua desligada (kill-switch
-  // em cobranca-regua.mjs). Além disso o SLA de 30h dava falso-positivo nos fins de
-  // semana (a régua só roda seg–sex; Fri→Mon ~72h > 30h gerava "Cron sem rodar").
-  'asaas-sync-boletos': 14 * 60,     // 2x/dia
-  'asaas-sync-customers': 26 * 60,   // 1x/dia
-  'advbox-monitor': 14 * 60,         // 2x/dia (06h30/17h30)
-  'advbox-snapshot': 15 * 60,        // (auditoria #86) disparado em seq ao monitor
-  'advbox-sweep-cron': 60,           // (auditoria #75) a cada 20min, 24/7
-  'db-backup-cron': 26 * 60,         // (auditoria #87) 1x/dia
-  'commission-calculator': 33 * 24 * 60, // (auditoria #89) dia 20 do mes (~33d de folga)
-  'kommo-queue-worker': 30,          // (auditoria #89) a cada 1min (drena a fila Kommo)
-  'bandwidth-check-cron': 14 * 60,   // (auditoria #93) 3x/dia
-  // (28/07/2026) eventos da CAPI Meta — cron pg_cron 'meta-capi-purchase' (jobid 28),
-  // de hora em hora aos :20. O heartbeat e escrito por fn_capi_healthcheck() no Supabase.
-  // Existe um vigia proprio no banco (jobid 30), mas ele morre junto se o pg_cron cair;
-  // esta linha poe um sistema INDEPENDENTE (Netlify) olhando o silencio.
-  'meta-capi-eventos': 90,           // 1x/hora
-  // ─── (auditoria 01/08/2026 — item 141) 13 jobs batiam ponto NO VAZIO ───
-  // Eles gravavam heartbeat e o watchdog nao os conhecia, entao o `continue` abaixo os
-  // descartava: se parassem numa sexta, ninguem saberia — exatamente o que aconteceu
-  // com os 4 crons mortos descobertos em 28/07. O BACKUP era o caso mais grave: o
-  // watchdog vigiava o 'db-backup-cron' (que nunca roda) e ignorava o 'backup-diario'
-  // (que e o backup de verdade, no Drive).
-  'backup-diario': 26 * 60,              // 1x/dia 03h BRT — unico backup do banco
-  'meta-ads-sync': 26 * 60,              // 1x/dia 07h
-  'meta-trafego-sync': 26 * 60,          // 1x/dia 07h10
-  'kommo-asaas-sync': 14 * 60,           // 2x/dia (07h/19h)
-  'kommo-view-check': 90,                // a cada 30min
-  'kommo-leads-sync': 90,                // a cada 30min
-  'kommo-sla-sync': 90,                  // a cada 30min
-  'agenda-videochamadas-sync': 90,       // a cada 45min — alimenta o funil
-  'meet-auditoria-sync': 26 * 60,        // 1x/dia — comparecimento das calls
-  'advbox-vendas-sync': 14 * 60,         // 3x/dia (06h/12h/18h)
-  'clientes-reconciliar': 26 * 60,       // 1x/dia — cadastro unico
-  'cobranca-conciliar': 26 * 60,         // 1x/dia
-  'zapsign-lembrete-cron': 26 * 60,      // (item 113) 1x/dia 09h BRT — cobranca de assinatura
-  // (auditoria 01/08 — item 249) `cobranca-regua` VOLTA a ser vigiada. Ela foi tirada em
-  // 20/06 por dois motivos: a regua de mensagens esta desligada (kill-switch) e o SLA de
-  // 30h dava falso-positivo no fim de semana. Acontece que a MESMA function grava o
-  // `inadimplencia_snapshot` — FORA do if da regua, ou seja, ele roda de qualquer jeito e
-  // e o UNICO gravador do historico de inadimplencia. Sem vigilancia, se ele parar, o
-  // grafico e o "vs. 27 dias atras" congelam parecendo ESTABILIDADE.
-  // SLA de 80h resolve o falso-positivo: ela roda seg-sex, entao de sexta 10h30 ate
-  // segunda 10h30 sao ~72h de silencio legitimo.
-  'cobranca-regua': 80 * 60,
-  // (auditoria 01/08 — item 149) WEBHOOKS tambem entram, mas com prazo generoso: o ritmo
-  // deles depende do mundo real, nao de um cron. Com ~477 parcelas vencendo por mes, o
-  // Asaas manda evento quase todo dia — 3 dias de silencio absoluto significa integracao
-  // quebrada (URL trocada, webhook desativado no painel), nao "mes fraco".
-  // O do ZapSign fica de fora de proposito: e normal passar dias sem ninguem assinar; o
-  // heartbeat dele serve para consulta no Monitor, sem virar alarme falso.
-  'asaas-webhook': 72 * 60,
-  // (item 128) vigia das credenciais das integracoes — 1x/dia as 08h BRT
-  'tokens-vigia-cron': 26 * 60,
-  // (item 162) verificacao semanal do backup — segundas 08h30 BRT (8 dias de folga)
-  'backup-verificar-cron': 8 * 24 * 60,
-};
+// (item 145) o mapa saiu daqui para _lib/cronSla.mjs — o painel do Monitor usa o MESMO
+// ritmo, em vez do prazo fixo de 90 min que deixava todo cron diario vermelho.
+
 
 export default async () => {
-  const out = { health: [], caiu: [], crons_parados: [], kommo_failed: 0, kommo_presos: 0 };
+  const out = { health: [], caiu: [], crons_parados: [], crons_nunca_rodaram: [], pgcron_problemas: [], kommo_failed: 0, kommo_presos: 0 };
 
   // 1) HEALTH ---------------------------------------------------------------
   try {
@@ -114,6 +59,26 @@ export default async () => {
   try {
     const { data: hbs } = await db.from('cron_heartbeat').select('job, last_run_at, ok');
     const agora = Date.now();
+
+    // (auditoria 01/08/2026 — item 143) O LAÇO ABAIXO PERCORRE QUEM BATEU PONTO, e essa
+    // e justamente a cegueira que escondeu o apagao do backup: o heartbeat so ganha linha
+    // quando a function EXECUTA. Um cron que nunca disparou — recem-criado, ou que a
+    // Netlify parou de agendar depois de um deploy — simplesmente NAO EXISTE para o
+    // watchdog. Silencio absoluto era lido como paz.
+    //
+    // O CRON_SLA acima ja e a lista declarativa do que deveria existir. Comparar a lista
+    // contra quem bateu ponto e o que transforma ausencia em alarme. Foi assim que o
+    // `db-backup-cron` passou meses reclamando sem ninguem ver, e o `backup-diario`
+    // passou 16 dias sem rodar sem produzir uma unica linha.
+    const bateramPonto = new Set((hbs || []).map((h) => h.job));
+    for (const job of Object.keys(CRON_SLA)) {
+      if (bateramPonto.has(job)) continue;
+      out.crons_nunca_rodaram.push(job);
+      await logAdvbox('monitor', 'erro',
+        `Cron NUNCA rodou: ${job} — nao ha nenhum registro de execucao. Ou a function foi criada e nunca disparou, ou a Netlify parou de agenda-la. Conferir em Logs & metrics > Functions.`,
+        { job, causa: 'sem_heartbeat' });
+    }
+
     for (const hb of hbs || []) {
       const sla = CRON_SLA[hb.job];
       // (auditoria 01/08 — item 142) O `continue` por falta de SLA vinha ANTES da
@@ -131,6 +96,31 @@ export default async () => {
       }
     }
   } catch { /* tabela pode estar vazia */ }
+
+  // 2.5) CRONS DO PROPRIO BANCO (auditoria 01/08 — item 148) -----------------
+  // Sao 23 jobs rodando DENTRO do Postgres (pg_cron) que nunca apareceram em painel
+  // nenhum. Quando um para, o sintoma e mudo: view materializada velha, logs crescendo,
+  // espelho congelado. Foi assim que o `cleanup-old-logs` passou a falhar TODO DIA desde
+  // 26/07 sem ninguem notar (duas funcoes com o mesmo nome deixaram a chamada ambigua).
+  // O banco e compartilhado: `do_cbc` separa os jobs deste sistema dos outros do
+  // escritorio, que aparecem no painel mas nao alarmam aqui.
+  try {
+    const { data: pgcrons } = await db.rpc('cbc_pg_cron_status');
+    for (const j of pgcrons || []) {
+      if (!j.do_cbc) continue;
+      if (j.nunca_rodou) {
+        out.pgcron_problemas.push(j.jobname);
+        await logAdvbox('monitor', 'erro', `Cron do banco NUNCA rodou: ${j.jobname} (${j.schedule})`, { job: j.jobname });
+      } else if (j.ultimo_status && j.ultimo_status !== 'succeeded') {
+        out.pgcron_problemas.push(j.jobname);
+        await logAdvbox('monitor', 'erro',
+          `Cron do banco FALHOU: ${j.jobname} — ${(j.ultimo_erro || 'sem mensagem').slice(0, 200)}`,
+          { job: j.jobname, quando: j.ultima_execucao });
+      } else if (j.active === false) {
+        await logAdvbox('monitor', 'aviso', `Cron do banco DESATIVADO: ${j.jobname}`, { job: j.jobname });
+      }
+    }
+  } catch { /* pg_cron pode nao estar acessivel — nao derruba o resto do vigia */ }
 
   // 3) FILA KOMMO (auditoria #76) -------------------------------------------
   // Jobs que esgotam as tentativas viram 'failed' e morriam sem ninguem saber
