@@ -111,6 +111,8 @@ import NotificationPrefsModal from './components/NotificationPrefsModal';
 import { generateContractHTML, generateProcuracaoHTML } from './utils/contractHtml';
 // pdfGenerator importado dinamicamente em cada handler (lazy) (#112)
 import { validateEmail, validateCPF, validateCNPJ } from './utils/validation';
+// (item 204) fonte unica da leitura dos signatarios do ZapSign (3 copias antes)
+import { lerSignatarios, linksMudaram } from '../netlify/functions/_lib/zapsignSigners.mjs';
 import {
   CreditCardIcon,
   DocumentIcon,
@@ -668,15 +670,11 @@ function AppContent() {
             const resp = await API.zapsign({ action: 'status', docToken: contract.zapsign_doc_token });
             if (!resp.ok) continue;
             const doc = await resp.json();
-            const signers = doc.signers || [];
-            const updatedLinks = signers.map(s => ({
-              name: s.name, email: s.email, token: s.token,
-              sign_url: s.sign_url || s.signing_link, status: s.status, signed_at: s.signed_at,
-              times_viewed: s.times_viewed || 0,
-              first_opened_at: s.first_opened_at || null,
-              last_view_at: s.last_view_at || null,
-            }));
-            const allSigned = signers.length > 0 && signers.every(s => s.status === 'signed');
+            // (auditoria 01/08/2026 — item 204) A leitura dos signatarios saiu daqui para
+            // `_lib/zapsignSigners.mjs`: a MESMA conta existia em 3 lugares (aqui, no botao
+            // do ContratosTab e no webhook do servidor), em 2 formatos de campo, ja
+            // divergindo. E a decisao que muda o status do contrato para "assinado".
+            const { links: updatedLinks, todosAssinaram: allSigned, assinadoEm } = lerSignatarios(doc.signers);
 
             // (#6) A nota Kommo #18 "abriu e nao assinou" saiu daqui — agora roda no
             // servidor (function agendada kommo-view-check), 24h, sem depender do app aberto.
@@ -685,16 +683,13 @@ function AppContent() {
               // (bug-4) grava a data REAL de assinatura (ultimo signatario). Antes o
               // polling so mudava o status e signed_at ficava vazio -> relatorios de
               // prazo/producao/comissao usavam aproximacao (signed_at -> advbox_date -> updated_at).
-              const datasAssinatura = signers.map(s => s.signed_at).filter(Boolean).sort();
-              const signedAt = datasAssinatura.length ? datasAssinatura[datasAssinatura.length - 1] : new Date().toISOString();
+              const signedAt = assinadoEm;
               await supabase.from('contratos')
                 .update({ status: 'assinado', signed_at: signedAt, zapsign_links: updatedLinks, updated_at: new Date().toISOString() })
                 .eq('id', contract.id).eq('status', 'enviado_zapsign');
             } else {
               // Guard: nao escreve se signers nao mudaram (evita audit spam — abr/2026)
-              const prev = JSON.stringify(contract.zapsign_links || []);
-              const next = JSON.stringify(updatedLinks);
-              if (prev === next) continue;
+              if (!linksMudaram(contract.zapsign_links, updatedLinks)) continue;
               await supabase.from('contratos').update({ zapsign_links: updatedLinks }).eq('id', contract.id);
             }
           } catch (e) { reportErro('zapsign-poll', e, { contractId: contract.id }); }

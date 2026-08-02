@@ -1515,7 +1515,13 @@ function ContratoKanbanCard({ contrato, guia, onClick, onDragStart, onDragEnd, i
       }}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="rounded-lg p-2.5 cursor-pointer transition-all hover:shadow-md"
+      /* (item 291) alcancavel por teclado: sem isto o cartao nunca recebe foco e o
+         seletor de mover continuaria invisivel para quem nao usa mouse. */
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
+      /* (item 291) `cbc-kanban-card` liga a regra que revela o seletor "Mover para..."
+         no hover E no foco por teclado — no desktop ele so existia para quem arrasta. */
+      className="cbc-kanban-card rounded-lg p-2.5 cursor-pointer transition-all hover:shadow-md"
       /* (auditoria 01/08/2026 — item 292) branco fixo + navy fixo faziam o quadro virar uma
          parede branca ofuscante no modo escuro (o CSS do tema nao vence estilo inline).
          Tokens --cbc-* trocam sozinhos entre claro e escuro. */

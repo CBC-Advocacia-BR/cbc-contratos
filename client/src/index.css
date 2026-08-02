@@ -1805,7 +1805,18 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ─── Utility genérica: elemento visível APENAS em dispositivos touch ─── */
+/* (auditoria 01/08/2026 — item 291) O quadro de Vendas so podia ser reorganizado
+   ARRASTANDO o card. Arrastar com mouse exclui quem usa so teclado e quem tem
+   dificuldade motora — e essas pessoas nao tinham NENHUMA alternativa no computador,
+   porque o seletor "Mover para..." aparecia apenas em tela de toque.
+   Agora ele existe no desktop tambem: fica escondido ate o cartao receber o mouse
+   OU o foco pelo teclado (`:focus-within`), entao o visual limpo do quadro nao muda
+   para quem arrasta, e quem navega por Tab encontra o seletor sem precisar de mouse. */
 .cbc-touch-only { display: none !important; }
 @media (hover: none) {
   .cbc-touch-only { display: flex !important; }
+}
+@media (hover: hover) {
+  .cbc-kanban-card:hover .cbc-touch-only,
+  .cbc-kanban-card:focus-within .cbc-touch-only { display: flex !important; }
 }

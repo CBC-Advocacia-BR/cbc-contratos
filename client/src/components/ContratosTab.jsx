@@ -54,6 +54,8 @@ import PresenceIndicator from './contratos/PresenceIndicator';
 // (#215) Lote 4 — lembretes parametrizaveis
 import ReminderModal from './ReminderModal';
 import { BellAlertIcon } from '@heroicons/react/24/outline';
+// (item 204) fonte unica da leitura dos signatarios do ZapSign
+import { lerSignatarios, linksMudaram } from '../../netlify/functions/_lib/zapsignSigners.mjs';
 
 function AdvboxSyncButton({ dados, dataAssinatura, contractId, existingLawsuitId, existingCustomers }) {
   const [status, setStatus] = useState(''); // '' | 'loading' | 'success' | 'error'
@@ -1212,54 +1214,26 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
           const result = await checkZapSignStatus(contract.zapsign_doc_token);
           if (!result) continue;
 
-          // Check if all signers have signed
-          const allSigned = result.signers.every(s => s.status === 'signed');
-          if (allSigned && result.signers.length > 0) {
-            // Update to signed status
-            const updatedLinks = result.signers.map(s => ({
-              name: s.name,
-              email: s.email,
-              token: s.token,
-              sign_url: s.signUrl,
-              status: s.status,
-              signed_at: s.signedAt,
-              // (varredura 15/06) preserva o rastreio de visualizacao no sync manual
-              times_viewed: s.times_viewed || 0,
-              first_opened_at: s.first_opened_at || null,
-              last_view_at: s.last_view_at || null,
-            }));
-            // (bug-4) grava a data REAL de assinatura (ultimo signatario) tambem neste
-            // caminho manual, igual ao polling e ao webhook — evita signed_at vazio.
-            const datasAssinatura = result.signers.map(s => s.signedAt).filter(Boolean).sort();
-            const signedAt = datasAssinatura.length ? datasAssinatura[datasAssinatura.length - 1] : new Date().toISOString();
+          // (auditoria 01/08/2026 — item 204) A leitura dos signatarios saiu daqui para
+          // `_lib/zapsignSigners.mjs`. Esta copia usava `signUrl`/`signedAt` (nomes que o
+          // zapsignService normaliza) enquanto o polling do App.jsx usava
+          // `sign_url`/`signed_at` — ou seja, as duas ja tinham divergido no formato. A
+          // fonte unica aceita os dois, entao nada precisa ser convertido antes.
+          const { links: updatedLinks, todosAssinaram: allSigned, assinadoEm } = lerSignatarios(result.signers);
+
+          if (allSigned) {
             const { data: updated } = await supabase
               .from('contratos')
-              .update({ status: 'assinado', signed_at: signedAt, zapsign_links: updatedLinks, updated_at: new Date().toISOString() })
+              .update({ status: 'assinado', signed_at: assinadoEm, zapsign_links: updatedLinks, updated_at: new Date().toISOString() })
               .eq('id', contract.id)
-              .eq('status', 'enviado_zapsign') // Optimistic lock: only if still pending
+              .eq('status', 'enviado_zapsign') // trava otimista: so se ainda estiver pendente
               .select('id');
-            if (!updated?.length) continue; // Already updated by another user
+            if (!updated?.length) continue; // outro usuario ja atualizou
             synced++;
-
-            // ADVBOX + Drive auto-sync handled by App.jsx pollZapSign (centralized, no duplicates)
+            // ADVBOX + Drive ficam a cargo do polling do App.jsx (centralizado, sem duplicar)
           } else {
-            // Update signer statuses
-            const updatedLinks = result.signers.map(s => ({
-              name: s.name,
-              email: s.email,
-              token: s.token,
-              sign_url: s.signUrl,
-              status: s.status,
-              signed_at: s.signedAt,
-              // (varredura 15/06) preserva o rastreio de visualizacao no sync manual
-              times_viewed: s.times_viewed || 0,
-              first_opened_at: s.first_opened_at || null,
-              last_view_at: s.last_view_at || null,
-            }));
-            // Guard: nao escreve se signers nao mudaram (evita audit spam — abr/2026)
-            const prev = JSON.stringify(contract.zapsign_links || []);
-            const next = JSON.stringify(updatedLinks);
-            if (prev === next) continue;
+            // nao gravar se nada mudou (evita enxurrada de linhas de auditoria)
+            if (!linksMudaram(contract.zapsign_links, updatedLinks)) continue;
             await supabase
               .from('contratos')
               .update({ zapsign_links: updatedLinks })

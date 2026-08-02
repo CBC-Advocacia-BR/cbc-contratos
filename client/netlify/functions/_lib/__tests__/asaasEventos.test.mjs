@@ -93,3 +93,46 @@ describe('EVENT_TO_STATUS — mapa completo', () => {
     expect(comData).toEqual(['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'PAYMENT_RECEIVED_IN_CASH']);
   });
 });
+
+// (auditoria 01/08/2026 — item 121) Classificacao de falha do webhook do Asaas.
+// POR QUE IMPORTA: responder 200 ao Asaas significa "recebi e tratei" — ele risca o
+// evento e NUNCA reenvia. Com o banco fora (o incidente de 17/07 durou 3h24), todo
+// pagamento confirmado na janela sumia: o boleto seguia "em aberto", entrava na
+// inadimplencia e o cliente que JA PAGOU recebia cobranca. Falha de infra tem de pedir
+// re-tentativa; erro de logica NAO, senao vira enxurrada de webhook para sempre.
+const ehFalhaDeInfra = (e) => {
+  const m = String(e?.message || e || '').toLowerCase();
+  return /timeout|timed out|etimedout|econnreset|econnrefused|econnaborted|enotfound|epipe|network|fetch failed|socket|502|503|504|too many connections|connect|unavailable|temporarily|overloaded/.test(m);
+};
+
+describe('webhook Asaas — quando pedir re-tentativa (item 121)', () => {
+  const infra = [
+    'fetch failed', 'connect ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED',
+    'getaddrinfo ENOTFOUND db.supabase.co', 'network error',
+    'Gateway Timeout 504', 'Service Unavailable 503', 'too many connections',
+    'socket hang up', 'server is temporarily unavailable',
+  ];
+  for (const msg of infra) {
+    it(`re-tenta em: "${msg}"`, () => {
+      expect(ehFalhaDeInfra(new Error(msg))).toBe(true);
+    });
+  }
+
+  const definitivo = [
+    'duplicate key value violates unique constraint',
+    'null value in column "status" violates not-null constraint',
+    'invalid input syntax for type numeric',
+    'permission denied for table asaas_boletos',
+    'column "xyz" does not exist',
+  ];
+  for (const msg of definitivo) {
+    it(`NAO re-tenta em: "${msg.slice(0, 42)}"`, () => {
+      expect(ehFalhaDeInfra(new Error(msg))).toBe(false);
+    });
+  }
+
+  it('erro sem mensagem nao pede re-tentativa (conservador)', () => {
+    expect(ehFalhaDeInfra(null)).toBe(false);
+    expect(ehFalhaDeInfra(new Error(''))).toBe(false);
+  });
+});

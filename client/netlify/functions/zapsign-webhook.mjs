@@ -17,6 +17,8 @@
 // Passa a usar o `db` do _lib/botDb.mjs, que tem a URL como fallback embutido.
 import { db as sb, heartbeat, logAdvbox } from './_lib/botDb.mjs';
 import { comCaptura } from './_lib/comCaptura.mjs';
+// (item 204) fonte unica da leitura dos signatarios do ZapSign
+import { lerSignatarios } from './_lib/zapsignSigners.mjs';
 
 const ZAP_TOKEN = process.env.ZAPSIGN_TOKEN;
 const WEBHOOK_SECRET = process.env.ZAPSIGN_WEBHOOK_SECRET || '';
@@ -113,21 +115,12 @@ export default comCaptura('zapsign-webhook', async (req) => {
     return jsonResponse({ error: 'failed to fetch doc from zapsign' }, 502);
   }
 
-  const signers = doc.signers || [];
-  const updatedLinks = signers.map(s => ({
-    name: s.name,
-    email: s.email,
-    token: s.token,
-    sign_url: s.sign_url || s.signing_link,
-    status: s.status,
-    signed_at: s.signed_at,
-    times_viewed: s.times_viewed || 0,
-    first_opened_at: s.first_opened_at || null,
-    last_view_at: s.last_view_at || null,
-  }));
-
-  const allSigned = signers.length > 0 && signers.every(s => s.status === 'signed');
-  const anyRefused = signers.some(s => s.status === 'refused');
+  // (auditoria 01/08/2026 — item 204) A leitura dos signatarios saiu daqui para
+  // `_lib/zapsignSigners.mjs`: era a TERCEIRA copia da mesma conta (as outras no polling
+  // do App.jsx e no botao do ContratosTab), e as tres decidem se o contrato virou
+  // "assinado" e qual a data real. Com copias, correcao feita numa nunca chegava nas
+  // outras — o mesmo padrao que produziu o bug do mapa do ADVBOX.
+  const { links: updatedLinks, todosAssinaram: allSigned, algumRecusou: anyRefused, assinadoEm, total: signersCount } = lerSignatarios(doc.signers);
 
   let newStatus = contract.status;
   if (allSigned && contract.status === 'enviado_zapsign') {
@@ -148,8 +141,7 @@ export default comCaptura('zapsign-webhook', async (req) => {
   // Antes signed_at ficava vazio (so o import manual preenchia) e os relatorios de
   // prazo/producao/comissao usavam aproximacao. Usa o ultimo signatario que assinou.
   if (newStatus === 'assinado' && contract.status !== 'assinado') {
-    const datasAssinatura = signers.map(s => s.signed_at).filter(Boolean).sort();
-    update.signed_at = datasAssinatura.length ? datasAssinatura[datasAssinatura.length - 1] : new Date().toISOString();
+    update.signed_at = assinadoEm;
   }
 
   // (varredura 15/06) lock otimista (compare-and-swap) no status — igual ao polling
@@ -172,7 +164,7 @@ export default comCaptura('zapsign-webhook', async (req) => {
     contract_id: contract.id,
     status_changed: newStatus !== contract.status,
     new_status: newStatus,
-    signers_count: signers.length,
+    signers_count: signersCount,
     all_signed: allSigned,
   });
 }, { origem: 'zapsign' });

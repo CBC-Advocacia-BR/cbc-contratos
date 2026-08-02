@@ -25,6 +25,15 @@ const HEADERS = { 'access_token': ASAAS_KEY, 'Content-Type': 'application/json' 
 // desligar de novo, trocar para false e fazer deploy.
 const NF_AUTOMATICA_ATIVA = true;
 
+// (item 121) Falha PASSAGEIRA (vale re-tentar) x falha definitiva (re-tentar nao muda).
+// Mesma classificacao usada no item 127 (disparo do link de assinatura). Conservador de
+// proposito: na duvida NAO pede re-tentativa, porque re-tentativa infinita do Asaas em
+// erro permanente vira enxurrada de webhook.
+const ehFalhaDeInfra = (e) => {
+  const m = String(e?.message || e || '').toLowerCase();
+  return /timeout|timed out|etimedout|econnreset|econnrefused|econnaborted|enotfound|epipe|network|fetch failed|socket|502|503|504|too many connections|connect|unavailable|temporarily|overloaded/.test(m);
+};
+
 
 async function asaasPost(path, body) {
   const resp = await fetch(`${ASAAS_URL}${path}`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
@@ -114,6 +123,21 @@ export default comCaptura('asaas-webhook', async (req) => {
       } catch (e) {
         console.error('webhook mirror update:', e.message);
         await logAdvbox('asaas', 'erro', `webhook ${event} ${payment.id}: ${e.message}`.slice(0, 300), { event });
+        // (auditoria 01/08/2026 — item 121) O erro era registrado e o webhook respondia
+        // 200 assim mesmo. Para o Asaas, 200 significa "recebi e tratei": ele risca o
+        // evento e NUNCA reenvia. Com o banco fora do ar (o incidente de 17/07 durou
+        // 3h24), todo pagamento confirmado naquela janela sumia — o boleto continuava
+        // "em aberto", entrava na inadimplencia e na regua de cobranca, e o cliente que
+        // JA PAGOU recebia cobranca.
+        // Agora falha de INFRAESTRUTURA devolve 5xx: o Asaas re-tenta e o evento volta.
+        // Erro de logica/dado continua com 200, porque re-tentar daria o mesmo erro para
+        // sempre. A NF e a marcacao de cobranca vem DEPOIS deste ponto, entao sair aqui
+        // nao deixa nada pela metade — e a emissao tem trava propria (nfClaim).
+        if (ehFalhaDeInfra(e)) {
+          return new Response(JSON.stringify({ ok: false, retry: true, error: 'banco indisponivel' }), {
+            status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+          });
+        }
       }
     } else if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) {
       // boleto novo/alterado em tempo real (se o webhook do Asaas enviar esses eventos)
