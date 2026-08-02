@@ -130,12 +130,33 @@ echo "Rollback: ./rollback.sh $CURRENT_DEPLOY"
 # Nao usa 'set -e' aqui — um smoke falho AVISA e sugere rollback, nao mata o script.
 echo ""
 echo "[smoke] Verificando producao..."
+# (auditoria 01/08/2026 — item 166) O smoke reprovava DEPLOY BOM e nao pegava desastre.
+# Aconteceu de verdade em 02/08: o /api/health devolveu 502 num instante de troca de
+# versao, o auto-rollback disparou e reverteu uma publicacao correta. O /api/health pinga
+# CINCO servicos externos — um 502 ali fala do Kommo ou do Asaas, nao do nosso deploy.
+# Agora: (1) cada checagem tenta 3 vezes antes de condenar, (2) entrou uma FUNCTION comum
+# no teste — o incidente do worktree em 22/07 quebrou o pacote das functions e o smoke
+# passou feliz, porque so olhava o site e o health.
+tenta3() { # $1 = url ; ecoa o melhor codigo obtido em ate 3 tentativas
+  local url="$1" melhor="000" c
+  for _ in 1 2 3; do
+    c=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "$url" || echo "000")
+    case "$c" in 200|204|404) echo "$c"; return ;; esac
+    melhor="$c"; sleep 4
+  done
+  echo "$melhor"
+}
+
 SMOKE_OK=1
-HOME_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${SITE_NAME}.netlify.app/" || echo "000")
-HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://${SITE_NAME}.netlify.app/api/health" || echo "000")
-echo "   home: HTTP $HOME_CODE · health: HTTP $HEALTH_CODE"
+HOME_CODE=$(tenta3 "https://${SITE_NAME}.netlify.app/")
+HEALTH_CODE=$(tenta3 "https://${SITE_NAME}.netlify.app/api/health")
+# function comum (nao agendada, sem efeito colateral): prova que o PACOTE das functions
+# subiu inteiro. Sem isto, um bundle quebrado passa despercebido ate alguem reclamar.
+FUNC_CODE=$(tenta3 "https://${SITE_NAME}.netlify.app/.netlify/functions/portal-manifest")
+echo "   home: HTTP $HOME_CODE · health: HTTP $HEALTH_CODE · function: HTTP $FUNC_CODE"
 [ "$HOME_CODE" = "200" ] || SMOKE_OK=0
 case "$HEALTH_CODE" in 200|204|404) ;; *) SMOKE_OK=0 ;; esac
+case "$FUNC_CODE" in 200|204|401|403|404) ;; *) SMOKE_OK=0 ;; esac
 if [ "$SMOKE_OK" = "1" ]; then
   echo "   ✅ smoke OK"
 else

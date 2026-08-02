@@ -125,7 +125,7 @@ const KPI_VISUAL = {
 };
 
 // canCompare gateia a pílula de delta (comparativo mês a mês) — só sócios.
-export function KpiCard({ kpiKey, item, delay = 0, canCompare = true }) {
+function KpiCardBase({ kpiKey, item, delay = 0, canCompare = true }) {
   const visual = KPI_VISUAL[kpiKey] || { Icon: ChartBarIcon, tone: 'info' };
   const tone = TONES[item.alert ? 'danger' : visual.tone] || TONES.info;
   const Icon = visual.Icon;
@@ -176,7 +176,7 @@ export function KpiCard({ kpiKey, item, delay = 0, canCompare = true }) {
 // barra de meta quando há progress. Layout largo (largura cheia), card branco
 // com borda fina + acento navy no topo. Reusa o mesmo `item` dos KpiCards.
 // canCompare gateia o delta "vs período anterior" (comparativo) — só sócios.
-export function HeroKpi({ kpiKey, item, delay = 0, canCompare = true }) {
+function HeroKpiBase({ kpiKey, item, delay = 0, canCompare = true }) {
   if (!item) return null;
   const visual = KPI_VISUAL[kpiKey] || { Icon: ChartBarIcon, tone: 'info' };
   const tone = TONES[item.alert ? 'danger' : visual.tone] || TONES.info;
@@ -364,7 +364,7 @@ export function ActionStrip({ acoes, onNavigate }) {
 // Funil "de verdade": 3 etapas (criados ⊇ enviados ⊇ assinados) como barras
 // centradas que afunilam. A queda % entre etapas aparece no degrau; a
 // conversão total (criação → assinatura) fica em destaque no rodapé.
-export function FunnelCard({ funil, delay = 0, mostrarInvestimento = false, frescor = null }) {
+function FunnelCardBase({ funil, delay = 0, mostrarInvestimento = false, frescor = null }) {
   // (videochamadas) etapas do TOPO vindas da agenda — contadas por data do evento.
   const temVideo = typeof funil.agendadas === 'number';
   // (leads Meta 14/07/2026) 1a etapa: leads das campanhas (conversas iniciadas + forms),
@@ -569,7 +569,7 @@ const STATUS_META = {
   cancelado: { label: 'Cancelados', cor: 'var(--cbc-danger)' },
 };
 
-export function StatusDonut({ porStatus, delay = 0 }) {
+function StatusDonutBase({ porStatus, delay = 0 }) {
   const data = Object.entries(STATUS_META)
     .map(([key, meta]) => ({ ...meta, value: porStatus[key] || 0 }))
     .filter((d) => d.value > 0);
@@ -633,7 +633,7 @@ export function StatusDonut({ porStatus, delay = 0 }) {
 // Junta a distribuição por status (donut + enviados/assinados) com o KPI herói
 // "assinaturas no período" (valor + delta vs período anterior, mesmo `item` dos KpiCards).
 // Faixa navy no topo; empilha no mobile com divisória horizontal.
-export function StatusAssinaturasCard({ porStatus, kpiAssinados, canCompare = true, delay = 0 }) {
+function StatusAssinaturasCardBase({ porStatus, kpiAssinados, canCompare = true, delay = 0 }) {
   const data = Object.entries(STATUS_META)
     .map(([key, meta]) => ({ ...meta, value: porStatus[key] || 0 }))
     .filter((d) => d.value > 0);
@@ -762,7 +762,7 @@ function fmtCmp(v, fmt) {
   return Number(v).toLocaleString('pt-BR');
 }
 
-export function MonthComparator({ comparador, delay = 0 }) {
+function MonthComparatorBase({ comparador, delay = 0 }) {
   const meses = comparador?.meses || [];
   const [mesA, setMesA] = useState(meses[1]?.key || meses[0]?.key || '');
   const [mesB, setMesB] = useState(meses[0]?.key || '');
@@ -857,7 +857,7 @@ export function MonthComparator({ comparador, delay = 0 }) {
 }
 
 // ─── Lista de desempenho (resorts / tipos de ação) ───
-export function PerformanceList({ title, subtitle, items, delay = 0, initial = 8 }) {
+function PerformanceListBase({ title, subtitle, items, delay = 0, initial = 8 }) {
   const [expanded, setExpanded] = useState(false);
   if (!items || items.length === 0) return null;
   const visible = expanded ? items : items.slice(0, initial);
@@ -999,7 +999,7 @@ function HonorariosLineChart({ serie, mesSel, onPickMes }) {
   );
 }
 
-export function HonorariosCard({ honorarios, delay = 0 }) {
+function HonorariosCardBase({ honorarios, delay = 0 }) {
   const [modo, setModo] = useState('assinados');     // assinados | todos
   const [expanded, setExpanded] = useState(false);
   const [mesSel, setMesSel] = useState(null);        // null = todos os meses
@@ -1106,7 +1106,7 @@ export function HonorariosCard({ honorarios, delay = 0 }) {
 // não-status). 4º+ caem no navy-light (token).
 const RANK_COLORS = ['var(--cbc-gold)', '#8A93A3', '#A66A35', 'var(--cbc-navy-light)', 'var(--cbc-navy-light)'];
 
-export function TopMesCard({ top, mesLabel, delay = 0 }) {
+function TopMesCardBase({ top, mesLabel, delay = 0 }) {
   return (
     <DashCard title="Top resorts do mês" subtitle={`Assinaturas em ${mesLabel}`} delay={delay}>
       {(!top || top.length === 0) ? (
@@ -1172,7 +1172,7 @@ function FaixaLegenda({ faixas }) {
 // ─── Jornada de compra (1ª mensagem → assinatura) ───
 const JORNADA_FAIXAS = [7, 15, 30];
 
-export function JornadaCard({ jornada, delay = 0 }) {
+function JornadaCardBase({ jornada, delay = 0 }) {
   const porResort = useMemo(() => {
     const map = {};
     (jornada.casos || []).forEach((c) => { (map[c.resort] = map[c.resort] || []).push(c.dias); });
@@ -1241,7 +1241,7 @@ const medianOf = (arr) => {
   return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
 };
 
-export function DistribuicaoCard({ casos, delay = 0 }) {
+function DistribuicaoCardBase({ casos, delay = 0 }) {
   const [resortFilter, setResortFilter] = useState('');
   const [drill, setDrill] = useState(null);
 
@@ -1465,7 +1465,7 @@ const INSIGHT_TONES = { positivo: TONES.success, alerta: TONES.warning, info: TO
 
 const INSIGHTS_PER_PAGE = 4;
 
-export function InsightsCard({ insights, delay = 0 }) {
+function InsightsCardBase({ insights, delay = 0 }) {
   const [offset, setOffset] = useState(0);
   if (!insights || insights.length === 0) return null;
   const temMais = insights.length > INSIGHTS_PER_PAGE;
@@ -1523,7 +1523,7 @@ const STATUS_PILL = {
   cancelado: { label: 'Cancelado', tone: TONES.danger },
 };
 
-export function RecentContracts({ recentes, onNavigate, delay = 0 }) {
+function RecentContractsBase({ recentes, onNavigate, delay = 0 }) {
   const [page, setPage] = useState(1);
   if (!recentes || recentes.length === 0) return null;
   const totalPages = Math.ceil(recentes.length / RECENTES_PER_PAGE);
@@ -1770,3 +1770,27 @@ export function EmptyScope({ onClear }) {
     </div>
   );
 }
+
+
+// (auditoria 01/08/2026 — item 180) MEMOIZACAO DOS WIDGETS.
+// Este arquivo tem ~1.770 linhas e 18 componentes. Sem memo, QUALQUER mudanca de
+// estado no Dashboard (clicar num chip de periodo, abrir um drill-down, o realtime
+// chegar) redesenhava TODOS eles — inclusive os graficos SVG e as listas longas, que
+// nao tinham nada de novo para mostrar.
+// Memoizados so os que recebem DADOS (o compute.js ja os entrega estaveis via useMemo).
+// Ficam de fora de proposito: `FilterBar` e `ActionStrip`, que recebem callbacks nao
+// memoizados do Dashboard — ali o memo nao evitaria render nenhum e daria falsa
+// sensacao de otimizacao; e `DashCard`/`SectionTitle`, casca trivial.
+export const KpiCard = React.memo(KpiCardBase);
+export const HeroKpi = React.memo(HeroKpiBase);
+export const FunnelCard = React.memo(FunnelCardBase);
+export const StatusDonut = React.memo(StatusDonutBase);
+export const StatusAssinaturasCard = React.memo(StatusAssinaturasCardBase);
+export const MonthComparator = React.memo(MonthComparatorBase);
+export const PerformanceList = React.memo(PerformanceListBase);
+export const HonorariosCard = React.memo(HonorariosCardBase);
+export const TopMesCard = React.memo(TopMesCardBase);
+export const JornadaCard = React.memo(JornadaCardBase);
+export const DistribuicaoCard = React.memo(DistribuicaoCardBase);
+export const InsightsCard = React.memo(InsightsCardBase);
+export const RecentContracts = React.memo(RecentContractsBase);

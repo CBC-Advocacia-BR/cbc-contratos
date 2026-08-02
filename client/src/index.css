@@ -1636,6 +1636,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   .text-\[9px\] { font-size: 10px !important; }
 }
 
+/* ─── (auditoria 01/08/2026 — item 263) PISO TIPOGRÁFICO NO COMPUTADOR TAMBÉM ───
+   O piso acima só valia no celular. No desktop sobraram 24 usos de 8px e 196 de 9px —
+   e é no computador que a equipe passa o dia inteiro lendo. Oito pixels é menor que a
+   letra miúda de um contrato impresso; força a pessoa a chegar perto da tela e cansa
+   a vista ao longo do expediente.
+   Piso conservador de propósito (8→9,5px e 9→10px, os MESMOS valores já usados no
+   celular): sobe o suficiente para ser lido sem obrigar a repensar densidade de tabela
+   nenhuma — nada quebra de linha nem estoura container. Os 530 usos de 10px ficam como
+   estão: 10px é pequeno, mas é legível e mudá-los mexeria no layout de todas as telas. */
+@media (min-width: 641px) {
+  .text-\[7px\] { font-size: 9px; }
+  .text-\[8px\] { font-size: 9.5px; }
+  .text-\[9px\] { font-size: 10px; }
+}
+
 /* ─── Espaço do dock devolvido ao layout (spacer renderizado pelo App
        apenas quando o dock está visível — zero efeito em desktop) ─── */
 .dock-spacer {

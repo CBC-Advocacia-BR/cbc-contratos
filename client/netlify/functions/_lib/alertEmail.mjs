@@ -2,11 +2,14 @@
 // enviar e-mail para paulo@advocaciacbc.com SOMENTE quando houver erro CRITICO no
 // sistema (integracao caida, robo parado, mensagens perdidas) — nunca para avisos.
 //
-// Provedor: Resend (API HTTP simples, SEM dependencia npm). Setup (unico passo do Paulo):
-//   1) criar conta gratuita em resend.com e gerar uma API key -> env RESEND_API_KEY (Netlify)
-//   2) verificar o dominio advocaciacbc.com no Resend (ou, p/ teste rapido, deixar
-//      ALERT_EMAIL_FROM = 'onboarding@resend.dev', que o Resend ja aceita sem verificar).
-// Sem RESEND_API_KEY, sendCriticalAlert e NO-OP (retorna skipped) — nao quebra nada.
+// ⚠️ STATUS (02/08/2026): **o Paulo decidiu NAO usar alerta por e-mail.** Isto deixou de
+// ser pendencia e virou escolha — o canal de alerta e o SINO do app, e so ele. Nao voltar
+// a tratar a ausencia da chave como problema a resolver.
+//
+// O codigo fica pronto de proposito: se um dia o e-mail for desejado, basta cadastrar
+// RESEND_API_KEY no Netlify (conta gratuita em resend.com) e o envio volta sozinho, sem
+// deploy. Para testar sem verificar dominio: ALERT_EMAIL_FROM = 'onboarding@resend.dev'.
+// Sem a chave, sendCriticalAlert e NO-OP (retorna skipped) — nao quebra nada.
 const RESEND_KEY = process.env.RESEND_API_KEY || '';
 const ALERT_TO = process.env.ALERT_EMAIL_TO || 'paulo@advocaciacbc.com';
 const ALERT_FROM = process.env.ALERT_EMAIL_FROM || 'alertas@advocaciacbc.com';

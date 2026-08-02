@@ -246,7 +246,15 @@ export default async () => {
           out.email = 'enviado';
         } else {
           out.email = res.skipped || res.error;
-          await logAdvbox('health', 'aviso', `Erro critico detectado (notificacao in-app criada), mas e-mail NAO enviado (${res.skipped || res.error}). Configure RESEND_API_KEY no Netlify.`.slice(0, 300), { criticos });
+          // (02/08/2026 — decisao do Paulo: NAO quer alerta por e-mail) Antes isto pedia
+          // para configurar a RESEND_API_KEY a cada rodada. Nao e mais pendencia: e uma
+          // escolha. Sem chave, o alerta vive so no sino do app — que passa a ser o UNICO
+          // canal, entao o aviso aqui registra o fato sem cobrar providencia.
+          // Se um dia o e-mail for desejado, basta cadastrar RESEND_API_KEY: o codigo em
+          // `_lib/alertEmail.mjs` ja esta pronto e volta a enviar sozinho.
+          if (!res.skipped) {
+            await logAdvbox('health', 'aviso', `Erro critico detectado (notificacao in-app criada), mas o e-mail falhou: ${res.error}`.slice(0, 300), { criticos });
+          }
         }
       } else {
         out.email = 'throttled (2h)';

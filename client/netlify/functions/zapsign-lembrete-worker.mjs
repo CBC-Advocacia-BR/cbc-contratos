@@ -92,17 +92,31 @@ export default async (req) => {
     const limiteVelho = new Date(hoje.getTime() - cfg.dias_max * 86400000).toISOString();
 
     // Pendentes = enviados ao ZapSign, ainda nao assinados, vivos (nao arquivados/cancelados).
-    const { data: pendentes, error } = await db
+    //
+    // (02/08/2026 — decisao do Paulo: "lembrar TODOS os contratos pendentes de assinatura")
+    // ⚠️ O filtro antes exigia `zapsign_sent_at`, e **12 dos 23 pendentes estao com essa
+    // data NULA** (o mais antigo de 25/05) — provavelmente enviados por um caminho que nao
+    // gravou a data. Eles ficavam invisiveis para o lembrete PARA SEMPRE, sem ninguem notar.
+    // Agora a referencia e `zapsign_sent_at` OU, na falta dela, `created_at`: todo contrato
+    // pendente entra na conta. A janela (dias_min/dias_max) continua valendo sobre essa
+    // data de referencia — ela existe para nao cutucar quem recebeu o link hoje nem quem ja
+    // esfriou faz meses.
+    const { data: brutos, error } = await db
       .from('contratos')
-      .select('id, nome_contratante1, zapsign_doc_token, zapsign_sent_at, advbox_data')
+      .select('id, nome_contratante1, zapsign_doc_token, zapsign_sent_at, created_at, advbox_data')
       .eq('status', 'enviado_zapsign')
       .not('zapsign_doc_token', 'is', null)
       .is('arquivado_em', null)
-      .lte('zapsign_sent_at', limiteNovo)
-      .gte('zapsign_sent_at', limiteVelho)
-      .order('zapsign_sent_at', { ascending: true })
-      .limit(cfg.max_por_dia);
+      .order('created_at', { ascending: true });
     if (error) throw new Error(`supabase: ${error.message}`);
+
+    // data de referencia + janela, aplicadas aqui (o filtro no banco nao alcanca o coalesce)
+    const dentroDaJanela = (c) => {
+      const ref = c.zapsign_sent_at || c.created_at;
+      if (!ref) return false;
+      return ref <= limiteNovo && ref >= limiteVelho;
+    };
+    const pendentes = (brutos || []).filter(dentroDaJanela).slice(0, cfg.max_por_dia);
 
     const agoraMs = Date.now();
     const elegiveis = (pendentes || []).filter((c) => {
@@ -118,8 +132,11 @@ export default async (req) => {
         ok: true, simulacao: true, total_pendentes: (pendentes || []).length,
         elegiveis: elegiveis.length,
         lista: elegiveis.map((c) => ({
-          id: c.id, cliente: c.nome_contratante1, enviado_em: c.zapsign_sent_at,
-          dias_parado: Math.floor((agoraMs - new Date(c.zapsign_sent_at).getTime()) / 86400000),
+          id: c.id, cliente: c.nome_contratante1,
+          enviado_em: c.zapsign_sent_at,
+          // sem data de envio registrada, a referencia e a criacao do contrato
+          referencia: c.zapsign_sent_at ? 'envio' : 'criacao do contrato',
+          dias_parado: Math.floor((agoraMs - new Date(c.zapsign_sent_at || c.created_at).getTime()) / 86400000),
         })),
       });
     }
