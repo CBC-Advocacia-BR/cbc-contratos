@@ -529,7 +529,9 @@ As 12 abas (gated por `user_permissions.tabs`, exceto **Sócios** que é gated p
 - Financeiro (receita/projeção/inadimplência/top), Operacional (funil/tempo/êxito), Equipe (produtividade/ranking), Estratégico (YoY/top resorts/ação mais rentável)
 
 ### Asaas + Boletos (`AsaasPanel.jsx`, `BoletosPanel.jsx`)
-- Boletos+PIX automáticos ao assinar, parcelamento, **NF automática** via `asaas-webhook`, **régua de cobrança** (`cobranca-regua`)
+- ⚠️ **A COBRANÇA NÃO É AUTOMÁTICA AO ASSINAR** (este guia afirmava que era — errado, conferido no código em 02/08/2026). Só `asaas-sync.mjs` cria pagamento no Asaas, e **nenhuma function o chama**: ele é acionado apenas por tela (botão **Lançar** na aba Asaas, Boletos e importação). Alguém precisa clicar. Foi essa a causa dos 3 contratos assinados e nunca cobrados (R$ 9.300, um há 125 dias) — ver `relatorios/Cobrancas-nao-lancadas-02-08-2026.pdf`. O watchdog agora cobra esses casos (item 120).
+- Boletos+PIX com parcelamento, **NF automática** via `asaas-webhook` (essa sim dispara sozinha, ao receber o pagamento), **régua de cobrança** (`cobranca-regua`)
+- ⚠️ Ao lançar, o Asaas **recusa vencimento no passado**: contrato antigo com `dataPrimeiraParcela` vencida precisa de data nova antes (editável na própria linha da aba Asaas).
 - Espelho de boletos/clientes (`asaas_boletos`/`asaas_customers`), sync 2x/dia + manual; faixa de **inadimplência** (`InadimplenciaStrip`, `inadimplencia_historico`); relatório PDF; drawer de contrato; conferência de NF
 
 ### Bot ADVBOX (`BotAdvboxPanel.jsx` + `bot/*`) — autoatendimento Kommo×ADVBOX

@@ -300,7 +300,7 @@ export default function VendasPanel() {
     try {
       let query = supabase
         .from('contratos')
-        .select('id, nome_contratante1, nome_contratante2, cpf_contratante1, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, status, created_at, updated_at, created_by, dados, zapsign_doc_token, advbox_process_number, advbox_lawsuit_id, advbox_stage, advbox_step, kanban_col, pasta, vendedora_email, assistente_email, agenda_marcada, fim_de_semana_atendimento, promocao_sazonal_id, valor_pago_cota, data_primeira_mensagem, peticao_distribuida_em, signed_at, origem_cliente')
+        .select('id, nome_contratante1, nome_contratante2, cpf_contratante1, resort, tipo_acao, honorarios_total, honorarios_percentual_exito, status, created_at, updated_at, created_by, tel1:dados->contratantes->0->>telefone, kommo1:dados->contratantes->0->>linkKommo, zapsign_doc_token, advbox_process_number, advbox_lawsuit_id, advbox_stage, advbox_step, kanban_col, pasta, vendedora_email, assistente_email, agenda_marcada, fim_de_semana_atendimento, promocao_sazonal_id, valor_pago_cota, data_primeira_mensagem, peticao_distribuida_em, signed_at, origem_cliente')
         .order('created_at', { ascending: false });
       if (vendedoraEmail) {
         query = query.eq('vendedora_email', vendedoraEmail);
@@ -308,19 +308,31 @@ export default function VendasPanel() {
       const { data, error: dbError } = await query;
       if (dbError) throw dbError;
       if (!aindaVale()) return;   // (item 200) chegou tarde: outro filtro ja esta na tela
-      setContratos(data || []);
+      // (auditoria 01/08/2026 — item 172) A consulta trazia a coluna `dados` INTEIRA — o
+      // contrato completo — e isso a cada 60 SEGUNDOS, com a aba aberta o dia todo. De
+      // tudo aquilo a tela le DOIS campos: telefone e link do Kommo do 1o contratante
+      // (6 lugares, incluindo o export). MEDIDO na base: 914 kB por recarga viravam
+      // 192 kB — 21% do que descia antes. Aqui o objeto e remontado no formato que as 6
+      // leituras esperam, entao nenhum trecho da tela precisou mudar.
+      // ⚠️ Se a tela passar a usar outro campo do contratante, ele tem de entrar no
+      // `select` — senao chega `undefined` em silencio. Mesmo padrao do item 173 (Asaas).
+      setContratos((data || []).map((c) => ({
+        ...c, dados: { contratantes: [{ telefone: c.tel1 || '', linkKommo: c.kommo1 || '' }] },
+      })));
     } catch {
       // Pode ser que colunas novas (pasta, vendedora_email etc) nao existam ainda.
       // Fallback: query minima
       try {
         const { data, error: e2 } = await supabase
           .from('contratos')
-          .select('id, nome_contratante1, cpf_contratante1, resort, tipo_acao, honorarios_total, status, created_at, dados')
+          .select('id, nome_contratante1, cpf_contratante1, resort, tipo_acao, honorarios_total, status, created_at, tel1:dados->contratantes->0->>telefone, kommo1:dados->contratantes->0->>linkKommo')
           .order('created_at', { ascending: false })
           .limit(100);
         if (e2) throw e2;
         if (!aindaVale()) return;
-        setContratos(data || []);
+        setContratos((data || []).map((c) => ({
+          ...c, dados: { contratantes: [{ telefone: c.tel1 || '', linkKommo: c.kommo1 || '' }] },
+        })));
       } catch {
         if (aindaVale()) setError('Nao foi possivel carregar os contratos. Tente atualizar a pagina; se continuar, avise o suporte.');
       }
