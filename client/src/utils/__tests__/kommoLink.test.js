@@ -15,6 +15,42 @@ describe('classificarLink — de qual lead/conta e o link', () => {
     expect(r).toMatchObject({ veredito: 'checar', leadId: '18219824', host: HOST_OFICIAL });
   });
 
+  // ⚠️ ESTE BLOCO EXISTE POR CAUSA DE UM BUG REAL (03/08/2026): a 1a versao ancorava o
+  // regex em `dominio + /leads/detail/`. Medido depois contra os 460 links do banco:
+  // so 6 passariam e 296 seriam reprovados por engano (64%), travando a maioria dos
+  // envios no checklist. A equipe cola a URL da barra do navegador, que traz /chats/N/.
+  // Formatos abaixo sao copias literais de linhas reais de contratos.
+  it('aceita os formatos REAIS colados pela equipe (nao so o caminho limpo)', () => {
+    const reais = [
+      ['https://advocaciacbc.kommo.com/chats/10115/leads/detail/13312166?t=1782138587.1', '13312166'], // 161 no banco
+      ['https://advocaciacbc.kommo.com/chats/leads/detail/10691546?filter%5Bterm%5D=LU', '10691546'],  // 11 no banco
+      ['https://advocaciacbc.kommo.com/leads/detail/12796728', '12796728'],                            // 3 no banco
+      ['https://advocaciacbc.kommo.com/chats/3063/leads/detail/6023416?t=1779905262.5&filter%5Bpipe%5D%5B13760367%5D%5B%5D=106167795', '6023416'],
+    ];
+    for (const [link, id] of reais) {
+      const r = classificarLink(link);
+      expect(r.veredito, link).toBe('checar');
+      expect(r.leadId, link).toBe(id);
+    }
+  });
+
+  it('link colado duas vezes e "quebrado", nao "de outra conta" (casos reais do banco)', () => {
+    // "e de outra conta Kommo (https:)" nao diria nada a quem le
+    for (const link of [
+      'https://https://advocaciacbc.kommo.com/chats/31831/leads/detail/12822852',
+      'https://advocaciachttps://advocaciacbc.kommo.com/chats/31036/leads/detail/999',
+    ]) {
+      const r = classificarLink(link);
+      expect(r.veredito, link).toBe('invalido');
+      expect(r.motivo, link).toMatch(/colado duas vezes|quebrado/i);
+    }
+  });
+
+  it('URL que nao e do Kommo continua reprovada (106 links do banco eram do Drive)', () => {
+    const r = classificarLink('https://drive.google.com/drive/folders/1MV6dtF2jck1QWry5g9qKlPapAr1nunJj');
+    expect(r.veredito).toBe('invalido');
+  });
+
   it('aceita variacoes de URL que a equipe cola no dia a dia', () => {
     const casos = [
       'https://advocaciacbc.kommo.com/leads/detail/123?from=list',

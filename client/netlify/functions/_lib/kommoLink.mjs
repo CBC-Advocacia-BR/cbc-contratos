@@ -19,10 +19,18 @@
 /** Unica conta Kommo que o nosso token alcanca. */
 export const HOST_OFICIAL = 'advocaciacbc.kommo.com';
 
-// Exige a URL completa da conversa. Id solto ("18219824") NAO vale de proposito: sem o
-// host nao da para saber se e desta conta, e foi assim que um link de outra conta
+// ⚠️ O host e o id sao extraidos SEPARADAMENTE, e o id e procurado em QUALQUER ponto do
+// caminho. Motivo (medido em 460 links reais do banco, 03/08/2026): a equipe cola a URL
+// que o Kommo mostra na barra do navegador, e ela quase nunca e o caminho limpo —
+//   161 links: /chats/10115/leads/detail/13312166?t=...   <- formato DOMINANTE
+//    11 links: /chats/leads/detail/10691546?filter[term]=...
+//     3 links: /leads/detail/12796728                     <- o caminho "limpo"
+// Um regex ancorado em `dominio + /leads/detail/` reprovaria 64% dos links legitimos e
+// travaria a maioria dos envios. Id solto ("18219824") continua nao valendo: sem o host
+// nao da para saber se e desta conta, e foi assim que um link de outra conta
 // (brunoadvocaciacbccom) entrou num contrato sem ninguem perceber.
-const RE_LINK = /^https?:\/\/([^/\s]+)\/leads\/detail\/(\d+)/i;
+const RE_HOST = /^https?:\/\/([^/\s?#]+)/i;
+const RE_LEAD_ID = /\/leads\/detail\/(\d+)/;
 
 /**
  * @returns {{veredito:'checar'|'nao_existe'|'invalido', leadId?:string, host?:string, motivo?:string}}
@@ -32,13 +40,22 @@ export function classificarLink(link) {
   const s = String(link ?? '').trim();
   if (!s) return { veredito: 'invalido', motivo: 'Link Kommo nao preenchido' };
 
-  const m = s.match(RE_LINK);
-  if (!m) {
+  const mHost = s.match(RE_HOST);
+  const mId = s.match(RE_LEAD_ID);
+  if (!mHost || !mId) {
     return { veredito: 'invalido', motivo: 'Cole a URL da conversa no Kommo (…/leads/detail/NUMERO)' };
   }
 
-  const host = m[1].toLowerCase();
-  const leadId = m[2];
+  const host = mHost[1].toLowerCase();
+  const leadId = mId[1];
+
+  // Acidente de copiar/colar visto no banco: "https://https://advocaciacbc.kommo.com/..."
+  // e "https://advocaciachttps://advocaciacbc.kommo.com/...". O host extraido vira
+  // "https:" / "advocaciachttps:" — dizer "e de outra conta Kommo (https:)" nao ajudaria
+  // ninguem. E URL quebrada, e a mensagem tem de ser essa.
+  if (!/^[a-z0-9.-]+$/.test(host) || !host.includes('.')) {
+    return { veredito: 'invalido', leadId, motivo: 'O endereco esta quebrado (parece que o link foi colado duas vezes). Copie de novo a URL da conversa no Kommo.' };
+  }
 
   if (host !== HOST_OFICIAL) {
     // Existe na conta dele, mas e inalcancavel para nos: nenhuma nota, cobranca ou
