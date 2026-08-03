@@ -73,21 +73,33 @@ fi
 # conteudo certo. O incidente de 02/07 comecou exatamente assim. Agora o deploy exige
 # confirmacao explicita quando a branch nao e uma das de trabalho, e avisa se ha
 # alteracao nao commitada (o que sai daqui tem de existir no git — item 163).
+# Confirmacao que funciona tambem sem terminal (CI, script, agente). Sem tty a
+# resposta e NAO — falhar fechado e o comportamento certo aqui —, mas com uma
+# instrucao clara em vez de um erro do bash sobre /dev/tty.
+confirmar() {
+  if [ ! -r /dev/tty ]; then
+    echo "   (sem terminal interativo — assumindo NAO)"
+    echo "   Para seguir mesmo assim: CBC_DEPLOY_CONFIRMADO=1 ./deploy.sh"
+    [ "${CBC_DEPLOY_CONFIRMADO:-0}" = "1" ]
+    return
+  fi
+  printf "   Deployar assim mesmo? [s/N] "
+  local resp=""
+  read -r resp < /dev/tty || resp=""
+  case "$resp" in s|S|sim|Sim) return 0 ;; *) return 1 ;; esac
+}
+
 case "$BRANCH" in
   main|agendamentos-design) ;;
   *)
     echo "⚠️  Branch atual: $BRANCH (o normal e main ou agendamentos-design)."
-    printf "   Deployar assim mesmo? [s/N] "
-    read -r resp < /dev/tty || resp=""
-    case "$resp" in s|S|sim|Sim) ;; *) echo "🛑 Deploy cancelado."; exit 1 ;; esac ;;
+    confirmar || { echo "🛑 Deploy cancelado."; exit 1; } ;;
 esac
 if [ -n "$(git status --porcelain -- src netlify portal.html 2>/dev/null)" ]; then
   echo "⚠️  Ha alteracoes NAO COMMITADAS em src/, netlify/ ou portal.html."
   echo "   O que for para producao precisa existir no git — senao so a sua maquina tem."
   git status --short -- src netlify portal.html | head -8
-  printf "   Deployar assim mesmo? [s/N] "
-  read -r resp < /dev/tty || resp=""
-  case "$resp" in s|S|sim|Sim) ;; *) echo "🛑 Deploy cancelado. Commite antes."; exit 1 ;; esac
+  confirmar || { echo "🛑 Deploy cancelado. Commite antes."; exit 1; }
 fi
 echo "   ✓ sanidade do codigo-fonte OK (branch: $BRANCH)"
 
@@ -118,6 +130,27 @@ else
   echo ""
   echo "[2/6] Instalacao PULADA (--pular-instalacao) — usando o node_modules atual."
 fi
+
+# (auditoria 01/08/2026 — item 168) Carimbo do que esta indo ao ar, servido em
+# /api/version. Gerado do git LOCAL porque o deploy sai da CLI: num deploy pela CLI a
+# Netlify nao injeta COMMIT_REF/DEPLOY_ID, entao ler do ambiente devolveria nulo.
+python3 - "$BRANCH" <<'PYEOF'
+import json, subprocess, sys, datetime
+def git(*a):
+    try: return subprocess.check_output(['git',*a], text=True).strip()
+    except Exception: return None
+sujo = bool(git('status','--porcelain','--','src','netlify','portal.html'))
+json.dump({
+  'commit': git('rev-parse','HEAD'),
+  'commit_curto': git('rev-parse','--short','HEAD'),
+  'branch': sys.argv[1] if len(sys.argv)>1 else None,
+  'mensagem': git('log','-1','--format=%s'),
+  'commit_em': git('log','-1','--format=%cI'),
+  'publicado_em': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+  'arvore_suja': sujo,   # true = subiu coisa que nao esta no git
+}, open('public/version.json','w'), ensure_ascii=False, indent=2)
+PYEOF
+echo "   ✓ /api/version carimbado ($(python3 -c "import json;print(json.load(open('public/version.json'))['commit_curto'])"))"
 
 # 3. Testes (portao — aborta o deploy se algum teste falhar) (bug-9)
 echo ""

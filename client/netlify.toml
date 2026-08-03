@@ -16,12 +16,11 @@
   path = "/api/zapsign"
   function = "zapsign-proxy"
 
-# (auditoria 01/08/2026 — item 168) Diz qual commit/deploy esta servindo agora.
-# Antes, saber se uma correcao subiu exigia abrir o painel da Netlify e comparar
-# horarios, ou confiar no numero de versao escrito a mao no cabecalho do app.
-[[edge_functions]]
-  path = "/api/version"
-  function = "version"
+# (auditoria 01/08/2026 — item 168) /api/version diz qual commit esta servindo AGORA.
+# ⚠️ Comecou como edge function lendo COMMIT_REF/DEPLOY_ID do ambiente, e respondeu tudo
+# NULO em producao: a Netlify so injeta essas variaveis em build que ELA dispara pelo
+# Git, e aqui o deploy sai da CLI (deploy.sh). O version.json e gerado no deploy a partir
+# do git local — funciona nos dois modelos e nao gasta uma execucao de function.
 
 # Cache headers como fallback (o arquivo public/_headers tem precedencia)
 [[headers]]
@@ -40,6 +39,12 @@
     Cache-Control = "no-cache, no-store, must-revalidate"
 
 # Portal do cliente (pagina publica com token) — precisa vir ANTES do SPA fallback
+[[redirects]]
+  from = "/api/version"
+  to = "/version.json"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/portal"
   to = "/portal.html"

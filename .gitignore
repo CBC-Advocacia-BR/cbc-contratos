@@ -24,3 +24,6 @@ backups/
 # deploy bom, para o rollback.sh. Muda a cada deploy e e especifico da maquina — nao
 # tem por que virar commit. O arquivo continua existindo; so deixa de ser rastreado.
 client/.last-working-deploy
+
+# (item 168) carimbo do deploy, gerado pelo deploy.sh a cada publicacao
+client/public/version.json
