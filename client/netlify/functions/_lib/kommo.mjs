@@ -209,6 +209,7 @@ export async function runKommoOp(kind, payload) {
 
 /** Reivindica e executa UM job agora (drain inline apos enfileirar). */
 export async function drainNow(id) {
+  if (!id) return { skipped: true }; // job nao chegou a existir (ex.: lead morto barrado na entrada)
   const job = await claimById(id);
   if (!job) return { skipped: true };
   try { await runKommoOp(job.kind, job.payload); await complete(job.id); return { ok: true, id }; }
@@ -221,6 +222,7 @@ async function enqueueAndDrain(kind, payload, { source = 'kommo', dedupeKey = nu
   let job;
   try { job = await enqueue({ kind, payload, source, dedupeKey, priority }); }
   catch { await runKommoOp(kind, payload); return { direct: true }; } // fallback: fila fora do ar
+  if (job?.skipped) return job; // lead inexistente no Kommo: nao ha o que drenar
   return drainNow(job.id);
 }
 

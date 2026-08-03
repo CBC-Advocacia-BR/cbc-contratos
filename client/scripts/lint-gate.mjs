@@ -11,7 +11,7 @@
  */
 import { execFileSync } from 'node:child_process';
 
-const BASELINE = Number(process.env.BASELINE_ERROS || 19);
+const BASELINE = Number(process.env.BASELINE_ERROS || 18);
 
 let saida = '[]';
 try {

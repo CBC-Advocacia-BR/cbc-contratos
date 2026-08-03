@@ -148,7 +148,11 @@ export default async (req) => {
             const job = await enqueueKommo('assinatura_send',
               { leadId: String(g.leadId), fieldId, value: mensagem, botId },
               { source: 'assinatura', priority: 2, dedupeKey: `assinatura:${contratoId}:${g.leadId}` });
-            const envio = await drainNow(job.id); // envia agora; se falhar transitorio, o worker da fila entrega
+            // (02/08/2026) lead inexistente no Kommo: a fila barra na entrada e nao ha id
+            // p/ drenar. Cai no mesmo fluxo manual do fora_janela (nota + faixa M2 na UI).
+            const envio = job?.skipped
+              ? { ok: false, error: 'lead inexistente no Kommo' }
+              : await drainNow(job.id); // envia agora; se falhar transitorio, o worker da fila entrega
             if (envio?.ok === false && String(envio.error || '').includes('KOMMO_TRUNCOU')) {
               // (31/07) o Kommo persistiu o campo diferente do enviado (truncamento
               // silencioso no 1o emoji fora do BMP) e o Salesbot NAO rodou. E um erro

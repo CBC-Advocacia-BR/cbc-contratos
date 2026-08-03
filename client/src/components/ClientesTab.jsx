@@ -427,16 +427,37 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
   const [acoesDrive, setAcoesDrive] = useState([]);
   const [finMap, setFinMap] = useState({});
   const [openFin, setOpenFin] = useState(() => new Set());
+  // (auditoria 01/08/2026 — item 214) Abrir um cliente dispara 6 consultas e TODAS
+  // engoliam a falha: a secao aparecia vazia e o usuario concluia "este cliente nao tem
+  // processo / nao tem dado bancario / nao tem acao no Drive". Numa ficha que a equipe
+  // usa para decidir, "nao carregou" e "nao existe" nao podem ter a mesma aparencia.
+  // Agora cada consulta que falha e registrada, e a ficha diz quais secoes nao vieram.
+  const [falhas, setFalhas] = useState([]);
   const carregar360 = useCallback(() => { buscar360(row.id).then(setInfo).catch(() => {}); }, [row.id]);
   useEffect(() => {
     let live = true;
-    buscar360(row.id).then((d) => { if (live) setInfo(d); }).catch(() => {});
-    buscarProveniencia(row.id).then((s) => { if (live) setManualFields(s); }).catch(() => {});
-    buscarPrestacao(row.id).then((p) => { if (live) setPrestacao(p); }).catch(() => {});
-    buscarDadosBancarios(row.id).then((b) => { if (live) setDadosBanc(b); }).catch(() => {});
-    buscarAcoesDrive(row.id).then((a) => { if (live) setAcoesDrive(a); }).catch(() => {});
-    setOpenFin(new Set());
-    buscarPrestacaoFinanceiro(row.id).then((m) => { if (live) setFinMap(m); }).catch(() => {});
+    const secoes = [
+      ['processos e contratos', buscar360, setInfo],
+      ['origem dos dados', buscarProveniencia, setManualFields],
+      ['prestação de contas', buscarPrestacao, setPrestacao],
+      ['dados bancários', buscarDadosBancarios, setDadosBanc],
+      ['ações no Drive', buscarAcoesDrive, setAcoesDrive],
+      ['financeiro da prestação', buscarPrestacaoFinanceiro, setFinMap],
+    ];
+    (async () => {
+      setOpenFin(new Set());
+      // allSettled: uma secao que falha nao impede as outras de aparecerem, e a lista de
+      // falhas vai para a tela numa unica atualizacao de estado
+      const r = await Promise.allSettled(secoes.map(([, buscar]) => buscar(row.id)));
+      if (!live) return;
+      const ruins = [];
+      r.forEach((res, i) => {
+        const [nome, , aplicar] = secoes[i];
+        if (res.status === 'fulfilled') aplicar(res.value);
+        else { console.error(`[ClientesTab] ${nome}:`, res.reason); ruins.push(nome); }
+      });
+      setFalhas(ruins);
+    })();
     return () => { live = false; };
   }, [row.id]);
   const [picker, setPicker] = useState(''); const [pickerOpen, setPickerOpen] = useState(false);
@@ -463,6 +484,13 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
           <div className="dh-name">{row.nome || '(sem nome)'}</div>
           <div className="dh-sub">{cpfFmt(row.cpf, row.cpf_fmt)} · {row.relacao === 'parte_contraria' ? 'parte contrária' : row.relacao}{row.eh_pj ? ' · PJ' : ''}{ag ? ` · ${ag} anos` : ''}</div>
           <div className="comp-bar"><i style={{ width: comp + '%' }} />{comp}% completo</div>
+          {/* (item 214) sem isto, secao que nao carregou e secao vazia sao a MESMA coisa
+              na tela — e quem le decide achando que o cliente nao tem aquele dado */}
+          {falhas.length > 0 && (
+            <div role="alert" style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '5px 8px', lineHeight: 1.4 }}>
+              ⚠ Não foi possível carregar: {falhas.join(', ')}. Estas seções aparecem vazias por falha de carregamento, não por falta de dado.
+            </div>
+          )}
           {info && (risco === 'ok'
             ? <div style={{ marginTop: 6, fontSize: 12, color: '#16A34A', fontWeight: 700 }}>🟢 Sem alertas</div>
             : <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: risco === 'alto' ? 'var(--c-danger)' : '#D97706' }}>{risco === 'alto' ? '🔴' : '🟡'} {alertas.length} alerta(s)</div>)}

@@ -2,6 +2,7 @@
 // Objetivos de Nivel de Servico — mede taxa de sucesso das automacoes
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchAllPaged } from '../utils/supabasePaged';
 // (#126) Edge Function helper com fallback para Function antiga
 import { API } from '../utils/apiEndpoints';
 import {
@@ -86,11 +87,15 @@ export default function HealthSlos() {
         const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
         const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
         // automation_log (ultimos 30d)
-        const { data: autoData } = await supabase
+        // (auditoria 01/08/2026 — item 225) `.limit(5000)` nao levanta o teto de 1.000 do
+        // PostgREST: os indicadores de nivel de servico sairiam calculados sobre uma
+        // fatia arbitraria dos 30 dias, e sempre a mais recente — justamente a que
+        // esconde um periodo ruim antigo. Hoje sao ~163 linhas; e prevencao.
+        const autoData = await fetchAllPaged(() => supabase
           .from('automation_log')
           .select('action, status, created_at')
           .gte('created_at', thirtyDaysAgo)
-          .limit(5000);
+          .order('created_at', { ascending: false }).order('action'));
         if (mounted) setAutomationRows(autoData || []);
 
         // (auditoria 01/08 — item 258) Esta consulta buscava os erros do espelho Asaas e

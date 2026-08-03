@@ -84,8 +84,14 @@ export default comCaptura('cobranca-disparar', async (req) => {
           { leadId: String(d.lead_id), fieldId, value: d.ancora_link || '',
             fieldId2: fieldIdPix, value2: d.ancora_pix || '', botId: tpl.bot_id },
           { source: 'cobranca', priority: 3, dedupeKey: `cobranca_send:${d.lead_id}:${templateName}:${hoje}` });
-        rows.push({ ...rowBase, resultado: 'enfileirado', motivo_pulo: null, kommo_queue_id: job?.id || null });
-        enfileirados++;
+        if (job?.skipped) {
+          // (02/08/2026) lead nao existe mais no Kommo (apagado/mesclado): o disparo nao
+          // saiu. Registrar como 'enfileirado' mentiria no relatorio de cobranca.
+          rows.push({ ...rowBase, resultado: 'pulado', motivo_pulo: 'lead inexistente no Kommo', kommo_queue_id: null });
+        } else {
+          rows.push({ ...rowBase, resultado: 'enfileirado', motivo_pulo: null, kommo_queue_id: job?.id || null });
+          enfileirados++;
+        }
       } catch (e) {
         rows.push({ ...rowBase, resultado: 'erro', motivo_pulo: null, kommo_queue_id: null });
         await logAdvbox('asaas', 'erro', `cobranca enqueue lead ${d.lead_id}: ${e.message}`.slice(0, 200), {});

@@ -63,7 +63,7 @@ jobs:
       # Erro novo reprova; corrigir erro antigo e bem-vindo (basta baixar o numero aqui).
       - name: Lint (portão de não-piorar — baseline 19 erros)
         env:
-          BASELINE_ERROS: 19
+          BASELINE_ERROS: 18
         run: |
           set -o pipefail
           npx eslint . -f json > /tmp/eslint.json || true

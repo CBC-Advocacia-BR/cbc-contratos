@@ -5,6 +5,7 @@ import ProgressBar from './ProgressBar';
 import { maskCPF, maskCEP, maskRG, maskPhone, maskCNPJ } from '../utils/masks';
 import { lookupCPF, lookupCNPJ } from '../utils/apiLookup';
 import { validateCNPJ } from '../utils/validation';
+import { camposObrigatorios } from '../utils/camposObrigatorios';
 import { useCepLookup } from '../hooks/useCepLookup';
 import { supabase } from '../lib/supabase';
 import { ESTADOS_CIVIS, HONORARIOS_OPCOES, PERCENTUAIS_EXITO, CLAUSULAS_PADRAO, TIPOS_ACAO } from '../data/clausulas';
@@ -77,14 +78,12 @@ function evaluateBirthDate(value) {
 }
 
 // ─── Progress indicator logic ───
-const CONTRATANTE_FIELDS_PF = ['nome', 'nacionalidade', 'profissao', 'estadoCivil', 'rg', 'cpf', 'email', 'dataNascimento', 'telefone', 'linkKommo', 'cep', 'uf', 'endereco', 'numero', 'bairro', 'cidade'];
-// (PJ 25/06) Cliente Empresa: bloco da empresa + representante legal (reaproveita os campos
-// de pessoa do PF — nome/cpf/rg/endereco... descrevem o representante).
-const CONTRATANTE_FIELDS_PJ = ['razaoSocial', 'cnpj', 'emailEmpresa', 'cepEmpresa', 'ufEmpresa', 'enderecoEmpresa', 'numeroEmpresa', 'bairroEmpresa', 'cidadeEmpresa', 'nome', 'nacionalidade', 'profissao', 'estadoCivil', 'rg', 'cpf', 'email', 'dataNascimento', 'telefone', 'linkKommo', 'cep', 'uf', 'endereco', 'numero', 'bairro', 'cidade'];
-
-function contratanteFields(c) {
-  return (c?.tipo === 'pj') ? CONTRATANTE_FIELDS_PJ : CONTRATANTE_FIELDS_PF;
-}
+// (auditoria 01/08/2026 — item 205) A lista saiu daqui para utils/camposObrigatorios.js:
+// esta era a SEGUNDA implementacao da mesma regra (a outra e o validateChecklist do App,
+// que e o portao real do envio e o unico caminho do atalho de teclado). Duas listas so
+// ficam iguais por sorte — um campo novo precisava ser lembrado nos dois lados. Agora ha
+// uma lista so, e um teste compara os dois conjuntos a cada build.
+const contratanteFields = camposObrigatorios;
 
 function checkContratanteComplete(c) {
   return contratanteFields(c).every(f => !!(c[f]));

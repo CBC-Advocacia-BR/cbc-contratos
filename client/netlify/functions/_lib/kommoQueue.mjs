@@ -6,17 +6,75 @@
  * se falhar por 429/erro transitorio, fica pendente e o worker retenta.
  */
 import { db } from './botDb.mjs';
+import { ehErroTerminal, leadIdAlvo } from './kommoTerminal.mjs';
 
 const MAX_ATTEMPTS = 6;
 const BACKOFF_SEC = [0, 30, 60, 120, 300, 600]; // por tentativa
 
 const nowIso = () => new Date().toISOString();
 
+// ===================== LEADS MORTOS (erro terminal) =====================
+// (02/08/2026) O Kommo devolve erro 226 ao postar nota num lead que NAO EXISTE mais
+// (apagado ou mesclado na UI) — o equivalente do "Lead not found" do PATCH. Isso nunca
+// se resolve sozinho: os 6 retries eram desperdicio (271 jobs x 6 = ~1.600 chamadas
+// inuteis entre 19/06 e 02/08). Pior: o monitor cria um job NOVO por andamento/tarefa,
+// entao a fila voltava a encher todo dia. Registramos o lead e barramos na entrada.
+
+// Cache por instancia: o monitor chama enqueue dezenas de vezes por rodada e nao vale
+// uma consulta por job. TTL curto p/ o lead voltar a funcionar logo apos alguem corrigir
+// o linkKommo do contrato (a correcao apaga a linha desta tabela).
+let _mortosCache = null;
+let _mortosCacheAt = 0;
+const MORTOS_TTL_MS = 60000;
+
+async function leadsMortos() {
+  if (_mortosCache && Date.now() - _mortosCacheAt < MORTOS_TTL_MS) return _mortosCache;
+  try {
+    const { data, error } = await db.from('kommo_leads_mortos').select('lead_id');
+    // tabela ausente / sem permissao -> conjunto vazio: na duvida NAO bloqueia trabalho
+    // legitimo (seguro de deployar antes da migracao).
+    if (error) return _mortosCache || new Set();
+    _mortosCache = new Set((data || []).map((r) => String(r.lead_id)));
+    _mortosCacheAt = Date.now();
+    return _mortosCache;
+  } catch { return _mortosCache || new Set(); }
+}
+
+// O erro do Kommo ECOA o corpo da nota em source.text — e a nota traz nome de cliente e
+// numero de processo. Guardamos so a parte diagnostica (codigo/element_id), cortando fora
+// o texto: esta tabela nao precisa de dado do cliente p/ cumprir a funcao dela.
+function detalheSemPii(detalhe) {
+  return String(detalhe || '').split('"text"')[0].slice(0, 300);
+}
+
+/** Marca o lead como inexistente no Kommo. Best-effort: nunca derruba o job. */
+export async function registrarLeadMorto(leadId, motivo, detalhe) {
+  if (!leadId) return;
+  try {
+    // primeiro_erro fica de fora do upsert de proposito: no UPDATE ele preserva a data
+    // original (so o INSERT usa o default), entao a linha guarda ha quanto tempo o lead
+    // esta morto — que e o numero que interessa a quem for corrigir o contrato.
+    await db.from('kommo_leads_mortos').upsert({
+      lead_id: String(leadId),
+      motivo: motivo || 'lead_inexistente',
+      ultimo_erro: nowIso(),
+      detalhe: detalheSemPii(detalhe),
+    }, { onConflict: 'lead_id' });
+    if (_mortosCache) _mortosCache.add(String(leadId));
+  } catch { /* best-effort */ }
+}
+
 /**
  * Enfileira uma operacao. Se houver job PENDENTE com o mesmo dedupe_key, atualiza
  * o payload (o ultimo valor vence) em vez de duplicar. Retorna { id }.
  */
 export async function enqueue({ kind, payload = {}, source = null, dedupeKey = null, priority = 5 }) {
+  // (02/08/2026) porta de entrada: nao aceita trabalho para lead que ja se sabe morto.
+  // Sem esta trava a fila enche de novo sozinha todo dia, mesmo com o retry corrigido.
+  const alvo = leadIdAlvo(kind, payload);
+  if (alvo && (await leadsMortos()).has(alvo)) {
+    return { skipped: true, motivo: 'lead_inexistente', leadId: alvo };
+  }
   if (dedupeKey) {
     const { data: upd } = await db.from('kommo_queue')
       .update({ payload, source, priority, status: 'pending', run_after: nowIso(), attempts: 0, last_error: null, updated_at: nowIso() })
@@ -73,6 +131,20 @@ export async function complete(id) {
 /** Falhou: reagenda com backoff; esgotou tentativas -> failed. Retorna o novo status. */
 export async function fail(job, errMsg) {
   const attempts = (job.attempts || 0) + 1;
+  // (02/08/2026) erro TERMINAL: o alvo nao existe mais no Kommo. Nao adianta backoff nem
+  // as 6 tentativas — morre agora, com o motivo legivel no painel, e o lead vai para a
+  // lista de mortos p/ nem entrar na fila da proxima vez.
+  const { terminal, motivo } = ehErroTerminal(errMsg);
+  if (terminal) {
+    const alvo = leadIdAlvo(job.kind, job.payload);
+    if (alvo) await registrarLeadMorto(alvo, motivo, errMsg);
+    await db.from('kommo_queue').update({
+      status: 'failed', attempts,
+      last_error: `[terminal:${motivo}] ${String(errMsg)}`.slice(0, 400),
+      updated_at: nowIso(),
+    }).eq('id', job.id);
+    return 'failed';
+  }
   if (attempts >= MAX_ATTEMPTS) {
     await db.from('kommo_queue').update({ status: 'failed', attempts, last_error: String(errMsg).slice(0, 400), updated_at: nowIso() }).eq('id', job.id);
     return 'failed';

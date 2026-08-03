@@ -7,6 +7,26 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### ✅ DEPLOYADO 02/08/2026 (noite) — erro 226 do Kommo decifrado: 37 clientes sem receber nota há semanas
+
+**Deploy `6a6fda208733aad9a735413a`** (rollback: `./rollback.sh 6a6fd8968733aad342353f42`). **732 testes** (era 722), lint no baseline 19, smoke 200/200/200, as 4 functions da cadeia respondendo 401/405 (não 502 — o import novo resolve no bundle).
+
+🔍 **`erro 226` no `POST /leads/{id}/notes` significa "o lead NÃO EXISTE"** — é o equivalente, no endpoint de notas, do `"Lead not found"` do PATCH. Não está documentado em lugar nenhum público. **Prova**: POST no lead `999999999`, id que nunca existiu, devolve o mesmo 226. Isso derruba as duas hipóteses naturais: **não é emoji** (texto ASCII puro falha igual — o truncamento por emoji de 31/07 é real, mas só vale para CAMPO personalizado) e **não é duplicidade** (marcador inédito falha igual; a idempotência por marcador está correta). O `note_type: 4` da resposta é só o Kommo normalizando `'common'` → id numérico, não é defeito.
+
+⚠️ **Armadilha**: `GET /leads/{id}/notes` de lead morto **não devolve 404, devolve vazio** — então `jaTemNota` retorna `false` sem lançar, o fluxo segue e só o POST estoura. Quem lê o código esperando o GET falhar primeiro se engana.
+
+| O que era | O que virou |
+|---|---|
+| 289 jobs presos em 30 dias — na verdade **271 jobs distintos** (marcador único cada) em **37 leads**, ×6 tentativas ≈ **1.600 chamadas inúteis** | Erro terminal morre na **1ª** tentativa, com `[terminal:lead_inexistente]` no painel |
+| A fila **enchia de novo todo dia** (o monitor cria 1 job por andamento/tarefa) | `kommo_leads_mortos` (57 leads) barra na **entrada**, em `enqueue()` |
+| Cobrança para lead morto era gravada como `enfileirado` e virava "19 com erro" na aba Boletos | Vira `resultado='pulado'` + `motivo_pulo` — o bot deixa de levar a culpa |
+
+🚨 **O impacto que ninguém via**: **42 contratos, quase todos `assinado`**, apontam para lead morto — esses clientes **pararam de receber no Kommo** as notas de andamento e de tarefa concluída, alguns há 44 dias. Causa: o `linkKommo` é digitado à mão (REGRA #4) e **congela** no contrato; quando a equipe mescla leads duplicados na UI, o merge **apaga** o perdedor. Um dos links é de outra conta (`brunoadvocaciacbccom.kommo.com`). **Lista para a equipe corrigir: `relatorios/Leads-Kommo-inexistentes-02-08-2026.md`** (271 notas e 57 cobranças perdidas).
+
+**Como ressuscitar um lead**: corrigido o `linkKommo` do contrato, `delete from kommo_leads_mortos where lead_id='<id>'`. O cache das functions expira em 60s e o fluxo volta sozinho.
+Novo: `_lib/kommoTerminal.mjs` (módulo puro, 10 testes) · SQL `supabase_kommo_leads_mortos.sql`.
+⚠️ **Pendência**: cobrança pulada por lead morto fica em `cobranca_disparos.resultado='pulado'`, que **nenhuma tela exibe** hoje — está só no relatório acima.
+
 ### ✅ DEPLOYADO 02/08/2026 — auditoria (~132 itens), backup RESSUSCITADO, 11 lembretes enviados
 
 **Deploy `6a6f551a2e9e8ce0d82e883e`** (rollback: `./rollback.sh 6a6f53dc904c29e8a2efe4c8`). Smoke 200/200, console sem erro, app conferido no navegador.

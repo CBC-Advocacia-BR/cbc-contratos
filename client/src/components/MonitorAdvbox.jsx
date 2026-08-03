@@ -7,6 +7,7 @@
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { fetchAllPaged } from '../utils/supabasePaged';
 import { CRON_SLA } from '../../netlify/functions/_lib/cronSla.mjs';
 import {
   ScaleIcon, BoltIcon, SignalIcon, ChevronDownIcon, ChevronRightIcon,
@@ -258,12 +259,15 @@ function HealthSummary() {
     const carregar = async () => {
       try {
         const desde = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-        const { data, error } = await supabase.from('health_history')
+        // (auditoria 01/08/2026 — item 225) `.limit(2000)` dava falsa seguranca: o teto
+        // do PostgREST e 1.000 por requisicao e um limite MAIOR nao o levanta. Hoje sao
+        // ~318 linhas em 24h, entao nao trunca — mas o dia em que truncar e justamente o
+        // dia de muitas checagens, ou seja, o dia do incidente, e o painel mostraria uma
+        // disponibilidade melhor do que a real. ORDER BY total (checked_at + service).
+        const data = await fetchAllPaged(() => supabase.from('health_history')
           .select('service, ok, latency_ms, checked_at')
           .gte('checked_at', desde)
-          .order('checked_at', { ascending: false })
-          .limit(2000);
-        if (error) throw error;
+          .order('checked_at', { ascending: false }).order('service'));
         if (vivo) { setRows(data || []); setErro(false); }
       } catch { if (vivo) setErro(true); }
       if (vivo) setCarregou(true);
@@ -341,11 +345,15 @@ function KommoQueuePanel() {
   const [proc, setProc] = useState(false);
   const carregar = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from('kommo_queue')
-        .select('status, source, kind, attempts, run_after, created_at, last_error')
+      // (auditoria 01/08/2026 — item 225) A fila e EXATAMENTE o que estoura durante um
+      // incidente, e era com `.limit(2000)` — que nao levanta o teto de 1.000 do
+      // PostgREST. Ou seja: quanto pior a situacao, mais o painel subcontaria, bem na
+      // hora em que alguem esta olhando para decidir o que fazer. ORDER BY total
+      // (created_at + id) para a paginacao nao repetir nem pular linha.
+      const data = await fetchAllPaged(() => supabase.from('kommo_queue')
+        .select('id, status, source, kind, attempts, run_after, created_at, last_error')
         .in('status', ['pending', 'processing', 'failed'])
-        .order('created_at', { ascending: false }).limit(2000);
-      if (error) throw error;
+        .order('created_at', { ascending: false }).order('id'));
       setErro(false);
       const list = data || [];
       const porStatus = { pending: 0, processing: 0, failed: 0 };
