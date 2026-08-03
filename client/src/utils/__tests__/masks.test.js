@@ -97,4 +97,37 @@ describe('maskPhone', () => {
   it('limita a 11 digitos', () => {
     expect(maskPhone('119876543210000')).toBe('(11) 98765-4321');
   });
+
+  // (auditoria 01/08/2026 — item 311) A mascara so era testada com celular. Telefone
+  // FIXO tem 8 digitos apos o DDD, nao 9, e saia deformado: '(11) 34567-890'. O teste
+  // que faltava e o que revelou o defeito.
+  it('formata telefone FIXO de 10 digitos', () => {
+    expect(maskPhone('1134567890')).toBe('(11) 3456-7890');
+    expect(maskPhone('1932345678')).toBe('(19) 3234-5678'); // DDD de Americana
+  });
+
+  it('troca de formato ao passar de fixo para celular', () => {
+    // enquanto se digita, o numero passa por 10 antes de chegar a 11
+    expect(maskPhone('193234567')).toBe('(19) 3234-567');
+    expect(maskPhone('1932345678')).toBe('(19) 3234-5678');
+    expect(maskPhone('19932345678')).toBe('(19) 93234-5678');
+  });
+
+  it('nao deixa hifen sobrando no fim', () => {
+    // '(11) 3456-' com o cursor logo depois e um estado feio e comum em mascara mal feita
+    expect(maskPhone('113456')).toBe('(11) 3456');
+    expect(maskPhone('1134')).toBe('(11) 34');
+  });
+
+  it('aceita numero ja formatado sem se perder', () => {
+    expect(maskPhone('(19) 3234-5678')).toBe('(19) 3234-5678');
+    expect(maskPhone('+55 19 99999-8888')).toBe('(55) 19999-9988'); // sem tratar o +55
+  });
+
+  it('nao quebra com vazio, nulo ou texto', () => {
+    expect(maskPhone('')).toBe('');
+    expect(maskPhone(null)).toBe('');
+    expect(maskPhone(undefined)).toBe('');
+    expect(maskPhone('abc')).toBe('');
+  });
 });

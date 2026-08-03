@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "check:edge": "esbuild netlify/edge-functions/*.ts --loader:.ts=ts --outdir=/tmp/cbc-edge-check --format=esm >/dev/null && echo 'edge functions: sintaxe ok'",
     "check:functions": "node -e \"const{execSync}=require('child_process'),fs=require('fs'),p=require('path');let n=0;const w=d=>fs.readdirSync(d,{withFileTypes:true}).forEach(e=>{const f=p.join(d,e.name);if(e.isDirectory())w(f);else if(e.name.endsWith('.mjs')){execSync('node --check '+JSON.stringify(f));n++}});w('netlify/functions');console.log('functions: sintaxe ok em '+n+' arquivos')\"",
-    "lint:gate": "node scripts/lint-gate.mjs"
+    "lint:gate": "node scripts/lint-gate.mjs",
+    "assets:webp": "node scripts/generate-webp.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

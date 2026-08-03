@@ -16,6 +16,13 @@
   path = "/api/zapsign"
   function = "zapsign-proxy"
 
+# (auditoria 01/08/2026 — item 168) Diz qual commit/deploy esta servindo agora.
+# Antes, saber se uma correcao subiu exigia abrir o painel da Netlify e comparar
+# horarios, ou confiar no numero de versao escrito a mao no cabecalho do app.
+[[edge_functions]]
+  path = "/api/version"
+  function = "version"
+
 # Cache headers como fallback (o arquivo public/_headers tem precedencia)
 [[headers]]
   for = "/assets/*"

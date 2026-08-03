@@ -19,11 +19,14 @@ export default defineConfig({
     __BUILD_SHA__: JSON.stringify(__BUILD_SHA__),
     __BUILD_DATE__: JSON.stringify(__BUILD_DATE__),
   },
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3001'
-    }
-  },
+  // (auditoria 01/08/2026 — item 313) AQUI havia um proxy `/api -> localhost:3001`
+  // apontando para o servidor Express que foi APOSENTADO em 20/06/2026. Em
+  // desenvolvimento, toda chamada a /api batia num endereco morto e o erro parecia do
+  // codigo, nao da configuracao. Removido: em producao o /api e servido pelas edge
+  // functions da Netlify, e utils/apiEndpoints.js ja cai para /.netlify/functions/*.
+  // Para rodar as functions na sua maquina, use `npx netlify dev` no lugar de `npm run
+  // dev` — ele serve o Vite e as functions na mesma porta.
+
   build: {
     // Hash consistente: assets de vendor raramente mudam entre deploys,
     // separa-los em chunks permite cache de longo prazo no browser

@@ -19,3 +19,8 @@ backups/
 *.xls
 *.csv
 !docs/**/*.csv
+
+# (auditoria 01/08/2026 — item 314) Estado LOCAL do deploy: guarda o id do ultimo
+# deploy bom, para o rollback.sh. Muda a cada deploy e e especifico da maquina — nao
+# tem por que virar commit. O arquivo continua existindo; so deixa de ser rastreado.
+client/.last-working-deploy

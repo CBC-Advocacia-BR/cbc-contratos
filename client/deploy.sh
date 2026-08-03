@@ -2,7 +2,18 @@
 [ -f "$HOME/.cbc-netlify-token" ] && . "$HOME/.cbc-netlify-token"
 : "${NETLIFY_AUTH_TOKEN:?defina ~/.cbc-netlify-token ou rode: npx netlify login}"
 # Deploy script para CBC Contratos
-# Uso: ./deploy.sh [--force]
+#
+# Uso: ./deploy.sh [--no-auto-rollback] [--pular-instalacao]
+#
+#   --no-auto-rollback   nao reverte sozinho se o smoke pos-deploy falhar
+#                        (use para inspecionar um deploy quebrado)
+#   --pular-instalacao   nao roda `npm ci` antes de construir (mais rapido,
+#                        mas usa o node_modules que estiver na maquina)
+#   --ajuda              mostra este texto
+#
+# (auditoria 01/08/2026 — item 310) A ajuda documentava um `--force` que NUNCA
+# existiu no codigo. Ler a ajuda e descobrir na pratica que o flag nao faz nada e
+# pior do que nao ter ajuda.
 #
 # Sempre faz deploy DIRETO EM PRODUCAO (sem preview intermediario,
 # para economizar bandwidth na Netlify).
@@ -16,9 +27,17 @@ SITE_NAME="contratos-cbc"
 # (auditoria #95) Por padrao, se o smoke-test pos-deploy falhar, revertemos sozinhos
 # para o ultimo deploy OK. Use --no-auto-rollback para inspecionar um deploy quebrado.
 AUTO_ROLLBACK=1
+INSTALAR=1
 for arg in "$@"; do
   case "$arg" in
     --no-auto-rollback) AUTO_ROLLBACK=0 ;;
+    --pular-instalacao) INSTALAR=0 ;;
+    --ajuda|-h|--help)
+      sed -n '4,12p' "$0" | sed 's/^# \?//'
+      exit 0 ;;
+    *)
+      echo "🛑 Flag desconhecido: $arg  (use --ajuda)"
+      exit 1 ;;
   esac
 done
 
@@ -48,6 +67,28 @@ if ! grep -qi "conversas" portal.html 2>/dev/null; then
   echo "   O canonico do portal e client/portal.html — nao o public/. Ver CHAT-PORTAL.md."
   exit 1
 fi
+
+# (auditoria 01/08/2026 — item 165) As sentinelas acima sao de CONTEUDO: elas pegam o
+# codigo de marco, mas nao impediriam deployar de uma branch de experimento com o
+# conteudo certo. O incidente de 02/07 comecou exatamente assim. Agora o deploy exige
+# confirmacao explicita quando a branch nao e uma das de trabalho, e avisa se ha
+# alteracao nao commitada (o que sai daqui tem de existir no git — item 163).
+case "$BRANCH" in
+  main|agendamentos-design) ;;
+  *)
+    echo "⚠️  Branch atual: $BRANCH (o normal e main ou agendamentos-design)."
+    printf "   Deployar assim mesmo? [s/N] "
+    read -r resp < /dev/tty || resp=""
+    case "$resp" in s|S|sim|Sim) ;; *) echo "🛑 Deploy cancelado."; exit 1 ;; esac ;;
+esac
+if [ -n "$(git status --porcelain -- src netlify portal.html 2>/dev/null)" ]; then
+  echo "⚠️  Ha alteracoes NAO COMMITADAS em src/, netlify/ ou portal.html."
+  echo "   O que for para producao precisa existir no git — senao so a sua maquina tem."
+  git status --short -- src netlify portal.html | head -8
+  printf "   Deployar assim mesmo? [s/N] "
+  read -r resp < /dev/tty || resp=""
+  case "$resp" in s|S|sim|Sim) ;; *) echo "🛑 Deploy cancelado. Commite antes."; exit 1 ;; esac
+fi
 echo "   ✓ sanidade do codigo-fonte OK (branch: $BRANCH)"
 
 # 1. Salvar deploy atual antes de fazer o novo (rollback de emergencia)
@@ -63,14 +104,29 @@ else
   echo "   AVISO: nao foi possivel obter ultimo deploy"
 fi
 
-# 2. Testes (portao — aborta o deploy se algum teste falhar) (bug-9)
+# (auditoria 01/08/2026 — item 308) O CI usa `npm ci`, que instala EXATAMENTE as
+# versoes do package-lock. O deploy local nao reinstalava nada: usava o node_modules
+# que estivesse na maquina, que pode estar velho ou ter pacote instalado a mao. Ou seja,
+# o que o CI aprovava e o que ia para producao podiam ser arvores de dependencia
+# diferentes — e a diferenca so apareceria em producao.
+if [ "$INSTALAR" = "1" ]; then
+  echo ""
+  echo "[2/6] Instalando dependencias travadas (npm ci)..."
+  npm ci --silent
+  echo "   ✓ node_modules igual ao do CI"
+else
+  echo ""
+  echo "[2/6] Instalacao PULADA (--pular-instalacao) — usando o node_modules atual."
+fi
+
+# 3. Testes (portao — aborta o deploy se algum teste falhar) (bug-9)
 echo ""
-echo "[2/5] Rodando testes (vitest)..."
+echo "[3/6] Rodando testes (vitest)..."
 npm test
 
 # 3. Build
 echo ""
-echo "[3/5] Rodando build..."
+echo "[4/6] Rodando build..."
 npm run build
 
 # (auditoria #91) Sanidade do build: complementa as sentinelas de texto com uma
@@ -89,12 +145,12 @@ echo "   ✓ build sanity OK (JS ~$((JS_BYTES/1024)) KB)"
 
 # 4. Verificar tamanho do bundle (alerta se gigante)
 echo ""
-echo "[4/5] Tamanhos dos bundles:"
+echo "[5/6] Tamanhos dos bundles:"
 du -sh dist/assets/*.js 2>/dev/null | sort -hr | head -10
 
 # 5. Deploy direto em producao (sem preview draft)
 echo ""
-echo "[5/5] Publicando em producao..."
+echo "[6/6] Publicando em producao..."
 # (25/06) netlify-cli 26+ devolve "Project not found. Please rerun netlify link" quando
 # se passa --site=<id> no deploy. A via confiavel e o estado LINKADO (.netlify/state.json).
 # Garantimos o vinculo correto de forma idempotente (funciona ate em checkout novo) e
