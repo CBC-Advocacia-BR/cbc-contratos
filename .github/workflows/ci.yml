@@ -86,7 +86,13 @@ jobs:
           curl -fsSL https://deno.land/install.sh | DENO_INSTALL="$HOME/.deno" sh -s -- -y >/dev/null 2>&1 || true
           export PATH="$HOME/.deno/bin:$PATH"
           if command -v deno >/dev/null; then
-            deno check netlify/edge-functions/*.ts
+            # --allow-import: o Deno 2.x so busca modulo remoto de uma lista curta de
+            # hosts (deno.land, jsr.io, esm.sh...). As 2 edge functions importam o tipo
+            # `Context` de https://edge.netlify.com/, que nao esta nela — sem a flag o
+            # check morre com "Requires import access to edge.netlify.com:443". O CI
+            # instala sempre o Deno mais novo, entao a etapa quebrou sozinha em 02/08
+            # sem ninguem tocar no codigo, e reprovou 60 execucoes seguidas.
+            deno check --allow-import=edge.netlify.com netlify/edge-functions/*.ts
           else
             echo "::warning::Deno indisponível no runner — pulando verificação das edge functions."
           fi
