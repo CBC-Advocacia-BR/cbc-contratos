@@ -90,6 +90,16 @@ SQL novo: `supabase_funil_duracao_e_vendedora.sql`, `supabase_boletos_resumo_ite
 
 SQL: `supabase_crons_visiveis_item143_145_148.sql`, `supabase_search_path_item59.sql` (item 106 no fim do mesmo arquivo).
 
+### ✅ DEPLOYADO 02/08/2026 (noite, 2ª leva) — itens 205, 209 (fatia), 214, 225
+
+**744 testes** (eram 722), rollback: `./rollback.sh 6a6fda208733aad9a735413a`.
+
+- **205 + 209** — a regra de "campos obrigatórios" tinha **duas implementações**: a lista do FormPanel e o `validateChecklist` do App (o portão **real** do envio, e o único caminho do atalho de teclado). ✅ **Conferi antes de mexer: elas concordam hoje** — então não reescrevi um validador que funciona, tornei-o impossível de divergir. Lista → `utils/camposObrigatorios.js`; portão → **`utils/validarContrato.js` (lógica pura, sem React)**. **12 testes comparam os dois conjuntos nos dois sentidos**. ⚠️ Importar `App.jsx` num teste puxa FormPanel com JSX em nível de módulo (`React is not defined`) — por isso a extração é a solução, não um contorno.
+- **214** — a ficha do cliente dispara 6 consultas e **todas engoliam a falha**: seção vazia e "não existe" ficavam iguais na tela. Agora a ficha diz o que não carregou. `Promise.allSettled` (uma falha não impede as outras + 1 só atualização de estado).
+- **225** — 3 consultas do Monitor contavam sobre amostra cortada. A pior é a **fila do Kommo, que é justamente o que estoura durante um incidente** — quanto pior a situação, mais o painel subcontaria. 📊 Hoje 331/318/163 linhas: **nenhuma trunca ainda, é prevenção**.
+- **Item 244 conferido e já estava feito**.
+- 📉 **Lint melhorou para 18** (2 imports órfãos sumiram com a extração) — baseline abaixado em `scripts/lint-gate.mjs` **e** no CI.
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
