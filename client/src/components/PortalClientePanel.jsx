@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 // erro tecnico traduzido para o usuario e o cru registrado no console.
 import { useToast } from './Toast';
 import { friendlyError } from '../utils/friendlyError';
+import { fmtData } from '../utils/format';
 import {
   PerguntasClientes, FaqPortal, EducacaoPortal, CorrelacaoCard,
   ContatoPortal, ReviewPortal, ExplicadorPortal, EquipePortal,
@@ -55,7 +56,7 @@ async function api(action, params = {}) {
 }
 
 const tituloCase = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
-const dataBR = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR') : '—';
+const dataBR = (iso) => iso ? fmtData(iso) : '—';
 const relativo = (iso) => {
   if (!iso) return 'nunca acessado';
   const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);

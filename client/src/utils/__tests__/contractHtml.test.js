@@ -293,3 +293,94 @@ describe('generateContractHTML — invariantes basicas', () => {
     expect(html).toContain('JOÃO SANTOS');
   });
 });
+
+// (auditoria 01/08/2026 — item 312) OS SNAPSHOTS SOZINHOS NAO PROTEGEM O QUE IMPORTA.
+// Sao 854 linhas: qualquer mexida no contrato quebra os 6 de uma vez, e a revisao vira
+// rodar `vitest -u` e seguir a vida. Um numero de honorario trocado passaria exatamente
+// assim — o snapshot acusaria "mudou", que e o que ele acusa sempre.
+//
+// Os testes abaixo cobrem o que tem consequencia JURIDICA e financeira. Eles nao dependem
+// de arquivo gerado: continuam reprovando mesmo depois de um -u distraido, e dizem no
+// nome o que exatamente quebrou.
+describe('generateContractHTML — travas do que tem valor juridico', () => {
+  it('o valor combinado aparece em algarismo E por extenso, e batem entre si', () => {
+    // divergencia entre numero e extenso e o defeito classico de contrato, e o que um
+    // cliente usa para discutir o valor depois
+    const html = generateContractHTML(fixtureBase); // total 10.000
+    expect(html).toContain('10.000,00');
+    expect(html.toLowerCase()).toContain('dez mil reais');
+  });
+
+  it('o percentual de exito sai exatamente como foi contratado', () => {
+    // ⚠️ Nao da para afirmar "nenhum outro percentual aparece": o documento tem 100% e
+    // 38% de LARGURA no CSS, e 10% de multa, 1% de juros e 50%/75% de exito proporcional
+    // em caso de desistencia, que sao clausulas padrao. A trava certa e sobre o numero
+    // CONTRATADO, e ela e comparativa: trocar 20 por 30 tem de reprovar.
+    expect(generateContractHTML(fixtureBase)).toContain('20%');
+    const outro = generateContractHTML({
+      ...fixtureBase,
+      honorarios: { ...fixtureBase.honorarios, percentualExito: 25 },
+    });
+    expect(outro).toContain('25%');
+    expect(outro).not.toContain('20%');
+  });
+
+  it('contrato de SOMENTE EXITO nao promete honorario fixo', () => {
+    const html = generateContractHTML({
+      ...fixtureBase,
+      honorarios: { somenteExito: true, total: 0, percentualExito: 30 },
+    });
+    expect(html).toContain('30%');
+    // sem valor fixo nenhum: 'R$ 0,00' num contrato de exito seria um erro grave
+    expect(html).not.toContain('R$ 0,00');
+  });
+
+  it('contrato de SOMENTE INICIAIS nao promete o exito contratado', () => {
+    const html = generateContractHTML({
+      ...fixtureBase,
+      // sem percentualExito: nada de exito foi combinado
+      honorarios: { somenteIniciais: true, total: 5000, parcelas: 1, valorParcela: 5000 },
+    });
+    expect(html).toContain('5.000,00');
+    // o 20% da fixture nao pode vazar para um contrato que nao tem exito
+    expect(html).not.toContain('20%');
+  });
+
+  it('o parcelamento descreve o numero de parcelas e o valor de cada uma', () => {
+    const html = generateContractHTML({
+      ...fixtureBase,
+      honorarios: { ...fixtureBase.honorarios, total: 3600, parcelas: 12, valorParcela: 300 },
+    });
+    expect(html).toContain('12');
+    expect(html).toContain('300,00');
+    expect(html).toContain('3.600,00');
+  });
+
+  it('o CPF de CADA contratante aparece (contrato assinado por quem nao consta e nulo)', () => {
+    const html = generateContractHTML({
+      ...fixtureBase,
+      numContratantes: 2,
+      contratantes: [fixtureContratante1, fixtureContratante2],
+    });
+    expect(html).toContain(fixtureContratante1.cpf);
+    expect(html).toContain(fixtureContratante2.cpf);
+  });
+
+  it('o objeto da acao nomeia o resort contratado', () => {
+    // a clausula 1 e auto-gerada a partir de resort + tipo de acao (REGRA #18);
+    // resort errado no objeto significa acao contra a empresa errada
+    const html = generateContractHTML({ ...fixtureBase, resort: 'ONDAS PRAIA' });
+    expect(html.toUpperCase()).toContain('ONDAS PRAIA');
+    expect(html).not.toContain('Resort Paradiso');
+  });
+
+  it('nao sobra nenhum marcador de campo vazio no documento final', () => {
+    // '___' ou '[EMPRESA]' num contrato enviado ao cliente e o pior tipo de erro:
+    // passa despercebido internamente e o cliente ve
+    const html = generateContractHTML(fixtureBase);
+    expect(html).not.toContain('[EMPRESA]');
+    expect(html).not.toContain('[REPRESENTANTE]');
+    expect(html).not.toContain('undefined');
+    expect(html).not.toContain('NaN');
+  });
+});

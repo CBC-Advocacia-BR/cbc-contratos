@@ -34,6 +34,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { PERIODOS } from './compute';
 import { formatCurrency, fmtKpiValue } from './format';
+import { fmtData } from '../../utils/format';
 
 // Pares de cor que funcionam nos dois temas (fundo translúcido + texto da var)
 // (#extract-base 20/06) success/danger/warning/info/muted agora leem os tokens
@@ -1550,7 +1551,7 @@ function RecentContractsBase({ recentes, onNavigate, delay = 0 }) {
         {paged.map((c) => {
           const st = STATUS_PILL[c.status] || STATUS_PILL.rascunho;
           const assinadoEm = c.status === 'assinado' && (c.signed_at || c.advbox_date)
-            ? new Date(c.signed_at || c.advbox_date).toLocaleDateString('pt-BR')
+            ? fmtData(c.signed_at || c.advbox_date)
             : null;
           return (
             <div key={c.id} className="p-2.5 rounded-lg" style={{ background: 'var(--cbc-bg-subtle)' }}>
@@ -1572,7 +1573,7 @@ function RecentContractsBase({ recentes, onNavigate, delay = 0 }) {
                 <div className="text-right shrink-0">
                   <span className="text-xs font-bold block tabular-nums" style={{ color: 'var(--cbc-text-primary)' }}>{formatCurrency(c.honorarios_total)}</span>
                   <span className="text-[10px] tabular-nums" style={{ color: 'var(--cbc-text-muted)' }}>
-                    Criado {new Date(c.created_at).toLocaleDateString('pt-BR')}
+                    Criado {fmtData(c.created_at)}
                   </span>
                   {assinadoEm && (
                     <span className="text-[10px] block" style={{ color: TONES.success.fg }}>Assinado {assinadoEm}</span>

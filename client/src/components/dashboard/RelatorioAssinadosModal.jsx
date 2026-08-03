@@ -14,6 +14,7 @@ import { getSignedDate } from './compute';
 import { buildAssinadosReportHtml } from '../../utils/relatorioAssinadosHtml';
 import { downloadPdf } from '../../utils/pdfGenerator';
 import { fetchAllPaged } from '../../utils/supabasePaged';
+import { fmtData } from '../../utils/format';
 
 // Date -> 'YYYY-MM-DD' no fuso local (formato do <input type="date">)
 function toInputDate(d) {
@@ -83,7 +84,7 @@ export default function RelatorioAssinadosModal({ initialStart = null, initialEn
 
       const html = buildAssinadosReportHtml(rows, {
         inicioLabel: start ? start.toLocaleDateString('pt-BR') : null,
-        fimLabel: fim ? new Date(`${fim}T00:00:00`).toLocaleDateString('pt-BR') : null,
+        fimLabel: fim ? fmtData(`${fim}T00:00:00`) : null,
         geradoEm: new Date(),
       });
 

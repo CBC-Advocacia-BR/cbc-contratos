@@ -9,6 +9,7 @@
  */
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import MoneyValue from './ui/MoneyValue';
+import { fmtData } from '../utils/format';
 
 const BOT_KEY = import.meta.env.VITE_BOT_PANEL_KEY || 'cbc-bot-2026';
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
@@ -32,7 +33,7 @@ const opName = (e) => {
 const opIni = (e) => (opName(e).split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || 'S');
 const dataBR = (iso) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 const horaBR = (iso) => new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-const diaKey = (iso) => String(new Date(iso).toLocaleDateString('pt-BR'));
+const diaKey = (iso) => String(fmtData(iso));
 const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 function cliStatus(c) {

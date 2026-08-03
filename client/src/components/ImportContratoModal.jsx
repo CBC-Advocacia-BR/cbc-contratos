@@ -33,7 +33,7 @@ import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 import { TIPOS_ACAO } from '../data/clausulas';
 import { processImport, checkAutomacaoRequisitos } from '../utils/importContrato';
 import { supabase } from '../lib/supabase';
-import { ymdLocal } from '../utils/format';
+import { ymdLocal, fmtData} from '../utils/format';
 import { useModalEscape } from '../hooks/useModalEscape';
 
 // ─── Estado inicial ────────────────────────────────────────────
@@ -1290,7 +1290,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
               label="Data assinatura"
               value={
                 data.dataAssinatura
-                  ? new Date(data.dataAssinatura + 'T12:00:00').toLocaleDateString('pt-BR')
+                  ? fmtData(data.dataAssinatura + 'T12:00:00')
                   : '—'
               }
             />

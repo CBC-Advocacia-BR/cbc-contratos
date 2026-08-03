@@ -15,14 +15,13 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import { supabase } from '../lib/supabase';
 import { filtroInadimplencia } from '../lib/statusTokens';
 import MoneyValue from './ui/MoneyValue';
-import { ymdLocal } from '../utils/format';
+import { ymdLocal, fmtData} from '../utils/format';
 import { fetchAllPaged } from '../utils/supabasePaged';
 
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
 
 const BOT_KEY = import.meta.env.VITE_BOT_PANEL_KEY || 'cbc-bot-2026';
 const digits = (s) => String(s || '').replace(/\D/g, '');
-const fmtData = (d) => (d ? new Date(d).toLocaleDateString('pt-BR') : '—');
 
 async function callFn(name, body) {
   const r = await fetch(`/.netlify/functions/${name}`, {

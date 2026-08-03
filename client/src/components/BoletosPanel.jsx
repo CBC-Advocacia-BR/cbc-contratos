@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { friendlyError } from '../utils/friendlyError';
-import { ymLocal, ymdLocal } from '../utils/format';
+import { ymLocal, ymdLocal, fmtData} from '../utils/format';
 import { fetchAllPaged } from '../utils/supabasePaged';
 import { cacheFresco, gravarCacheAba } from '../utils/cacheAba';
 import { SkeletonBoletos } from './Skeleton';
@@ -40,7 +40,7 @@ import {
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+const fmtD = d => d ? fmtData(d + 'T12:00:00') : '—';
 const daysUntil = d => {
   if (!d) return null;
   const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -303,7 +303,7 @@ async function buildPaymentStatementPDF(clientName, paidBoletos, { withNFsNote =
   pdf.setFont(undefined, 'bold');
   pdf.text(clientName, 32, 54);
   pdf.setFont(undefined, 'normal');
-  pdf.text(`Emitido em: ${new Date().toLocaleDateString('pt-BR')}`, 15, 60);
+  pdf.text(`Emitido em: ${fmtData()}`, 15, 60);
 
   // Tabela
   let y = 72;

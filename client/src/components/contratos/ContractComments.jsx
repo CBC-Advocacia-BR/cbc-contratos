@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../Toast';
 import ConfirmDestructive from '../ConfirmDestructive';
 import { friendlyError } from '../../utils/friendlyError';
+import { fmtData } from '../../utils/format';
 import {
   ChatBubbleLeftEllipsisIcon,
   PaperAirplaneIcon,
@@ -28,7 +29,7 @@ function relTime(iso) {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
-  return new Date(iso).toLocaleDateString('pt-BR');
+  return fmtData(iso);
 }
 
 // Extrai @emails do texto: @paulo@advocaciacbc.com

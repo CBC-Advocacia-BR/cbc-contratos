@@ -17,6 +17,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolid } from '@heroicons/react/24/solid';
+import { fmtData } from '../utils/format';
 
 const ICONS = {
   signature: CheckCircleIcon,
@@ -45,7 +46,7 @@ function relTime(iso) {
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
-  return new Date(iso).toLocaleDateString('pt-BR');
+  return fmtData(iso);
 }
 
 export default function NotificationCenter({ userEmail, onOpenPrefs }) {

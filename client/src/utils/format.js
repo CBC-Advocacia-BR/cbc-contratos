@@ -77,3 +77,42 @@ export function timeAgo(iso) {
   }
   return futuro ? `em ${txt}` : `há ${txt}`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// (auditoria 01/08/2026 — item 288) FORMATADOR UNICO DE DATA.
+//
+// Havia `fmtDateBR` pronto e, ainda assim, 33 chamadas soltas a
+// `toLocaleDateString('pt-BR')` espalhadas em 20 arquivos, em 8 variacoes. Nao era
+// desleixo: `fmtDateBR` so aceita texto 'AAAA-MM-DD' (ele concatena 'T12:00:00'), e a
+// maioria dos casos reais e um TIMESTAMP completo — passar um para o outro produz
+// "Invalid Date". Sem um helper que aceite os dois, cada tela resolvia sozinha.
+//
+// AS DUAS ARMADILHAS que este helper existe para fechar:
+//   1. data-so ('2026-08-03') interpretada como UTC volta um dia no Brasil — por isso o
+//      meio-dia, e nao meia-noite;
+//   2. timestamp completo NAO pode receber o mesmo tratamento: ele ja carrega a hora, e
+//      concatenar texto o invalida.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Aceita Date, timestamp ISO, 'AAAA-MM-DD' ou nada. Devolve dd/mm/aaaa (ou '—'). */
+export function fmtData(v, opcoes) {
+  if (v === null || v === undefined || v === '') return '—';
+  let d;
+  if (v instanceof Date) {
+    d = v;
+  } else {
+    const s = String(v);
+    // data-so: ancora no meio-dia local para nao cair no dia anterior
+    d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T12:00:00`) : new Date(s);
+  }
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR', opcoes);
+}
+
+/** Mesma tolerancia, com dia e hora ('03/08/2026 07:45'). */
+export function fmtDataHora(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  const d = v instanceof Date ? v : new Date(String(v));
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}

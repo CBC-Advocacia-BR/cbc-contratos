@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../AuthContext';
-import { ymdLocal } from '../utils/format';
+import { ymdLocal, fmtData} from '../utils/format';
 import { SkeletonAdmin } from './Skeleton';
 import ErrorState from './ErrorState';
 import ConfirmDestructive from './ConfirmDestructive';
@@ -65,7 +65,7 @@ function parseNumber(v, fallback = 0) {
 
 function formatDate(iso) {
   if (!iso) return '-';
-  try { return new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR'); } catch { return iso; }
+  try { return fmtData(iso + 'T00:00:00'); } catch { return iso; }
 }
 
 function daysBetween(from, to) {

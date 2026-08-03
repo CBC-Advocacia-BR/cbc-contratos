@@ -77,15 +77,22 @@ fi
 # resposta e NAO — falhar fechado e o comportamento certo aqui —, mas com uma
 # instrucao clara em vez de um erro do bash sobre /dev/tty.
 confirmar() {
-  if [ ! -r /dev/tty ]; then
+  # Aceita CBC_DEPLOY_CONFIRMADO=1 para uso nao interativo (agente, script, CI).
+  if [ "${CBC_DEPLOY_CONFIRMADO:-0}" = "1" ]; then
+    echo "   (confirmado por CBC_DEPLOY_CONFIRMADO=1)"
+    return 0
+  fi
+  # `-r /dev/tty` mente em alguns ambientes: o arquivo parece legivel e a leitura falha
+  # com "Device not configured". A unica prova e tentar abrir de verdade.
+  if ! exec 3< /dev/tty 2>/dev/null; then
     echo "   (sem terminal interativo — assumindo NAO)"
     echo "   Para seguir mesmo assim: CBC_DEPLOY_CONFIRMADO=1 ./deploy.sh"
-    [ "${CBC_DEPLOY_CONFIRMADO:-0}" = "1" ]
-    return
+    return 1
   fi
   printf "   Deployar assim mesmo? [s/N] "
   local resp=""
-  read -r resp < /dev/tty || resp=""
+  read -r resp <&3 || resp=""
+  exec 3<&-
   case "$resp" in s|S|sim|Sim) return 0 ;; *) return 1 ;; esac
 }
 

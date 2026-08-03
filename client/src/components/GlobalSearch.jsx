@@ -3,6 +3,7 @@ import Fuse from 'fuse.js';
 import { supabase } from '../lib/supabase';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { STATUS_TOKENS, toneStyle } from '../lib/statusTokens';
+import { fmtData } from '../utils/format';
 
 export default function GlobalSearch({ onClose, onSelectContract }) {
   const [query, setQuery] = useState('');
@@ -219,7 +220,7 @@ export default function GlobalSearch({ onClose, onSelectContract }) {
                         <div className='flex items-center gap-2 text-[10px] text-gray-400'>
                           <span>{r.cpf_contratante1}</span>
                           <span>{r.resort}</span>
-                          <span>{new Date(r.created_at).toLocaleDateString('pt-BR')}</span>
+                          <span>{fmtData(r.created_at)}</span>
                         </div>
                         {via2 && (
                           <div className='text-[10px] font-semibold truncate' style={{ color: '#B45309' }}>

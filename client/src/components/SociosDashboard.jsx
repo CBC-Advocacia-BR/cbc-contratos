@@ -33,6 +33,7 @@ import {
 
 // (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
 import { SOCIOS_EMAILS } from '../utils/acessos';
+import { fmtData } from '../utils/format';
 
 function formatCurrency(val) {
   if (!val && val !== 0) return 'R$ 0,00';
@@ -50,7 +51,7 @@ function fmtPct(val) {
   const n = Number(val);
   return `${n >= 0 ? '+' : ''}${n.toFixed(1).replace('.', ',')}%`;
 }
-function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('pt-BR') : '—'; }
+function fmtDate(iso) { return iso ? fmtData(iso) : '—'; }
 function startOfMonth(d = new Date()) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d = new Date()) { return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999); }
 function startOfYear(d = new Date()) { return new Date(d.getFullYear(), 0, 1); }

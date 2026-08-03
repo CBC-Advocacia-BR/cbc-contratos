@@ -11,7 +11,7 @@ import MoneyValue from './ui/MoneyValue';
 import FreshnessChip from './ui/FreshnessChip';
 // (item 175) os classificadores de status saiam daqui para o banco junto com o calculo
 // (RPC asaas_agregado_clientes) — a fonte unica agora e o comentario da propria funcao.
-import { ymLocal, ymdLocal } from '../utils/format';
+import { ymLocal, ymdLocal, fmtData} from '../utils/format';
 // (auditoria 01/08/2026 — item 266) a caixa cinza do `alert()` do navegador trava a tela
 // inteira, sai do visual do app e nao diz de onde veio. O toast oficial ja existe.
 import { useToast } from './Toast';
@@ -62,7 +62,7 @@ const callAsaas = async (action, payload = {}, retries = 3) => {
 };
 
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+const fmtD = d => d ? fmtData(d + 'T12:00:00') : '—';
 const fmtDT = iso => iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 const initials = email => (email || '').split('@')[0].slice(0, 2).toUpperCase();
 const avatarColor = s => {
@@ -825,7 +825,7 @@ async function genReport(allContracts) {
     const h = c.dados?.honorarios || {};
     const val = h.somenteExito ? 0 : (Number(h.total) || 0);
     const ld = launchDate(c);
-    const ldStr = ld ? new Date(ld).toLocaleDateString('pt-BR') : '—';
+    const ldStr = ld ? fmtData(ld) : '—';
     const isThisMonth = ld && ld.slice(0, 7) === currentYM;
     pdf.setFontSize(7);
     // Destaca data se for do mês atual

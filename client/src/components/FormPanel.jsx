@@ -13,7 +13,7 @@ import { useEmpreendimentos } from '../hooks/useEmpreendimentos';
 import { useKommoVinculoFlag } from '../hooks/useKommoVinculoFlag';
 import KommoVinculo from './KommoVinculo';
 import { formatCurrency } from '../utils/extenso';
-import { ymdLocal } from '../utils/format';
+import { ymdLocal, fmtData} from '../utils/format';
 import { detectConflicts, getConflictColor } from '../utils/clausulaConflicts';
 import { getGenderUpdates, adjustProfissaoGender } from '../utils/genderDetector';
 // docxGenerator importado dinamicamente ao gerar DOCX (lazy) (#112)
@@ -1515,7 +1515,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                           <span>•</span>
                           <span>{c.nome} —</span>
                           <StatusIcon className="w-3 h-3 inline shrink-0" aria-hidden="true" />
-                          <span>{statusLabel} — {new Date(c.created_at).toLocaleDateString('pt-BR')}</span>
+                          <span>{statusLabel} — {fmtData(c.created_at)}</span>
                         </div>
                       );
                     })}

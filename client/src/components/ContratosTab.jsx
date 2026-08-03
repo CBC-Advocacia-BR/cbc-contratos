@@ -15,7 +15,7 @@ import { useDebounce } from '../hooks/useDebounce'; // (#119)
 // (resilience 28/04) Cache IndexedDB dos ultimos 100 contratos — fallback offline
 import { cacheContracts, getCachedContracts } from '../utils/contractsCache';
 import { maskCPF } from '../utils/masks';
-import { ymdLocal } from '../utils/format';
+import { ymdLocal, fmtData} from '../utils/format';
 import StatusPill from './ui/StatusPill';
 import AutomationPipeline from './ui/AutomationPipeline';
 import {
@@ -762,7 +762,7 @@ const ContratoRow = memo(function ContratoRow({ contract: c, isSelected, isExpan
             title={`Arquivado por ${c.arquivado_por || 'sistema'}${c.arquivado_motivo ? ' — ' + c.arquivado_motivo : ''}`}
           >
             <ArchiveBoxIcon className="w-2.5 h-2.5" aria-hidden="true" />
-            Arquivado {new Date(c.arquivado_em).toLocaleDateString('pt-BR')}
+            Arquivado {fmtData(c.arquivado_em)}
             {c.arquivado_por ? ` por ${c.arquivado_por.split('@')[0]}` : ''}
           </span>
         )}
@@ -770,7 +770,7 @@ const ContratoRow = memo(function ContratoRow({ contract: c, isSelected, isExpan
         {c.imported_manually && (
           <span
             className="ml-1 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 border border-purple-300 px-1.5 py-0.5 rounded normal-case dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/50"
-            title={`Importado manualmente${c.imported_at ? ' em ' + new Date(c.imported_at).toLocaleDateString('pt-BR') : ''}${c.imported_by ? ' por ' + c.imported_by : ''}`}
+            title={`Importado manualmente${c.imported_at ? ' em ' + fmtData(c.imported_at) : ''}${c.imported_by ? ' por ' + c.imported_by : ''}`}
           >
             <span aria-hidden="true">📥</span>
             Importado

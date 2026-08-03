@@ -5,10 +5,11 @@
 import { memo } from 'react';
 import StatusPill from '../ui/StatusPill';
 import MoneyValue from '../ui/MoneyValue';
+import { fmtData } from '../../utils/format';
 
 const ContractCard = memo(function ContractCard({ contrato, onClick }) {
   const initials = (contrato.nome_contratante1 || '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
-  const data = contrato.created_at ? new Date(contrato.created_at).toLocaleDateString('pt-BR') : '';
+  const data = contrato.created_at ? fmtData(contrato.created_at) : '';
 
   return (
     <button
