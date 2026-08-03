@@ -7,6 +7,22 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### ✅ DEPLOYADO 03/08/2026 — Link Kommo conferido na ORIGEM (mata a causa do erro 226)
+
+**Deploy `6a7086c0408f6f7b3e0fd182`** (rollback: `./rollback.sh 6a7085acbf94677b8ead8856`). **774 testes** (era 732), lint no baseline 18, smoke 200/200/200, `resolve-kommo-lead` respondendo 401/405 em produção (não 502).
+
+Continuação direta do 226 de 02/08: aquilo tratou o **sintoma** (fila para de retentar, lista de mortos). O problema voltaria a crescer, porque **todo merge de leads duplicados no Kommo apaga o perdedor** e o `linkKommo` do contrato continua apontando para o id morto. Agora o sistema confere **na hora de colar**.
+
+- **Sem function nova.** `resolve-kommo-lead.mjs` ganhou o modo `{ apenasExistencia: true }`, que corta logo após o `GET /leads/{id}` — o resolve completo (contato + tags + RPC do Cadastro Único + 1ª mensagem) era caro demais para rodar num `onBlur`. Reusa JWT, timeout e log já existentes.
+- **Três vereditos**: `existe` · `nao_existe` (404, vazio, **ou host ≠ `advocaciacbc.kommo.com`** — link de outra conta é inalcançável pelo nosso token) · `desconhecido` (timeout/429/5xx/token vencido) que **nunca bloqueia**.
+- ⚠️ **A armadilha que define o código**: `kGet` **lança exceção** em todo HTTP não-ok, então "lead não existe" (404) chega com texto quase igual a "Kommo instável" (500). Confundir quebra nos dois sentidos: tratar 500 como ausência **trava contrato legítimo** toda vez que o Kommo oscila; tratar 404 como dúvida deixa passar o lead morto. A separação mora em `_lib/kommoLink.mjs` (puro, 10 testes, com caso explícito para id que *contém* 404).
+- **Auto-cura**: lead que responde e está na `kommo_leads_mortos` tem a linha **apagada** — corrigir o link no formulário já destrava o fluxo, sem o `DELETE` manual de 02/08. **De propósito não há atalho** lendo a lista antes do GET: um lead marcado por engano ficaria condenado para sempre, e a auto-cura nunca rodaria.
+- **UI**: aviso ao sair do campo no `FormPanel` (tokens `--cbc-*`, com ícone — não sinaliza só por cor) e uma linha nova no `PreSendChecklist`. O portão **reusa a engrenagem que já existia**: `fail` sem `severity:'warning'` entra em `errorCount` e bloqueia o `canProceed`; `unknown` é cinza e não bloqueia (item ux-16); `loading` segura até resolver.
+- **Não registra na `kommo_leads_mortos`** o que o formulário reprovar — id digitado errado poluiria a tabela e passaria a barrar trabalho legítimo. Essa lista só cresce com falha real comprovada na fila.
+
+Spec: `docs/superpowers/specs/2026-08-03-validacao-link-kommo-design.md`.
+⚠️ **Não verificado**: os estados visuais e o ida-e-volta real com o Kommo exigem sessão logada, que eu não consigo criar. Testado: lógica pura, suíte, build e carga da function em produção.
+
 ### ✅ DEPLOYADO 02/08/2026 (noite) — erro 226 do Kommo decifrado: 37 clientes sem receber nota há semanas
 
 **Deploy `6a6fda208733aad9a735413a`** (rollback: `./rollback.sh 6a6fd8968733aad342353f42`). **732 testes** (era 722), lint no baseline 19, smoke 200/200/200, as 4 functions da cadeia respondendo 401/405 (não 502 — o import novo resolve no bundle).

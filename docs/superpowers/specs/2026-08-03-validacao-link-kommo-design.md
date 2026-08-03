@@ -55,7 +55,12 @@ Se o lead **existe** e esta na `kommo_leads_mortos`, o endpoint **apaga a linha*
 quando a equipe corrige o link de um dos 42 contratos, o fluxo volta sozinho — o
 `delete from kommo_leads_mortos` manual documentado em 02/08 deixa de ser necessario.
 
-Se o link colado **ja esta** na lista de mortos, o aviso sai na hora, sem chamar o Kommo.
+**Mudanca durante a implementacao**: o rascunho previa um atalho — se o link ja estivesse
+na lista de mortos, avisar na hora sem chamar o Kommo. **Foi descartado.** O atalho torna a
+lista uma condenacao sem apelacao: um lead marcado por engano seria rejeitado para sempre,
+e o proprio caminho de auto-cura (que so roda apos o GET) nunca executaria. Uma chamada
+leve, no maximo duas por contrato, e barata demais para valer esse risco. Sempre pergunta
+ao Kommo.
 
 ### Nao registrar reprovacao do formulario
 
