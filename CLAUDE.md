@@ -100,6 +100,26 @@ SQL: `supabase_crons_visiveis_item143_145_148.sql`, `supabase_search_path_item59
 - **Item 244 conferido e já estava feito**.
 - 📉 **Lint melhorou para 18** (2 imports órfãos sumiram com a extração) — baseline abaixado em `scripts/lint-gate.mjs` **e** no CI.
 
+### ✅ DEPLOYADO 03/08/2026 — os 15 itens que não dependiam de decisão (308-315, 165, 167, 168, 62, 260, 288, 312, 158)
+
+**764 testes** (eram 749), lint no baseline 18, rollback do último: `./rollback.sh 6a707364a16c540a433b6e5b`.
+
+🔎 **Inventário confiável**: os três métodos de saber o que falta (commit / código / guia) **todos enganam** — o guia registra em FAIXAS (`219-227`), commits citam itens não feitos, e código antigo não usa a convenção "item N". O certo é unir os três **expandindo as faixas**: deu **63 pendentes reais** (221/222/223 eram falsos positivos). ⚠️ E **308-315 não são produto** — são qualidade de engenharia; produto começa no **317**.
+
+| Item | O que mudou |
+|---|---|
+| **308/310/165** | Deploy local usava o `node_modules` da máquina e o CI usava `npm ci`: podiam ser árvores diferentes. Agora `npm ci` (6s). A ajuda documentava um **`--force` que nunca existiu**. Travas eram só de conteúdo → agora barram branch fora das de trabalho e **árvore suja** — e a trava **barrou o próprio deploy seguinte**, porque eu tinha apagado um arquivo sem commitar |
+| **311** 🐛 | O teste que faltava revelou **defeito real**: telefone fixo saía `(11) 34567-890`. ⚠️ O teste antigo então reprovou e **estava certo** — com 7 dígitos não dá para saber se é fixo ou celular. Desempate: celular brasileiro começa com 9 |
+| **288** 🐛 | `fmtDateBR` só aceita `AAAA-MM-DD` e a maioria dos casos é **timestamp** — daí as 33 chamadas soltas. `fmtData()` novo é tolerante. **O portão de lint pegou um erro meu e sério**: o CobrancaPanel tinha função LOCAL `fmtData` e a conversão reescreveu o corpo dela mesma = **recursão infinita** |
+| **260** ⚠️ | **NÃO alterei a canonização.** Medido: das **200 colisões, 199 são o mesmo número com e sem o 9** — mudar quebraria 199 corretas para evitar zero. O problema é a **entrada**: `vw_telefones_suspeitos` acha **609**, sendo 288 com vários telefones no mesmo campo |
+| **168** ⚠️ | `/api/version`. A 1ª versão (edge function lendo `COMMIT_REF`) respondeu **tudo nulo**: a Netlify só injeta isso em build que **ela** dispara pelo Git — aqui o deploy sai da CLI. Virou `version.json` gerado no deploy, com `arvore_suja` |
+| **312** | 8 travas jurídicas que sobrevivem a um `vitest -u` distraído. ⚠️ 2 asserções minhas nasceram cegas: o contrato tem **100%/38% de CSS** e 10%/1%/50%/75% de cláusulas padrão |
+| **158** | `vw_logs_unificados` (4 fontes numa linha) + bloco "Linha do tempo" no Monitor |
+| **62** | 4 pares de índices idênticos em `ads_*`; conferido par a par, removidos só os avulsos |
+| **313/314/309/315/167** | Dev apontava para o servidor aposentado; `.last-working-deploy` versionado; `npm run assets:webp`; README em `prototipos/`; `.env.example` reescrito como inventário real das ~35 variáveis |
+
+SQL: `supabase_higiene_item62_260.sql` (item 158 no fim).
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
