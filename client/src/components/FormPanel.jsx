@@ -46,6 +46,7 @@ import { useRipple } from '../hooks/useRipple';
 import { useToast } from './Toast';
 // (item 265/266) erro tecnico traduzido; o cru vai para o console
 import { friendlyError } from '../utils/friendlyError';
+import { checarLinkKommo } from '../utils/kommoLeadCheck';
 import PresenceIndicator from './contratos/PresenceIndicator';
 
 // (auditoria 01/08/2026 — item 264) LABELS LIGADOS AOS CAMPOS (htmlFor/id).
@@ -340,6 +341,15 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
   // (#97) Progresso granular de OCR: { phase, value, label }
   const [ocrProgress, setOcrProgress] = useState(null);
   const [dragging, setDragging] = useState(false);
+  // (03/08/2026) conferencia do Link Kommo ao sair do campo. Guarda o LINK junto com o
+  // veredito: assim um "nao existe" antigo nunca aparece embaixo de um link novo.
+  const [kommoCheck, setKommoCheck] = useState(null); // { link, veredito, motivo?, nome? }
+  const conferirLinkKommo = async () => {
+    const link = (contratante.linkKommo || '').trim();
+    if (!link) { setKommoCheck(null); return; }
+    setKommoCheck({ link, veredito: 'conferindo' });
+    setKommoCheck({ link, ...(await checarLinkKommo(link)) });
+  };
   const dropRef = useRef(null);
   // (#35) CEP autocomplete — hook com cache + validacao
   const { lookup: cepLookup, loading: cepLoading, error: cepError } = useCepLookup();
@@ -983,7 +993,37 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
           <label className="label-field" htmlFor={`c${index}-linkKommo`}>Link Kommo * {contratante.linkKommo?.startsWith('http') ? <ValidationIcon status="valid" /> : null}</label>
           <input id={`c${index}-linkKommo`} className={`input-field ${errors.linkKommo ? 'input-error' : ''}`} aria-invalid={!!errors.linkKommo}
             inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next"
-            value={contratante.linkKommo || ''} onChange={(e) => handle('linkKommo', e.target.value)} placeholder="https://advocaciacbc.kommo.com/leads/detail/..." title="Cole aqui a URL da conversa/lead no Kommo. Campo obrigatório." />
+            value={contratante.linkKommo || ''} onChange={(e) => handle('linkKommo', e.target.value)} onBlur={conferirLinkKommo} placeholder="https://advocaciacbc.kommo.com/leads/detail/..." title="Cole aqui a URL da conversa/lead no Kommo. Campo obrigatório." />
+          {/* (03/08/2026) confere no Kommo se o lead existe. Motivo: o link congela no
+              contrato e, quando a equipe mescla leads duplicados, o perdedor e APAGADO —
+              em 02/08 isso deixou 42 contratos assinados sem receber nota nenhuma.
+              Aqui so AVISA (o portao de verdade e o checklist de envio), e "nao consegui
+              conferir" nunca vira reprovacao. */}
+          {(() => {
+            const linkAtual = (contratante.linkKommo || '').trim();
+            if (!kommoCheck || kommoCheck.link !== linkAtual) return null;
+            if (kommoCheck.veredito === 'conferindo') {
+              return <div className="text-[10px] mt-0.5 opacity-70">Conferindo no Kommo...</div>;
+            }
+            if (kommoCheck.veredito === 'existe') {
+              return (
+                <div className="text-[10px] mt-0.5 font-semibold flex items-center gap-1" style={{ color: 'var(--cbc-success)' }}>
+                  <CheckCircleIcon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span>Lead encontrado no Kommo{kommoCheck.nome ? `: ${kommoCheck.nome}` : ''}</span>
+                </div>
+              );
+            }
+            // 'desconhecido' e ambar e discreto: e duvida, nao acusacao.
+            const grave = kommoCheck.veredito === 'nao_existe' || kommoCheck.veredito === 'invalido';
+            return (
+              <div className="text-[10px] mt-0.5 font-semibold flex items-start gap-1"
+                style={{ color: grave ? 'var(--cbc-danger)' : 'var(--cbc-warning)' }}
+                role={grave ? 'alert' : undefined}>
+                <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden="true" />
+                <span>{kommoCheck.motivo}</span>
+              </div>
+            );
+          })()}
         </div>
         )}
 

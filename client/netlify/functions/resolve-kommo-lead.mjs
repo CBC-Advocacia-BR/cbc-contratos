@@ -74,7 +74,8 @@ async function checarExistencia(link) {
 export default async (req) => {
   if (req.method === 'OPTIONS') return new Response('', { status: 200, headers: JSONH });
   if (req.method !== 'POST') return resp(405, { error: 'somente POST' });
-  if (!kommoConfigured()) return resp(500, { error: 'KOMMO_TOKEN ausente' });
+  // A guarda de KOMMO_TOKEN mora depois do parse do corpo: o modo apenasExistencia
+  // precisa responder 'desconhecido' (que NAO bloqueia) em vez de 500 quando falta token.
 
   const jwt = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
   if (!jwt) return resp(401, { error: 'sem credencial (Authorization: Bearer)' });
@@ -86,7 +87,13 @@ export default async (req) => {
     if (authErr || !email) return resp(401, { error: 'sessao invalida — faca login de novo' });
 
     passo = 'body';
-    const { link } = await req.json().catch(() => ({}));
+    const { link, apenasExistencia } = await req.json().catch(() => ({}));
+
+    // (03/08/2026) conferencia leve do Link Kommo no formulario — nao segue para o
+    // resolve completo (contato, tags, Cadastro Unico), que aqui seria desperdicio.
+    if (apenasExistencia) return await checarExistencia(link);
+
+    if (!kommoConfigured()) return resp(500, { error: 'KOMMO_TOKEN ausente' });
     const leadId = extrairLeadId(link);
     if (!leadId) return resp(400, { ok: false, motivo: 'link do Kommo invalido' });
 

@@ -3,6 +3,7 @@ import { useContract } from '../ContractContext';
 import { formatCurrency } from '../utils/extenso';
 import { validateCNPJ } from '../utils/validation';
 import { useModalEscape } from '../hooks/useModalEscape';
+import { checarLinkKommo } from '../utils/kommoLeadCheck';
 import {
   CheckIcon,
   XMarkIcon,
@@ -86,6 +87,10 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
   const { data } = useContract();
   const [emailChecks, setEmailChecks] = useState({});
   const [cepChecks, setCepChecks] = useState({});
+  // (03/08/2026) o lead do Link Kommo ainda existe? Este e o PORTAO: lead apagado/mesclado
+  // reprova o envio. Em 02/08 foram 42 contratos assinados apontando p/ lead inexistente,
+  // cujos clientes nunca receberam nota de andamento nem cobranca.
+  const [kommoChecks, setKommoChecks] = useState({});
   const [reviewed, setReviewed] = useState(false);
   const [showReview, setShowReview] = useState(false);
 
@@ -112,6 +117,16 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
         setCepChecks(prev => ({ ...prev, [i]: { status: 'loading' } }));
         verifyCEPCity(c.cep, c.cidade, c.uf).then(result => {
           setCepChecks(prev => ({ ...prev, [i]: result }));
+        });
+      }
+    }
+    // Link Kommo: o lead ainda existe?
+    for (let i = 0; i < num; i++) {
+      const c = data.contratantes?.[i];
+      if (c?.linkKommo) {
+        setKommoChecks(prev => ({ ...prev, [i]: { status: 'loading' } }));
+        checarLinkKommo(c.linkKommo).then(result => {
+          setKommoChecks(prev => ({ ...prev, [i]: result }));
         });
       }
     }
@@ -174,6 +189,19 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
 
       // Link Kommo (obrigatorio)
       list.push({ label: `${prefix}: Link Kommo`, status: c?.linkKommo?.startsWith('http') ? 'pass' : 'fail', detail: c?.linkKommo?.startsWith('http') ? 'OK' : 'Obrigatorio (cole a URL da conversa Kommo)' });
+
+      // (03/08/2026) o lead existe mesmo? Lead apagado/mesclado = cliente que nunca vai
+      // receber nota de andamento nem cobranca. 'desconhecido' = Kommo fora do ar: fica
+      // NEUTRO (cinza) e nao reprova — instabilidade do Kommo nao pode travar assinatura.
+      const kCheck = kommoChecks[i];
+      if (c?.linkKommo && kCheck) {
+        const v = kCheck.status === 'loading' ? 'loading' : kCheck.veredito;
+        list.push({
+          label: `${prefix}: Lead existe no Kommo`,
+          status: v === 'loading' ? 'loading' : v === 'existe' ? 'pass' : v === 'desconhecido' ? 'unknown' : 'fail',
+          detail: v === 'existe' ? (kCheck.nome ? `Lead de ${kCheck.nome}` : 'Lead encontrado') : (kCheck.motivo || 'Nao foi possivel conferir'),
+        });
+      }
     }
 
     // Resort
@@ -199,7 +227,7 @@ export default function PreSendChecklist({ issues, onProceed, onClose }) {
     list.push({ label: 'Origem do cliente', status: data.origemCliente ? 'pass' : 'fail', detail: data.origemCliente || 'Nao informada', severity: 'warning' });
 
     return list;
-  }, [data, emailChecks, cepChecks, hasErrors, num]);
+  }, [data, emailChecks, cepChecks, kommoChecks, hasErrors, num]);
 
   const failCount = checks.filter(c => c.status === 'fail').length;
   const warnCount = checks.filter(c => c.status === 'fail' && c.severity === 'warning').length;

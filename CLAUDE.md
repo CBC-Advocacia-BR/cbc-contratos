@@ -120,6 +120,17 @@ SQL: `supabase_crons_visiveis_item143_145_148.sql`, `supabase_search_path_item59
 
 SQL: `supabase_higiene_item62_260.sql` (item 158 no fim).
 
+### ✅ DEPLOYADO 03/08/2026 (tarde) — itens 35, 36, 39, 40 (segurança que não mexe no acesso)
+
+**774 testes**, rollback: `./rollback.sh 6a707433c749e90d42469c95`.
+
+🔑 **Regra de triagem**: dos 10 itens de segurança (31-40), **4 não mudam como ninguém entra no sistema** e foram feitos. Os outros 6 mudam o acesso das pessoas ou exigem a conta Google do Paulo — 31 (primeiro login cria acesso), 32/33 (2FA, trava de tentativas, senha vazada), 34 (sessão em cookie), 37 (migrar o xlsx), 38 (rotacionar a URL do Apps Script).
+
+- **35** — Boletos e Asaas gravavam até 3.000 clientes **com CPF, nome e valor de cobrança** no navegador. O cache em memória (item 188) dá a mesma velocidade e morre com a aba → o `sessionStorage` saiu. ⚠️ As telas ainda **apagam** o que versões anteriores deixaram gravado na máquina.
+- **36** — o rascunho (nome/CPF/RG/endereço) sobrevivia ao logout. Apagado no **logout explícito**, nunca na expiração de sessão: sair é decisão, expirar é acidente — apagar de quem só ficou parado destruiria trabalho.
+- **39** — o fallback para a chave pública era **mudo** (foi assim que o webhook do ZapSign ficou meses morto). Agora avisa alto, e `exigirChaveDeServidor()` deixa quem não pode degradar falhar com a causa escrita.
+- **40** — o `/health` público entregava nomes de serviço, quais estavam fora e o **texto do erro**. Público virou `{status, servicos, fora}`; o detalhe exige a chave. ⚠️ **Os dois consumidores do detalhe foram atualizados junto** — o Monitor e o watchdog, que sem isso gravaria histórico de disponibilidade vazio.
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
