@@ -85,3 +85,43 @@ comment on view public.vw_telefones_suspeitos is
 
 grant select on public.vw_telefones_suspeitos to authenticated;
 grant execute on function public.cbc_tel_problema(text) to authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Auditoria 01/08/2026 — item 158 (painel unico de logs)
+-- Aplicado em 03/08/2026 (migracao painel_unico_de_logs_item158)
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Entender um incidente exigia abrir TRES telas e cruzar horarios na cabeca:
+-- advbox_api_log (robos), asaas_error_log (cobranca) e automation_log (contratos), cada
+-- uma com nome de coluna proprio para dizer a mesma coisa.
+-- Medido em 03/08: 2.054 registros em 7 dias nas 4 fontes.
+-- activity_log entra so como rastro ('info') e nunca alarma: ela registra ACAO DE
+-- USUARIO, e num incidente o que interessa dela e "quem mexeu perto da hora".
+create or replace view public.vw_logs_unificados as
+  select a.created_at as quando, 'robôs/integrações'::text as fonte,
+         coalesce(a.origem,'advbox') as origem, lower(coalesce(a.nivel,'info')) as nivel,
+         a.mensagem, a.contexto as detalhe, null::text as referencia,
+         coalesce(a.visto,false) as visto
+  from public.advbox_api_log a
+  union all
+  select e.created_at, 'cobrança (Asaas)', coalesce(e.source,'asaas'), 'erro',
+         e.message, e.context, null, false
+  from public.asaas_error_log e
+  union all
+  select m.created_at, 'automação de contrato', coalesce(m.action,'automacao'),
+         case when m.status ilike 'error%' or m.status ilike 'fail%' then 'erro'
+              when m.status ilike 'warn%' then 'aviso' else 'info' end,
+         coalesce(m.client_name,'(sem cliente)') || ' — ' || coalesce(m.action,'?')
+           || ': ' || coalesce(m.status,'?'),
+         m.details, m.contract_id::text, false
+  from public.automation_log m
+  union all
+  select l.created_at, 'ação de usuário', coalesce(l.action,'app'), 'info',
+         coalesce(l.user_email,'(sem usuário)') || ' — ' || coalesce(l.action,'?'),
+         l.details, l.calc_id, false
+  from public.activity_log l;
+
+comment on view public.vw_logs_unificados is
+  'Item 158 — as quatro fontes de log numa linha so, com vocabulario unico. Existe para '
+  'nao precisar cruzar tres telas durante um incidente.';
+
+grant select on public.vw_logs_unificados to authenticated;

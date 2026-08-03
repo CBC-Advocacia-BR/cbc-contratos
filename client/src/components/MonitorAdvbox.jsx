@@ -153,6 +153,89 @@ function CronHeartbeats() {
   );
 }
 
+// (auditoria 01/08/2026 — item 158) Ate aqui, entender um incidente exigia abrir TRES
+// telas e cruzar horarios na cabeca: o console dos robos, os erros da cobranca e o log
+// de automacao dos contratos. Cada tabela com nome de coluna proprio para dizer a mesma
+// coisa. Esta e a linha do tempo unica — quando algo quebrou, e aqui que se olha
+// primeiro, porque mostra as quatro fontes na ordem em que os fatos aconteceram.
+function LinhaDoTempo() {
+  const [linhas, setLinhas] = useState([]);
+  const [carregou, setCarregou] = useState(false);
+  const [erro, setErro] = useState(false);
+  const [aberto, setAberto] = useState(false);
+  const [soProblemas, setSoProblemas] = useState(true);
+
+  useEffect(() => {
+    if (!aberto) return;
+    let vivo = true;
+    (async () => {
+      try {
+        let q = supabase.from('vw_logs_unificados')
+          .select('quando, fonte, origem, nivel, mensagem, referencia')
+          .gte('quando', new Date(Date.now() - 24 * 3600 * 1000).toISOString())
+          .order('quando', { ascending: false })
+          .limit(200);
+        if (soProblemas) q = q.in('nivel', ['erro', 'aviso']);
+        const { data, error } = await q;
+        if (error) throw error;
+        if (vivo) { setLinhas(data || []); setErro(false); }
+      } catch { if (vivo) setErro(true); }
+      if (vivo) setCarregou(true);
+    })();
+    return () => { vivo = false; };
+  }, [aberto, soProblemas]);
+
+  const cor = { erro: '#F87171', aviso: '#FBBF24', info: '#7DD3FC' };
+
+  return (
+    <div className="px-4 pb-3">
+      <div className="rounded-xl bg-[#0A1626]/60 border border-white/10 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" onClick={() => setAberto((a) => !a)}
+            className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-white/80 cursor-pointer hover:text-white"
+            aria-expanded={aberto}>
+            <QueueListIcon className="w-3.5 h-3.5 text-[#C9A84C]" />
+            Linha do tempo · todas as fontes (24h)
+            <span className="text-white/40">{aberto ? '▲' : '▼'}</span>
+          </button>
+          {aberto && (
+            <label className="flex items-center gap-1.5 text-[10px] font-mono text-white/60 cursor-pointer">
+              <input type="checkbox" checked={soProblemas} onChange={(e) => setSoProblemas(e.target.checked)} />
+              só erros e avisos
+            </label>
+          )}
+        </div>
+        {aberto && (
+          <div className="mt-2">
+            {!carregou ? (
+              <div className="text-[11px] text-white/60 font-mono">carregando…</div>
+            ) : erro ? (
+              <div className="text-[11px] text-amber-200/90 font-mono flex items-center gap-1.5">
+                <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" /> não foi possível carregar agora
+              </div>
+            ) : linhas.length === 0 ? (
+              <div className="text-[11px] text-white/60 font-mono">
+                {soProblemas ? 'nenhum erro ou aviso nas últimas 24h' : 'nada registrado nas últimas 24h'}
+              </div>
+            ) : (
+              <div className="max-h-72 overflow-y-auto flex flex-col gap-0.5">
+                {linhas.map((l, i) => (
+                  <div key={i} className="flex items-start gap-2 text-[11px] font-mono py-1 border-b border-white/[0.06]">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-1.5" style={{ background: cor[l.nivel] || cor.info }} />
+                    <span className="text-white/50 shrink-0 tabular-nums" title={fmtDT(l.quando)}>{fmtRel(l.quando)}</span>
+                    <span className="text-white/40 shrink-0 hidden sm:inline">{l.fonte}</span>
+                    <span className="text-white/80 flex-1 break-words">{l.mensagem}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // (auditoria 01/08/2026 — item 148) Os 23 crons que rodam DENTRO do Postgres (pg_cron)
 // nao apareciam em painel nenhum. Quando um para, o sintoma e mudo: view materializada
 // velha, logs crescendo, espelho congelado. Foi assim que o `cleanup-old-logs` passou a
@@ -596,6 +679,8 @@ export default function MonitorAdvbox() {
       <CronHeartbeats />
       {/* (item 148) os robos que rodam dentro do banco, que ate hoje nao apareciam */}
       <CronsDoBanco />
+      {/* (item 158) a linha do tempo unica das 4 fontes de log */}
+      <LinhaDoTempo />
 
       {/* (observ-14) mini-resumo de saude por servico (health_history) */}
       <HealthSummary />
