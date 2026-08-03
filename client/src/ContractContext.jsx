@@ -2,16 +2,13 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { CLAUSULAS_PADRAO } from './data/clausulas';
 // (item 197) precisa saber QUANDO o usuario logou para trocar a gaveta do rascunho
 import { supabase } from './lib/supabase';
+import { chaveRascunho } from './utils/rascunho';
 
 const ContractContext = createContext();
 
-function getStorageKey() {
-  try {
-    const session = JSON.parse(localStorage.getItem('sb-vygczeepvoyaehfchxko-auth-token') || '{}');
-    const email = session?.user?.email || 'anon';
-    return `cbc_rascunho_${email.replace(/[^a-z0-9]/gi, '_')}`;
-  } catch { return 'cbc_contrato_rascunho'; }
-}
+// (item 36) a gaveta do rascunho e a limpeza no logout moram em utils/rascunho.js —
+// sao funcao pura, e arquivo de componente so deve exportar componente.
+const getStorageKey = chaveRascunho;
 
 const defaultContratante = () => ({
   // (PJ 25/06) tipo discrimina Pessoa Fisica (padrao) vs Pessoa Juridica (Cliente Empresa).

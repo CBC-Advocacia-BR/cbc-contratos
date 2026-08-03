@@ -779,7 +779,11 @@ const CACHE_BOLETOS = 'boletos:lista';
 export default function BoletosPanel({ userEmail = '' }) {
   const [customers, setCustomers] = useState(() => {
     if (_cachedBoletosCustomers) return _cachedBoletosCustomers; // cache em memoria (instantaneo ao voltar pra aba)
-    try { return JSON.parse(sessionStorage.getItem('boletos_customers') || '[]'); } catch { return []; }
+    // (auditoria 01/08/2026 — item 35) NAO le mais do sessionStorage: aquilo guardava ate
+    // 3.000 clientes com CPF e valor de cobranca no navegador, e em maquina compartilhada
+    // bastava abrir o console para copiar. O cache em memoria (item 188) da a mesma
+    // velocidade e morre junto com a aba.
+    return [];
   });
   // (item 175) Resumo agregado por cliente, vindo pronto do banco — fonte unica de todos
   // os stats derivados. Antes eram ~12.921 linhas cruas baixadas para o navegador somar.
@@ -859,9 +863,9 @@ export default function BoletosPanel({ userEmail = '' }) {
       }
       setCustomers(all);
       _cachedBoletosCustomers = all; // atualiza cache em memoria
-      // (perf 31/05) So cacheia se for pequeno — serializar arrays grandes a cada
-      // carga trava a thread principal. Acima do limite, limpa o cache antigo.
-      try { if (all.length <= 3000) sessionStorage.setItem('boletos_customers', JSON.stringify(all)); else sessionStorage.removeItem('boletos_customers'); } catch { /* best-effort: cache de sessao opcional */ }
+      // (item 35) Nada de CPF no armazenamento do navegador. Limpa o que versoes
+      // anteriores tenham deixado gravado na maquina de quem ja usava o sistema.
+      try { sessionStorage.removeItem('boletos_customers'); sessionStorage.removeItem('boletos_raw'); } catch { /* melhor esforco */ }
 
       // (auditoria 01/08/2026 — item 175) AQUI ficava a paginacao de ~12.921 boletos em
       // 13 idas ao banco, uma apos a outra, para virar meia duzia de somas no navegador.

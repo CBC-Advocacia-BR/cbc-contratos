@@ -11,6 +11,37 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_S
 
 export const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// (auditoria 01/08/2026 — item 39) O fallback acima e util — sem ele, uma variavel que
+// falta derruba a function inteira —, mas ele era MUDO. Uma function critica podia estar
+// gravando com a chave publica ha meses e esbarrando na RLS sem que nada aparecesse: foi
+// assim que o webhook do ZapSign ficou morto sem ninguem saber.
+//
+// `usandoChaveDeServidor` deixa o estado consultavel, e `exigirChaveDeServidor()` permite
+// que quem PRECISA da chave grite em vez de degradar em silencio.
+export const usandoChaveDeServidor = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!usandoChaveDeServidor) {
+  // aparece no log da function e no console do Monitor pela via normal de erro
+  console.warn(
+    '[botDb] SUPABASE_SERVICE_ROLE_KEY AUSENTE — gravando com a chave publica (anon). '
+    + 'Toda escrita que dependa de ignorar a RLS vai falhar em silencio. '
+    + 'Cadastre no painel da Netlify (Site configuration > Environment variables).'
+  );
+}
+
+/**
+ * Para quem NAO pode degradar. Chame no inicio da function critica: e melhor ela falhar
+ * alto, com a causa escrita, do que rodar meses gravando no vazio.
+ */
+export function exigirChaveDeServidor(ondeEstou) {
+  if (usandoChaveDeServidor) return;
+  throw new Error(
+    `${ondeEstou}: SUPABASE_SERVICE_ROLE_KEY ausente. Esta funcao grava contornando a RLS `
+    + 'e com a chave publica a gravacao seria recusada sem erro visivel. '
+    + 'Cadastre a variavel no painel da Netlify antes de rodar de novo.'
+  );
+}
+
 /** bot_config inteiro como objeto { key: value } */
 export async function getConfig() {
   const { data, error } = await db.from('bot_config').select('key, value');

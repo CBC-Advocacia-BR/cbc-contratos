@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from './lib/supabase';
 import { limparCacheAba } from './utils/cacheAba';
+import { limparRascunhoLocal } from './utils/rascunho';
 
 const AuthContext = createContext(null);
 
@@ -127,6 +128,10 @@ export function AuthProvider({ children }) {
     // clientes: CPF e valor de cobranca em memoria. Nao pode sobreviver a troca de
     // usuario na mesma aba do navegador.
     limparCacheAba();
+    // (item 36) o rascunho do contrato guarda nome, CPF, RG e endereco do cliente no
+    // localStorage e ficava la depois de sair. Sair e uma decisao; expirar sessao nao
+    // passa por aqui, entao ninguem perde trabalho por ter ficado parado.
+    limparRascunhoLocal();
     setUser(null);
   }, []);
 

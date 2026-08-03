@@ -51,8 +51,14 @@ export const API = {
    * Health check — GET /api/health (fallback: /.netlify/functions/health)
    * Sem body; usado pelo header visual e pelo MonitorPanel.
    */
+  // (auditoria 01/08/2026 — item 40) A resposta publica agora e so um resumo (de pe? /
+  // quantos fora?) — sem nomear servico nem repetir texto de erro, que era reconhecimento
+  // de graca para quem quisesse atacar. Quem manda a chave dos paineis internos continua
+  // recebendo o detalhe por servico, que e o que o Monitor exibe.
   health: () =>
-    callWithFallback('/api/health', '/.netlify/functions/health', {}),
+    callWithFallback('/api/health', '/.netlify/functions/health', {
+      headers: { 'x-bot-key': import.meta.env.VITE_BOT_PANEL_KEY || '' },
+    }),
 
   /**
    * ZapSign proxy — POST /api/zapsign (fallback: /.netlify/functions/zapsign-proxy)

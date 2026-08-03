@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import * as Sentry from '@sentry/react';
 import { FixedSizeList } from 'react-window';
 import { supabase } from '../lib/supabase';
+import { lerCacheAba, gravarCacheAba, cacheFresco } from '../utils/cacheAba';
+
+// (item 35) chave do cache em memoria da lista de contratos do Asaas (contem CPF)
+const CACHE_ASAAS = 'asaas:contratos';
 import { useAuth } from '../AuthContext';
 import { SkeletonAsaas } from './Skeleton';
 import ErrorState from './ErrorState';
@@ -919,15 +923,18 @@ export default function AsaasPanel() {
   // Cache + fetch (item 59)
   const fetch_ = useCallback(async (useCache = false) => {
     if (useCache) {
+      // (auditoria 01/08/2026 — item 35) O cache saiu do sessionStorage para a MEMORIA:
+      // a lista traz contratos com CPF, nome e valor de honorario, e o sessionStorage
+      // sobrevive a troca de usuario na mesma aba e fica legivel no console. O cache em
+      // memoria (utils/cacheAba.js) da a mesma velocidade, e o logout o apaga.
       try {
-        const cached = sessionStorage.getItem('asaas_contracts_cache');
-        if (cached) {
-          const { data, ts } = JSON.parse(cached);
-          if (Date.now() - ts < 60000) { // 60s cache
-            setContracts(data.map(c => ({ ...c, _launched: c.asaas_status === 'launched' })));
-            setLoading(false);
-          }
+        const cached = lerCacheAba(CACHE_ASAAS);
+        if (cached && cacheFresco(CACHE_ASAAS, 60000)) {
+          setContracts(cached.map(c => ({ ...c, _launched: c.asaas_status === 'launched' })));
+          setLoading(false);
         }
+        // limpa o que versoes anteriores gravaram na maquina de quem ja usava o sistema
+        try { sessionStorage.removeItem('asaas_contracts_cache'); } catch { /* melhor esforco */ }
       } catch { /* ignora cache invalido */ }
     }
     try {
@@ -955,7 +962,7 @@ export default function AsaasPanel() {
       }));
       setContracts(list);
       setLoadError('');
-      try { sessionStorage.setItem('asaas_contracts_cache', JSON.stringify({ data: list, ts: Date.now() })); } catch { /* best-effort: cache de sessao opcional */ }
+      gravarCacheAba(CACHE_ASAAS, list); // (item 35) memoria, nao navegador
     } catch {
       // (#100) Mensagem generica
       setLoadError('Erro ao carregar contratos Asaas');

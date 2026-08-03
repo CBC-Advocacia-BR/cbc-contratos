@@ -54,7 +54,7 @@ async function checkService(name: string, fn: () => Promise<void>): Promise<Chec
   }
 }
 
-export default async (_req: Request, _context: Context) => {
+export default async (req: Request, _context: Context) => {
   const checks = await Promise.all([
     checkService('supabase', async () => {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/contratos?select=id&limit=1`, {
@@ -107,15 +107,34 @@ export default async (_req: Request, _context: Context) => {
   const allOk = checks.every((c) => c.status === 'ok');
   const totalMs = checks.reduce((s, c) => s + c.ms, 0);
 
-  return new Response(
-    JSON.stringify({
+  // (auditoria 01/08/2026 — item 40) Sem senha, qualquer um via QUAIS servicos o
+  // escritorio usa, quais estavam fora e o TEXTO DO ERRO — reconhecimento pronto para
+  // quem quisesse atacar, e de graca. O resumo publico continua servindo para o que este
+  // endpoint existe (monitoramento externo saber se o site esta de pe); o detalhe agora
+  // exige a mesma chave dos paineis internos, que e como o app o consome.
+  const chaveOk = req.headers.get('x-bot-key') === Deno.env.get('BOT_PANEL_KEY')
+    && !!Deno.env.get('BOT_PANEL_KEY');
+
+  const corpo = chaveOk
+    ? {
       status: allOk ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
       totalMs,
       version: '4.0.0-edge',
       runtime: 'netlify-edge',
       services: checks,
-    }),
+    }
+    : {
+      // publico: diz se esta de pe e quantos servicos estao fora — sem nomear nenhum
+      // nem repetir mensagem de erro
+      status: allOk ? 'healthy' : 'degraded',
+      timestamp: new Date().toISOString(),
+      servicos: checks.length,
+      fora: checks.filter((c) => c.status !== 'ok').length,
+    };
+
+  return new Response(
+    JSON.stringify(corpo),
     {
       status: allOk ? 200 : 503,
       headers: {

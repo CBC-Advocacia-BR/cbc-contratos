@@ -13,6 +13,7 @@
  */
 import { db, logAdvbox } from './_lib/botDb.mjs';
 import { kommoConfigured, kommoGet, getContact, extractPhones, extrairLeadId } from './_lib/kommo.mjs';
+import { classificarLink, classificarFalha } from './_lib/kommoLink.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const JSONH = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' };
@@ -34,6 +35,40 @@ function melhorFone(fones) {
   if (!arr.length) return '';
   const score = (f) => { const n = digitosNac(f).length; return n === 11 ? 3 : n === 10 ? 2 : n >= 8 ? 1 : 0; };
   return arr.slice().sort((a, b) => score(b) - score(a))[0]; // 11 > 10 > qualquer; estavel se empatam
+}
+
+// (03/08/2026) MODO LEVE — so responde "esse lead existe?". Nasceu da auditoria de
+// 02/08: 37 leads mortos / 42 contratos apontando para lead inexistente, com 271 notas e
+// 57 cobrancas que nunca chegaram ao cliente. O resolve completo (contato + tags + RPC do
+// Cadastro Unico + 1a mensagem) e caro demais p/ rodar no blur de um campo, entao aqui o
+// fluxo corta logo apos o GET do lead.
+//
+// Devolve SEMPRE 200 com {veredito}: 'existe' | 'nao_existe' | 'desconhecido' | 'invalido'.
+// 'desconhecido' e o lado seguro (Kommo fora do ar nao pode impedir uma assinatura).
+async function checarExistencia(link) {
+  const cls = classificarLink(link);
+  if (cls.veredito !== 'checar') {
+    return resp(200, { ok: true, veredito: cls.veredito, motivo: cls.motivo, leadId: cls.leadId || null });
+  }
+  if (!kommoConfigured()) {
+    return resp(200, { ok: true, veredito: 'desconhecido', leadId: cls.leadId, motivo: 'Nao foi possivel conferir agora (Kommo nao configurado).' });
+  }
+  try {
+    const lead = await withTimeout(kommoGet(`/leads/${cls.leadId}`), 6000, 'lead');
+    if (!lead || lead.id == null) {
+      return resp(200, { ok: true, veredito: 'nao_existe', leadId: cls.leadId, motivo: 'Esse lead nao existe mais no Kommo (apagado ou mesclado com outro).' });
+    }
+    // AUTO-CURA: o lead responde, entao esta vivo. Se estava marcado como morto (por
+    // falha real na fila, ver kommoQueue), a linha sai daqui — assim corrigir o link no
+    // formulario ja destrava o fluxo, sem ninguem precisar rodar DELETE na mao.
+    // De proposito NAO ha atalho lendo kommo_leads_mortos antes do GET: se um lead
+    // fosse marcado por engano, o atalho o rejeitaria para sempre, sem caminho de volta.
+    try { await db.from('kommo_leads_mortos').delete().eq('lead_id', String(cls.leadId)); } catch { /* best-effort */ }
+    return resp(200, { ok: true, veredito: 'existe', leadId: cls.leadId, nome: lead.name || null });
+  } catch (e) {
+    const f = classificarFalha(e);
+    return resp(200, { ok: true, veredito: f.veredito, leadId: cls.leadId, motivo: f.motivo });
+  }
 }
 
 export default async (req) => {

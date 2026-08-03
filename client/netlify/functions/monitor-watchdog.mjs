@@ -23,7 +23,12 @@ export default async () => {
   // 1) HEALTH ---------------------------------------------------------------
   try {
     const t0 = Date.now();
-    const r = await fetch(`${SELF_URL}/api/health`, { signal: AbortSignal.timeout(20000) });
+    // (item 40) o detalhe por servico agora exige a chave; sem ela o vigia receberia so o
+    // resumo e gravaria um historico de disponibilidade vazio
+    const r = await fetch(`${SELF_URL}/api/health`, {
+      headers: { 'x-bot-key': process.env.BOT_PANEL_KEY || '' },
+      signal: AbortSignal.timeout(20000),
+    });
     const elapsed = Date.now() - t0;
     const j = await r.json().catch(() => ({}));
     const services = Array.isArray(j.services) ? j.services : [];
