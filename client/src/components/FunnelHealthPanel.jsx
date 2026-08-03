@@ -258,7 +258,7 @@ export default function FunnelHealthPanel() {
                 </div>
                 {duracao.conectouECaiu > 0 && (
                   <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-warning, #D97706)' }}>
-                    ⚠ {fmtInt(duracao.conectouECaiu)} cliente{duracao.conectouECaiu > 1 ? 's' : ''} entr{duracao.conectouECaiu > 1 ? 'aram' : 'ou'} na sala e saiu antes dos 5 min
+                    ⚠ {fmtInt(duracao.conectouECaiu)} cliente{duracao.conectouECaiu > 1 ? 's' : ''} entr{duracao.conectouECaiu > 1 ? 'aram' : 'ou'} na sala e sa{duracao.conectouECaiu > 1 ? 'íram' : 'iu'} antes dos 5 min
                     {' '}— contam como falta, mas abriram o link (diferente das {fmtInt(duracao.naoEntrou)} que nunca entraram)
                   </div>
                 )}
