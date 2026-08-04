@@ -68,6 +68,30 @@
 -- as duas rodadas de conferencia (horas de diferenca), nao regressao: a
 -- comparacao por checksum acima e no mesmo instante dos dois lados e bate
 -- exata. Detalhe completo em .superpowers/sdd/task-1-report.md.
+--
+-- CORRECAO DE REVIEW (04/08/2026, sessao separada) -- DESAMBIGUACAO DE NOME.
+-- Achado: o schema public tem quatro funcoes de canonizacao de telefone
+-- (cbc_tel_canonico, fn_tel_key, fone_chave, cbc_telefone_canonico) e as duas
+-- primeiras -- cbc_tel_canonico e cbc_telefone_canonico -- sao quase
+-- homonimas com comportamento DIFERENTE em entrada malformada: (1) prefixo 55
+-- -- cbc_tel_canonico so tira o 55 quando o comprimento e exatamente 12 ou
+-- 13; cbc_telefone_canonico tira sempre que o comprimento e >=12, sem teto;
+-- (2) poucos digitos (<10 apos a regra acima) -- cbc_tel_canonico devolve o
+-- valor cru, cbc_telefone_canonico devolve NULL. Exemplo medido: entrada
+-- 55119999999999 (14 digitos) -- cbc_tel_canonico devolve 5599999999 (trata
+-- 55 como DDD), cbc_telefone_canonico devolve 1199999999 (trata 55 como
+-- codigo de pais). cbc_tel_canonico e de fato compartilhada entre apps --
+-- confirmado em uso por atendimento.ecossistema_contato,
+-- atendimento.buscar_contatos e public.vw_telefones_suspeitos, alem desta
+-- view. Fix: SO comentarios (via COMMENT ON FUNCTION) nas duas funcoes, cada
+-- uma alertando da existencia da outra e descrevendo a diferenca com
+-- exemplo. Nenhum corpo de funcao foi alterado -- corpos conferidos byte a
+-- byte (pg_get_functiondef) antes/depois da migracao
+-- "desambiguar_comentario_telefone_canonico", identicos nos dois momentos.
+-- Achado a parte, fora do escopo desta correcao: existe uma QUINTA funcao,
+-- cbc_fone_key, com corpo funcionalmente identico ao de cbc_tel_canonico
+-- (mesmo algoritmo, CTEs com nomes diferentes) -- candidata a duplicata mas
+-- nao mexida aqui. Detalhe completo em .superpowers/sdd/task-1-report.md.
 -- =============================================================================
 
 -- Funcao de canonizacao de telefone (extraida da expressao que antes ficava
@@ -93,7 +117,19 @@ as $$
 $$;
 
 comment on function public.cbc_telefone_canonico(text) is
-'Canoniza telefone para DDD+8 digitos (mesma regra usada em vw_pessoa_atendimentos e vw_noshow_acervo): tira nao-digitos, tira prefixo 55 se aplicavel, e se sobrarem >=10 digitos devolve os 2 primeiros + ultimos 8; senao NULL. Extraida em 04/08/2026 do CASE+LATERAL que estava inline em vw_pessoa_atendimentos, para permitir indice de expressao (correcao de review: idx_agenda_vc_telefone nao era usado pela view porque telefone e uma coluna calculada, nao passagem direta).';
+'Canoniza telefone para DDD+8 digitos (mesma regra usada em vw_pessoa_atendimentos e vw_noshow_acervo): tira nao-digitos, tira prefixo 55 se aplicavel, e se sobrarem >=10 digitos devolve os 2 primeiros + ultimos 8; senao NULL. Extraida em 04/08/2026 do CASE+LATERAL que estava inline em vw_pessoa_atendimentos, para permitir indice de expressao (correcao de review: idx_agenda_vc_telefone nao era usado pela view porque telefone e uma coluna calculada, nao passagem direta). ATENCAO (review 04/08/2026): esta funcao NAO e a public.cbc_tel_canonico, que e o normalizador de telefone COMPARTILHADO entre outros aplicativos do escritorio (usada em atendimento.ecossistema_contato, atendimento.buscar_contatos e public.vw_telefones_suspeitos) -- os nomes sao quase homonimos e e facil trocar uma pela outra sem perceber. Elas divergem em entrada malformada: (1) prefixo 55 -- esta funcao tira o 55 quando os digitos tem 12 ou mais, sem teto; cbc_tel_canonico so tira quando o comprimento e exatamente 12 ou 13; (2) poucos digitos, menos de 10 apos a regra acima -- esta funcao devolve NULL; cbc_tel_canonico devolve o valor cru (nao NULL). Exemplo medido: para a entrada 55119999999999 (14 digitos), esta funcao devolve 1199999999 (DDD 11, 55 tratado como codigo de pais) e cbc_tel_canonico devolve 5599999999 (55 tratado como DDD, nao descartado). Nunca usar uma no lugar da outra: cada uma foi calibrada para o consumidor que a chama.';
+
+-- Correcao de review (04/08/2026, sessao separada): a public.cbc_tel_canonico
+-- (funcao PRE-EXISTENTE, definida em outra migracao, COMPARTILHADA entre
+-- aplicativos do escritorio -- ver uso confirmado no comentario abaixo) tem
+-- nome quase identico a esta funcao e comportamento diferente em entrada
+-- malformada (ver os dois comentarios). Sem o aviso, um humano ou uma sessao
+-- futura trabalhando em outro app poderia trocar uma pela outra sem perceber.
+-- NAO recriar o corpo de cbc_tel_canonico aqui -- ela pertence a outra
+-- migracao/app; este bloco so acrescenta o comentario de alerta, nenhum
+-- comportamento muda.
+comment on function public.cbc_tel_canonico(text) is
+'Chave canonica de telefone: DDD + os 8 ULTIMOS digitos. O corte em 8 e deliberado — e o que faz o mesmo numero casar nos formatos antigo (10 digitos) e novo (11, com o 9). Medido em 03/08/2026: das 200 colisoes existentes, 199 sao esse casamento correto e 1 e numero digitado errado. NAO troque por 9 digitos (item 260): quebraria as 199 para evitar nenhuma. Para achar entrada malformada use cbc_tel_problema(). ATENCAO (review 04/08/2026): existe uma funcao irma de nome quase igual, public.cbc_telefone_canonico, criada para o indice de expressao de public.vw_pessoa_atendimentos -- NAO e este normalizador e NAO deve ser confundida com ele. As duas divergem em entrada malformada: (1) prefixo 55 -- esta funcao (cbc_tel_canonico) so tira o 55 quando o comprimento e exatamente 12 ou 13 digitos; cbc_telefone_canonico tira sempre que o comprimento e >=12, sem teto; (2) poucos digitos, menos de 10 apos a regra acima -- esta funcao devolve o valor cru (nao NULL); cbc_telefone_canonico devolve NULL. Exemplo medido: para a entrada 55119999999999 (14 digitos), esta funcao devolve 5599999999 (55 tratado como DDD) e cbc_telefone_canonico devolve 1199999999 (55 tratado como codigo de pais, corretamente removido). Esta funcao (cbc_tel_canonico) e a compartilhada entre aplicativos -- confirmado em uso por atendimento.ecossistema_contato, atendimento.buscar_contatos e public.vw_telefones_suspeitos; cbc_telefone_canonico serve so a vw_pessoa_atendimentos. Nao trocar uma pela outra.';
 
 -- Historico de comparecimento por pessoa, no nivel do EVENTO.
 -- Irma da vw_noshow_acervo (que e agregada por pessoa e serve campanha).
