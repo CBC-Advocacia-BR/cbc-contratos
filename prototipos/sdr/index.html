@@ -1335,6 +1335,10 @@ function modalAgendar(id, pre, remarcandoEv){
   const l=byId(id); state.escolha=pre&&pre.h?pre:null; state.remarcandoEv=remarcandoEv||null;
   const histPre = l && l.hist && l.hist.faltas >= 2;
   const dia = (pre&&pre.dia) || (histPre ? '03/08' : '04/08');
+  // so afirma "o dia comeca em hoje" quando isso de fato decidiu o dia: se quem clicou
+  // ja trouxe um dia explicito (remarcar, atalho rapido, aba Hoje/Amanha do proprio
+  // modal), a sugestao nao valeu e o texto tem de ficar calado sobre o dia.
+  const sugestaoDiaValeu = histPre && !(pre&&pre.dia);
   const sug=sugerido(dia,l);
   const opts=livres(dia);
   const p=pontuacao(l);
@@ -1377,7 +1381,7 @@ function modalAgendar(id, pre, remarcandoEv){
       <div class="slotpick" id="md-slots">${opts.slice(0,16).map(s=>`
         <button type="button" data-pick="${dia}|${s.v}|${s.h}" aria-pressed="${state.escolha&&state.escolha.v===s.v&&state.escolha.h===s.h?'true':'false'}">
           ${s.h}<small>${s.v}${s.v===sug?' · sugerido':''}</small></button>`).join('')}</div>
-      <p class="hint">Sugerido: <b>${sug}</b>${p&&p.n>=70?', porque a nota do lead passa de 70':', que está com menos calls no dia'}${reincidente?'. Como já faltou antes, o dia começa em <b>hoje</b>':''}.</p></div>
+      <p class="hint">Sugerido: <b>${sug}</b>${p&&p.n>=70?', porque a nota do lead passa de 70':', que está com menos calls no dia'}${sugestaoDiaValeu?'. Como já faltou antes, o dia começa em <b>hoje</b>':''}.</p></div>
     <div class="pos-sim"><span class="eyebrow">Depois do sim</span>
       <p class="hint" style="margin:4px 0 8px">Perguntar o valor <b>antes</b> do convite derruba o agendamento de 69% para 50,7%. Por isso ele é coletado aqui, com a call já marcada.</p>
       <div class="grid2">
