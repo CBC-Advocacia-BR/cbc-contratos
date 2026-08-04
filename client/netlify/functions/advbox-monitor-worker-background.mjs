@@ -19,8 +19,8 @@ import {
   bulkUpsertSyncItems, heartbeat,
 } from './_lib/botDb.mjs';
 import { postNote } from './_lib/kommo.mjs';
+import { diaBrt, diaBrtDe } from './_lib/dataBrt.mjs';
 
-const isoDay = (d) => d.toISOString().slice(0, 10);
 const PAGE = 100;
 const MAX_PAGES = 40; // trava de seguranca (40 paginas x 100 = 4.000 itens por categoria/rodada)
 
@@ -51,8 +51,9 @@ export default async () => {
   const started = new Date();
   const novidadesPush = new Set(); // lawsuits com movimento novo -> push do portal
   try {
-    const end = isoDay(new Date());
-    const start = isoDay(new Date(Date.now() - 3 * 86400000));
+    // janela em dia BRT: as datas do ADVBOX sao locais, e o runtime da function e UTC
+    const end = diaBrt();
+    const start = diaBrt(3);
     const [leadMap, vis] = await Promise.all([getLawsuitLeadMap(), getVisibilityConfig()]);
 
     // ---------- 0) CATALOGO: sincroniza etapas/tarefas do ADVBOX ----------
@@ -271,7 +272,7 @@ export default async () => {
             titulo: 'Novidade no seu caso',
             corpo: 'Seu processo teve uma nova movimentação. Toque para ver no portal.',
             url: `/portal?t=${s.token}`,
-            tag: `cbc-${started.toISOString().slice(0, 10)}`,
+            tag: `cbc-${diaBrtDe(started)}`,
           }));
           enviados++;
         } catch (e) {

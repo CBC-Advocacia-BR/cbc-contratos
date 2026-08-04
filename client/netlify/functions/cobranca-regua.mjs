@@ -15,6 +15,7 @@
 import { db, getConfig, logAdvbox, heartbeat } from './_lib/botDb.mjs';
 import { fetchAllPaged } from './_lib/paged.mjs';
 import { postNote, setLeadField, runSalesbot } from './_lib/kommo.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
 
 const digits = (s) => String(s || '').replace(/\D/g, '');
 const dataBR = (iso) => iso ? String(iso).slice(0, 10).split('-').reverse().join('/') : '';
@@ -45,8 +46,8 @@ export default async () => {
   // 1b) contatos recebidos no Kommo ONTEM (correlação acessos × ligações) — melhor esforço
   try {
     if (process.env.KOMMO_TOKEN) {
-      const ontem = new Date(Date.now() - 86400000);
-      const ini = Math.floor(new Date(ontem.toISOString().slice(0, 10) + 'T00:00:00-03:00').getTime() / 1000);
+      const diaOntem = diaBrt(1);
+      const ini = Math.floor(new Date(diaOntem + 'T00:00:00-03:00').getTime() / 1000);
       const fim = ini + 86400;
       let total = 0, page = 1;
       // (auditoria 01/08 — item 107) O laco para na pagina 4 (1.000 eventos). Em dia
@@ -69,9 +70,9 @@ export default async () => {
       if (truncou) {
         await logAdvbox('kommo', 'aviso',
           `Contagem de mensagens do dia atingiu o limite de 1.000 eventos — o total gravado (${total}) esta SUBESTIMADO`,
-          { dia: ontem.toISOString().slice(0, 10), total });
+          { dia: diaOntem, total });
       }
-      await db.from('contatos_kommo_diario').upsert({ dia: ontem.toISOString().slice(0, 10), mensagens: total });
+      await db.from('contatos_kommo_diario').upsert({ dia: diaOntem, mensagens: total });
       stats.contatos_kommo = total;
     }
   } catch (e) { await logAdvbox('portal', 'aviso', `contatos Kommo (correlação) indisponíveis: ${e.message}`, {}); }
@@ -81,7 +82,7 @@ export default async () => {
   const leadPorCpfCache = {};
   try {
     if (REGUA_COBRANCA_ATIVA) for (const dias of etapas) {
-      const alvo = new Date(Date.now() - dias * 86400000).toISOString().slice(0, 10);
+      const alvo = diaBrt(dias);
       const { data: bols, error } = await db.rpc('regua_boletos_do_dia', { p_chave: process.env.BOT_RPC_SECRET || '', p_venc: alvo });
       if (error) throw new Error(error.message);
       const lista = bols || [];

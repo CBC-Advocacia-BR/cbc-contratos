@@ -13,6 +13,7 @@
  */
 import * as adv from './_lib/advbox.mjs';
 import { db, logAdvbox, bulkRecordSyncItems, hashKey, heartbeat } from './_lib/botDb.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
 
 const PAGE = 50;
 const MAX_PAGES = 100;
@@ -120,7 +121,7 @@ export default async () => {
 
     // (#36) funil historico: retrato diario da carteira por quadro/etapa
     try {
-      const dia = new Date().toISOString().slice(0, 10);
+      const dia = diaBrt();
       const cont = {};
       for (const r of rows) {
         const k = `${r.quadro || '—'}|${r.etapa || '—'}`;

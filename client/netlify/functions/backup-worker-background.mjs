@@ -15,6 +15,7 @@
 
 import { gzipSync } from 'node:zlib';
 import { db, heartbeat, logAdvbox } from './_lib/botDb.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
 import { APPS_SCRIPT_URL } from './_lib/drive.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
@@ -93,7 +94,7 @@ export default async (req) => {
   const body = await req.json().catch(() => ({}));
 
   const inicio = Date.now();
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = diaBrt();
   try {
     const { data: lista, error } = await db.rpc('backup_tabelas', { p_chave: RPC_SECRET });
     if (error) throw new Error(`backup_tabelas: ${error.message}`);

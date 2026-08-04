@@ -7,6 +7,7 @@
  *     (acompanhar se as inconsistências estão caindo).
  */
 import { db, logAdvbox, getBotMetricas } from './_lib/botDb.mjs';
+import { diaBrt } from './_lib/dataBrt.mjs';
 
 export default async () => {
   const stats = { fallbacks: 0, diag: false };
@@ -41,7 +42,7 @@ export default async () => {
     const incs = {};
     for (const [k, v] of Object.entries(d?.inconsistencias || {})) incs[k] = v?.qtd ?? null;
     await db.from('portal_diagnostico_historico').upsert({
-      dia: new Date().toISOString().slice(0, 10),
+      dia: diaBrt(),
       resumo: d?.resumo || {}, inconsistencias: incs,
     });
     stats.diag = true;

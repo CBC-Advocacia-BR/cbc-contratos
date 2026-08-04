@@ -27,6 +27,7 @@ import {
   bulkRecordSyncItems, bulkUpsertSyncItems, hashKey, getVisibilityConfig, isHiddenFromClient,
   getBackfillStatus, setBackfillStatus, logAdvbox,
 } from './_lib/botDb.mjs';
+import { diaBrtDe } from './_lib/dataBrt.mjs';
 
 const SELF_URL = process.env.URL || 'https://contratos-cbc.netlify.app';
 const BATCH_MS = 12 * 60 * 1000;   // ~12 min por lote (teto da function: 15)
@@ -34,6 +35,9 @@ const LAWSUIT_PAGE = 50;
 const POST_PAGE = 100;
 const MAX_LOTES = 200;             // trava de seguranca do encadeamento
 
+// dia de uma data de CALENDARIO montada com Date.UTC (fronteiras de mes das janelas).
+// E leitura pura em UTC de proposito — nao trocar por diaBrt: 00:00 UTC menos 3h cairia
+// no mes anterior e deslocaria toda a janela.
 const isoDay = (d) => d.toISOString().slice(0, 10);
 
 function movementRow(lawsuitId, mv, extra = {}) {
@@ -157,9 +161,6 @@ export default async (req) => {
 
     // ================= FASE 2: TAREFAS =================
     if (st.fase === 'tarefas') {
-      const end = isoDay(new Date());
-      const start12m = isoDay(new Date(Date.now() - 365 * 86400000));
-
       // 2a) abertas
       let off = st.tarefas_offset_abertas || 0;
       while (st.sub_fase === 'abertas' && Date.now() - t0 < BATCH_MS) {
@@ -187,11 +188,13 @@ export default async (req) => {
       // alem de ~10.000 registros por janela (HTTP 422 acima disso). Janelas
       // mensais ficam longe do teto; o dedupe absorve qualquer sobreposicao.
       // Janela com erro persistente e PULADA (logada) em vez de re-tentada p/ sempre.
-      const anchor = new Date(st.started_at || new Date().toISOString());
+      // mes de ancoragem em BRT: backfill iniciado depois das 21h do ultimo dia do mes
+      // ancorava no mes SEGUINTE (UTC) e deslocava as 13 janelas em um mes.
+      const [aAno, aMes] = diaBrtDe(st.started_at || Date.now()).split('-').map(Number);
       const wins = [];
       for (let m = 12; m >= 0; m--) {
-        const ini = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - m, 1));
-        const fim = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth() - m + 1, 0));
+        const ini = new Date(Date.UTC(aAno, aMes - 1 - m, 1));
+        const fim = new Date(Date.UTC(aAno, aMes - m, 0));
         wins.push({ ini: isoDay(ini), fim: isoDay(fim) });
       }
       let wi = st.tc_win_idx || 0;
