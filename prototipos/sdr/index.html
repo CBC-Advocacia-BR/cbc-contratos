@@ -743,6 +743,16 @@ function filtrados(){
 /* =========================================================================
    FILA
    ========================================================================= */
+/* Selo de historico de falta/comparecimento (faltou Nx / veio Nx). Fonte unica: usada por
+   linhaFila() (arranjos 1/2/3) e por renderFoco/renderDensa/renderInbox (arranjos 4/6/7).
+   Ver achado do revisor: essas 3 tinham renderizacao propria e ficavam sem o selo. */
+function histTags(l){
+  if(!(l.hist && l.hist.faltas > 0)) return '';
+  let out = `<span class="tag faltou" title="Não compareceu ${l.hist.faltas} ${l.hist.faltas===1?'vez':'vezes'}">faltou ${l.hist.faltas}×</span>`;
+  if(l.hist.comparecimentos > 0)
+    out += `<span class="tag voltou" title="Também compareceu ${l.hist.comparecimentos} ${l.hist.comparecimentos===1?'vez':'vezes'}">veio ${l.hist.comparecimentos}×</span>`;
+  return out;
+}
 function linhaFila(l){
   const tags=[];
   if(l.semLead) tags.push('<span class="tag gap">só telefone</span>');
@@ -750,11 +760,8 @@ function linhaFila(l){
   else tags.push('<span class="tag none">sem resort</span>');
   if(l.quitado) tags.push('<span class="tag">quitado</span>');
   if(l.quente) tags.push('<span class="tag hot">lead quente</span>');
-  if(l.hist && l.hist.faltas > 0){
-    tags.push(`<span class="tag faltou" title="Não compareceu ${l.hist.faltas} ${l.hist.faltas===1?'vez':'vezes'}">faltou ${l.hist.faltas}×</span>`);
-    if(l.hist.comparecimentos > 0)
-      tags.push(`<span class="tag voltou" title="Também compareceu ${l.hist.comparecimentos} ${l.hist.comparecimentos===1?'vez':'vezes'}">veio ${l.hist.comparecimentos}×</span>`);
-  }
+  const ht=histTags(l);
+  if(ht) tags.push(ht);
   if(l.conf&&!l.agendado) tags.push('<span class="tag ok">confirmou</span>');
   if(l.agendado) tags.push(`<span class="tag ok">${esc(l.agendado)}</span>`);
 
@@ -922,6 +929,10 @@ function porqueTexto(l){
   if(l.grupo==='call') return `Tem call hoje às ${l.hora} com ${l.vend} e <b>não respondeu à confirmação</b> da manhã. Cliente calado nas 24h antes falta 33,9% das vezes, contra 18,2% de quem responde.`;
   if(l.grupo==='espera') return `Escreveu ${l.desde} e <b>ninguém respondeu até agora</b>: ${l.horas} horas. Acima de 12 horas o agendamento cai de cerca de 32% para 21,8%.`;
   if(l.grupo==='semconvite') return `Trocou ${l.msgs} mensagens e <b>nunca recebeu convite</b> para a videochamada, há ${l.dias} dias. São 2.560 conversas assim no histórico, e quando o convite vem 45,8% agenda.`;
+  if(l.hist && l.hist.comparecimentos > 0){
+    const vf=l.hist.faltas, vc=l.hist.comparecimentos;
+    return `Faltou ${vf} ${vf===1?'vez':'vezes'} com ${l.vend}, a mais recente em ${l.quando}, mas o histórico também registra ${vc} ${vc===1?'comparecimento':'comparecimentos'}: não é alguém sem contato. O acervo de retomada tem 422 pessoas, nenhuma delas pediu para não ser chamada.`;
+  }
   return `Faltou na call de ${l.quando} com ${l.vend} e não teve contato desde então. O acervo tem 422 pessoas nessa situação, nenhuma delas pediu para não ser chamada.`;
 }
 function renderFoco(){
@@ -950,6 +961,7 @@ function renderFoco(){
           ${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:'<span class="tag none">resort não identificado</span>'}
           ${l.quitado?'<span class="tag">cota quitada</span>':''}
           ${l.quente?'<span class="tag hot">lead quente</span>':''}
+          ${histTags(l)}
           ${p&&p.faltando.length<2?`<span class="tag ok">nota ${p.n}</span>`:'<span class="tag">nota a apurar</span>'}
           <span class="tag">${MOTIVO_FILA[l.grupo][0]}</span>
         </div>
@@ -1035,7 +1047,7 @@ function renderDensa(){
     const semDados=!p||p.faltando.length>=2;
     const quando = l.grupo==='espera'?l.horas+'h':l.grupo==='call'||l.grupo==='risco'?l.hora:l.dias+'d';
     return `<div class="row" data-open="${l.id}" tabindex="0" role="button">
-      <div class="name-line"><span class="name">${esc(l.nome)}</span>${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:''}</div>
+      <div class="name-line"><span class="name">${esc(l.nome)}</span>${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:''}${histTags(l)}</div>
       <div class="porq ${m[1]}">${m[2]}</div>
       <div class="score ${semDados?'vazio':(p.n>=70?'alto':'')}">${semDados?'—':p.n}</div>
       <div class="wait ${l.grupo==='espera'?'late':''}">${quando}</div>
@@ -1063,7 +1075,8 @@ function renderInbox(){
     return `<div class="item" data-inbox="${x.id}" aria-current="${x.id===state.inbox}" tabindex="0" role="button">
       <span class="ini">${esc(ini)}</span>
       <span class="txt"><span class="l1"><b>${esc(x.nome)}</b><em>${q}</em></span>
-      <span class="l2">${esc(MOTIVO_FILA[x.grupo][0])}${x.resort?' · '+esc(x.resort):''}</span></span></div>`;
+      <span class="l2">${esc(MOTIVO_FILA[x.grupo][0])}${x.resort?' · '+esc(x.resort):''}</span>
+      ${histTags(x)?`<span class="chips">${histTags(x)}</span>`:''}</span></div>`;
   }).join('');
   const rap=livres('04/08').slice(0,3);
   return alertas()+`<div class="card"><div class="ibx">
@@ -1071,7 +1084,7 @@ function renderInbox(){
       <span class="right muted" style="font-size:11px">${ls.length} conversas</span></div>
       <div class="lista">${itens}</div></div>
     <div>
-      <div class="conv-top"><h3>${esc(l.nome)}</h3>
+      <div class="conv-top"><h3>${esc(l.nome)}</h3>${histTags(l)}
         <span class="muted" style="font-size:11.5px">${l.kommo?'lead '+l.kommo:'sem lead no Kommo'}${l.resort?' · '+esc(l.resort):''}</span></div>
       <div class="dr-warn">${esc((CONVERSAS[l.conversa]||CONVERSAS.curto).fonte)} O espelho de mensagens ainda não existe no banco.</div>
       <div class="conv">${msgsHtml(l)}</div>
