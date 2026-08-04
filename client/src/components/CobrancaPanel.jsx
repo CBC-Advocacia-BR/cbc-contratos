@@ -255,7 +255,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const acionaveisHoje = useMemo(() => devs.filter((d) => d.elegivel).map((d) => digits(d.cpf)), [devs]);
   const selecionarHoje = useCallback(() => {
     setSel(new Set(acionaveisHoje));
-    flash(acionaveisHoje.length ? `🎯 ${acionaveisHoje.length} devedor(es) de hoje selecionados` : 'Nenhum devedor elegível hoje — todos já foram acionados recentemente ou estão fora da régua.');
+    flash(acionaveisHoje.length ? `${acionaveisHoje.length} devedor(es) de hoje selecionados` : 'Nenhum devedor elegível hoje — todos já foram acionados recentemente ou estão fora da régua.');
   }, [acionaveisHoje, flash]);
 
   const copy = useCallback(async (txt, msg) => {
@@ -270,7 +270,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const optout = useCallback(async (cpf, on, nome) => {
     try {
       await callFn('cobranca-optout', { cpf, on });
-      flash(on ? `🔕 ${nome || 'Cliente'} marcado como não perturbe` : `🔔 ${nome || 'Cliente'} volta a receber cobrança`);
+      flash(on ? `${nome || 'Cliente'} marcado como não perturbe` : `${nome || 'Cliente'} volta a receber cobrança`);
       await load();
     } catch (e) { flash('Erro: ' + e.message); }
   }, [flash, load]);
@@ -278,7 +278,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
     setChecando(true);
     try {
       const j = await callFn('cobranca-conciliar-now', {});
-      flash(j.recuperados ? `✓ ${j.recuperados} pagamento(s) reconhecido(s) como recuperação` : 'Nenhum pagamento novo encontrado.');
+      flash(j.recuperados ? `${j.recuperados} pagamento(s) reconhecido(s) como recuperação` : 'Nenhum pagamento novo encontrado.');
       if (j.recuperados) { await load(); await loadMetrics(); }
     } catch (e) { flash('Erro: ' + e.message); }
     setChecando(false);
@@ -286,7 +286,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
   const setPromessa = useCallback(async (cpf, data, nome) => {
     try {
       await callFn('cobranca-promessa', { action: 'set', cpf, data: data || null, userEmail });
-      flash(data ? `📅 Promessa de ${(nome || '').split(' ')[0] || 'pagamento'} salva` : 'Promessa removida');
+      flash(data ? `Promessa de ${(nome || '').split(' ')[0] || 'pagamento'} salva` : 'Promessa removida');
       await loadProm();
     } catch (e) { flash('Erro: ' + e.message); }
   }, [flash, loadProm, userEmail]);
@@ -304,7 +304,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
     try {
       const j = await callFn('cobranca-disparar', { template, cpfs: [...sel], dryRun: false, userEmail });
       setPreview(null); setSel(new Set());
-      flash(`✅ ${j.enfileirados} cobrança(s) enfileirada(s).`);
+      flash(`${j.enfileirados} cobrança(s) enfileirada(s).`);
       await load(); await loadMetrics();
     } catch (e) { flash('Erro: ' + e.message); }
     setSending(false);
@@ -344,8 +344,14 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
       </div>
 
       {/* (cobranca 06/07) Saúde do ENVIO AUTOMÁTICO do boleto (link + PIX) pelo bot */}
-      {autoEnvio && autoEnvio.total > 0 && (() => {
-        const ok = autoEnvio.erros === 0;
+      {autoEnvio && (autoEnvio.total > 0 || (autoEnvio.semCobranca?.devedores || 0) > 0) && (() => {
+        // (03/08/2026) devedor cujo lead do Kommo foi apagado nunca recebe a mensagem.
+        // Antes isso caia em "com erro" (culpando o bot) e, apos a correcao de 02/08,
+        // viraria 'pulado' — que nenhuma tela mostrava. Agora tem linha propria.
+        // ⚠️ A faixa passou a aparecer TAMBEM quando nao houve disparo nenhum na semana:
+        // senao 19 devedores sem cobranca ficariam escondidos so porque a regua nao rodou.
+        const semCob = autoEnvio.semCobranca || { devedores: 0, valor: 0, dias: 90 };
+        const ok = autoEnvio.erros === 0 && semCob.devedores === 0;
         return (
           <div className="rounded-xl p-3 flex items-center gap-3 text-[12.5px]"
             style={{ background: ok ? 'var(--cbc-success-bg)' : 'var(--cbc-warning-bg)', border: `1px solid ${ok ? 'var(--cbc-success-border)' : 'var(--cbc-warning-border)'}` }}>
@@ -354,10 +360,19 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
               <div className="font-bold" style={{ color: ok ? 'var(--cbc-success)' : 'var(--cbc-warning)' }}>
                 Envio automático de boleto {ok ? '— funcionando' : '— com erros'}
               </div>
-              <div style={{ color: 'var(--cbc-text-secondary)' }}>
-                Últimos {autoEnvio.dias} dias: <b>{autoEnvio.entregues}</b> entregue{autoEnvio.entregues === 1 ? '' : 's'} pelo bot · <b>{autoEnvio.erros}</b> com erro{autoEnvio.pendentes ? ` · ${autoEnvio.pendentes} na fila` : ''}
-                {autoEnvio.ultimo_erro ? <span title={String(autoEnvio.ultimo_erro)}> — último erro: {String(autoEnvio.ultimo_erro).slice(0, 70)}</span> : ''}
-              </div>
+              {autoEnvio.total > 0 && (
+                <div style={{ color: 'var(--cbc-text-secondary)' }}>
+                  Últimos {autoEnvio.dias} dias: <b>{autoEnvio.entregues}</b> entregue{autoEnvio.entregues === 1 ? '' : 's'} pelo bot · <b>{autoEnvio.erros}</b> com erro{autoEnvio.pendentes ? ` · ${autoEnvio.pendentes} na fila` : ''}
+                  {autoEnvio.ultimo_erro ? <span title={String(autoEnvio.ultimo_erro)}> — último erro: {String(autoEnvio.ultimo_erro).slice(0, 70)}</span> : ''}
+                </div>
+              )}
+              {semCob.devedores > 0 && (
+                <div className="mt-0.5 font-semibold" style={{ color: 'var(--cbc-danger)' }}>
+                  <b>{semCob.devedores}</b> devedor{semCob.devedores === 1 ? '' : 'es'} não foi{semCob.devedores === 1 ? '' : 'ram'} cobrado{semCob.devedores === 1 ? '' : 's'} nos últimos {semCob.dias} dias
+                  {' '}(<MoneyValue value={semCob.valor} /> em aberto) — o endereço do Kommo desse cliente não existe mais.
+                  {' '}<span style={{ color: 'var(--cbc-text-secondary)' }}>Corrija o Link Kommo no contrato e a cobrança volta sozinha.</span>
+                </div>
+              )}
             </div>
             {!ok && onVerHistorico && (
               <button onClick={onVerHistorico} className="text-[11px] font-bold px-2.5 py-1 rounded-md cursor-pointer shrink-0 whitespace-nowrap text-white"
@@ -592,8 +607,8 @@ function CopyActions({ b, copy, abrir }) {
   const nome = (b.customer_name || '').split(' ')[0];
   return (
     <span className="flex gap-1 justify-end">
-      <button onClick={(e) => { e.stopPropagation(); copy(link, `🔗 Link de ${nome} copiado`); }} disabled={!link} className="text-[11px] font-bold px-1.5 py-1 rounded disabled:opacity-30" style={{ color: 'var(--cbc-navy)' }}>Link</button>
-      <button onClick={(e) => { e.stopPropagation(); copy(b.pix_copy_paste, `📋 PIX de ${nome} copiado`); }} disabled={!b.pix_copy_paste} className="text-[11px] font-bold px-1.5 py-1 rounded disabled:opacity-30" style={{ color: 'var(--cbc-navy)' }}>PIX</button>
+      <button onClick={(e) => { e.stopPropagation(); copy(link, `Link de ${nome} copiado`); }} disabled={!link} className="text-[11px] font-bold px-1.5 py-1 rounded disabled:opacity-30" style={{ color: 'var(--cbc-navy)' }}>Link</button>
+      <button onClick={(e) => { e.stopPropagation(); copy(b.pix_copy_paste, `PIX de ${nome} copiado`); }} disabled={!b.pix_copy_paste} className="text-[11px] font-bold px-1.5 py-1 rounded disabled:opacity-30" style={{ color: 'var(--cbc-navy)' }}>PIX</button>
       <button onClick={(e) => { e.stopPropagation(); abrir(b); }} disabled={!link} className="text-[11px] font-bold px-1.5 py-1 rounded disabled:opacity-30" style={{ color: 'var(--cbc-navy)' }}>Abrir</button>
     </span>
   );
@@ -603,7 +618,7 @@ function CopyActions({ b, copy, abrir }) {
 const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, onToggle, onToggleExpand, copy, abrir, kommo, optout, cooldown = 5, promessa, onPromessa }) {
   const cpf = digits(d.cpf);
   const optedOut = d.motivo === 'opt_out';
-  const entTxt = d.ultimo_entrega === 'done' ? '✓ entregue' : d.ultimo_entrega === 'failed' ? '✗ falhou' : '⏳ na fila';
+  const entTxt = d.ultimo_entrega === 'done' ? 'entregue' : d.ultimo_entrega === 'failed' ? 'falhou' : '⏳ na fila';
   const entCor = d.ultimo_entrega === 'done' ? 'var(--cbc-success)' : d.ultimo_entrega === 'failed' ? 'var(--cbc-danger)' : 'var(--cbc-text-muted)';
   const cobDias = d.ultimo_disparo_em ? Math.floor((new Date() - new Date(d.ultimo_disparo_em)) / 86400000) : null;
   const cobRecente = cobDias != null && cobDias < cooldown; // dentro do cooldown -> aguarde

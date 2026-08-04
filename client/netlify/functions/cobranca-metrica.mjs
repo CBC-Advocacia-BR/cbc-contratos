@@ -33,6 +33,14 @@ export default async (req) => {
       pendentes: m.pendentes || 0,
       ultimo: m.ultimo || null,
       ultimo_erro: m.ultimo_erro || null,
+      // (03/08/2026) devedores que NAO foram cobrados porque o lead do Kommo nao existe
+      // mais. Janela propria de 90 dias (vem da RPC): devedor sem cobranca se acumula, e
+      // numa janela de 7 dias apareceria zerado enquanto gente segue sem receber nada.
+      semCobranca: {
+        devedores: m.sem_cobranca_devedores || 0,
+        valor: Number(m.sem_cobranca_valor || 0),
+        dias: m.sem_cobranca_dias || 90,
+      },
     });
   } catch (e) {
     return json({ ok: false, error: e.message }, 500);
