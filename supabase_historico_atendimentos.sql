@@ -251,6 +251,62 @@ grant select on public.vw_pessoa_atendimentos to powerbi_cbc;
 -- com zero policies, entao security_invoker faria authenticated ler 0 linhas), e esta
 -- funcao e security invoker so para o proprio privilegio de EXECUTE, nao para o acesso a
 -- tabela por baixo.
+--
+-- CORRECAO DE REVIEW (04/08/2026, sessao separada) -- PRECEDENCIA TELEFONE x LEAD.
+-- Achado do revisor (Importante, medido): a regra de casamento original era um OR puro
+-- entre telefone e lead. Se os dois parametros pertencessem a PESSOAS DIFERENTES, a
+-- funcao devolvia a UNIAO dos dois historicos, sem nenhuma marca de qual evento era de
+-- quem. Medido: telefone 1172672721 sozinho = 5 eventos (pessoa A); lead 12782548
+-- sozinho = 4 eventos (pessoa B); os dois juntos = 9 (soma silenciosa das duas pessoas).
+-- Risco real neste escritorio, que ja teve incidente de lead do Kommo mesclado ou
+-- desatualizado apontando para a pessoa errada.
+-- Decisao do Paulo (04/08/2026): telefone tem PRECEDENCIA; lead e RESERVA, so entra
+-- quando o telefone nao resolve. Regra final:
+--   - telefone canoniza para nao-nulo -> casa SO por telefone; p_lead_id e ignorado.
+--   - telefone nulo/vazio/nao canoniza -> casa por p_lead_id (se houver).
+--   - os dois nulos -> objeto vazio de sempre (nenhuma linha em ev, como ja era).
+-- Fix (minimo, cirurgico): acrescentado "c.tel is null" na condicao do lead. As duas
+-- metades do OR ficam mutuamente exclusivas em c.tel is [not] null -- no maximo uma
+-- pode valer por chamada, entao nunca mais uniao de duas pessoas.
+-- Reconferido apos a correcao, mesmo dia: telefone 1172672721 sozinho continua total=5
+-- (nao regrediu), lead 12782548 sozinho continua total=4 (reserva intacta, nao quebrou),
+-- e os dois juntos caiu de 9 para 5 (so o historico do telefone; lead ignorado). Steps
+-- 4-6 do brief reconferidos sem regressao (Step 4 exercita a propria reserva:
+-- historico_atendimentos(null, 18234162) -> faltas=4, igual a antes). Entradas
+-- malformadas ('', '   ', 'abcdefgh', chamada sem nenhum argumento) continuam devolvendo
+-- o objeto vazio, nunca erro. Seguranca (Step 8) reconferida: anon segue com ERRO 42501
+-- permission denied; authenticated segue executando normalmente (grants em
+-- information_schema.routine_privileges inalterados: authenticated/postgres/
+-- service_role, sem anon nem public).
+-- DESEMPENHO/PROVA continuam validos (medido de novo depois da correcao, mesmo metodo
+-- do Step 7 -- ver bloco DESEMPENHO acima): Execution Time top-level entre 4,8 e 5,1 ms
+-- em varias medicoes (o `set search_path` continua impedindo o inlining, entao o
+-- EXPLAIN externo continua opaco -- ver nota da 1a aplicacao). Para provar sem presumir,
+-- liguei auto_explain NA SESSAO (log_min_duration=0, log_nested_statements=true,
+-- log_analyze=true, log_buffers=true -- o modulo ja vem pre-carregado neste Supabase,
+-- LOAD e bloqueado) e li o log via MCP get_logs: a query interna (CTEs canon/ev) para
+-- $1='1172672721', $2='12782548' -- o EXATO caso do revisor -- levou 2,682 ms e o plano
+-- mostrou:
+--   Bitmap Heap Scan on agenda_videochamadas a (actual time=0.821..2.600 rows=5 loops=1)
+--     Recheck Cond: ((cbc_telefone_canonico(telefone) = cbc_telefone_canonico($1))
+--                    OR (lead_id = $2))
+--     Filter: (... AND (((cbc_telefone_canonico($1) IS NOT NULL) AND
+--              (cbc_telefone_canonico(telefone) = cbc_telefone_canonico($1))) OR
+--              ((cbc_telefone_canonico($1) IS NULL) AND ($2 IS NOT NULL) AND
+--              (lead_id = $2))))
+--     Rows Removed by Filter: 4
+--     ->  BitmapOr (actual time=0.239..0.240 rows=0 loops=1)
+--           ->  Bitmap Index Scan on idx_agenda_vc_telefone_canon (actual rows=5 loops=1)
+--                 Index Cond: (cbc_telefone_canonico(telefone) = cbc_telefone_canonico($1))
+--           ->  Bitmap Index Scan on idx_agenda_vc_lead (actual rows=4 loops=1)
+--                 Index Cond: (lead_id = $2)
+-- Prova dupla no proprio plano: (1) idx_agenda_vc_telefone_canon continua em uso (Bitmap
+-- Index Scan, Index Cond batendo com a expressao do indice) mesmo com os dois parametros
+-- preenchidos; (2) os indices ainda trazem os 9 candidatos de antes (5 do telefone + 4
+-- do lead, via BitmapOr), e e o Filter da nova regra que descarta exatamente os "Rows
+-- Removed by Filter: 4" -- os 4 eventos da pessoa B -- antes de chegarem no resultado.
+-- vw_pessoa_atendimentos, vw_noshow_acervo e cbc_telefone_canonico NAO foram tocadas --
+-- so o WHERE desta funcao mudou (nada de logica de canonizacao duplicada).
 -- =============================================================================
 
 -- Historico de comparecimento de UMA pessoa, pronto para a tela.
@@ -261,6 +317,10 @@ grant select on public.vw_pessoa_atendimentos to powerbi_cbc;
 -- inline: e a mesma funcao que a view chama e que o indice de expressao
 -- idx_agenda_vc_telefone_canon foi criado sobre, entao o filtro tem a melhor chance
 -- de casar com o indice depois do planner inlinear a view.
+-- PRECEDENCIA (correcao de review 04/08/2026, ver bloco acima): telefone manda. Se
+-- canonizar para nao-nulo, casa SO por telefone e p_lead_id e ignorado; lead e RESERVA,
+-- so casa quando telefone e nulo/vazio/nao canoniza. Antes era OR puro (uniao das duas
+-- pessoas quando telefone e lead nao eram da mesma pessoa) -- ver correcao acima.
 create or replace function public.historico_atendimentos(
   p_telefone text default null,
   p_lead_id  bigint default null
@@ -278,7 +338,7 @@ as $$
     from public.vw_pessoa_atendimentos v, canon c
     where v.desfecho in ('faltou','compareceu')
       and ( (c.tel is not null and v.telefone = c.tel)
-         or (p_lead_id is not null and v.kommo_lead_id = p_lead_id) )
+         or (c.tel is null and p_lead_id is not null and v.kommo_lead_id = p_lead_id) )
   )
   select jsonb_build_object(
     'faltas',          count(*) filter (where desfecho='faltou'),
@@ -297,7 +357,7 @@ as $$
 $$;
 
 comment on function public.historico_atendimentos(text, bigint) is
-'Historico de comparecimento de uma pessoa (faltas + presencas), pronto para a tela do painel SDR. Canoniza o telefone internamente via public.cbc_telefone_canonico() (fonte unica, mesma funcao usada por vw_pessoa_atendimentos e pelo indice idx_agenda_vc_telefone_canon); casa por telefone OU kommo lead_id. Filtra na entrada (nao e wrapper de vw_noshow_acervo). Criada 04/08/2026.';
+'Historico de comparecimento de uma pessoa (faltas + presencas), pronto para a tela do painel SDR. Canoniza o telefone internamente via public.cbc_telefone_canonico() (fonte unica, mesma funcao usada por vw_pessoa_atendimentos e pelo indice idx_agenda_vc_telefone_canon). PRECEDENCIA (decisao do Paulo, correcao de review 04/08/2026): telefone manda -- se canonizar para nao-nulo, casa SO por telefone e p_lead_id e ignorado; lead e RESERVA, so casa quando o telefone e nulo/vazio/nao canoniza; os dois nulos devolvem o objeto vazio de sempre. Antes desta correcao era um OR puro (telefone OU lead), que misturava o historico de DUAS PESSOAS DIFERENTES quando telefone e lead nao pertenciam a mesma pessoa (medido: 5 + 4 = 9 eventos de gente distinta somados sem marca de origem) -- risco real neste escritorio, que ja teve lead do Kommo mesclado/desatualizado apontando para a pessoa errada. Filtra na entrada (nao e wrapper de vw_noshow_acervo). Criada 04/08/2026, precedencia corrigida no mesmo dia.';
 
 revoke all on function public.historico_atendimentos(text, bigint) from anon, public;
 grant execute on function public.historico_atendimentos(text, bigint) to authenticated;
