@@ -1,3 +1,21 @@
+// ─────────────────────────────────────────────────────────────────────────
+// GERADOR DO CONTRATO — o documento que o cliente assina.
+//
+// ⚠️ OS EMOJIS DAQUI SAO INTENCIONAIS. NAO OS REMOVA.
+//
+// Em 03/08/2026 o sistema inteiro trocou emoji por icone (auditoria, item 287) e este
+// arquivo ficou de fora DE PROPOSITO. Levei as duas alternativas ao Paulo, com os
+// trechos do contrato real lado a lado, e a decisao dele foi MANTER como esta.
+//
+// O motivo tecnico que valia para as telas nao vale aqui: emoji ignora a cor do texto,
+// mas o contrato e sempre branco, no papel ou em PDF. O que sobra e que o desenho varia
+// conforme o aparelho de quem abre — e, pesado contra deixar o resumo mais leve para o
+// cliente ler, o Paulo escolheu a leveza.
+//
+// Se um dia isso mudar, e conversa com ele, nao faxina tecnica: os 6 snapshots em
+// __tests__/contractHtml.test.js.snap existem justamente para que ninguem altere o texto
+// deste documento sem que alguem leia a mudanca.
+// ─────────────────────────────────────────────────────────────────────────
 import { CLAUSULAS_PADRAO } from '../data/clausulas';
 import { formatCurrency, valorExtenso } from './extenso';
 
