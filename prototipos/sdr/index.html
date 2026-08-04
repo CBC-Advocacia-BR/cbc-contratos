@@ -376,6 +376,15 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
 .hint b{color:var(--cbc-gold-text)}
 .pos-sim{border:1px solid var(--cbc-gold-dark);background:var(--cbc-warning-bg);border-radius:10px;padding:12px;margin-top:12px}
 .pos-sim .eyebrow{color:var(--cbc-gold-text)}
+.hist{border:1px solid var(--cbc-border-strong);border-radius:var(--cbc-radius);padding:10px 12px;margin-bottom:12px;background:var(--cbc-bg-subtle)}
+.hist h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--cbc-text-secondary);margin:0 0 6px}
+.hist ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.hist li{display:flex;gap:8px;align-items:baseline;font-size:12px}
+.hist li .qd{font-variant-numeric:tabular-nums;color:var(--cbc-text-secondary);flex:none}
+.hist li .df{font-weight:700}
+.hist li.f .df{color:var(--cbc-danger)}
+.hist li.c .df{color:var(--cbc-success)}
+.hist li .pv{font-size:10px;color:var(--cbc-text-muted)}
 
 .toasts{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .toast{background:var(--cbc-navy);color:#fff;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:600;box-shadow:var(--cbc-shadow-xl);max-width:420px;animation:tin .25s ease both}
@@ -1324,13 +1333,32 @@ function abrirModal(){$('#modal').classList.add('on');$('#scrim').classList.add(
 function modalAgendar(id, pre, remarcandoEv){
   if(state.sim==='google'||state.sim==='token'){toast('Não dá para agendar sem enxergar as agendas. Resolva o acesso ao Google primeiro.','err');return;}
   const l=byId(id); state.escolha=pre&&pre.h?pre:null; state.remarcandoEv=remarcandoEv||null;
-  const dia=(pre&&pre.dia)||'04/08';
+  const histPre = l && l.hist && l.hist.faltas >= 2;
+  const dia = (pre&&pre.dia) || (histPre ? '03/08' : '04/08');
   const sug=sugerido(dia,l);
   const opts=livres(dia);
   const p=pontuacao(l);
+  const h = l && l.hist && l.hist.total ? l.hist : null;
+  const reincidente = !!(h && h.faltas >= 2);
+  // "entra na confirmacao da manha" e dito no texto, nao virado em estado: no prototipo a
+  // confirmacao da manha e uma tela de lote, sem marcador por call. Inventar um estado
+  // falso aqui daria a impressao de que a regra ja existe. Ela nasce no app real.
+  const blocoHist = !h ? '' : `
+    <div class="hist">
+      <h4>Histórico com a gente</h4>
+      <ul>${h.eventos.map(e=>`
+        <li class="${e.desfecho==='faltou'?'f':'c'}">
+          <span class="qd">${esc(e.quando)}</span>
+          <span>${esc(e.vendedora)}</span>
+          <span class="df">${e.desfecho==='faltou'?'não veio':'compareceu'}</span>
+          ${e.via_meet?'<span class="pv" title="Confirmado pela auditoria do Google Meet">· auditado</span>':''}
+        </li>`).join('')}</ul>
+      ${reincidente?`<p class="hint" style="margin:8px 0 0">Já faltou ${h.faltas} vezes. Marcar para <b>hoje ou amanhã</b> reduz a chance de faltar de novo: call no mesmo dia falta 9,8% das vezes, contra 19% depois de dois dias. Esta call já entra na confirmação da manhã.</p>`:''}
+    </div>`;
   $('#md-titulo').textContent=remarcandoEv?('Remarcar: '+(l?l.nome:remarcandoEv.nome)):(l?'Agendar videochamada: '+l.nome:'Agendar videochamada');
   $('#md-body').innerHTML=`
     ${remarcandoEv?`<div class="alerta warn"><span>↻</span><div>Remarcação da call de ${esc(remarcandoEv.h)} com ${esc(remarcandoEv.v)}. O evento é movido, <b>o link do Meet continua o mesmo</b> e o Google reenvia o convite. Conta como reagendamento, não como falta.</div></div>`:''}
+    ${blocoHist}
     <div class="grid2">
       <div class="field"><label>Resort da cota</label><select id="f-resort">
         <option value="">a confirmar na conversa</option>
@@ -1349,7 +1377,7 @@ function modalAgendar(id, pre, remarcandoEv){
       <div class="slotpick" id="md-slots">${opts.slice(0,16).map(s=>`
         <button type="button" data-pick="${dia}|${s.v}|${s.h}" aria-pressed="${state.escolha&&state.escolha.v===s.v&&state.escolha.h===s.h?'true':'false'}">
           ${s.h}<small>${s.v}${s.v===sug?' · sugerido':''}</small></button>`).join('')}</div>
-      <p class="hint">Sugerido: <b>${sug}</b>${p&&p.n>=70?', porque a nota do lead passa de 70':', que está com menos calls no dia'}.</p></div>
+      <p class="hint">Sugerido: <b>${sug}</b>${p&&p.n>=70?', porque a nota do lead passa de 70':', que está com menos calls no dia'}${reincidente?'. Como já faltou antes, o dia começa em <b>hoje</b>':''}.</p></div>
     <div class="pos-sim"><span class="eyebrow">Depois do sim</span>
       <p class="hint" style="margin:4px 0 8px">Perguntar o valor <b>antes</b> do convite derruba o agendamento de 69% para 50,7%. Por isso ele é coletado aqui, com a call já marcada.</p>
       <div class="grid2">

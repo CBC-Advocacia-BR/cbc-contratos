@@ -29,6 +29,13 @@ oferece bloqueio; o kanban aceita arrastar; a Configuracao recalcula a nota da
 fila; e o seletor "Simular" mostra fila zerada, Google fora, token expirado e
 Kommo fora.
 
+O historico de comparecimento aparece no selo da fila (`faltou 4x` / `veio 2x`) e, ao
+agendar, num bloco com cada atendimento anterior: data, vendedora e se a pessoa veio,
+marcando `auditado` quando o desfecho vem da auditoria do Meet e nao da cor da agenda.
+Quem ja faltou 2x ou mais tem o dia sugerido puxado para hoje. Os 5 leads do grupo
+"Faltaram" sao pessoas reais, com historico real medido em 04/08/2026 (view
+`vw_pessoa_atendimentos` + funcao `historico_atendimentos`).
+
 `index.html` abre no navegador; `artifact.html` e a mesma pagina publicada como link.
 
 **Opcao escolhida:** (aguardando decisao do Paulo e do Bruno)
