@@ -752,6 +752,17 @@ function filtrados(){
 /* =========================================================================
    FILA
    ========================================================================= */
+/* Dias corridos entre um evento do historico ('dd/mm/aa hh:mm', o mais recente primeiro
+   em hist.eventos) e a data de referencia deste prototipo (04/08/2026 — mesma data em que
+   o historico dos 5 leads reais foi medido, ver README). Fixa de proposito: todo outro "Nd"
+   desta tela e uma foto estatica da mesma data; usar new Date() so aqui faria essa conta
+   andar sozinha enquanto as demais ficam paradas, o que seria uma divergencia nova. */
+function diasDesdeEvento(quando){
+  const [d,m,a] = quando.split(' ')[0].split('/').map(Number);
+  const evento = new Date(2000+a, m-1, d);
+  const hoje = new Date(2026,7,4);
+  return Math.round((hoje-evento)/86400000);
+}
 /* Selo de historico de falta/comparecimento (faltou Nx / veio Nx). Fonte unica: usada por
    linhaFila() (arranjos 1/2/3) e por renderFoco/renderDensa/renderInbox (arranjos 4/6/7).
    Ver achado do revisor: essas 3 tinham renderizacao propria e ficavam sem o selo. */
@@ -800,8 +811,16 @@ function linhaFila(l){
     dir=`<div class="wait">${l.dias}d<small>sem convite</small></div>`;
     acts=`<button class="btn btn-gold btn-sm" data-act="agendar" data-id="${l.id}">Agendar</button>`;
   } else {
+    // Quem so faltou: comportamento original, com os campos estaticos do lead.
+    // Quem tambem tem comparecimento no historico: "sem contato" seria falso (a pessoa
+    // voltou) e contar os dias a partir da falta ignoraria um contato mais recente. Deriva
+    // do 1o item de hist.eventos (o mais recente) em vez do campo estatico l.dias, pra nao
+    // divergir de novo se o historico mudar (achado da revisao).
+    const ultimo = (l.hist && l.hist.comparecimentos > 0) ? l.hist.eventos[0] : null;
     meio=`faltou em ${esc(l.quando)} com ${esc(l.vend)}`;
-    dir=`<div class="wait">${l.dias}d<small>sem contato</small></div>`;
+    dir = ultimo
+      ? `<div class="wait">${diasDesdeEvento(ultimo.quando)}d<small>${ultimo.desfecho==='compareceu'?'voltou depois':'faltou de novo'}</small></div>`
+      : `<div class="wait">${l.dias}d<small>sem contato</small></div>`;
     acts=`<button class="btn btn-gold btn-sm" data-act="agendar" data-id="${l.id}">Remarcar</button>`;
   }
   if(l.agendado) acts='<button class="btn btn-sm" disabled>Feito</button>';
@@ -1333,17 +1352,19 @@ function abrirModal(){$('#modal').classList.add('on');$('#scrim').classList.add(
 function modalAgendar(id, pre, remarcandoEv){
   if(state.sim==='google'||state.sim==='token'){toast('Não dá para agendar sem enxergar as agendas. Resolva o acesso ao Google primeiro.','err');return;}
   const l=byId(id); state.escolha=pre&&pre.h?pre:null; state.remarcandoEv=remarcandoEv||null;
-  const histPre = l && l.hist && l.hist.faltas >= 2;
-  const dia = (pre&&pre.dia) || (histPre ? '03/08' : '04/08');
+  // fonte unica do "e reincidente" (faltas>=2): decide o dia sugerido E o aviso no bloco de
+  // historico abaixo. Antes eram 2 contas separadas (histPre e reincidente) pra mesma
+  // pergunta — concordavam sempre, mas eram 2 fontes de verdade (achado da revisao).
+  const h = l && l.hist && l.hist.total ? l.hist : null;
+  const reincidente = !!(h && h.faltas >= 2);
+  const dia = (pre&&pre.dia) || (reincidente ? '03/08' : '04/08');
   // so afirma "o dia comeca em hoje" quando isso de fato decidiu o dia: se quem clicou
   // ja trouxe um dia explicito (remarcar, atalho rapido, aba Hoje/Amanha do proprio
   // modal), a sugestao nao valeu e o texto tem de ficar calado sobre o dia.
-  const sugestaoDiaValeu = histPre && !(pre&&pre.dia);
+  const sugestaoDiaValeu = reincidente && !(pre&&pre.dia);
   const sug=sugerido(dia,l);
   const opts=livres(dia);
   const p=pontuacao(l);
-  const h = l && l.hist && l.hist.total ? l.hist : null;
-  const reincidente = !!(h && h.faltas >= 2);
   // "entra na confirmacao da manha" e dito no texto, nao virado em estado: no prototipo a
   // confirmacao da manha e uma tela de lote, sem marcador por call. Inventar um estado
   // falso aqui daria a impressao de que a regra ja existe. Ela nasce no app real.
