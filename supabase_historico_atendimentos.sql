@@ -181,3 +181,123 @@ drop index if exists public.idx_agenda_vc_telefone;
 revoke all on public.vw_pessoa_atendimentos from anon;
 grant select on public.vw_pessoa_atendimentos to authenticated;
 grant select on public.vw_pessoa_atendimentos to powerbi_cbc;
+
+-- =============================================================================
+-- FUNCAO DE CONSULTA POR PESSOA (Task 2, pedido Paulo 04/08/2026)
+-- Migracao aplicada em producao via MCP em 04/08/2026 (nome: historico_atendimentos_fn).
+-- Le o historico de UMA pessoa a partir de vw_pessoa_atendimentos (Task 1), pronto para
+-- a tela do painel SDR no momento de agendar. Recebe telefone em qualquer formato
+-- (E.164, mascara ou ja canonico) e/ou kommo_lead_id; devolve jsonb com resumo
+-- (faltas/comparecimentos/total/ultima_falta) e a lista de eventos do mais recente para
+-- o mais antigo, so com desfecho faltou/compareceu (excluida e agendada ficam de fora:
+-- nao sao historico de comparecimento).
+--
+-- DESVIO DO BRIEF (proposital, decidido antes de aplicar): o brief de Task 2 trazia a
+-- canonizacao de telefone escrita INLINE de novo, dentro de uma CTE `canon`, duplicando
+-- byte a byte a logica que a Task 1 ja extraiu para public.cbc_telefone_canonico(). Essa
+-- duplicacao e exatamente o erro que a spec deste projeto ja registrou duas vezes (mapas
+-- do ADVBOX, campos obrigatorios do contrato). A CTE `canon` abaixo so CHAMA
+-- public.cbc_telefone_canonico(p_telefone) -- a mesma funcao que a coluna telefone de
+-- vw_pessoa_atendimentos usa e que o indice idx_agenda_vc_telefone_canon indexa -- para
+-- dar ao planner a melhor chance de casar o filtro com o indice depois de inlinear a
+-- view. Fora essa troca, a funcao segue o brief literalmente (assinatura, security
+-- invoker, search_path, grants).
+--
+-- NAO E WRAPPER DE vw_noshow_acervo (que leva 642 ms por calcular os cruzamentos das
+-- ~618 pessoas antes de filtrar uma): esta funcao canoniza o telefone primeiro (CTE
+-- canon) e so entao filtra vw_pessoa_atendimentos na entrada (CTE ev), sem nunca
+-- materializar todas as pessoas.
+--
+-- DESEMPENHO (medido 04/08/2026, Step 7):
+-- `explain (analyze, format text) select public.historico_atendimentos('5511966161366')`
+-- mostra so um no `Result` (actual time entre 3.603 e 3.717 ms em execucoes sucessivas)
+-- -- a funcao NAO e inlineada pelo planner por causa do `set search_path` (uma funcao
+-- SQL com proconfig, isto e com qualquer clausula SET, nunca e inlineada, mesmo sendo
+-- STABLE/IMMUTABLE), entao o EXPLAIN externo nao desce no plano interno. Execution Time
+-- (top-level, o numero que importa para o requisito <50 ms): 3.698 ms e 3.717 ms em
+-- duas medicoes -- cerca de 13x de folga.
+--
+-- PROVA DE USO DO INDICE (nao presumida -- o EXPLAIN de fora fica opaco, entao a
+-- confirmacao veio por dois caminhos independentes):
+-- (1) pg_stat_user_indexes.idx_scan de idx_agenda_vc_telefone_canon medido antes/depois
+--     de 6 chamadas reais da funcao (1 explain analyze + 5 via generate_series): foi de
+--     10 para 16, incremento EXATO de 6 -- cada chamada usou o indice exatamente 1 vez,
+--     nenhuma caiu para seq scan.
+-- (2) O corpo da funcao rodado avulso, fora da funcao (mesmas CTEs canon/ev, telefone
+--     literal no lugar do parametro), com o EXPLAIN de fora enxergando tudo:
+--       Aggregate (actual time=0.050..0.051 rows=1 loops=1)
+--        -> Index Scan using idx_agenda_vc_telefone_canon on agenda_videochamadas a
+--             (actual time=0.025..0.028 rows=4 loops=1)
+--           Index Cond: (cbc_telefone_canonico(telefone) = '1166161366'::text)
+--       Execution Time: 0.112 ms
+--     A diferenca entre esse 0,112 ms (so a leitura indexada) e os ~3,6-3,7 ms da
+--     funcao completa e overhead fixo de chamada de funcao (SPI) + parsing/planning
+--     internos -- nao escala com o tamanho da tabela, entao a folga so cresce se o
+--     volume da agenda crescer.
+--
+-- Conferencia funcional (Steps 4-6 do brief): telefone 5511966161366 / mascara
+-- (11) 96616-1366 / canonico 1166161366 / lead 18234162 -> faltas=4 nos 4 formatos;
+-- telefone 1172672721 (caso misto, motivo de existir a decisao de historico completo) ->
+-- faltas=3, comparecimentos=2, total=5, 1o evento de `eventos` e 17/03/26 11:30
+-- compareceu com via_meet=true; telefone 11999999999 (nunca faltou) ->
+-- {faltas:0, comparecimentos:0, total:0, eventos:[]}, nunca null. Contagens podem variar
+-- entre execucoes porque a agenda sincroniza sozinha varias vezes ao dia (mesma
+-- observacao da vw_pessoa_atendimentos); ordem de `eventos` e o via_meet do 1o item nao.
+--
+-- Seguranca (Step 8): `set local role anon` seguido da chamada -> ERRO 42501 permission
+-- denied for function historico_atendimentos (confirmado). `set local role authenticated`
+-- seguido da chamada -> devolve normalmente (confirmado, faltas=4) -- a view por baixo
+-- continua security definer (default; decisao da Task 1: agenda_videochamadas tem RLS
+-- com zero policies, entao security_invoker faria authenticated ler 0 linhas), e esta
+-- funcao e security invoker so para o proprio privilegio de EXECUTE, nao para o acesso a
+-- tabela por baixo.
+-- =============================================================================
+
+-- Historico de comparecimento de UMA pessoa, pronto para a tela.
+-- Aceita telefone em qualquer formato (5511966161366, (11) 96616-1366, 1166161366)
+-- e canoniza DENTRO do banco: a regra tem de existir num lugar so. Este projeto ja
+-- se queimou com logica duplicada que divergiu (mapas do ADVBOX, campos obrigatorios).
+-- Reusa public.cbc_telefone_canonico() (Task 1) em vez de duplicar a canonizacao
+-- inline: e a mesma funcao que a view chama e que o indice de expressao
+-- idx_agenda_vc_telefone_canon foi criado sobre, entao o filtro tem a melhor chance
+-- de casar com o indice depois do planner inlinear a view.
+create or replace function public.historico_atendimentos(
+  p_telefone text default null,
+  p_lead_id  bigint default null
+) returns jsonb
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $$
+  with canon as (
+    select public.cbc_telefone_canonico(p_telefone) as tel
+  ),
+  ev as (
+    select v.quando_brt, v.vendedora, v.desfecho, v.via_meet, v.scheduled_at
+    from public.vw_pessoa_atendimentos v, canon c
+    where v.desfecho in ('faltou','compareceu')
+      and ( (c.tel is not null and v.telefone = c.tel)
+         or (p_lead_id is not null and v.kommo_lead_id = p_lead_id) )
+  )
+  select jsonb_build_object(
+    'faltas',          count(*) filter (where desfecho='faltou'),
+    'comparecimentos', count(*) filter (where desfecho='compareceu'),
+    'total',           count(*),
+    'ultima_falta',    max(quando_brt) filter (where desfecho='faltou'),
+    'eventos', coalesce(
+      jsonb_agg(jsonb_build_object(
+        'quando',    to_char(quando_brt,'DD/MM/YY HH24:MI'),
+        'vendedora', vendedora,
+        'desfecho',  desfecho,
+        'via_meet',  via_meet
+      ) order by scheduled_at desc), '[]'::jsonb)
+  )
+  from ev;
+$$;
+
+comment on function public.historico_atendimentos(text, bigint) is
+'Historico de comparecimento de uma pessoa (faltas + presencas), pronto para a tela do painel SDR. Canoniza o telefone internamente via public.cbc_telefone_canonico() (fonte unica, mesma funcao usada por vw_pessoa_atendimentos e pelo indice idx_agenda_vc_telefone_canon); casa por telefone OU kommo lead_id. Filtra na entrada (nao e wrapper de vw_noshow_acervo). Criada 04/08/2026.';
+
+revoke all on function public.historico_atendimentos(text, bigint) from anon, public;
+grant execute on function public.historico_atendimentos(text, bigint) to authenticated;
