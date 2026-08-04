@@ -147,6 +147,18 @@ SQL: `supabase_higiene_item62_260.sql` (item 158 no fim).
 - **39** — o fallback para a chave pública era **mudo** (foi assim que o webhook do ZapSign ficou meses morto). Agora avisa alto, e `exigirChaveDeServidor()` deixa quem não pode degradar falhar com a causa escrita.
 - **40** — o `/health` público entregava nomes de serviço, quais estavam fora e o **texto do erro**. Público virou `{status, servicos, fora}`; o detalhe exige a chave. ⚠️ **Os dois consumidores do detalhe foram atualizados junto** — o Monitor e o watchdog, que sem isso gravaria histórico de disponibilidade vazio.
 
+### ✅ DEPLOYADO 03/08/2026 (noite) — itens 287 e 289: uma linguagem de ícone, um sistema de botões
+
+**777 testes**, lint no baseline 18, rollback: `./rollback.sh 6a7131eadb3cfcd41fc115ce`. Escolha do Paulo: fazer os dois por inteiro.
+
+**287 — ícones.** O sistema falava três línguas: Heroicons em 56 arquivos, emoji em 31, SVG próprio em alguns. O argumento não é gosto: **emoji ignora a cor do texto** (nunca acompanha o modo escuro nem o fundo do botão) e o desenho vem do **aparelho** — o mesmo aviso é amarelo no iPhone e cinza no Windows. `components/ui/Ico.jsx` novo: um componente, de-para por **significado** (aviso, ok, troféu), não por desenho. De **130 emojis para 15**.
+
+⚠️ **A simulação salvou o trabalho de novo.** Uma varredura ingênua "tira o emoji" teria **destruído informação em 20 lugares**: `{ok ? '✓' : '✕'}` viraria `{ok ? '' : ''}`, as medalhas do ranking sumiriam, o marcador de fim de semana ficaria vazio. Regra que separou: se o texto restante tem **4+ letras** o emoji era decoração (sai); senão o emoji **era** a informação (vira ícone ou texto). As medalhas viraram troféu + a colocação **escrita** (1º/2º/3º).
+
+🚫 **Não tocado de propósito**: os emojis do **contrato** (`contractHtml.js`) — é o documento que o cliente assina, tem 6 snapshots travando o texto, e mudá-lo é decisão de negócio, não faxina. Também ficaram: comentários de código, o ChangeLog (registro histórico) e a mensagem de boas-vindas do portal, que vai por WhatsApp **ao cliente**.
+
+**289 — botões.** Existia `.btn-primary` (18 arquivos) e, ao lado, **31 botões com a cor navy escrita dentro do elemento**, cada um com altura, raio e texto próprios. Sistema de três tamanhos com propósito (`btn-lg` principal · padrão · `btn-sm` linha de tabela), com o **raio crescendo junto** (raio fixo parece grande demais no botão pequeno e quadrado no grande). Estados desabilitado/`aria-disabled` entraram na classe. Medido na tela: **48 / 36 / 31 px** e raios **12 / 8 / 6**, hierarquia visível de cima para baixo. **28 cores navy cravadas viraram token** — não muda um pixel hoje (o valor é o mesmo nos dois temas), mas elimina a classe de bug que apagou o modo escuro em três telas nesta auditoria.
+
 ### 🔍 Auditoria de 357 melhorias — detalhamento por onda
 
 Auditoria completa do sistema (10 análises paralelas + linter oficial do Supabase) gerou **357 melhorias numeradas** em `docs/AUDITORIA_SISTEMA_2026-08-01.md` — **o Paulo se refere aos itens pelo NÚMERO**. ~180 aprovados; execução em ondas. Backup: `backups/20260801_094852_auditoria_ondas`. Estado no fim da sessão: **519 testes** (era 504), build e lint sem regressão (19 erros de lint são pré-existentes).
