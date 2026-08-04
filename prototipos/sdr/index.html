@@ -129,6 +129,8 @@ button:focus-visible,summary:focus-visible,[tabindex]:focus-visible,input:focus-
 .tag.gap{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
 .tag.ok{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
 .tag.hot{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+.tag.faltou{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+.tag.voltou{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
 .sub2{font-size:11.5px;color:var(--cbc-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .score{font-family:var(--serif);font-size:19px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;cursor:help}
 .score small{display:block;font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--cbc-text-muted)}
@@ -555,7 +557,43 @@ let LEADS = [
 
   {id:'n1', nome:'Carla Cristina', kommo:22190044, dono:'SDR', grupo:'falta', quando:'30/07', vend:'Emerson', dias:4, conversa:'curto'},
   {id:'n2', nome:'Carlos Buosi', kommo:22178820, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'},
-  {id:'n3', nome:'Bruno Duarte', kommo:22177566, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'}
+  {id:'n3', nome:'Bruno Duarte', kommo:22177566, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'},
+
+  {id:'h1', nome:'jhonatan', kommo:18234162, tel:'1166161366', dono:'SDR', grupo:'falta',
+   quando:'23/12', vend:'Mariana', dias:224, conversa:'curto',
+   hist:{faltas:4, comparecimentos:0, total:4, eventos:[
+     {quando:'23/12/25 10:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'19/12/25 13:00', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'18/12/25 10:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'16/12/25 16:00', vendedora:'Mariana', desfecho:'faltou', via_meet:false}]}},
+  {id:'h2', nome:'Moises Panatier', kommo:12780608, tel:'5484191059', dono:'SDR', grupo:'falta',
+   quando:'03/12', vend:'Mariana', dias:244, conversa:'curto',
+   hist:{faltas:4, comparecimentos:0, total:4, eventos:[
+     {quando:'03/12/25 14:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'02/12/25 13:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'01/12/25 14:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'27/11/25 13:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false}]}},
+  {id:'h3', nome:'verton', kommo:12782510, tel:'4799696920', dono:'SDR', grupo:'falta',
+   quando:'12/12', vend:'Mariana', dias:235, conversa:'curto',
+   hist:{faltas:3, comparecimentos:0, total:3, eventos:[
+     {quando:'12/12/25 11:00', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'25/11/25 12:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'06/11/25 14:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false}]}},
+  {id:'h4', nome:'Leonardo', kommo:12813162, tel:'1147500369', dono:'SDR', grupo:'falta',
+   quando:'12/05', vend:'Mariana', dias:449, conversa:'curto',
+   hist:{faltas:3, comparecimentos:1, total:4, eventos:[
+     {quando:'22/05/25 14:00', vendedora:'Mariana', desfecho:'compareceu', via_meet:false},
+     {quando:'12/05/25 10:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'25/04/25 16:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'23/04/25 14:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false}]}},
+  {id:'h5', nome:'Marcio', kommo:16316700, tel:'1172672721', dono:'SDR', grupo:'falta',
+   quando:'02/12', vend:'Mariana', dias:245, conversa:'curto',
+   hist:{faltas:3, comparecimentos:2, total:5, eventos:[
+     {quando:'17/03/26 11:30', vendedora:'Mariana', desfecho:'compareceu', via_meet:true},
+     {quando:'02/12/25 15:00', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'28/11/25 15:00', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'24/11/25 10:30', vendedora:'Mariana', desfecho:'faltou', via_meet:false},
+     {quando:'17/03/25 11:30', vendedora:'Mariana', desfecho:'compareceu', via_meet:false}]}}
 ];
 
 const GRUPOS = [
@@ -712,6 +750,11 @@ function linhaFila(l){
   else tags.push('<span class="tag none">sem resort</span>');
   if(l.quitado) tags.push('<span class="tag">quitado</span>');
   if(l.quente) tags.push('<span class="tag hot">lead quente</span>');
+  if(l.hist && l.hist.faltas > 0){
+    tags.push(`<span class="tag faltou" title="Não compareceu ${l.hist.faltas} ${l.hist.faltas===1?'vez':'vezes'}">faltou ${l.hist.faltas}×</span>`);
+    if(l.hist.comparecimentos > 0)
+      tags.push(`<span class="tag voltou" title="Também compareceu ${l.hist.comparecimentos} ${l.hist.comparecimentos===1?'vez':'vezes'}">veio ${l.hist.comparecimentos}×</span>`);
+  }
   if(l.conf&&!l.agendado) tags.push('<span class="tag ok">confirmou</span>');
   if(l.agendado) tags.push(`<span class="tag ok">${esc(l.agendado)}</span>`);
 
