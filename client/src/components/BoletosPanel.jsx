@@ -1430,7 +1430,7 @@ export default function BoletosPanel({ userEmail = '' }) {
       {selCust.size > 0 && (
         <div className="flex items-center gap-3 px-4 py-2 border-b" style={{ background: 'var(--cbc-navy)', color: '#fff' }}>
           <b className="text-[12px]">{selCust.size} cliente(s) selecionado(s)</b>
-          <button onClick={exportSel} className="ml-auto px-3 py-1 rounded-md text-[11px] font-bold cursor-pointer" style={{ background: '#fff', color: 'var(--cbc-navy)' }}>⬇ Exportar CSV</button>
+          <button onClick={exportSel} className="ml-auto px-3 py-1 rounded-md text-[11px] font-bold cursor-pointer" style={{ background: '#fff', color: 'var(--cbc-navy)' }}><Ico nome="baixar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Exportar CSV</button>
           <button onClick={() => setSelCust(new Set())} className="px-3 py-1 rounded-md text-[11px] font-bold cursor-pointer text-white" style={{ border: '1px solid rgba(255,255,255,.4)' }}>Limpar</button>
         </div>
       )}

@@ -210,7 +210,7 @@ export default function CobrancaHistorico({ userEmail = '' }) {
               style={{ background: fPer === k ? 'var(--cbc-navy)' : 'transparent', color: fPer === k ? '#fff' : 'var(--cbc-text-muted)' }}>{l}</button>
           ))}
         </div>
-        <button onClick={exportCSV} className="ml-auto px-3 py-2 text-[11.5px] font-bold uppercase rounded-lg cursor-pointer border inline-flex items-center gap-1.5" style={{ borderColor: 'var(--cbc-border)', color: 'var(--cbc-text-secondary)' }}>⬇ Exportar CSV</button>
+        <button onClick={exportCSV} className="ml-auto px-3 py-2 text-[11.5px] font-bold uppercase rounded-lg cursor-pointer border inline-flex items-center gap-1.5" style={{ borderColor: 'var(--cbc-border)', color: 'var(--cbc-text-secondary)' }}><Ico nome="baixar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Exportar CSV</button>
       </div>
 
       {/* eficácia por template */}

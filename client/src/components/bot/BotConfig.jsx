@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { CheckIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 const GERAL_FIELDS = [
   ['saudacao', 'Saudação inicial'],
@@ -56,7 +57,7 @@ export default function BotConfig() {
       {err && <div className="text-xs p-2 rounded bg-red-50 dark:bg-red-900/30">{err}</div>}
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-3">💬 Mensagens gerais do bot</h3>
+        <h3 className="font-bold text-sm mb-3"><Ico nome="conversa" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Mensagens gerais do bot</h3>
         <div className="grid md:grid-cols-2 gap-3">
           {GERAL_FIELDS.map(([key, label]) => (
             <div key={key}>
@@ -69,7 +70,7 @@ export default function BotConfig() {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-3">📋 Template da resposta de andamento</h3>
+        <h3 className="font-bold text-sm mb-3"><Ico nome="lista" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Template da resposta de andamento</h3>
         <div className="space-y-3">
           {TPL_FIELDS.map(([key, label]) => (
             <div key={key}>
@@ -82,7 +83,7 @@ export default function BotConfig() {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-1">📲 Integração Kommo (WhatsApp real)</h3>
+        <h3 className="font-bold text-sm mb-1"><Ico nome="telefone" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Integração Kommo (WhatsApp real)</h3>
         <p className="text-xs opacity-60 mb-3">Necessário para o teste pelo celular. Veja o passo a passo em <code>docs/BOT_ADVBOX_SETUP.md</code>. Sem isso, o Simulador continua funcionando normalmente.</p>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
@@ -116,7 +117,7 @@ export default function BotConfig() {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-1">🚫 Termos de ocultação automática</h3>
+        <h3 className="font-bold text-sm mb-1"><Ico nome="bloqueado" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Termos de ocultação automática</h3>
         <p className="text-xs opacity-60 mb-2">Tarefas cujo nome contenha um destes termos são <b>ocultas do cliente automaticamente</b> (sem resposta do bot, sem nota no Kommo, sem alerta de novidade) — mas <b>continuam indo para o banco e o BI</b>. Cobre tarefas de sistema que não existem no catálogo (ex.: COMENTÁRIO). Para tipos específicos, use o checkbox "ocultar do cliente" na aba Tarefas. Separe por vírgula.</p>
         <textarea className="input-field w-full text-sm" rows={2}
           value={((cfg.monitor || {}).tarefas_ignoradas || []).join(', ')}
@@ -124,7 +125,7 @@ export default function BotConfig() {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-1">🤖 Tradução por IA (opcional)</h3>
+        <h3 className="font-bold text-sm mb-1"><Ico nome="lancar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Tradução por IA (opcional)</h3>
         <p className="text-xs opacity-60 mb-3">Quando um andamento não casa com nenhum termo do glossário, a IA traduz para linguagem simples (com cache — cada texto é traduzido uma única vez). Requer a env var <code>ANTHROPIC_API_KEY</code> no Netlify.</p>
         <div className="grid md:grid-cols-3 gap-3 items-end">
           <label className="flex items-center gap-2 text-sm">
@@ -145,7 +146,7 @@ export default function BotConfig() {
       </div>
 
       <div className="card p-4">
-        <h3 className="font-bold text-sm mb-1">🎓 Conteúdo do Portal do Cliente</h3>
+        <h3 className="font-bold text-sm mb-1"><Ico nome="ideia" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Conteúdo do Portal do Cliente</h3>
         <p className="text-xs opacity-60">
           A educação por fase, a FAQ pública e as perguntas dos clientes agora são editadas na aba <b>Portal do Cliente</b> do sistema.
         </p>

@@ -975,7 +975,7 @@ function Step1({
                 {honorarios.dataPrimeiraParcela && (() => {
                   const today = new Date(); today.setHours(0, 0, 0, 0);
                   const due = new Date(honorarios.dataPrimeiraParcela + 'T12:00:00');
-                  if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data já passou — Asaas rejeita</p>;
+                  if (due < today) return <p className="text-[10px] text-red-600 mt-1"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Data já passou — Asaas rejeita</p>;
                   return null;
                 })()}
               </div>

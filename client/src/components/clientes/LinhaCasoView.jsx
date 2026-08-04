@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { buscar360, buscarAcoesDrive, buscarDadosBancarios, buscarLinhaCaso } from '../../utils/clientesService';
 import { buildLinhaCaso, dataBRLC, reaisLC, idadeDe, mesBR, FASE_LABEL, acoesProprias, valorEmDiscussao } from '../../utils/linhaCaso';
 import { ymdLocal } from '../../utils/format';
+import Ico from '../ui/Ico';
 
 // telefone em (DD) 9NNNN-NNNN
 function foneBR(d) {
@@ -340,7 +341,7 @@ export default function LinhaCasoView({ row, onClose, onEditar, onAbrir }) {
                     <a className="lc-link" href={`https://advocaciacbc.kommo.com/leads/detail/${lc?.kommo?.lead_id || row.kommo}`} target="_blank" rel="noreferrer">abrir conversa ↗</a>
                   </div>
                 )}
-                {lc?.kommo?.tel_diverge && <div className="lc-sm" style={{ color: 'var(--c-warn)' }}>⚠ telefone no Kommo difere da ficha — conferir antes de ligar</div>}
+                {lc?.kommo?.tel_diverge && <div className="lc-sm" style={{ color: 'var(--c-warn)' }}><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />telefone no Kommo difere da ficha — conferir antes de ligar</div>}
                 {lc?.portal && (
                   <div className="lc-hl"><span>Portal</span>
                     <b>{lc.portal.acessos > 0 ? `último acesso ${dataBRLC(lc.portal.ultimo_acesso) || '—'}` : 'nunca acessou'}</b>

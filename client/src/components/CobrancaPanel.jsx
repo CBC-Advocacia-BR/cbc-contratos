@@ -405,8 +405,8 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
       {/* (#35/#36) alertas: novos atrasos da semana + negativados */}
       {(novosAtrasos > 0 || negativadosCpfs.size > 0) && (
         <div className="flex items-center gap-2 flex-wrap text-[12px]">
-          {novosAtrasos > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-warning-bg,#fdf3e6)', color: 'var(--cbc-warning)' }}>⚠ {novosAtrasos} entraram em atraso esta semana</span>}
-          {negativadosCpfs.size > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-danger-bg,#fef2f2)', color: 'var(--cbc-danger)' }}>⛔ {negativadosCpfs.size} negativado(s) · não dispara (Serasa)</span>}
+          {novosAtrasos > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-warning-bg,#fdf3e6)', color: 'var(--cbc-warning)' }}><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{novosAtrasos} entraram em atraso esta semana</span>}
+          {negativadosCpfs.size > 0 && <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-bold" style={{ background: 'var(--cbc-danger-bg,#fef2f2)', color: 'var(--cbc-danger)' }}><Ico nome="info" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{negativadosCpfs.size} negativado(s) · não dispara (Serasa)</span>}
         </div>
       )}
 
@@ -542,7 +542,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
             <h3 className="text-base font-bold mb-3" style={{ color: 'var(--cbc-text-primary)' }}>Confirmar cobrança</h3>
             <p className="text-[13px] mb-2" style={{ color: 'var(--cbc-text-secondary)' }}>Template: <b>{tplSel?.label || template}</b></p>
             <div className="rounded-lg p-3 text-[13px] mb-3" style={{ background: 'var(--cbc-bg-subtle,#f8fafc)' }}>
-              <div>✅ Vão receber: <b style={{ color: 'var(--cbc-success)' }}>{preview.preview?.enviar ?? 0}</b></div>
+              <div><Ico nome="okCirculo" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Vão receber: <b style={{ color: 'var(--cbc-success)' }}>{preview.preview?.enviar ?? 0}</b></div>
               {Object.entries(preview.preview?.pulados || {}).map(([m, n]) => (
                 <div key={m} style={{ color: 'var(--cbc-text-muted)' }}>↷ Pulados ({MOTIVO[m] || m}): {n}</div>
               ))}
@@ -656,7 +656,7 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
       {expanded && (
         <div style={{ background: 'var(--cbc-bg-subtle,#f8fafc)', borderTop: '1px solid var(--cbc-border)' }}>
           <div className="flex items-center gap-2 py-2 text-[11.5px] border-b" style={{ paddingLeft: 52, paddingRight: 12, borderColor: 'var(--cbc-border)' }}>
-            <span className="font-bold" style={{ color: 'var(--cbc-text-secondary)' }}>📅 Promessa de pagamento:</span>
+            <span className="font-bold" style={{ color: 'var(--cbc-text-secondary)' }}><Ico nome="agenda" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Promessa de pagamento:</span>
             <input type="date" defaultValue={promessa ? String(promessa.data_promessa).slice(0, 10) : ''} onChange={(e) => onPromessa(cpf, e.target.value, d.customer_name)}
               className="rounded border px-2 py-0.5 text-[11.5px]" style={{ borderColor: 'var(--cbc-border)', background: '#fff' }} />
             {promessa && <button onClick={() => onPromessa(cpf, '', d.customer_name)} className="text-[11px] font-bold underline cursor-pointer" style={{ color: 'var(--cbc-text-muted)' }}>limpar</button>}

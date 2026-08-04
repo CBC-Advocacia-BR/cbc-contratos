@@ -178,7 +178,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
 
         {data.semKommo ? (
           <div className="mt-3 pt-2.5 border-t flex flex-wrap items-center gap-x-2 gap-y-1" style={{ borderColor: '#E2E8F0' }}>
-            <span className="text-[11px] font-bold" style={{ color: '#B45309' }}>⚠ Sem lead no Kommo</span>
+            <span className="text-[11px] font-bold" style={{ color: '#B45309' }}><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Sem lead no Kommo</span>
             <span className="text-[11px] text-gray-500">registrado por <b>{data.semKommo.user || '—'}</b> · motivo: {data.semKommo.motivo}</span>
           </div>
         ) : !desbloqueado ? (

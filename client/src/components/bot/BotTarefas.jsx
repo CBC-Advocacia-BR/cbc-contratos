@@ -87,7 +87,7 @@ export default function BotTarefas() {
       <div className="card p-4 text-xs opacity-80">
         <b>“O que o escritório está fazendo”:</b> para cada tipo de tarefa do ADVBOX, defina como o bot descreve a
         tarefa ao cliente quando ela está <b>pendente</b> e quando foi <b>concluída</b>.
-        <b> 🚫 Ocultar do cliente</b> = a tarefa nunca aparece para o cliente (bot, notas do Kommo, novidades),
+        <b> <Ico nome="bloqueado" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Ocultar do cliente</b> = a tarefa nunca aparece para o cliente (bot, notas do Kommo, novidades),
         mas <b>continua indo para o banco e para o BI</b> normalmente — use para tarefas internas
         (comentários, publicação tratada, conferências). <b>{configured}</b> de {tasks.length} tipos com texto.
       </div>

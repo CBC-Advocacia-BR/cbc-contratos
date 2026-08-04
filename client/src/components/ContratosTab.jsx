@@ -550,7 +550,7 @@ function WaPill({ ka, name }) {
       style={ok
         ? { color: 'var(--cbc-success)', background: 'var(--cbc-success-bg)', border: '1px solid var(--cbc-success-border)' }
         : { color: 'var(--cbc-warning)', background: 'var(--cbc-warning-bg)', border: '1px solid var(--cbc-warning-border)' }}>
-      {ok ? 'WA ✓' : 'WA manual'}
+      {ok ? <>WA <Ico nome="ok" className="w-3 h-3 inline align-[-1px]" /></> : 'WA manual'}
     </span>
   );
 }

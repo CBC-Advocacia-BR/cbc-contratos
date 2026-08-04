@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { botApi } from './botApi';
+import Ico from '../ui/Ico';
 import {
   BellAlertIcon, CheckCircleIcon, ClipboardDocumentIcon, ArrowPathIcon, PlayIcon, CheckIcon,
   MagnifyingGlassIcon,
@@ -114,7 +115,7 @@ export default function BotNovidades() {
       </div>
       {msg && <div className="text-xs p-2 rounded bg-blue-50 dark:bg-blue-900/30">{msg}</div>}
       {status?.erros?.length > 0 && (
-        <div className="text-xs p-2 rounded bg-amber-50 dark:bg-amber-900/30">⚠️ Erros no último monitor: {status.erros.slice(0, 3).join(' · ')}</div>
+        <div className="text-xs p-2 rounded bg-amber-50 dark:bg-amber-900/30"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Erros no último monitor: {status.erros.slice(0, 3).join(' · ')}</div>
       )}
 
       <div className="flex gap-2">

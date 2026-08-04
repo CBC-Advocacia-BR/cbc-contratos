@@ -48,6 +48,7 @@ import { useToast } from './Toast';
 import { friendlyError } from '../utils/friendlyError';
 import { checarLinkKommo } from '../utils/kommoLeadCheck';
 import PresenceIndicator from './contratos/PresenceIndicator';
+import Ico from './ui/Ico';
 
 // (auditoria 01/08/2026 — item 264) LABELS LIGADOS AOS CAMPOS (htmlFor/id).
 // Antes: ~150 <label> no projeto e 5 htmlFor. Clicar no rotulo nao focava o campo, o
@@ -1577,7 +1578,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             {/* Signature time estimate */}
             {signatureEstimate && signatureEstimate.sampleSize >= 3 && (
               <div className="mt-2 p-2.5 rounded-lg text-[11px] flex items-center gap-2" style={{ background: 'var(--cbc-success-bg)', border: '1px solid var(--cbc-success-border)' }}>
-                <span aria-hidden="true">⏱️</span>
+                <Ico nome="relogio" className="w-3.5 h-3.5" />
                 <span style={{ color: 'var(--cbc-success)' }}>
                   Tempo médio até assinatura para este resort: <strong>{signatureEstimate.avgDays} dias</strong> (base: {signatureEstimate.sampleSize} contratos)
                 </span>
@@ -1676,7 +1677,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         {h.dataPrimeiraParcela && (() => {
           const today = new Date(); today.setHours(0, 0, 0, 0);
           const due = new Date(h.dataPrimeiraParcela + 'T12:00:00');
-          if (due < today) return <p className="text-[10px] text-red-600 mt-1">⚠ Data já passou — Asaas rejeita boletos com vencimento no passado</p>;
+          if (due < today) return <p className="text-[10px] text-red-600 mt-1"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Data já passou — Asaas rejeita boletos com vencimento no passado</p>;
           return null;
         })()}
           </>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { classifyIntentLocal } from './botApi';
 import { PlusIcon, TrashIcon, CheckIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 const ACTIONS = [
   { value: 'andamento', label: 'Consultar andamento (ADVBOX)' },
@@ -67,7 +68,7 @@ export default function BotIntencoes() {
           value={test} onChange={e => setTest(e.target.value)} />
         {test.trim() && (
           <div className={`mt-2 text-sm p-2 rounded ${testMatch ? 'bg-green-50 dark:bg-green-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
-            {testMatch ? <>✅ Intenção: <b>{testMatch.name}</b> ({testMatch.intent_key}) → ação: {testMatch.action}</> : 'Nenhuma intenção casou — cairia no fallback.'}
+            {testMatch ? <><Ico nome="okCirculo" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Intenção: <b>{testMatch.name}</b> ({testMatch.intent_key}) → ação: {testMatch.action}</> : 'Nenhuma intenção casou — cairia no fallback.'}
           </div>
         )}
       </div>

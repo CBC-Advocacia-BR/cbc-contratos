@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { glossaryTranslateLocal } from './botApi';
 import { PlusIcon, TrashIcon, CheckIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 const EMPTY = { term: '', match_type: 'contains', translation: '', priority: 100, active: true };
 
@@ -60,7 +61,7 @@ export default function BotGlossario() {
         {test.trim() && (
           <div className={`mt-2 text-sm p-2 rounded ${testMatch ? 'bg-green-50 dark:bg-green-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
             {testMatch
-              ? <>✅ Casou com <b>“{testMatch.term}”</b> → {testMatch.translation}</>
+              ? <><Ico nome="okCirculo" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Casou com <b>“{testMatch.term}”</b> → {testMatch.translation}</>
               : 'Nenhum termo do glossário casou — o bot mostraria o texto original (ou usaria a IA, se ativa).'}
           </div>
         )}

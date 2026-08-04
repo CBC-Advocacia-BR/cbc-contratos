@@ -261,14 +261,14 @@ export default function ClientesTab({ isAdmin = false, userEmail = '' }) {
         <button className={'chip' + (tab === 'dup' ? ' active' : '')} onClick={() => setTab('dup')}>Duplicatas ({grupos.length})</button>
         {isAdmin && <button className={'chip' + (tab === 'revisao' ? ' active' : '') + (fila.length ? ' warn' : '')} onClick={() => setTab('revisao')}>Revisão ({fila.length})</button>}
         {isAdmin && <button className={'chip' + (tab === 'advbox' ? ' active' : '') + (correcoes.length ? ' warn' : '')} onClick={() => setTab('advbox')}>Corrigir no AdvBox ({correcoes.length})</button>}
-        {podeExportar && <button className="btn gold btn-press" style={{ marginLeft: 'auto' }} disabled={busy} onClick={exportar} title="Exportar clientes com cota para Excel (Paulo, Bruno e Lorenza)">⬇ Exportar planilha</button>}
+        {podeExportar && <button className="btn gold btn-press" style={{ marginLeft: 'auto' }} disabled={busy} onClick={exportar} title="Exportar clientes com cota para Excel (Paulo, Bruno e Lorenza)"><Ico nome="baixar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Exportar planilha</button>}
       </div>
 
       {tab === 'lista' && <>
         <div className="toolbar">
           <div className="search"><Ico nome="buscar" className="w-4 h-4" /><input placeholder="buscar por nome, CPF, telefone ou e-mail…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           {[['todos', 'Todos'], ['clientes', 'Clientes'], ['pc', 'Parte contrária'], ['leads', 'Leads']].map(([k, l]) => (<button key={k} className={'chip' + (tipo === k ? ' active' : '')} onClick={() => setTipo(k)}>{l}</button>))}
-          {extra && <button className="chip warn active" onClick={() => setExtra(null)}>✕ {saude.find((s) => s.key === extra)?.label}</button>}
+          {extra && <button className="chip warn active" onClick={() => setExtra(null)}><Ico nome="fechar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{saude.find((s) => s.key === extra)?.label}</button>}
         </div>
 
         {sel.size > 0 && isAdmin && (
@@ -497,8 +497,8 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
             : <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: risco === 'alto' ? 'var(--c-danger)' : '#D97706' }}><Ico nome="aviso" className="w-3.5 h-3.5" /> {alertas.length} alerta(s){risco === 'alto' ? ' — grave' : ''}</div>)}
         </header>
         <div className="body">
-          {bad && <div className="pend-box bad"><div className="pend-t">⚠ CPF inválido (dígito verificador não confere)</div></div>}
-          {pend.length > 0 && <div className="pend-box"><div className="pend-t">⚠ Faltando vincular ({pend.length})</div><ul className="pend">{pend.map((p) => <li key={p}>{p}</li>)}</ul></div>}
+          {bad && <div className="pend-box bad"><div className="pend-t"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />CPF inválido (dígito verificador não confere)</div></div>}
+          {pend.length > 0 && <div className="pend-box"><div className="pend-t"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Faltando vincular ({pend.length})</div><ul className="pend">{pend.map((p) => <li key={p}>{p}</li>)}</ul></div>}
 
           <div className="section-t">Dados (editáveis · sua edição vence a sincronização)</div>
           {fld('nome', 'Nome')}{fld('email', 'E-mail')}{fld('telefone', 'Telefone')}{fld('nascimento', 'Nascimento', 'date')}
@@ -516,7 +516,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
             <>
               {alertas.length > 0 && (
                 <div className={'pend-box' + (risco === 'alto' ? ' bad' : '')}>
-                  <div className="pend-t">⚠ Alertas ({alertas.length})</div>
+                  <div className="pend-t"><Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Alertas ({alertas.length})</div>
                   <ul className="pend">{alertas.map((a) => <li key={a}>{a}</li>)}</ul>
                 </div>
               )}
@@ -535,10 +535,10 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
                   <div className="section-t">Cadastro</div>
                   <div className="muted" style={{ fontSize: 12, lineHeight: 1.7 }}>
                     {(info.logradouro || info.numero || info.bairro) && (
-                      <div>📍 {[info.logradouro, info.numero, info.bairro].filter(Boolean).join(', ')}{(info.cidade || info.uf) ? ` — ${[info.cidade, info.uf].filter(Boolean).join('/')}` : ''}{info.cep ? ` · CEP ${info.cep}` : ''}</div>
+                      <div><Ico nome="empresa" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{[info.logradouro, info.numero, info.bairro].filter(Boolean).join(', ')}{(info.cidade || info.uf) ? ` — ${[info.cidade, info.uf].filter(Boolean).join('/')}` : ''}{info.cep ? ` · CEP ${info.cep}` : ''}</div>
                     )}
                     {info.complemento && <div>compl. {info.complemento}</div>}
-                    {(info.rg || info.nacionalidade) && <div>🪪 {[info.rg && `RG ${info.rg}`, info.nacionalidade].filter(Boolean).join(' · ')}</div>}
+                    {(info.rg || info.nacionalidade) && <div><Ico nome="pessoa" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{[info.rg && `RG ${info.rg}`, info.nacionalidade].filter(Boolean).join(' · ')}</div>}
                   </div>
                 </>
               )}
@@ -562,7 +562,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
                 <>
                   <div className="section-t">Dados Bancários{dadosBanc.fonte === 'conjuge' && <span className="seal">conta do cônjuge</span>}</div>
                   {dadosBanc.fonte === 'conjuge' && (
-                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}>💑 Conta informada em nome do cônjuge <b style={{ color: 'var(--c-navy)' }}>{dadosBanc.conjuge_nome || dadosBanc.titular}</b> (a Prestação usa esta conta no repasse).</div>
+                    <div className="muted" style={{ fontSize: 12, marginBottom: 6 }}><Ico nome="pessoa" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Conta informada em nome do cônjuge <b style={{ color: 'var(--c-navy)' }}>{dadosBanc.conjuge_nome || dadosBanc.titular}</b> (a Prestação usa esta conta no repasse).</div>
                   )}
                   <div className="presence">
                     <div className="pcard"><div className="pl">Banco</div><div className="pv">{dadosBanc.banco || '—'}</div></div>
@@ -689,7 +689,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
           <div className="section-t">Cônjuge / vínculo familiar</div>
           {info && info.conjuge_uid ? (
             <div className="pend-box">
-              <div className="pend-t">💑 {info.conjuge_nome || 'Cônjuge vinculado'}</div>
+              <div className="pend-t"><Ico nome="pessoa" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{info.conjuge_nome || 'Cônjuge vinculado'}</div>
               {info.conjuge_n_boletos > 0 && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Cobranças no cônjuge: {info.conjuge_n_boletos}{info.conjuge_n_vencidos > 0 ? ` · ${info.conjuge_n_vencidos} vencida(s) · R$ ${Number(info.conjuge_valor_vencido || 0).toLocaleString('pt-BR')}` : ''}</div>}
               <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={() => onAbrir(info.conjuge_uid)}>Abrir ficha do cônjuge</button>

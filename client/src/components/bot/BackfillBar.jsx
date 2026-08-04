@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { PauseIcon, PlayIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 /**
  * Barra de progresso do backfill em tempo real (poll de 5s no bot_config
@@ -64,7 +65,7 @@ export default function BackfillBar() {
       : st.ativo ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
       : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'}`}>
       <div className="flex items-center gap-2 flex-wrap">
-        <b>📦 Backfill ADVBOX{st.fase !== 'concluido' && !st.ativo ? ' (pausado)' : ''}:</b>
+        <b><Ico nome="lista" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Backfill ADVBOX{st.fase !== 'concluido' && !st.ativo ? ' (pausado)' : ''}:</b>
         <span>{faseLabel}</span>
         <span className="opacity-60">· {Number(st.movimentos_gravados || 0).toLocaleString('pt-BR')} andamentos e {Number(st.tarefas_gravadas || 0).toLocaleString('pt-BR')} tarefas gravados · {Number(st.ignoradas || 0).toLocaleString('pt-BR')} ocultas do cliente (vão p/ BI) · lote {st.lote || 0}</span>
         {st.fase !== 'concluido' && (

@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { fetchAllPaged } from '../utils/supabasePaged';
 import { CRON_SLA } from '../../netlify/functions/_lib/cronSla.mjs';
+import Ico from './ui/Ico';
 import {
   ScaleIcon, BoltIcon, SignalIcon, ChevronDownIcon, ChevronRightIcon,
   CheckCircleIcon, ExclamationTriangleIcon, EyeIcon, ArrowPathIcon,
@@ -321,7 +322,7 @@ function CronsDoBanco() {
         {comProblema.length > 0 && (
           <div className="mt-2 text-[10px] font-mono text-red-200/90 leading-relaxed">
             {comProblema.map(j => (
-              <div key={j.jobid}>✕ {j.jobname}: {j.nunca_rodou ? 'nunca executou' : (j.ultimo_erro || 'falhou sem mensagem').split('\n')[0].slice(0, 110)}</div>
+              <div key={j.jobid}><Ico nome="fechar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{j.jobname}: {j.nunca_rodou ? 'nunca executou' : (j.ultimo_erro || 'falhou sem mensagem').split('\n')[0].slice(0, 110)}</div>
             ))}
           </div>
         )}
@@ -521,7 +522,7 @@ function KommoQueuePanel() {
                 <span className="flex items-center gap-1.5 text-[11px] font-mono shrink-0 tabular-nums">
                   {c.pending ? <span className="text-amber-300" title="pendentes">{c.pending}p</span> : null}
                   {c.processing ? <span className="text-blue-300" title="processando">{c.processing}…</span> : null}
-                  {c.failed ? <span className="text-red-300" title="falhas">{c.failed}✕</span> : null}
+                  {c.failed ? <span className="text-red-300 inline-flex items-center gap-0.5" title="falhas">{c.failed}<Ico nome="fechar" className="w-3 h-3" /></span> : null}
                   {!c.pending && !c.processing && !c.failed ? <span className="text-emerald-300">ok</span> : null}
                 </span>
               </div>

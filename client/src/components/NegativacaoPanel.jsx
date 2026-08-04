@@ -229,7 +229,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
             <span className="ml-auto text-[11px] font-bold px-3 py-1 rounded-full" style={{ background: 'var(--cbc-bg-subtle,#F7FAFC)', color: 'var(--cbc-text-secondary,#4A5568)' }}>{candidatos.length} clientes · +90 dias</span>
           </div>
           <div className="px-4 py-2 text-[11px] flex items-start gap-1.5" style={{ background: '#eef3fb', color: 'var(--cbc-text-secondary,#4A5568)' }}>
-            <span aria-hidden="true">ℹ️</span>
+            <Ico nome="info" className="w-4 h-4" />
             <span>A negativação é <b>por parcela</b>: enviamos ao Serasa a <b>parcela vencida mais antiga</b> de cada cliente (não o total). A marca no CPF já pressiona a dívida inteira.</span>
           </div>
 
@@ -285,7 +285,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
                 <span className="text-[11px]" style={{ color: 'var(--cbc-text-muted,#5E6675)' }}>Selecione vários para negativar em lote · custo R$ 9,90 por negativação</span>
                 <button disabled={selCands.length === 0} onClick={() => setConfirmOpen(true)}
                   className="ml-auto text-[11px] font-extrabold uppercase tracking-wide px-4 py-2 rounded-lg text-white cursor-pointer disabled:opacity-40"
-                  style={{ background: 'var(--cbc-danger,#B91C1C)' }}>⚖️ Negativar selecionados ({selCands.length})</button>
+                  style={{ background: 'var(--cbc-danger,#B91C1C)' }}><Ico nome="juridico" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Negativar selecionados ({selCands.length})</button>
               </div>
             </div>
           )}
