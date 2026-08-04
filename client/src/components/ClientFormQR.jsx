@@ -382,7 +382,7 @@ export function ClientPublicForm({ formId }) {
 
           <button onClick={submit} disabled={sending}
             className="w-full py-3.5 rounded-lg text-white font-bold text-sm cursor-pointer transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#1B3A5C' }}>
+            style={{ background: 'var(--cbc-navy)' }}>
             {sending ? 'Enviando...' : 'Enviar Dados'}
           </button>
 

@@ -10,6 +10,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from 'react';
 import MoneyValue from './ui/MoneyValue';
 import { fmtData } from '../utils/format';
+import Ico from './ui/Ico';
 
 const BOT_KEY = import.meta.env.VITE_BOT_PANEL_KEY || 'cbc-bot-2026';
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
@@ -37,9 +38,9 @@ const diaKey = (iso) => String(fmtData(iso));
 const pct = (n, d) => (d > 0 ? Math.round((n / d) * 100) : 0);
 
 function cliStatus(c) {
-  if (c.pago) return { t: '★ Recuperado', bg: '#f6efd7', fg: '#8a6d12' };
-  if (c.kommo_status === 'failed') return { t: '✕ Falhou', bg: 'var(--cbc-danger-bg,#fbe9e9)', fg: 'var(--cbc-danger)' };
-  if (c.kommo_status === 'done') return { t: '✓ Entregue', bg: 'var(--cbc-success-bg,#e7f4ec)', fg: 'var(--cbc-success)' };
+  if (c.pago) return { t: 'Recuperado', bg: '#f6efd7', fg: '#8a6d12' };
+  if (c.kommo_status === 'failed') return { t: 'Falhou', bg: 'var(--cbc-danger-bg,#fbe9e9)', fg: 'var(--cbc-danger)' };
+  if (c.kommo_status === 'done') return { t: 'Entregue', bg: 'var(--cbc-success-bg,#e7f4ec)', fg: 'var(--cbc-success)' };
   return { t: '⏳ Na fila', bg: 'var(--cbc-warning-bg,#fdf3e6)', fg: 'var(--cbc-warning)' };
 }
 
@@ -188,7 +189,7 @@ export default function CobrancaHistorico({ userEmail = '' }) {
       {/* filtros */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-[180px] max-w-[320px]" style={{ border: '1px solid var(--cbc-border)', background: 'var(--cbc-bg-card,#fff)' }}>
-          <span aria-hidden="true">🔎</span>
+          <Ico nome="buscar" className="w-4 h-4" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar cliente ou CPF…" className="bg-transparent outline-none text-[12.5px] w-full" />
           {busca && <button onClick={() => setBusca('')} aria-label="limpar" className="text-[13px]" style={{ color: 'var(--cbc-text-muted)' }}>×</button>}
         </div>

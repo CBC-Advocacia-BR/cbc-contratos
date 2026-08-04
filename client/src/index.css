@@ -60,19 +60,52 @@ html, body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+ * (auditoria 01/08/2026 — item 289) SISTEMA DE BOTOES
+ * ═══════════════════════════════════════════════════════════════════════
+ * Existia `.btn-primary` (usada em 18 arquivos) e, ao lado dela, 31 botoes com a cor
+ * navy escrita DENTRO do elemento, cada um com sua altura, seu raio e seu tamanho de
+ * texto. Empilhados na mesma tela, pareciam tres produtos diferentes.
+ *
+ * O problema nao e so aparencia: cor escrita no elemento VENCE o CSS do tema, e foi
+ * essa exata armadilha que apagou o modo escuro em tres telas durante esta auditoria.
+ * Botao que usa a classe acompanha o tema de graca.
+ *
+ * TRES TAMANHOS, um proposito cada:
+ *   .btn-lg   acao principal da tela (salvar contrato, confirmar envio)
+ *   (padrao)  acao comum dentro de um painel
+ *   .btn-sm   acao de linha de tabela, chip, barra de ferramentas
+ *
+ * O raio cresce com o tamanho porque um raio fixo num botao pequeno parece grande
+ * demais e num botao grande parece quadrado.
+ * ═══════════════════════════════════════════════════════════════════════ */
 @layer components {
   .btn-primary {
-    @apply bg-navy text-white px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide
-           hover:bg-navy-light transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer;
+    @apply bg-navy text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wide
+           hover:bg-navy-light transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer
+           inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed
+           aria-disabled:opacity-40;
   }
+  /* Acao definitiva, a que sai do escritorio e nao volta atras (item 277).
+     Dourado da marca com texto navy: 7,63:1, medido. */
   .btn-gold {
-    @apply bg-navy-dark text-white px-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide
-           hover:bg-navy transition-all duration-200 shadow-md hover:shadow-lg cursor-pointer;
+    @apply text-[#0F2035] px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wide
+           transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer
+           inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed
+           aria-disabled:opacity-40;
+    background: var(--cbc-gold, #C9A84C);
   }
+  .btn-gold:hover { filter: brightness(1.06); }
   .btn-outline {
-    @apply border-2 border-navy text-navy px-6 py-3 rounded-lg font-bold text-sm
-           hover:bg-navy hover:text-white transition-all duration-200 cursor-pointer;
+    @apply border-2 border-navy text-navy px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-wide
+           hover:bg-navy hover:text-white transition-all duration-200 cursor-pointer
+           inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed;
   }
+  /* Modificadores de tamanho — combinam com qualquer uma das tres acima */
+  .btn-lg { @apply px-6 py-3.5 text-sm rounded-xl; }
+  .btn-sm { @apply px-3 py-1.5 text-[11px] rounded-md gap-1.5; }
+  /* Largura total, para as pilhas de acao do formulario */
+  .btn-bloco { @apply w-full; }
   .card {
     @apply bg-white rounded-xl shadow-md overflow-hidden max-w-full;
     box-shadow: 0 1px 6px rgba(0,0,0,.09);

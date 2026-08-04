@@ -225,7 +225,7 @@ function Tooltip({ text, children }) {
       {children}
       {show && (
         <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 rounded text-[9px] text-white whitespace-nowrap z-50"
-          style={{ background: '#1B3A5C', animation: 'fadeIn 0.15s ease' }}>
+          style={{ background: 'var(--cbc-navy)', animation: 'fadeIn 0.15s ease' }}>
           {text}
           <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent" style={{ borderTopColor: '#1B3A5C' }} />
         </span>
@@ -771,7 +771,7 @@ function ContratanteFormBase({ index, contratante, onChange, errors, otherContra
             className={`flex-1 py-2 max-[1366px]:min-h-[44px] rounded-lg border-2 text-[11px] font-bold uppercase tracking-wide transition-all cursor-pointer ${
               (contratante.tipo || 'pf') === opt.v ? 'text-white border-transparent' : 'border-gray-200 text-gray-500 hover:border-navy/30'
             }`}
-            style={(contratante.tipo || 'pf') === opt.v ? { background: '#1B3A5C' } : {}}>
+            style={(contratante.tipo || 'pf') === opt.v ? { background: 'var(--cbc-navy)' } : {}}>
             {opt.label}
           </button>
         ))}
@@ -1410,7 +1410,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                   ? 'text-white border-transparent'
                   : 'border-gray-200 text-gray-500 hover:border-navy/30'
               }`}
-              style={data.numContratantes === n ? { background: '#1B3A5C' } : {}}>
+              style={data.numContratantes === n ? { background: 'var(--cbc-navy)' } : {}}>
               {n === 1 ? '1 Contratante' : '2 Contratantes'}
             </button>
           ))}
@@ -1608,7 +1608,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                 className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
                   isActive ? 'border-transparent text-white' : 'border-gray-200 hover:border-navy/30 bg-white'
                 }`}
-                style={isActive ? { background: '#1B3A5C' } : {}}>
+                style={isActive ? { background: 'var(--cbc-navy)' } : {}}>
                 <div className={`text-[10px] font-bold uppercase tracking-wide ${isActive ? 'text-white' : 'text-gray-700'}`}>{modo.label}</div>
                 <div className={`text-[8px] mt-0.5 ${isActive ? 'text-white/60' : 'text-gray-400'}`}>{modo.desc}</div>
               </button>
@@ -1628,7 +1628,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
               className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer text-xs ${
                 isSelected ? 'border-transparent text-white' : 'border-gray-200 hover:border-navy/30 bg-white'
               }`}
-              style={isSelected ? { background: '#1B3A5C' } : {}}>
+              style={isSelected ? { background: 'var(--cbc-navy)' } : {}}>
               <div className={`font-bold ${isSelected ? 'text-white' : 'text-navy'}`}>{formatCurrency(opt.total)}</div>
               <div className={isSelected ? 'text-white/70' : 'text-gray-500'}>{opt.parcelas === 1 ? opt.label : `${opt.parcelas}x ${formatCurrency(opt.valorParcela)}`}</div>
             </button>
@@ -1639,7 +1639,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer text-xs col-span-2 ${
               h.tipo === 'personalizado' ? 'border-transparent text-white' : 'border-gray-200 hover:border-navy/30 bg-white'
             }`}
-            style={h.tipo === 'personalizado' ? { background: '#1B3A5C' } : {}}>
+            style={h.tipo === 'personalizado' ? { background: 'var(--cbc-navy)' } : {}}>
             <div className="font-bold">Valor Personalizado</div>
           </button>
         </div>
@@ -1795,7 +1795,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                       <span className="font-bold truncate" style={{ color: 'var(--cbc-text-primary, #1B3A5C)', fontSize: '11px' }}>{displayTitle}</span>
                     </div>
                     <div className="flex gap-1.5 items-center shrink-0">
-                      {isAuto && <span className="text-[10px] px-2 py-0.5 rounded-full text-white" style={{ background: '#1B3A5C' }}>Auto</span>}
+                      {isAuto && <span className="text-[10px] px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--cbc-navy)' }}>Auto</span>}
                       {isAvulsa && <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">Avulsa</span>}
                       {isModified && !isAuto && !isAvulsa && <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">Editada</span>}
                     </div>
@@ -1808,7 +1808,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
                       <textarea className="input-field text-xs min-h-[80px]" rows={3}
                         value={editText} onChange={(e) => setEditText(e.target.value)} />
                       <div className="flex gap-1.5 mt-2">
-                        <button className="text-[11px] text-white px-3 py-1.5 rounded-lg font-bold cursor-pointer" style={{ background: '#1B3A5C' }}
+                        <button className="text-[11px] text-white px-3 py-1.5 rounded-lg font-bold cursor-pointer" style={{ background: 'var(--cbc-navy)' }}
                           onClick={() => { updateClausula(cl.id, editText); setEditing(null); }}>Salvar</button>
                         <button className="text-[11px] border border-gray-300 px-3 py-1.5 rounded-lg cursor-pointer"
                           onClick={() => setEditing(null)}>Cancelar</button>
@@ -2037,8 +2037,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           onClick={() => handleValidatedAction(onSave)}
           onMouseDown={ripple}
           disabled={saving} aria-disabled={!isFormComplete}
-          className="btn-ripple btn-press w-full py-3.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-          style={{ background: '#1B3A5C' }}
+          className="btn-primary btn-lg btn-bloco btn-ripple btn-press"
         >
           {/* (ux-5) Texto reflete edicao de contrato carregado */}
           {saving ? 'Salvando...' : loadedContractId ? 'Atualizar Contrato' : 'Salvar Contrato'}
@@ -2047,8 +2046,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
           onClick={() => handleValidatedAction(() => { if (onPdfSave) onPdfSave(); })}
           onMouseDown={ripple}
           disabled={saving} aria-disabled={!isFormComplete}
-          className="btn-ripple btn-press w-full py-3 rounded-lg font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 text-white disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #1B3A5C, #2D5A8C)' }}
+          className="btn-primary btn-bloco btn-ripple btn-press"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           Gerar PDF e Salvar
@@ -2061,8 +2059,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             } catch (err) { console.error('[FormPanel] DOCX:', err); toast.error('Erro ao gerar DOCX: ' + friendlyError(err)); }
           })}
           disabled={saving} aria-disabled={!isFormComplete}
-          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-          style={{ background: '#EEF4FF', color: 'var(--cbc-text-primary, #1B3A5C)', border: '1px solid #C0D0E8' }}
+          className="btn-outline btn-sm btn-bloco"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
           Exportar DOCX (Word)
@@ -2070,8 +2067,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         <button
           onClick={() => handleValidatedAction(() => { if (onProcuracaoPdf) onProcuracaoPdf(); })}
           disabled={saving} aria-disabled={!isFormComplete}
-          className="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-          style={{ background: '#EEF4FF', color: 'var(--cbc-text-primary, #1B3A5C)', border: '1px solid #C0D0E8' }}
+          className="btn-outline btn-sm btn-bloco"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
           Gerar Procuração (sem assinatura)
@@ -2090,8 +2086,7 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
             onClick={() => handleValidatedAction(onSendZapSign)}
             onMouseDown={ripple}
             disabled={saving} aria-disabled={!isFormComplete}
-            className="btn-ripple btn-press w-full py-3.5 rounded-lg font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed aria-disabled:opacity-40"
-            style={{ background: 'var(--cbc-gold, #C9A84C)', color: '#0F2035', boxShadow: '0 2px 10px -4px rgba(201,168,76,.7)' }}
+            className="btn-gold btn-lg btn-bloco btn-ripple btn-press"
           >
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
             Enviar para assinatura (ZapSign)
@@ -2099,7 +2094,8 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
         </div>
         <button
           onClick={() => setShowClearConfirm(true)}
-          className="w-full py-2.5 rounded-lg border border-red-300 text-red-500 font-bold text-[10px] uppercase tracking-wide cursor-pointer transition-all hover:bg-red-50"
+          className="btn-sm btn-bloco border-2 font-bold uppercase tracking-wide cursor-pointer transition-all"
+          style={{ borderColor: 'var(--cbc-danger-border, #FECACA)', color: 'var(--cbc-danger, #DC2626)' }}
         >
           Limpar Formulario
         </button>

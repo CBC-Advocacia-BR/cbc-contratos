@@ -79,7 +79,7 @@ export default function BackfillBar() {
           style={{ width: `${pct}%` }} />
       </div>
       <div className="mt-0.5 flex justify-between opacity-50">
-        <span>{st.erros?.length ? `⚠️ ${st.erros.length} erro(s) — último: ${st.erros[st.erros.length - 1]}` : 'sem erros'}</span>
+        <span>{st.erros?.length ? `${st.erros.length} erro(s) — último: ${st.erros[st.erros.length - 1]}` : 'sem erros'}</span>
         <span>{pct}%</span>
       </div>
     </div>

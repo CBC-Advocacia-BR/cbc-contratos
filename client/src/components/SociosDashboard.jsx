@@ -34,6 +34,7 @@ import {
 // (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
 import { SOCIOS_EMAILS } from '../utils/acessos';
 import { fmtData } from '../utils/format';
+import Ico from './ui/Ico';
 
 function formatCurrency(val) {
   if (!val && val !== 0) return 'R$ 0,00';
@@ -824,7 +825,7 @@ function ComissaoDetalhesModal({ comissao, onClose }) {
                     </td>
                     <td className="py-2 px-2 text-center text-[10px]" style={{ color: 'var(--cbc-text-muted)' }}>{d.faixa_aplicada || '—'}</td>
                     <td className="py-2 px-2 text-center">
-                      {d.fim_de_semana ? <span className="text-[10px]">🏖️</span> : <span className="text-[10px]" style={{ color: 'var(--cbc-text-muted)' }}>—</span>}
+                      {d.fim_de_semana ? <span className="text-[10px] font-bold" style={{ color: 'var(--cbc-gold-text)' }} title="Atendimento em fim de semana">fim de semana</span> : <span className="text-[10px]" style={{ color: 'var(--cbc-text-muted)' }}>—</span>}
                     </td>
                     <td className="py-2 px-2 text-right" style={{ color: 'var(--cbc-text-secondary)' }}>{formatCurrency(d.valor_base)}</td>
                     <td className="py-2 px-2 text-right font-bold" style={{ color: d.peso_aplicado > 1 ? '#C9A84C' : 'var(--cbc-text-muted)' }}>
@@ -908,7 +909,9 @@ function RankingDuplasWidget() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const medals = ['🥇', '🥈', '🥉'];
+  // (item 287) a medalha era a UNICA coisa dizendo a colocacao — agora ela esta escrita,
+  // e o trofeu (que herda a cor do texto) so acompanha.
+  const medals = ['1º', '2º', '3º'];
 
   return (
     <div>
@@ -1134,7 +1137,7 @@ function DuplaDrillDownModal({ comissao, onClose }) {
                         <td className="py-1 px-2 truncate max-w-[120px]" style={{ color: 'var(--cbc-text-secondary)' }}>{c.tipo_acao || '—'}</td>
                         <td className="py-1 px-2 text-right font-bold" style={{ color: '#1B3A5C' }}>{formatCurrency(c.honorarios_total)}</td>
                         <td className="py-1 px-2 text-center text-[9px]">{c.status}</td>
-                        <td className="py-1 px-2 text-center">{c.fim_de_semana_atendimento ? '🏖️' : '—'}</td>
+                        <td className="py-1 px-2 text-center">{c.fim_de_semana_atendimento ? <span className="font-bold" style={{ color: 'var(--cbc-gold-text)' }}>sim</span> : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1849,13 +1852,15 @@ export default function SociosDashboard() {
         {/* Ranking top 3 */}
         {stats.topAdv.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-            {['🥇', '🥈', '🥉'].map((medal, i) => {
+            {['1º', '2º', '3º'].map((medal, i) => {
               const a = stats.topAdv[i];
               if (!a) return <div key={i} className="hidden md:block" />;
               return (
                 <SocioCard key={i} accent={i === 0}>
                   <div className="flex items-center gap-3">
-                    <div className="text-3xl">{medal}</div>
+                    <div className="flex items-center gap-1.5 text-2xl font-bold" style={{ color: i === 0 ? 'var(--cbc-gold-text)' : 'var(--cbc-text-muted)' }}>
+                      <Ico nome="trofeu" className="w-6 h-6" />{medal}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] font-bold truncate" style={{ color: 'var(--cbc-text-primary)' }}>{a.email}</div>
                       <div className="text-[10px]" style={{ color: 'var(--cbc-text-muted)' }}>

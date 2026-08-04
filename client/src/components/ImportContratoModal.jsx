@@ -35,6 +35,7 @@ import { processImport, checkAutomacaoRequisitos } from '../utils/importContrato
 import { supabase } from '../lib/supabase';
 import { ymdLocal, fmtData} from '../utils/format';
 import { useModalEscape } from '../hooks/useModalEscape';
+import Ico from './ui/Ico';
 
 // ─── Estado inicial ────────────────────────────────────────────
 const EMPTY_CONTRATANTE = {
@@ -506,7 +507,7 @@ export default function ImportContratoModal({ onClose, onImported }) {
         <div className="shrink-0 px-5 py-4 border-b border-white/40 flex items-center justify-between bg-white/40 backdrop-blur dark:bg-gray-900/40 dark:border-gray-700/40">
           <div>
             <div className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--cbc-text-primary, #1B3A5C)' }}>
-              <span aria-hidden="true">📥</span>
+              <Ico nome="baixar" className="w-4 h-4" />
               Importar contrato assinado
             </div>
             <div className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
@@ -634,7 +635,7 @@ export default function ImportContratoModal({ onClose, onImported }) {
               onClick={goNext}
               disabled={step === 1 && !step1Valid}
               className="px-4 py-1.5 text-xs font-bold uppercase rounded-lg text-white flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              style={{ background: '#1B3A5C' }}
+              style={{ background: 'var(--cbc-navy)' }}
               title={step === 1 && !step1Valid ? 'Preencha os campos obrigatorios' : ''}
             >
               Avancar <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -653,7 +654,7 @@ export default function ImportContratoModal({ onClose, onImported }) {
             <button
               onClick={handleFechar}
               className="px-4 py-1.5 text-xs font-bold uppercase rounded-lg text-white flex items-center gap-1"
-              style={{ background: '#1B3A5C' }}
+              style={{ background: 'var(--cbc-navy)' }}
             >
               Fechar e ver contrato
             </button>
@@ -1304,7 +1305,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
               value={
                 anexos.contratoPdf ? (
                   <span className="text-green-700">
-                    ✓ {anexos.contratoPdf.name} ({fmtBytes(anexos.contratoPdf.size)})
+                    <Ico nome="ok" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{anexos.contratoPdf.name} ({fmtBytes(anexos.contratoPdf.size)})
                   </span>
                 ) : (
                   <span className="text-gray-400">— não anexado</span>
@@ -1316,7 +1317,7 @@ function Step4({ data, anexos, automacoes, execSteps, execDone, execError, onRet
               value={
                 anexos.procuracaoPdf ? (
                   <span className="text-green-700">
-                    ✓ {anexos.procuracaoPdf.name} ({fmtBytes(anexos.procuracaoPdf.size)})
+                    <Ico nome="ok" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{anexos.procuracaoPdf.name} ({fmtBytes(anexos.procuracaoPdf.size)})
                   </span>
                 ) : (
                   <span className="text-gray-400">— não anexado</span>

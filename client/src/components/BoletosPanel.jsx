@@ -38,6 +38,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
+import Ico from './ui/Ico';
 
 const fmt = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtD = d => d ? fmtData(d + 'T12:00:00') : '—';
@@ -130,7 +131,7 @@ function NotesModal({ customer, userEmail, onClose, onToast }) {
     const { error } = await supabase.from('asaas_customer_notes').insert({
       customer_id: customer.id, note: newNote.trim(), author_email: userEmail || null,
     });
-    if (error) { console.error('[BoletosPanel] add nota:', error); onToast('⚠️ ' + friendlyError(error)); return; }
+    if (error) { console.error('[BoletosPanel] add nota:', error); onToast(friendlyError(error)); return; }
     setNewNote('');
     load();
   };
@@ -1024,7 +1025,7 @@ export default function BoletosPanel({ userEmail = '' }) {
       setTimeout(() => setSyncProgress(null), 1500);
     } catch (e) {
       console.error('[BoletosPanel]', e);
-      showToast('⚠️ Erro: ' + friendlyError(e));
+      showToast('Erro: ' + friendlyError(e));
       setSyncProgress(null);
     } finally {
       setSyncing(false);
@@ -1047,8 +1048,8 @@ export default function BoletosPanel({ userEmail = '' }) {
         const ok = (re.inalterado || 0) + (re.mantido || 0);
         showToast(`Kommo: ${re.enfileirado || 0} atualizado(s) · ${ok} ok · ${re.erro || 0} erro(s)`);
       }
-      else showToast('⚠️ ' + (d.error || 'erro ao sincronizar Kommo'));
-    } catch (e) { console.error('[BoletosPanel]', e); showToast('⚠️ ' + friendlyError(e)); }
+      else showToast((d.error || 'erro ao sincronizar Kommo'));
+    } catch (e) { console.error('[BoletosPanel]', e); showToast(friendlyError(e)); }
     finally { setKommoSyncing(false); }
   };
 
@@ -1172,7 +1173,7 @@ export default function BoletosPanel({ userEmail = '' }) {
 
   const copyPix = useCallback(async (code) => {
     const ok = await copyText(code);
-    showToast(ok ? '📱 Código PIX copiado!' : '⚠️ Erro ao copiar');
+    showToast(ok ? 'Código PIX copiado!' : 'Erro ao copiar');
   }, [showToast]);
   const openNF = useCallback((b) => {
     if (b.nf_pdf_url) window.open(b.nf_pdf_url, '_blank');
@@ -1252,7 +1253,7 @@ export default function BoletosPanel({ userEmail = '' }) {
       <div className="p-4 border-b bg-white">
         {syncErr && (
           <div className="mb-3 rounded-lg px-3 py-2 text-[12px] flex items-start gap-2" style={{ background: 'var(--cbc-warning-bg,#fdf3e6)', border: '1px solid var(--cbc-warning)', color: 'var(--cbc-warning)' }}>
-            <span aria-hidden="true">⚠</span>
+            <Ico nome="aviso" className="w-4 h-4" />
             <span><b>A última sincronização do Asaas registrou um erro</b> ({new Date(syncErr.created_at).toLocaleString('pt-BR')}): {String(syncErr.message || '').slice(0, 180)}</span>
           </div>
         )}

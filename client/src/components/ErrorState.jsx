@@ -64,7 +64,7 @@ export default function ErrorState({
         <button
           onClick={onRetry}
           className='px-4 py-2 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all hover:opacity-90 text-white flex items-center gap-2'
-          style={{ background: '#1B3A5C' }}
+          style={{ background: 'var(--cbc-navy)' }}
         >
           <svg className='w-3.5 h-3.5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
             <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2}

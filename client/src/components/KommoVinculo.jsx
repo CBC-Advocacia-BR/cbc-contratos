@@ -7,6 +7,7 @@ import { useContract } from '../ContractContext';
 import { useAuth } from '../AuthContext';
 import { montarPreenchimento } from '../utils/kommoResolve';
 import KommoSemVinculoModal from './KommoSemVinculoModal';
+import Ico from './ui/Ico';
 
 // campos que moram em `data` (nao no contratante)
 const DATA_KEYS = new Set(['resort', 'dataPrimeiraMensagem']);
@@ -101,7 +102,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
 
   return (
     <div className="cbc-vinculo-top mb-3 rounded-xl overflow-hidden border" style={{ borderColor: '#C0D0E8', background: '#F7FAFF' }}>
-      <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white flex items-center gap-2" style={{ background: '#1B3A5C' }}>
+      <div className="px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white flex items-center gap-2" style={{ background: 'var(--cbc-navy)' }}>
         <span style={{ background: '#C9A84C', color: '#22303f', borderRadius: 6, padding: '1px 7px' }}>Passo 1</span>
         Vínculo com o Kommo
       </div>
@@ -130,7 +131,7 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
 
         {msg && (
           <p className={`text-xs mt-2 font-semibold ${estado === 'erro' ? 'text-red-600' : estado === 'vinculado' ? 'text-green-700' : 'text-gray-500'}`}>
-            {msg}{conhecido ? ' ✓' : ''}
+            {msg}{conhecido && <Ico nome="ok" className="w-3 h-3 inline align-[-1px] ml-1" />}
           </p>
         )}
 
@@ -153,25 +154,25 @@ export default function KommoVinculo({ onDesbloquear, desbloqueado }) {
 
         {estado === 'vinculado' && matchDuvidoso && (
           <p className="text-[11px] mt-2 font-bold px-2.5 py-1.5 rounded-lg" style={{ color: '#B91C1C', background: '#FEF2F2', border: '1px solid rgba(185,28,28,.25)' }}>
-            ⚠ Casei pelo <b>telefone</b>, mas os nomes divergem — Cadastro: <b>{matchDuvidoso.cadastro}</b> · Kommo: <b>{matchDuvidoso.lead}</b>. Confira se é a mesma pessoa antes de seguir.
+            <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Casei pelo <b>telefone</b>, mas os nomes divergem — Cadastro: <b>{matchDuvidoso.cadastro}</b> · Kommo: <b>{matchDuvidoso.lead}</b>. Confira se é a mesma pessoa antes de seguir.
           </p>
         )}
 
         {estado === 'vinculado' && resortOpcoes && !data.resort && (
           <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
-            ⚠ Este cliente tem histórico em {resortOpcoes.length} resorts: <b>{resortOpcoes.join(' · ')}</b> — escolha o resort deste contrato no campo Resort.
+            <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Este cliente tem histórico em {resortOpcoes.length} resorts: <b>{resortOpcoes.join(' · ')}</b> — escolha o resort deste contrato no campo Resort.
           </p>
         )}
 
         {estado === 'vinculado' && sexoConflito && (
           <p className="text-[11px] mt-2 font-semibold" style={{ color: '#B45309' }}>
-            ⚠ Sexo: o Cadastro diz <b>{sexoConflito.cadastro === 'F' ? 'Feminino' : 'Masculino'}</b>, mas o nome sugere <b>{sexoConflito.nome === 'F' ? 'Feminino' : 'Masculino'}</b> — confira o campo Sexo.
+            <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Sexo: o Cadastro diz <b>{sexoConflito.cadastro === 'F' ? 'Feminino' : 'Masculino'}</b>, mas o nome sugere <b>{sexoConflito.nome === 'F' ? 'Feminino' : 'Masculino'}</b> — confira o campo Sexo.
           </p>
         )}
 
         {estado === 'vinculado' && resumo && (
           <p className="text-[11px] mt-2 text-gray-500">
-            ✓ Preenchi <b>{resumo.length}</b> {resumo.length === 1 ? 'campo' : 'campos'}: {resumo.join(', ')}.
+            <Ico nome="ok" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Preenchi <b>{resumo.length}</b> {resumo.length === 1 ? 'campo' : 'campos'}: {resumo.join(', ')}.
           </p>
         )}
 

@@ -1,0 +1,1600 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aba SDR: protótipo navegável</title>
+<style>
+/* ============================================================
+   Tokens do CBC Contratos (mesmos valores de client/src/index.css)
+   Protótipo para tela de computador. Os botões funcionam.
+   ============================================================ */
+:root{
+  --cbc-navy:#1B3A5C; --cbc-navy-light:#264A72; --cbc-navy-dark:#0F2035;
+  --cbc-gold:#C9A84C; --cbc-gold-dark:#B8860B; --cbc-gold-text:#8A6A12;
+  --cbc-success:#15803D; --cbc-danger:#B91C1C; --cbc-warning:#B45309; --cbc-info:#1D4ED8;
+  --cbc-bg:#F0F4F8; --cbc-bg-card:#FFFFFF; --cbc-bg-subtle:#F7FAFC;
+  --cbc-text-primary:#1B3A5C; --cbc-text-secondary:#4A5568; --cbc-text-muted:#5E6675;
+  --cbc-border:#E2E8F0; --cbc-border-strong:#CBD5E0;
+  --cbc-success-bg:rgba(22,163,74,.10); --cbc-success-border:rgba(22,163,74,.28);
+  --cbc-danger-bg:rgba(220,38,38,.10);  --cbc-danger-border:rgba(220,38,38,.28);
+  --cbc-warning-bg:rgba(217,119,6,.12); --cbc-warning-border:rgba(217,119,6,.30);
+  --cbc-info-bg:rgba(37,99,235,.10);    --cbc-info-border:rgba(37,99,235,.28);
+  --cbc-radius:12px; --cbc-shadow:0 1px 6px rgba(0,0,0,.09);
+  --cbc-shadow-xl:0 16px 50px -10px rgba(15,32,53,.25), 0 4px 16px -4px rgba(15,32,53,.12);
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --cbc-success:#4ADE80; --cbc-danger:#F87171; --cbc-warning:#FBBF24; --cbc-info:#60A5FA;
+  --cbc-gold-text:#F4CE46;
+  --cbc-bg:#0A0F1A; --cbc-bg-card:#111827; --cbc-bg-subtle:#0F1725;
+  --cbc-text-primary:#E5E7EB; --cbc-text-secondary:#9CA3AF; --cbc-text-muted:#8A93A3;
+  --cbc-border:#374151; --cbc-border-strong:#4B5563;
+  --cbc-success-bg:rgba(74,222,128,.12); --cbc-success-border:rgba(74,222,128,.32);
+  --cbc-danger-bg:rgba(248,113,113,.12); --cbc-danger-border:rgba(248,113,113,.32);
+  --cbc-warning-bg:rgba(251,191,36,.13); --cbc-warning-border:rgba(251,191,36,.34);
+  --cbc-info-bg:rgba(96,165,250,.12);    --cbc-info-border:rgba(96,165,250,.32);
+  --cbc-shadow:0 1px 6px rgba(0,0,0,.5); --cbc-shadow-xl:0 18px 50px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --cbc-success:#4ADE80; --cbc-danger:#F87171; --cbc-warning:#FBBF24; --cbc-info:#60A5FA;
+  --cbc-gold-text:#F4CE46;
+  --cbc-bg:#0A0F1A; --cbc-bg-card:#111827; --cbc-bg-subtle:#0F1725;
+  --cbc-text-primary:#E5E7EB; --cbc-text-secondary:#9CA3AF; --cbc-text-muted:#8A93A3;
+  --cbc-border:#374151; --cbc-border-strong:#4B5563;
+  --cbc-success-bg:rgba(74,222,128,.12); --cbc-success-border:rgba(74,222,128,.32);
+  --cbc-danger-bg:rgba(248,113,113,.12); --cbc-danger-border:rgba(248,113,113,.32);
+  --cbc-warning-bg:rgba(251,191,36,.13); --cbc-warning-border:rgba(251,191,36,.34);
+  --cbc-info-bg:rgba(96,165,250,.12);    --cbc-info-border:rgba(96,165,250,.32);
+  --cbc-shadow:0 1px 6px rgba(0,0,0,.5); --cbc-shadow-xl:0 18px 50px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--cbc-bg);color:var(--cbc-text-primary);font-family:var(--sans);font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:none}
+button:focus-visible,summary:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cbc-info);outline-offset:2px}
+
+/* barra do protótipo */
+.proto-bar{position:sticky;top:0;z-index:40;background:var(--cbc-navy);color:#fff;border-bottom:3px solid var(--cbc-gold)}
+.proto-inner{max-width:1860px;margin:0 auto;padding:8px 22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.proto-title{font-family:var(--serif);font-size:18px;font-weight:700;white-space:nowrap}
+.proto-title small{display:block;font-family:var(--sans);font-size:9.5px;font-weight:400;letter-spacing:.15em;text-transform:uppercase;opacity:.72}
+.grp{display:flex;align-items:center;gap:7px}
+.grp .cap{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.6}
+.switch{display:flex;gap:3px;background:rgba(255,255,255,.10);padding:3px;border-radius:999px}
+.switch button{padding:5px 13px;border-radius:999px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,.78);transition:150ms ease}
+.switch button:hover{color:#fff;background:rgba(255,255,255,.10)}
+.switch button[aria-pressed="true"]{background:var(--cbc-gold);color:var(--cbc-navy-dark)}
+.switch.sec button[aria-pressed="true"]{background:#fff;color:var(--cbc-navy)}
+.proto-bar select{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:7px;padding:5px 8px;font:inherit;font-size:11.5px}
+.proto-bar select option{color:#111}
+.theme-btn{border:1px solid rgba(255,255,255,.32);border-radius:999px;padding:5px 12px;font-size:11.5px;font-weight:600}
+.theme-btn:hover{background:rgba(255,255,255,.12)}
+.proto-note{background:var(--cbc-bg-subtle);border-bottom:1px solid var(--cbc-border)}
+.proto-note div{max-width:1860px;margin:0 auto;padding:7px 22px;font-size:11.5px;color:var(--cbc-text-secondary)}
+.proto-note b{color:var(--cbc-text-primary)}
+.stage{max-width:1860px;margin:0 auto;padding:16px 22px 60px}
+.view[hidden]{display:none}
+
+/* peças */
+.card{background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:var(--cbc-radius);box-shadow:var(--cbc-shadow);overflow:hidden}
+.card-top{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--cbc-border);flex-wrap:wrap}
+.sec-title{font-family:var(--serif);font-size:19px;font-weight:700}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--cbc-text-muted)}
+.muted{color:var(--cbc-text-muted)}
+.right{margin-left:auto}
+.btn{border:1px solid var(--cbc-border-strong);border-radius:7px;padding:5px 11px;font-size:12.5px;font-weight:700;transition:150ms ease;white-space:nowrap}
+.btn:hover{border-color:var(--cbc-navy);background:var(--cbc-bg-subtle)}
+.btn-primary{background:var(--cbc-navy);color:#fff;border-color:var(--cbc-navy)}
+.btn-primary:hover{background:var(--cbc-navy-light);color:#fff}
+.btn-gold{background:var(--cbc-gold);color:var(--cbc-navy-dark);border-color:var(--cbc-gold-dark)}
+.btn-gold:hover{background:var(--cbc-gold-dark);color:#fff}
+.btn-danger{border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+.btn-danger:hover{background:var(--cbc-danger-bg);border-color:var(--cbc-danger)}
+.btn-sm{padding:4px 9px;font-size:11.5px}
+.btn:disabled{opacity:.45;cursor:default}
+
+.scoreboard{display:grid;gap:10px;grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:14px}
+.kpi{background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:var(--cbc-radius);padding:10px 13px;box-shadow:var(--cbc-shadow)}
+.kpi .lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--cbc-text-muted);margin-bottom:2px}
+.kpi .val{display:block;font-family:var(--serif);font-size:30px;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi .val u{font-family:var(--sans);font-size:14px;font-weight:600;text-decoration:none}
+.kpi .sub{display:block;font-size:11.5px;color:var(--cbc-text-secondary);margin-top:3px;line-height:1.3}
+.kpi.is-alert .lbl,.kpi.is-alert .val{color:var(--cbc-danger)}
+.kpi.is-warn .lbl,.kpi.is-warn .val{color:var(--cbc-warning)}
+.kpi.is-ok .val{color:var(--cbc-success)}
+.kpi.is-gold .val{color:var(--cbc-gold-text)}
+
+/* filtros */
+.filtros{display:flex;gap:8px;align-items:center;padding:9px 14px;border-bottom:1px solid var(--cbc-border);background:var(--cbc-bg-subtle);flex-wrap:wrap}
+.filtros input,.filtros select{padding:5px 9px;border:1px solid var(--cbc-border-strong);border-radius:7px;background:var(--cbc-bg-card);color:var(--cbc-text-primary);font:inherit;font-size:12px}
+.filtros input{min-width:190px}
+
+/* fila */
+.qg-head{display:flex;align-items:center;gap:9px;padding:9px 14px;background:var(--cbc-bg-subtle);border-top:1px solid var(--cbc-border)}
+.qg-head .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.qg-head h3{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.qg-head .why{font-size:11.5px;color:var(--cbc-text-muted)}
+.qg-head .count{margin-left:auto;font-size:12px;font-weight:700;color:var(--cbc-text-muted);font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.3fr) 62px 112px auto;gap:12px;align-items:center;padding:8px 14px;border-top:1px solid var(--cbc-border);cursor:pointer;transition:background 140ms ease}
+.row:hover{background:var(--cbc-bg-subtle)}
+.row.done{opacity:.5}
+.row.risco{background:var(--cbc-warning-bg)}
+.name-line{display:flex;align-items:center;gap:6px;min-width:0}
+.name{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;border:1px solid var(--cbc-border-strong);color:var(--cbc-text-secondary);white-space:nowrap;flex:none}
+.tag.resort{background:var(--cbc-info-bg);border-color:var(--cbc-info-border);color:var(--cbc-info)}
+.tag.none{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+.tag.gap{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+.tag.ok{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
+.tag.hot{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+.sub2{font-size:11.5px;color:var(--cbc-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score{font-family:var(--serif);font-size:19px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;cursor:help}
+.score small{display:block;font-family:var(--sans);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--cbc-text-muted)}
+.score.alto{color:var(--cbc-gold-text)}
+.score.vazio{font-size:14px;color:var(--cbc-text-muted)}
+.wait{font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.wait small{display:block;font-weight:400;font-size:10.5px;color:var(--cbc-text-muted)}
+.wait.late{color:var(--cbc-danger)}
+.wait.amb{color:var(--cbc-warning)}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.legend{font-size:11px;color:var(--cbc-text-muted);padding:8px 14px;border-top:1px solid var(--cbc-border);background:var(--cbc-bg-subtle)}
+.estado-vazio{padding:34px 20px;text-align:center;color:var(--cbc-text-muted)}
+.estado-vazio strong{display:block;font-family:var(--serif);font-size:22px;color:var(--cbc-text-primary);margin-bottom:5px}
+
+/* alerta de sistema */
+.alerta{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:var(--cbc-radius);margin-bottom:14px;font-size:12.5px;border:1px solid}
+.alerta.err{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+.alerta.warn{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+.alerta b{display:block;margin-bottom:2px}
+
+/* agenda */
+.slot{display:flex;gap:8px;align-items:center;padding:6px 10px;border-top:1px solid var(--cbc-border);font-size:12.5px;min-height:33px}
+.slot .hr{font-weight:700;font-variant-numeric:tabular-nums;color:var(--cbc-text-muted);flex:none;width:40px}
+.slot .who2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;flex:1}
+.slot .st{font-size:11px;font-weight:700;flex:none;white-space:nowrap}
+.slot.free{color:var(--cbc-text-muted);cursor:pointer}
+.slot.free .who2{font-weight:400;font-style:italic}
+.slot.free:hover{background:var(--cbc-info-bg);color:var(--cbc-info)}
+.slot.ok{background:var(--cbc-success-bg);cursor:pointer} .slot.ok .st{color:var(--cbc-success)}
+.slot.miss{background:var(--cbc-danger-bg);cursor:pointer} .slot.miss .st,.slot.miss .hr{color:var(--cbc-danger)}
+.slot.moved{background:var(--cbc-warning-bg)} .slot.moved .st,.slot.moved .hr{color:var(--cbc-warning)}
+.slot.risco{background:var(--cbc-warning-bg);cursor:pointer} .slot.risco .st,.slot.risco .hr{color:var(--cbc-warning)}
+.slot.wait2{cursor:pointer} .slot.wait2 .st{color:var(--cbc-text-muted)}
+.slot.novo{background:var(--cbc-info-bg);cursor:pointer} .slot.novo .st{color:var(--cbc-info)}
+.agenda-head{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--cbc-bg-subtle);border-bottom:1px solid var(--cbc-border)}
+.avatar{width:22px;height:22px;border-radius:50%;background:var(--cbc-navy);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+:root[data-theme="dark"] .avatar{background:var(--cbc-navy-light)}
+.tgrid{display:grid;grid-template-columns:56px repeat(3,minmax(0,1fr))}
+.tgrid > *{border-top:1px solid var(--cbc-border);border-left:1px solid var(--cbc-border);min-height:32px;padding:3px 5px;display:flex;align-items:center}
+.tgrid > .thead{border-top:none;background:var(--cbc-bg-subtle);gap:6px;padding:7px 8px;font-size:12px;font-weight:700;min-height:0}
+.tgrid > .thour{border-left:none;font-size:11px;font-weight:700;color:var(--cbc-text-muted);font-variant-numeric:tabular-nums;justify-content:flex-end;background:var(--cbc-bg-subtle)}
+.tgrid > .tcell{cursor:pointer}
+.tgrid > .tcell.empty:hover{background:var(--cbc-info-bg)}
+.tgrid > .tcell.empty:hover::after{content:'agendar aqui';font-size:10.5px;font-style:italic;color:var(--cbc-info)}
+.ev{flex:1;border-radius:5px;padding:3px 7px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px;overflow:hidden}
+.ev b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev span{margin-left:auto;font-size:10.5px;white-space:nowrap}
+.ev.ok{background:var(--cbc-success-bg);border:1px solid var(--cbc-success-border);color:var(--cbc-success)}
+.ev.miss{background:var(--cbc-danger-bg);border:1px solid var(--cbc-danger-border);color:var(--cbc-danger)}
+.ev.moved{background:var(--cbc-warning-bg);border:1px solid var(--cbc-warning-border);color:var(--cbc-warning)}
+.ev.risco{background:var(--cbc-warning-bg);border:1px solid var(--cbc-warning);color:var(--cbc-warning)}
+.ev.wait2{background:var(--cbc-bg-subtle);border:1px solid var(--cbc-border-strong);color:var(--cbc-text-secondary)}
+.ev.novo{background:var(--cbc-info-bg);border:1px solid var(--cbc-info-border);color:var(--cbc-info)}
+
+.panel{padding:12px 14px}
+.metric-line{display:flex;align-items:baseline;gap:9px;padding:7px 0;border-bottom:1px dashed var(--cbc-border)}
+.metric-line:last-child{border-bottom:none}
+.metric-line .m-lbl{font-size:12.5px;color:var(--cbc-text-secondary);flex:1}
+.metric-line .m-val{font-family:var(--serif);font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-line .m-goal{font-size:11px;color:var(--cbc-text-muted);white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid var(--cbc-border-strong);white-space:nowrap}
+.chip.ok{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
+.chip.warn{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+.chip.err{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+.chip.mute{color:var(--cbc-text-muted)}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.disp{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--cbc-border)}
+.disp:last-child{border-bottom:none}
+.bar{height:6px;border-radius:99px;background:var(--cbc-border);overflow:hidden;margin-top:5px;display:flex}
+.bar i{display:block;height:100%}
+details.fold summary{list-style:none;cursor:pointer;padding:10px 14px;display:flex;align-items:center;gap:9px;font-weight:700;font-size:12.5px;border-top:1px solid var(--cbc-border)}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary::after{content:'▾';margin-left:auto;color:var(--cbc-text-muted);transition:transform 180ms ease}
+details.fold[open] summary::after{transform:rotate(180deg)}
+details.fold summary:hover{background:var(--cbc-bg-subtle)}
+
+table.tb{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tb th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cbc-text-muted);padding:8px 12px;background:var(--cbc-bg-subtle);border-bottom:1px solid var(--cbc-border);white-space:nowrap}
+table.tb td{padding:9px 12px;border-bottom:1px solid var(--cbc-border);vertical-align:middle}
+table.tb tr:hover td{background:var(--cbc-bg-subtle)}
+table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+
+.daytabs{display:inline-flex;gap:3px;background:var(--cbc-bg-subtle);border:1px solid var(--cbc-border);border-radius:8px;padding:3px}
+.daytabs button{font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:6px;color:var(--cbc-text-muted)}
+.daytabs button:hover{color:var(--cbc-text-primary)}
+.daytabs button[aria-pressed="true"]{background:var(--cbc-navy);color:#fff}
+
+/* arranjos */
+#m1 .layout{display:grid;grid-template-columns:minmax(0,1fr) 328px;gap:14px;align-items:start}
+#m2 .layout{display:grid;grid-template-columns:minmax(0,1fr) 690px;gap:14px;align-items:start}
+#m3 .now-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+#m3 .now-card{background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:var(--cbc-radius);padding:13px;box-shadow:var(--cbc-shadow);display:flex;flex-direction:column;gap:7px}
+#m3 .now-card.alert{border-color:var(--cbc-danger-border);background:var(--cbc-danger-bg)}
+#m3 .now-card.alert .eyebrow{color:var(--cbc-danger)}
+#m3 .now-card.urgent .eyebrow{color:var(--cbc-warning)}
+#m3 .now-card .big{font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#m3 .split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;align-items:start}
+
+
+/* 4 · foco: um lead por vez, sem lista */
+#m4 .foco{max-width:1060px;margin:0 auto}
+#m4 .trilha{display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:12px;color:var(--cbc-text-muted)}
+#m4 .trilha .prog{flex:1;height:4px;border-radius:99px;background:var(--cbc-border);overflow:hidden}
+#m4 .trilha .prog i{display:block;height:100%;background:var(--cbc-gold)}
+#m4 .lead-head{padding:18px 22px 14px;border-bottom:1px solid var(--cbc-border)}
+#m4 .lead-head h2{font-family:var(--serif);font-size:34px;font-weight:700;line-height:1.05;letter-spacing:-.01em;text-wrap:balance}
+#m4 .porque{margin-top:8px;font-size:13px;color:var(--cbc-text-secondary);max-width:70ch}
+#m4 .porque b{color:var(--cbc-danger)}
+#m4 .duas{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr)}
+#m4 .duas > div + div{border-left:1px solid var(--cbc-border)}
+#m4 .conv{padding:14px 18px;display:flex;flex-direction:column;gap:8px;max-height:330px;overflow-y:auto;background:var(--cbc-bg-subtle)}
+#m4 .lado{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+#m4 .dado{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--cbc-border)}
+#m4 .dado span:first-child{color:var(--cbc-text-muted)}
+#m4 .dado span:last-child{font-weight:700}
+#m4 .rapidos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+#m4 .rapidos button{border:1px solid var(--cbc-border-strong);border-radius:9px;padding:9px 4px;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px;align-items:center;transition:150ms cubic-bezier(.16,1,.3,1)}
+#m4 .rapidos button small{font-size:10px;font-weight:400;color:var(--cbc-text-muted)}
+#m4 .rapidos button:hover{background:var(--cbc-gold);border-color:var(--cbc-gold-dark);color:var(--cbc-navy-dark);transform:translateY(-1px)}
+#m4 .rapidos button:hover small{color:var(--cbc-navy-dark)}
+#m4 .barra-acao{display:flex;gap:9px;align-items:center;padding:13px 22px;border-top:1px solid var(--cbc-border);background:var(--cbc-bg-subtle)}
+#m4 .atalhos{display:flex;gap:12px;font-size:11px;color:var(--cbc-text-muted)}
+#m4 .atalhos b{font-family:var(--sans);font-weight:700;border:1px solid var(--cbc-border-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;margin-right:3px}
+
+/* 5 · linha do dia: cronológico, com o agora marcado */
+#m5 .resumo{display:flex;gap:26px;align-items:baseline;padding:12px 16px;border:1px solid var(--cbc-border);border-radius:var(--cbc-radius);background:var(--cbc-bg-card);box-shadow:var(--cbc-shadow);margin-bottom:14px;flex-wrap:wrap}
+#m5 .resumo b{font-family:var(--serif);font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;margin-right:5px}
+#m5 .resumo span{font-size:12.5px;color:var(--cbc-text-secondary)}
+#m5 .tl{display:grid;grid-template-columns:64px minmax(0,1fr)}
+#m5 .tl-hora{font-size:11px;font-weight:700;color:var(--cbc-text-muted);font-variant-numeric:tabular-nums;padding:9px 10px 0 0;text-align:right;border-right:1px solid var(--cbc-border)}
+#m5 .tl-faixa{padding:6px 12px;border-right:1px solid transparent;border-bottom:1px dashed var(--cbc-border);display:flex;gap:8px;flex-wrap:wrap;min-height:44px;align-items:center}
+#m5 .tl-hora.passou,#m5 .tl-faixa.passou{opacity:.62}
+#m5 .agora{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:3px 12px;color:var(--cbc-danger);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+#m5 .agora::after{content:'';flex:1;height:2px;background:var(--cbc-danger);border-radius:2px}
+#m5 .bloco{border:1px solid var(--cbc-border-strong);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;display:flex;gap:8px;align-items:center;background:var(--cbc-bg-card);cursor:pointer;min-width:210px}
+#m5 .bloco small{font-weight:400;color:var(--cbc-text-muted);font-size:10.5px}
+#m5 .bloco.ok{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
+#m5 .bloco.miss{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+#m5 .bloco.risco,#m5 .bloco.moved{background:var(--cbc-warning-bg);border-color:var(--cbc-warning-border);color:var(--cbc-warning)}
+#m5 .bloco.novo{background:var(--cbc-info-bg);border-color:var(--cbc-info-border);color:var(--cbc-info)}
+#m5 .encaixe{border:1px dashed var(--cbc-border-strong);border-radius:8px;padding:6px 11px;font-size:11.5px;color:var(--cbc-text-muted);cursor:pointer;background:none;transition:150ms cubic-bezier(.16,1,.3,1)}
+#m5 .encaixe:hover{border-color:var(--cbc-info);color:var(--cbc-info);background:var(--cbc-info-bg)}
+#m5 .encaixe b{color:var(--cbc-text-primary);font-weight:700}
+#m5 .encaixe:hover b{color:var(--cbc-info)}
+
+/* 6 · mesa densa: tudo visível, tipografia miúda */
+#m6 .cols{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr) 288px;gap:12px;align-items:start}
+#m6 .row{grid-template-columns:minmax(0,1.5fr) 112px 52px 96px auto;padding:5px 11px;font-size:12px;gap:9px}
+#m6 .row .name{font-size:12.5px}
+#m6 .row .score{font-size:15px}
+#m6 .row .wait{font-size:12px}
+#m6 .porq{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cbc-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#m6 .porq.q1{color:var(--cbc-danger)} #m6 .porq.q2{color:var(--cbc-warning)} #m6 .porq.q3{color:var(--cbc-gold-text)}
+#m6 .tgrid{grid-template-columns:48px repeat(3,minmax(0,1fr))}
+#m6 .tgrid > *{min-height:27px;padding:2px 4px}
+#m6 .ev{font-size:10.5px;padding:2px 5px}
+#m6 .mini{font-size:11.5px}
+#m6 .mini .metric-line{padding:5px 0}
+#m6 .mini .metric-line .m-val{font-size:16px}
+
+/* 7 · conversa no centro */
+#m7 .ibx{display:grid;grid-template-columns:312px minmax(0,1fr) 322px;height:calc(100dvh - 208px);min-height:540px}
+#m7 .ibx > div{min-width:0;display:flex;flex-direction:column}
+#m7 .ibx > div + div{border-left:1px solid var(--cbc-border)}
+#m7 .lista{overflow-y:auto}
+#m7 .item{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--cbc-border);cursor:pointer;align-items:flex-start}
+#m7 .item:hover{background:var(--cbc-bg-subtle)}
+#m7 .item[aria-current="true"]{background:var(--cbc-info-bg)}
+#m7 .item .ini{width:30px;height:30px;border-radius:50%;background:var(--cbc-navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+:root[data-theme="dark"] #m7 .item .ini{background:var(--cbc-navy-light)}
+#m7 .item .txt{flex:1;min-width:0}
+#m7 .item .l1{display:flex;gap:6px;align-items:baseline}
+#m7 .item .l1 b{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#m7 .item .l1 em{margin-left:auto;font-style:normal;font-size:10.5px;color:var(--cbc-text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+#m7 .item .l2{font-size:11px;color:var(--cbc-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+#m7 .conv{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:9px;background:var(--cbc-bg-subtle)}
+#m7 .conv .msg,#m4 .conv .msg{max-width:min(78%,66ch)}
+#m7 .conv-top{padding:12px 18px;border-bottom:1px solid var(--cbc-border);display:flex;gap:10px;align-items:center}
+#m7 .conv-top h3{font-family:var(--serif);font-size:20px;font-weight:700}
+#m7 .conv-foot{padding:11px 18px;border-top:1px solid var(--cbc-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--cbc-bg-card)}
+#m7 .ctx{overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px}
+
+/* kanban */
+.kb-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.kb-tabs button{border:1px solid var(--cbc-border-strong);border-radius:999px;padding:5px 13px;font-size:12px;font-weight:700;color:var(--cbc-text-secondary)}
+.kb-tabs button[aria-pressed="true"]{background:var(--cbc-navy);border-color:var(--cbc-navy);color:#fff}
+.kb-tabs button b{font-variant-numeric:tabular-nums;opacity:.7;margin-left:4px}
+.kanban{display:flex;gap:12px;overflow-x:auto;padding:14px;align-items:flex-start}
+.kb-col{flex:0 0 250px;background:var(--cbc-bg-subtle);border:1px solid var(--cbc-border);border-radius:10px;display:flex;flex-direction:column;max-height:540px}
+.kb-col.nova{border-style:dashed;border-color:var(--cbc-info-border)}
+.kb-col.drop{border-color:var(--cbc-info);background:var(--cbc-info-bg)}
+.kb-col h4{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:9px 11px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--cbc-border)}
+.kb-col h4 em{font-style:normal;margin-left:auto;font-size:11px;color:var(--cbc-text-muted);font-variant-numeric:tabular-nums}
+.kb-col .kb-list{overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:7px}
+.kb-card{background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:8px;padding:8px 9px;cursor:grab;box-shadow:var(--cbc-shadow);transition:120ms ease}
+.kb-card:hover{border-color:var(--cbc-navy);transform:translateY(-1px)}
+.kb-card.dragging{opacity:.4}
+.kb-card .kc-name{font-weight:700;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb-card .kc-meta{font-size:10.5px;color:var(--cbc-text-muted);margin-top:2px}
+.kb-card .kc-foot{display:flex;gap:5px;margin-top:6px;align-items:center}
+.kb-empty{font-size:11.5px;color:var(--cbc-text-muted);font-style:italic;padding:10px 4px}
+
+/* gaveta */
+.scrim{position:fixed;inset:0;background:rgba(15,32,53,.45);z-index:60;opacity:0;pointer-events:none;transition:opacity 200ms ease}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:94vw;background:var(--cbc-bg-card);border-left:1px solid var(--cbc-border);box-shadow:var(--cbc-shadow-xl);z-index:61;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 240ms cubic-bezier(.16,1,.3,1)}
+.drawer.on{transform:none}
+.dr-head{padding:13px 16px;border-bottom:1px solid var(--cbc-border);display:flex;gap:10px;align-items:flex-start}
+.dr-head h3{font-family:var(--serif);font-size:20px;font-weight:700;line-height:1.15}
+.dr-head .meta{font-size:11.5px;color:var(--cbc-text-muted);margin-top:3px}
+.dr-close{font-size:19px;line-height:1;color:var(--cbc-text-muted);padding:2px 7px;border-radius:6px}
+.dr-close:hover{background:var(--cbc-bg-subtle);color:var(--cbc-danger)}
+.dr-warn{font-size:11px;color:var(--cbc-warning);background:var(--cbc-warning-bg);border-bottom:1px solid var(--cbc-warning-border);padding:7px 16px}
+.dr-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px;background:var(--cbc-bg-subtle)}
+.msg{max-width:82%;padding:7px 11px;border-radius:12px;font-size:12.5px;line-height:1.42;box-shadow:var(--cbc-shadow);white-space:pre-wrap}
+.msg .when{display:block;font-size:10px;color:var(--cbc-text-muted);margin-top:4px}
+.msg.in{align-self:flex-start;background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-bottom-left-radius:4px}
+.msg.out{align-self:flex-end;background:var(--cbc-success-bg);border:1px solid var(--cbc-success-border);border-bottom-right-radius:4px}
+.msg .autor{display:block;font-size:10px;font-weight:700;color:var(--cbc-text-muted);margin-bottom:2px}
+.gap-note{align-self:center;font-size:11px;font-weight:700;color:var(--cbc-danger);background:var(--cbc-danger-bg);border:1px solid var(--cbc-danger-border);border-radius:99px;padding:3px 12px;text-align:center}
+.dr-foot{padding:11px 16px;border-top:1px solid var(--cbc-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* modal */
+.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-48%);width:680px;max-width:94vw;max-height:88vh;overflow:auto;background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:14px;box-shadow:var(--cbc-shadow-xl);z-index:62;opacity:0;pointer-events:none;transition:180ms ease}
+.modal.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}
+.md-head{padding:14px 18px;border-bottom:1px solid var(--cbc-border);display:flex;align-items:center;gap:10px}
+.md-head h3{font-family:var(--serif);font-size:20px;font-weight:700}
+.md-body{padding:16px 18px}
+.md-foot{padding:12px 18px;border-top:1px solid var(--cbc-border);display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cbc-text-muted);margin-bottom:4px}
+.field select,.field input,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--cbc-border-strong);border-radius:8px;background:var(--cbc-bg-card);color:var(--cbc-text-primary);font:inherit;font-size:13px}
+.field textarea{min-height:88px;resize:vertical;line-height:1.45}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.slotpick{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:4px}
+.slotpick button{border:1px solid var(--cbc-border-strong);border-radius:8px;padding:8px 4px;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;gap:2px;align-items:center}
+.slotpick button small{font-size:10px;font-weight:400;color:var(--cbc-text-muted)}
+.slotpick button:hover{border-color:var(--cbc-navy);background:var(--cbc-bg-subtle)}
+.slotpick button[aria-pressed="true"]{background:var(--cbc-navy);border-color:var(--cbc-navy);color:#fff}
+.slotpick button[aria-pressed="true"] small{color:rgba(255,255,255,.8)}
+.hint{font-size:11.5px;color:var(--cbc-text-muted);margin-top:6px}
+.hint b{color:var(--cbc-gold-text)}
+.pos-sim{border:1px solid var(--cbc-gold-dark);background:var(--cbc-warning-bg);border-radius:10px;padding:12px;margin-top:12px}
+.pos-sim .eyebrow{color:var(--cbc-gold-text)}
+
+.toasts{position:fixed;right:18px;bottom:18px;z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.toast{background:var(--cbc-navy);color:#fff;border-radius:10px;padding:10px 14px;font-size:12.5px;font-weight:600;box-shadow:var(--cbc-shadow-xl);max-width:420px;animation:tin .25s ease both}
+.toast.ok{background:var(--cbc-success);color:#04250f}
+.toast.warn{background:var(--cbc-warning);color:#2a1a02}
+.toast.err{background:var(--cbc-danger);color:#fff}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="proto-bar">
+  <div class="proto-inner">
+    <div class="proto-title">Aba SDR<small>protótipo navegável</small></div>
+    <div class="grp"><span class="cap">Arranjo</span>
+      <div class="switch" role="group" aria-label="Arranjo da tela principal">
+        <button type="button" data-go="m1" aria-pressed="true">1 · Fila em foco</button>
+        <button type="button" data-go="m2" aria-pressed="false">2 · Mesa de operação</button>
+        <button type="button" data-go="m3" aria-pressed="false">3 · Briefing do dia</button>
+        <button type="button" data-go="m4" aria-pressed="false">4 · Foco</button>
+        <button type="button" data-go="m5" aria-pressed="false">5 · Linha do dia</button>
+        <button type="button" data-go="m6" aria-pressed="false">6 · Mesa densa</button>
+        <button type="button" data-go="m7" aria-pressed="false">7 · Conversa no centro</button>
+      </div>
+    </div>
+    <div class="grp"><span class="cap">Seções</span>
+      <div class="switch sec" role="group" aria-label="Outras seções">
+        <button type="button" data-go="funil" aria-pressed="false">Funil</button>
+        <button type="button" data-go="disparos" aria-pressed="false">Disparos</button>
+        <button type="button" data-go="templates" aria-pressed="false">Templates</button>
+        <button type="button" data-go="config" aria-pressed="false">Configuração</button>
+      </div>
+    </div>
+    <div class="grp right"><span class="cap">Simular</span>
+      <select id="sim">
+        <option value="normal">tudo funcionando</option>
+        <option value="vazia">fila zerada</option>
+        <option value="google">Google Agenda fora do ar</option>
+        <option value="token">token do Google expirado</option>
+        <option value="kommo">Kommo sem resposta</option>
+      </select>
+    </div>
+    <button type="button" class="theme-btn" id="theme">Tema escuro</button>
+  </div>
+</div>
+<div class="proto-note"><div>
+  <b>Dados reais</b> de 03/08/2026. <b>Funciona:</b> clicar no nome abre a conversa · clicar numa call abre o detalhe com remarcar, cancelar e resultado ·
+  <b>Agendar</b> escolhe horário livre e pede o valor depois do sim · <b>Descartar</b> exige motivo · no Funil dá para arrastar · Disparos, Templates e Configuração são telas de verdade.
+</div></div>
+
+<main class="stage">
+  <section class="view" id="m1"></section>
+  <section class="view" id="m2" hidden></section>
+  <section class="view" id="m3" hidden></section>
+  <section class="view" id="m4" hidden></section>
+  <section class="view" id="m5" hidden></section>
+  <section class="view" id="m6" hidden></section>
+  <section class="view" id="m7" hidden></section>
+  <section class="view" id="funil" hidden></section>
+  <section class="view" id="disparos" hidden></section>
+  <section class="view" id="templates" hidden></section>
+  <section class="view" id="config" hidden></section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dr-nome">
+  <div class="dr-head">
+    <div style="flex:1;min-width:0"><h3 id="dr-nome">—</h3><div class="meta" id="dr-meta"></div></div>
+    <button class="dr-close" id="dr-close" aria-label="Fechar">✕</button>
+  </div>
+  <div class="dr-warn" id="dr-warn"></div>
+  <div class="dr-msgs" id="dr-msgs"></div>
+  <div class="dr-foot">
+    <button class="btn btn-gold" id="dr-agendar">Agendar videochamada</button>
+    <button class="btn btn-primary" id="dr-kommo">Responder no Kommo</button>
+    <button class="btn btn-danger" id="dr-descartar">Descartar</button>
+  </div>
+</aside>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="md-titulo">
+  <div class="md-head"><h3 id="md-titulo">—</h3><button class="dr-close right" id="md-close" aria-label="Fechar">✕</button></div>
+  <div class="md-body" id="md-body"></div>
+  <div class="md-foot" id="md-foot"></div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* =========================================================================
+   DADOS. Tudo veio do banco em 03/08/2026, menos o texto das conversas,
+   que vem do acervo de transcrições reais (o espelho ainda não existe).
+   ========================================================================= */
+const KOMMO = 'https://advocaciacbc.kommo.com/leads/detail/';
+const VENDS = ['Mariana','Beatriz','Emerson'];
+const HORAS = ['09:00','09:30','10:00','10:30','11:00','11:30','13:30','14:00','14:30','15:00','15:30','16:00','16:30'];
+
+let CONFIG = {
+  grade:{ini:'08:00', fim:'17:00', dias:'segunda a sexta'},
+  duracao:30, buffer:0, antecedencia:60, horizonte:5,
+  slaMeta:30, teto:300, cooldown:30, maxReag:2, seguraAte:'17:00',
+  pesos:{valor:40, resort:35, quitado:25},
+  pisoValor:40000,
+  resortsPrioritarios:['Hot Beach You','Hard Rock','Barretos Country','Ondas Praia','Solar das Águas'],
+  vendedores:[
+    {nome:'Mariana', email:'marianamaciel@advocaciacbc.com', ativo:true, topo:true},
+    {nome:'Beatriz', email:'beatriz@advocaciacbc.com', ativo:true, topo:false},
+    {nome:'Emerson', email:'emerson@advocaciacbc.com', ativo:true, topo:false}
+  ]
+};
+
+const CONVERSAS = {
+  diego: {
+    fonte:'Conversa real do acervo (24/12/2025 a 29/12/2025), desfecho: nunca agendou.',
+    msgs:[
+      {d:'in', t:'Olá! Ví o anúncio e gostaria de conversar sobre o cancelamento de cota de resort', q:'24/12, 01:38'},
+      {g:'5 dias e 6 horas sem resposta'},
+      {d:'out', a:'Mariana M.', t:'Olá, Diego. Sou a Mariana, advogada especialista em distrato das cotas, como posso te ajudar? Se preferir mande um áudio explicativo!', q:'29/12, 08:13'},
+      {d:'in', t:'[Áudio]', q:'29/12, 11:51'},
+      {d:'out', a:'Mizael', t:'Qual o nome do Resort em olímpia?', q:'29/12, 11:53'},
+      {d:'in', t:'Solar das Águas', q:'29/12, 11:56'},
+      {d:'out', a:'Mariana M.', t:'[Áudio]', q:'29/12, 12:32'},
+      {d:'in', t:'Entendi', q:'29/12, 13:11'},
+      {d:'in', t:'Tá bom então', q:'29/12, 13:11'},
+      {d:'in', t:'Obrigado por enquanto 👍🏼', q:'29/12, 13:11'},
+      {d:'out', a:'Mizael', t:'Desejo um próspero Ano Novo.', q:'29/12, 13:12'},
+      {d:'in', t:'Obrigado e igualmente', q:'29/12, 13:13'},
+      {g:'a conversa terminou aqui: nunca houve convite para videochamada'}
+    ]},
+  pedro: {
+    fonte:'Conversa real do acervo (16/06/2025), desfecho: agendou e fechou contrato.',
+    msgs:[
+      {d:'in', t:'Bom dia', q:'16/06, 09:21'},
+      {d:'out', a:'Ana', t:'Olá, Pedro. Sou a Ana, responsável pelo distrato das cotas, como posso te ajudar? Se preferir mande um áudio explicativo!', q:'16/06, 10:25'},
+      {d:'in', t:'[Áudio]', q:'16/06, 10:48'},
+      {d:'out', a:'Mariana M.', t:'Não tenho disponibilidade nessa sexta. Teria algum outro dia para que possa realizar a videochamada?', q:'16/06, 11:28'},
+      {d:'in', t:'Quarta ou quinta?', q:'16/06, 13:21'},
+      {d:'out', a:'Ana', t:'A videochamada leva 10 minutos, não tem custo nenhum e já explicamos como funciona o processo, encargos e etc.', q:'16/06, 13:35'},
+      {d:'in', t:'Teria q ser à tarde', q:'16/06, 13:36'},
+      {d:'out', a:'Mariana M.', t:'Na quinta às 16h00, pode ser?', q:'16/06, 13:37'},
+      {d:'in', t:'Pode sim', q:'16/06, 13:37'},
+      {d:'out', a:'Mariana M.', t:'Ok, agendado.', q:'16/06, 13:37'},
+      {g:'call marcada 3 dias depois · compareceu · fechou contrato'}
+    ]},
+  curto: {
+    fonte:'Conversa real do acervo, desfecho: nunca agendou.',
+    msgs:[
+      {d:'in', t:'Boa tarde, gostaria de saber sobre o cancelamento da minha cota', q:'01/08, 20:09'},
+      {g:'chegou fora do expediente · ninguém respondeu até agora'}
+    ]},
+  remarca: {
+    fonte:'Exemplo do disparo de confirmação da manhã.',
+    msgs:[
+      {d:'out', a:'template confirmacao_call_v1', t:'Bom dia! Sua videochamada com a Advocacia CBC é hoje às 10:30. Confirma para mim?\n\n[Confirmo]  [Preciso remarcar]', q:'hoje, 08:00'},
+      {d:'in', t:'Preciso remarcar', q:'hoje, 09:12'},
+      {g:'horário segurado até as 17h · depois disso é liberado sozinho'}
+    ]}
+};
+
+let LEADS = [
+  {id:'p1', nome:'Flavio Alencar', kommo:22301188, dono:'SDR', grupo:'call', hora:'15:00', vend:'Beatriz', conf:false, conversa:'curto', sub:'call hoje às 15:00 com a Beatriz'},
+  {id:'p2', nome:'Ariberto', kommo:22299410, dono:'SDR', grupo:'call', hora:'15:30', vend:'Mariana', conf:false, conversa:'curto', sub:'call hoje às 15:30 com a Mariana'},
+  {id:'p3', nome:'Ivan Lima', kommo:22298844, dono:'SDR', grupo:'call', hora:'16:00', vend:'Mariana', conf:false, conversa:'curto', sub:'call hoje às 16:00 com a Mariana'},
+  {id:'p4', nome:'(sem lead casado)', kommo:null, tel:'3591063317', dono:'SDR', grupo:'call', hora:'16:30', vend:'Mariana', conf:false, semLead:true, sub:'evento na agenda sem lead correspondente no Kommo'},
+  {id:'r1', nome:'Rosi', kommo:22288104, dono:'SDR', grupo:'risco', hora:'10:30', vend:'Mariana', conversa:'remarca', resort:'Olímpia Park', sub:'pediu para remarcar às 09:12'},
+
+  {id:'e1', nome:'Eduardo Paleari', kommo:22337966, dono:'SDR', grupo:'espera', horas:30, desde:'02/08 às 09:02', conversa:'curto'},
+  {id:'e2', nome:'Edvaldo Cassimiro de Brito Junior', kommo:22336630, dono:'SDR', grupo:'espera', horas:31, desde:'02/08 às 08:17', conversa:'curto'},
+  {id:'e3', nome:'Andréa', kommo:22335704, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:36', conversa:'curto'},
+  {id:'e7', nome:'paodeliciasdotrigo', kommo:22335776, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:40', conversa:'curto'},
+  {id:'e4', nome:'Gallo', kommo:22324908, dono:'SDR', grupo:'espera', horas:41, desde:'01/08 às 21:58, fora do expediente', conversa:'curto'},
+  {id:'e5', nome:'Alvaro Abreu', kommo:22322366, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:44, fora do expediente', conversa:'curto'},
+  {id:'e6', nome:'Euripedes D. H. Pereira', kommo:22321022, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:09, fora do expediente', conversa:'curto'},
+  {id:'e8', nome:'sillpassos', kommo:22318812, dono:'SDR', grupo:'espera', horas:44, desde:'01/08 às 19:14, fora do expediente', conversa:'curto'},
+
+  {id:'s1', nome:'Diego', kommo:21998412, dono:'SDR', grupo:'semconvite', resort:'Solar das Águas', quitado:true, msgs:11, dias:7, conversa:'diego'},
+  {id:'s2', nome:'Pedro (Thermas São Pedro)', kommo:21884120, dono:'SDR', grupo:'semconvite', resort:'Thermas São Pedro', valor:61000, msgs:14, dias:4, conversa:'pedro'},
+
+  {id:'n1', nome:'Carla Cristina', kommo:22190044, dono:'SDR', grupo:'falta', quando:'30/07', vend:'Emerson', dias:4, conversa:'curto'},
+  {id:'n2', nome:'Carlos Buosi', kommo:22178820, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'},
+  {id:'n3', nome:'Bruno Duarte', kommo:22177566, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'}
+];
+
+const GRUPOS = [
+  {k:'risco', cor:'var(--cbc-danger)', titulo:'Pediu para remarcar', why:'o horário fica segurado até as 17:00; depois disso é liberado sozinho'},
+  {k:'call', cor:'var(--cbc-warning)', titulo:'Calls de hoje à tarde', why:'nenhuma confirmou; quem fica calado antes da call falta 33,9% das vezes'},
+  {k:'espera', cor:'var(--cbc-danger)', titulo:'Esperando a primeira resposta', why:'meta é o mesmo dia; passando de 12h o agendamento cai de ~32% para 21,8%'},
+  {k:'semconvite', cor:'var(--cbc-gold)', titulo:'Conversou e nunca foi convidado', why:'o maior vazamento: 2.560 conversas assim; quando o convite vem, 45,8% agenda'},
+  {k:'falta', cor:'var(--cbc-text-muted)', titulo:'Faltaram e podem voltar', why:'616 pessoas e 720 faltas; 422 elegíveis para retomada'}
+];
+
+let AGENDA = {
+  '03/08':[
+    {id:'a1', h:'09:00', v:'Mariana', nome:'(sem lead casado)', st:'miss', nota:'faltou', meet:'meet.google.com/kqx-mnzp-rta'},
+    {id:'a2', h:'09:30', v:'Mariana', nome:'Jorge H. Iqueuti', st:'ok', nota:'23 min', meet:'meet.google.com/qwe-rtyu-iop'},
+    {id:'a3', h:'10:00', v:'Mariana', nome:'Cristovão', st:'ok', nota:'19 min', meet:'meet.google.com/asd-fghj-kla'},
+    {id:'a4', h:'10:00', v:'Beatriz', nome:'Guto', st:'ok', nota:'17 min, esperou 6', meet:'meet.google.com/zxc-vbnm-qwe'},
+    {id:'a5', h:'10:30', v:'Mariana', nome:'Rosi', st:'risco', nota:'pediu remarcar', lead:'r1', meet:'meet.google.com/tyu-iopa-sdf'},
+    {id:'a6', h:'11:00', v:'Emerson', nome:'Auricelia', st:'ok', nota:'20 min', meet:'meet.google.com/ghj-klzx-cvb'},
+    {id:'a7', h:'15:00', v:'Beatriz', nome:'Flavio Alencar', st:'wait2', nota:'a confirmar', lead:'p1', meet:'meet.google.com/nmq-wert-yui'},
+    {id:'a8', h:'15:30', v:'Mariana', nome:'Ariberto', st:'wait2', nota:'a confirmar', lead:'p2', meet:'meet.google.com/opa-sdfg-hjk'},
+    {id:'a9', h:'16:00', v:'Mariana', nome:'Ivan Lima', st:'wait2', nota:'a confirmar', lead:'p3', meet:'meet.google.com/lzx-cvbn-mqw'},
+    {id:'a10', h:'16:30', v:'Mariana', nome:'(sem lead casado)', st:'wait2', nota:'a confirmar', lead:'p4', meet:'meet.google.com/ert-yuio-pas'}
+  ],
+  '04/08':[
+    {id:'b1', h:'09:00', v:'Beatriz', nome:'(sem lead casado)', st:'wait2', nota:'marcada'},
+    {id:'b2', h:'10:00', v:'Emerson', nome:'José Favarao', st:'wait2', nota:'marcada'},
+    {id:'b3', h:'10:30', v:'Mariana', nome:'(sem lead casado)', st:'wait2', nota:'marcada'},
+    {id:'b4', h:'11:00', v:'Beatriz', nome:'Eduardo Brasil', st:'wait2', nota:'marcada'},
+    {id:'b5', h:'11:00', v:'Mariana', nome:'Robenita Vaz', st:'wait2', nota:'marcada'},
+    {id:'b7', h:'13:30', v:'Mariana', nome:'Celia Salamanca', st:'wait2', nota:'marcada'},
+    {id:'b8', h:'13:30', v:'Emerson', nome:'(sem lead casado)', st:'wait2', nota:'marcada'},
+    {id:'b9', h:'14:00', v:'Beatriz', nome:'Bruna Renata', st:'wait2', nota:'marcada'},
+    {id:'b10', h:'14:30', v:'Mariana', nome:'Renato Balabem', st:'wait2', nota:'marcada'},
+    {id:'b11', h:'15:00', v:'Beatriz', nome:'Rafael Palis', st:'wait2', nota:'marcada'},
+    {id:'b12', h:'15:30', v:'Mariana', nome:'Osvaldo S. Machado', st:'wait2', nota:'marcada'},
+    {id:'b13', h:'16:00', v:'Mariana', nome:'Heber', st:'wait2', nota:'marcada'},
+    {id:'b14', h:'16:30', v:'Mariana', nome:'Bunitáo Da Enseada', st:'wait2', nota:'marcada'}
+  ]
+};
+
+const FUNIS = [
+  {id:'venda', nome:'Venda', total:7983, etapas:[
+    {id:'qualif', nome:'Em qualificação', n:0, nova:true},
+    {id:'followup', nome:'Follow UP', n:4706},
+    {id:'limbo', nome:'Limbo', n:2884},
+    {id:'aguardando_h', nome:'Qualificado, aguardando horário', n:0, nova:true},
+    {id:'video', nome:'Vídeo Chamada', n:153},
+    {id:'noshow_rem', nome:'No-show a remarcar', n:0, nova:true},
+    {id:'aguard', nome:'Aguardando Resposta', n:64},
+    {id:'doc', nome:'Envio de Documentação', n:83},
+    {id:'assin', nome:'Assinatura', n:12},
+    {id:'advbox', nome:'ADVBOX', n:52}
+  ]},
+  {id:'disparo', nome:'Disparo', total:3688, etapas:[
+    {id:'lista', nome:'Lista 1', n:0},{id:'prio', nome:'Prioridade', n:5},
+    {id:'retomar', nome:'Quer retomar', n:16},{id:'duvidas', nome:'Tem dúvidas', n:0},
+    {id:'sem24', nome:'Sem resposta a 24 horas', n:3499},{id:'seminteresse', nome:'Sem interesse', n:162}
+  ]},
+  {id:'perdido', nome:'Contato Perdido', total:356, etapas:[
+    {id:'cem_pos', nome:'Cemitério pós videochamada', n:2},{id:'cem_pre', nome:'Cemitério antes da videochamada', n:3},
+    {id:'naodistrato', nome:'Não é distrato', n:76},{id:'semreceber', nome:'Não tem como receber', n:64},
+    {id:'naochamar', nome:'Não chamar novamente', n:33},{id:'limbosolar', nome:'Limbo Solar', n:47}
+  ]}
+];
+let CARDS = {
+  qualif:[], followup:[{id:'e1'},{id:'e2'},{id:'e3'},{id:'e7'},{id:'e4'},{id:'e5'},{id:'e6'},{id:'e8'}],
+  limbo:[{id:'s1'},{id:'s2'}], aguardando_h:[], video:[{id:'p1'},{id:'p2'},{id:'p3'},{id:'p4'},{id:'r1'}],
+  noshow_rem:[{id:'n1'},{id:'n2'},{id:'n3'}], aguard:[], doc:[], assin:[], advbox:[],
+  lista:[], prio:[], retomar:[], duvidas:[], sem24:[], seminteresse:[],
+  cem_pos:[], cem_pre:[], naodistrato:[], semreceber:[], naochamar:[], limbosolar:[]
+};
+
+const MOTIVOS = ['Não é distrato','Não tem como receber','Já é cliente do escritório','Advogado da parte contrária','Candidato a vaga','Fornecedor ou spam','Fechou com o concorrente','Não tem interesse'];
+
+let TEMPLATES = [
+  {nome:'confirmacao_call_v1', cat:'UTILITY', st:'aprovado', uso:'Confirmação da manhã', etapa:'Vídeo Chamada', corpo:'Bom dia, {{1}}! Sua videochamada com a Advocacia CBC é hoje às {{2}}. Confirma para mim?', botoes:'Confirmo · Preciso remarcar'},
+  {nome:'lembrete_1h_v2', cat:'UTILITY', st:'aprovado', uso:'Uma hora antes', etapa:'Vídeo Chamada', corpo:'Passando para lembrar da nossa videochamada hoje às {{1}}. Tudo certo?', botoes:'—'},
+  {nome:'link_meet_v1', cat:'UTILITY', st:'aprovado', uso:'No horário da call', etapa:'Vídeo Chamada', corpo:'Temos um atendimento agendado agora. Segue o link do Google Meet: {{1}}', botoes:'—'},
+  {nome:'reagendar_v1', cat:'UTILITY', st:'aprovado', uso:'Quando pede para remarcar', etapa:'No-show a remarcar', corpo:'Sem problema, {{1}}. Consigo {{2}} ou {{3}}. Qual prefere?', botoes:'—'},
+  {nome:'noshow_resgate_v2', cat:'UTILITY', st:'aprovado', uso:'Depois da falta', etapa:'No-show a remarcar', corpo:'Não conseguimos falar hoje. Podemos remarcar? Tenho {{1}} ou {{2}}.', botoes:'—'},
+  {nome:'retomada_frio_v2', cat:'MARKETING', st:'aprovado', uso:'Base fria', etapa:'Sem resposta a 24 horas', corpo:'Olá, {{1}}. Aqui é da Advocacia CBC. Você chegou a nos procurar sobre o cancelamento da sua cota. Ainda quer resolver isso?', botoes:'Quero retomar · Não tenho interesse'},
+  {nome:'retomada_quitado_v1', cat:'MARKETING', st:'em análise', uso:'Base fria, cota quitada', etapa:'Limbo', corpo:'Olá, {{1}}. Mesmo com a cota já quitada é possível pedir a devolução dos valores pagos. Quer entender como?', botoes:'Quero entender · Agora não'},
+  {nome:'primeiro_contato_v3', cat:'UTILITY', st:'reprovado', uso:'Fora da janela de 24h', etapa:'Follow UP', corpo:'Oi, {{1}}, tudo bem? Vi que você nos procurou. Consegue falar agora?', botoes:'—', obs:'Reprovado pela Meta: conteúdo promocional em template de utilidade'}
+];
+
+let CAMPANHAS = [
+  {id:'c1', nome:'Solar das Águas, sem resposta +60d', tpl:'retomada_frio_v2', dia:'31/07', alvo:412, enviados:300, entregues:291, respond:34, agend:9, compar:6, faltou:2, bloq:3},
+  {id:'c2', nome:'Acervo de faltas, elegíveis', tpl:'noshow_resgate_v2', dia:'28/07', alvo:422, enviados:300, entregues:288, respond:41, agend:14, compar:9, faltou:4, bloq:5},
+  {id:'c3', nome:'Hot Beach, quitados', tpl:'retomada_quitado_v1', dia:'24/07', alvo:186, enviados:186, entregues:181, respond:29, agend:11, compar:8, faltou:3, bloq:1}
+];
+const CONFIRMACOES = [
+  {nome:'Jorge H. Iqueuti', hora:'09:30', vend:'Mariana', st:'ok'},
+  {nome:'Cristovão', hora:'10:00', vend:'Mariana', st:'ok'},
+  {nome:'Guto', hora:'10:00', vend:'Beatriz', st:'ok'},
+  {nome:'Rosi', hora:'10:30', vend:'Mariana', st:'remarcar'},
+  {nome:'Auricelia', hora:'11:00', vend:'Emerson', st:'ok'},
+  {nome:'Flavio Alencar', hora:'15:00', vend:'Beatriz', st:'mudo'},
+  {nome:'Ariberto', hora:'15:30', vend:'Mariana', st:'mudo'},
+  {nome:'Ivan Lima', hora:'16:00', vend:'Mariana', st:'mudo'},
+  {nome:'(sem lead casado)', hora:'16:30', vend:'Mariana', st:'semlead'}
+];
+
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+const state = {view:'m1', dia:'03/08', funil:'venda', leadAberto:null, eventoAberto:null, escolha:null,
+  remarcandoEv:null, filtro:{q:'', grupo:'', dono:''}, sim:'normal', reagendados:3, foco:0, inbox:'s1'};
+const $ = (s,r=document)=>r.querySelector(s);
+const byId = id => LEADS.find(l=>l.id===id);
+const evById = id => [...(AGENDA['03/08']||[]),...(AGENDA['04/08']||[])].find(e=>e.id===id);
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function toast(txt, tipo=''){
+  const el=document.createElement('div'); el.className='toast '+tipo; el.textContent=txt;
+  $('#toasts').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(6px)';setTimeout(()=>el.remove(),250);},4600);
+}
+function pontuacao(l){
+  if(!l||l.semLead) return null;
+  let n=0, faltando=[];
+  if(l.valor!=null) n += l.valor>=CONFIG.pisoValor ? CONFIG.pesos.valor : Math.round(CONFIG.pesos.valor*0.4);
+  else faltando.push('valor');
+  if(l.resort) n += CONFIG.resortsPrioritarios.includes(l.resort) ? CONFIG.pesos.resort : Math.round(CONFIG.pesos.resort*0.4);
+  else faltando.push('resort');
+  if(l.quitado) n += CONFIG.pesos.quitado;
+  if(l.quente) n = Math.max(n, 90);
+  return {n, faltando};
+}
+function ocupados(dia){const m={};(AGENDA[dia]||[]).forEach(e=>{if(e.st!=='moved')m[e.v+e.h]=e;});return m;}
+function livres(dia){const oc=ocupados(dia),out=[];VENDS.forEach(v=>{const vd=CONFIG.vendedores.find(x=>x.nome===v);if(vd&&!vd.ativo)return;HORAS.forEach(h=>{if(!oc[v+h])out.push({v,h});});});return out;}
+function sugerido(dia,lead){
+  const ativos=VENDS.filter(v=>{const vd=CONFIG.vendedores.find(x=>x.nome===v);return !vd||vd.ativo;});
+  if(lead){const p=pontuacao(lead); if(lead.quente||(p&&p.n>=70)){const topo=CONFIG.vendedores.find(v=>v.topo&&v.ativo); if(topo)return topo.nome;}}
+  const c={};ativos.forEach(v=>c[v]=0);(AGENDA[dia]||[]).forEach(e=>{if(c[e.v]!==undefined&&e.st!=='moved')c[e.v]++;});
+  return ativos.sort((a,b)=>c[a]-c[b])[0];
+}
+function filtrados(){
+  const f=state.filtro;
+  return LEADS.filter(l=>{
+    if(f.grupo && l.grupo!==f.grupo) return false;
+    if(f.dono && l.dono!==f.dono) return false;
+    if(f.q && !(l.nome.toLowerCase().includes(f.q.toLowerCase()) || String(l.kommo||'').includes(f.q))) return false;
+    return true;
+  });
+}
+
+/* =========================================================================
+   FILA
+   ========================================================================= */
+function linhaFila(l){
+  const tags=[];
+  if(l.semLead) tags.push('<span class="tag gap">só telefone</span>');
+  else if(l.resort) tags.push(`<span class="tag resort">${esc(l.resort)}</span>`);
+  else tags.push('<span class="tag none">sem resort</span>');
+  if(l.quitado) tags.push('<span class="tag">quitado</span>');
+  if(l.quente) tags.push('<span class="tag hot">lead quente</span>');
+  if(l.conf&&!l.agendado) tags.push('<span class="tag ok">confirmou</span>');
+  if(l.agendado) tags.push(`<span class="tag ok">${esc(l.agendado)}</span>`);
+
+  const p=pontuacao(l);
+  const semDados = !p || p.faltando.length>=2;
+  const sc = semDados
+    ? `<div class="score vazio" title="${!p?'sem lead casado no Kommo':'sem resort e sem valor: a nota só existe depois da qualificação'}">—<small>${!p?'sem lead':'a qualificar'}</small></div>`
+    : `<div class="score ${p.n>=70?'alto':''}" title="${p.faltando.length?'falta '+p.faltando.join(' e '):'valor, resort e situação preenchidos'}">${p.n}<small>${p.faltando.length?'parcial':'nota'}</small></div>`;
+
+  let meio='',dir='',acts='';
+  if(l.grupo==='risco'){
+    meio='clicou em "preciso remarcar" no disparo das 08:00';
+    dir=`<div class="wait amb">${l.hora}<small>segurado até ${CONFIG.seguraAte}</small></div>`;
+    acts=`<button class="btn btn-gold btn-sm" data-act="remarcar" data-id="${l.id}">Remarcar</button>`;
+  } else if(l.grupo==='call'){
+    meio=esc(l.sub);
+    dir=`<div class="wait">${l.hora}<small>${esc(l.vend)}</small></div>`;
+    acts=l.semLead?`<button class="btn btn-gold btn-sm" data-act="casar" data-id="${l.id}">Casar lead</button>`
+      :(l.conf?'<button class="btn btn-sm" disabled>Confirmada</button>'
+              :`<button class="btn btn-primary btn-sm" data-act="confirmar" data-id="${l.id}">Confirmar</button>`);
+  } else if(l.grupo==='espera'){
+    meio='primeira mensagem em '+esc(l.desde);
+    dir=`<div class="wait late">${l.horas}h<small>sem resposta</small></div>`;
+    acts=`<button class="btn btn-gold btn-sm" data-act="agendar" data-id="${l.id}">Agendar</button>`;
+  } else if(l.grupo==='semconvite'){
+    meio=`${l.msgs} mensagens trocadas, ${l.dias} dias sem convite`;
+    dir=`<div class="wait">${l.dias}d<small>sem convite</small></div>`;
+    acts=`<button class="btn btn-gold btn-sm" data-act="agendar" data-id="${l.id}">Agendar</button>`;
+  } else {
+    meio=`faltou em ${esc(l.quando)} com ${esc(l.vend)}`;
+    dir=`<div class="wait">${l.dias}d<small>sem contato</small></div>`;
+    acts=`<button class="btn btn-gold btn-sm" data-act="agendar" data-id="${l.id}">Remarcar</button>`;
+  }
+  if(l.agendado) acts='<button class="btn btn-sm" disabled>Feito</button>';
+
+  return `<div class="row${l.agendado?' done':''}${l.grupo==='risco'?' risco':''}" data-open="${l.id}" tabindex="0" role="button" aria-label="Abrir conversa de ${esc(l.nome)}">
+    <div class="name-line"><span class="name">${esc(l.nome)}</span>${tags.join('')}</div>
+    <div class="sub2">${meio}</div>${sc}${dir}
+    <div class="acts">${acts}<button class="btn btn-sm" data-act="kommo" data-id="${l.id}">Kommo</button></div></div>`;
+}
+function barraFiltros(){
+  const nomes={'':'Todos os grupos',risco:'Pediu remarcar',call:'Calls de hoje',espera:'Esperando resposta',semconvite:'Sem convite',falta:'Faltaram'};
+  return `<div class="filtros">
+    <input id="f-q" placeholder="Buscar nome ou número do lead" value="${esc(state.filtro.q)}">
+    <select id="f-grupo">${Object.keys(nomes).map(g=>`<option value="${g}" ${state.filtro.grupo===g?'selected':''}>${nomes[g]}</option>`).join('')}</select>
+    <select id="f-dono">${['','SDR'].map(d=>`<option value="${d}" ${state.filtro.dono===d?'selected':''}>${d?'Dono: '+d:'Qualquer dono'}</option>`).join('')}</select>
+    <span class="right muted" style="font-size:11.5px">${filtrados().length} de ${LEADS.length} na fila</span></div>`;
+}
+function fila(){
+  if(state.sim==='vazia') return `<div class="estado-vazio"><strong>Fila zerada</strong>
+    Ninguém esperando resposta, todas as calls de hoje confirmadas e nenhum no-show para retomar.<br>
+    Boa hora para atacar a base fria: 3.688 leads no funil Disparo.
+    <div style="margin-top:12px"><button class="btn btn-gold" data-act="ir-disparos">Montar um disparo</button></div></div>`;
+  const ls=filtrados();
+  if(!ls.length) return '<div class="estado-vazio"><strong>Nada com esse filtro</strong>Tente limpar a busca ou trocar o grupo.</div>';
+  const totais={risco:1, call:4, espera:8, semconvite:'12 de 2.560', falta:422};
+  return GRUPOS.map(g=>{
+    const grupo=ls.filter(l=>l.grupo===g.k);
+    if(!grupo.length) return '';
+    return `<div class="qg-head"><span class="dot" style="background:${g.cor}"></span><h3>${g.titulo}</h3>
+      <span class="why">${g.why}</span><span class="count">${totais[g.k]}</span></div>`+grupo.map(linhaFila).join('');
+  }).join('');
+}
+
+/* =========================================================================
+   AGENDA
+   ========================================================================= */
+function trilho(dia){
+  const evs=(AGENDA[dia]||[]).slice().sort((a,b)=>a.h.localeCompare(b.h));
+  const linhas=evs.map(e=>`<div class="slot ${e.st}" data-ev="${e.id}"><span class="hr">${e.h}</span>
+    <span class="who2">${esc(e.nome)}</span><span class="st">${esc(e.nota)}</span></div>`).join('');
+  const vagos=livres(dia).slice(0,3).map(s=>`<div class="slot free" data-slot="${dia}|${s.v}|${s.h}">
+    <span class="hr">${s.h}</span><span class="who2">${s.v}, livre</span><span class="st">+</span></div>`).join('');
+  return linhas+vagos;
+}
+function grade(dia){
+  const oc=ocupados(dia), movidos=(AGENDA[dia]||[]).filter(e=>e.st==='moved');
+  let html='<div class="thead"></div>'+VENDS.map(v=>{
+    const vd=CONFIG.vendedores.find(x=>x.nome===v);
+    const n=(AGENDA[dia]||[]).filter(e=>e.v===v&&e.st!=='moved').length;
+    return `<div class="thead"><span class="avatar">${v.slice(0,2).toUpperCase()}</span>${v}${vd&&!vd.ativo?' <span class="chip mute">férias</span>':''}<span class="right muted" style="font-weight:400;font-size:11px">${n}</span></div>`;
+  }).join('');
+  HORAS.forEach(h=>{
+    html+=`<div class="thour">${h}</div>`;
+    VENDS.forEach(v=>{
+      const e=oc[v+h]||movidos.find(m=>m.v===v&&m.h===h);
+      if(e) html+=`<div class="tcell" data-ev="${e.id}"><span class="ev ${e.st}"><b>${esc(e.nome)}</b><span>${esc(e.nota)}</span></span></div>`;
+      else html+=`<div class="tcell empty" data-slot="${dia}|${v}|${h}"></div>`;
+    });
+  });
+  return html;
+}
+
+/* =========================================================================
+   BLOCOS
+   ========================================================================= */
+function kpis(){
+  const espera=LEADS.filter(l=>l.grupo==='espera'&&!l.agendado).length;
+  const semConf=LEADS.filter(l=>l.grupo==='call'&&!l.conf&&!l.semLead).length;
+  if(state.sim==='vazia') return `<div class="scoreboard">
+    <div class="kpi is-ok"><span class="lbl">Esperando resposta</span><span class="val">0</span><span class="sub">fila zerada</span></div>
+    <div class="kpi is-ok"><span class="lbl">Sem confirmação</span><span class="val">0</span><span class="sub">todas confirmadas</span></div>
+    <div class="kpi"><span class="lbl">Calls hoje</span><span class="val">9</span><span class="sub">5 feitas · 4 à tarde</span></div>
+    <div class="kpi is-gold"><span class="lbl">Base fria</span><span class="val">3.688</span><span class="sub">esperando disparo</span></div>
+    <div class="kpi is-ok"><span class="lbl">Comparecimento 30d</span><span class="val">81,1<u>%</u></span><span class="sub">163 de 201</span></div>
+    <div class="kpi is-gold"><span class="lbl">SLA mediano</span><span class="val">18,3<u> min</u></span><span class="sub">meta ${CONFIG.slaMeta} min</span></div></div>`;
+  return `<div class="scoreboard">
+    <div class="kpi is-alert"><span class="lbl">Esperando resposta</span><span class="val">${espera}</span><span class="sub">o mais antigo há 44h</span></div>
+    <div class="kpi is-warn"><span class="lbl">Nunca respondidos</span><span class="val">75</span><span class="sub">de 217 medidos desde 11/07</span></div>
+    <div class="kpi"><span class="lbl">Calls hoje</span><span class="val">9</span><span class="sub">5 feitas · 1 faltou · 4 à tarde</span></div>
+    <div class="kpi is-warn"><span class="lbl">Sem confirmação</span><span class="val">${semConf}</span><span class="sub">das calls de hoje à tarde</span></div>
+    <div class="kpi is-ok"><span class="lbl">Comparecimento 30d</span><span class="val">81,1<u>%</u></span><span class="sub">163 de 201 auditadas no Meet</span></div>
+    <div class="kpi is-gold"><span class="lbl">SLA mediano</span><span class="val">18,3<u> min</u></span><span class="sub">meta ${CONFIG.slaMeta} min · 20,9 até humano</span></div></div>`;
+}
+function alertas(){
+  if(state.sim==='google') return '<div class="alerta err"><span>⚠</span><div><b>O Google Agenda não está respondendo.</b> A tela mostra o último retrato conhecido, de 4 minutos atrás, e <b>agendar está bloqueado</b>: oferecer horário sem ver a ocupação real criaria call em cima de call.</div></div>';
+  if(state.sim==='token') return '<div class="alerta err"><span>⚠</span><div><b>O acesso do sistema às agendas expirou.</b> Nada é lido nem gravado até renovar. Isso já aconteceu em 23/07 e ninguém percebeu na hora; por isso agora aparece aqui e vai por e-mail para os sócios.</div></div>';
+  if(state.sim==='kommo') return '<div class="alerta warn"><span>⚠</span><div><b>O Kommo está lento ou fora.</b> A fila continua com o que já está espelhado, mas as mensagens novas podem estar atrasadas e mover lead de etapa fica na fila até voltar.</div></div>';
+  return '';
+}
+const METRICAS = `<div class="panel" style="padding-top:0">
+  <div class="metric-line"><span class="m-lbl">Tempo até a 1ª resposta (mediana)</span><span class="m-val">18,3 min</span><span class="m-goal">217 conversas</span></div>
+  <div class="metric-line"><span class="m-lbl">Até resposta de gente, não do robô</span><span class="m-val">20,9 min</span><span class="m-goal">mediana</span></div>
+  <div class="metric-line"><span class="m-lbl">Responderam nossa 1ª mensagem</span><span class="m-val">65,2%</span><span class="m-goal">taxa de conexão</span></div>
+  <div class="metric-line"><span class="m-lbl">Nunca receberam resposta</span><span class="m-val">34,6%</span><span class="m-goal">75 de 217</span></div>
+  <div class="metric-line"><span class="m-lbl">Compareceram (auditado no Meet)</span><span class="m-val">81,1%</span><span class="m-goal">163 de 201</span></div>
+  <div class="metric-line"><span class="m-lbl">Calls remarcadas ao menos uma vez</span><span class="m-val">18%</span><span class="m-goal">1,3 remarcações em média</span></div>
+  <div class="metric-line"><span class="m-lbl">Pediram remarcar e sumiram</span><span class="m-val">6%</span><span class="m-goal">hoje isso conta como falta</span></div>
+  <div class="metric-line"><span class="m-lbl">Calls sem lead casado no Kommo</span><span class="m-val">22%</span><span class="m-goal">2 de 9 hoje</span></div>
+</div>`;
+function dispResumo(){
+  return `<div class="panel" style="padding-top:0">
+    <div class="disp"><div style="flex:1">
+      <strong style="font-size:12.5px">Confirmação da manhã, 08:00</strong>
+      <div class="chips"><span class="chip mute">9 enviados</span><span class="chip ok">4 confirmaram</span><span class="chip warn">1 pediu remarcar</span><span class="chip">3 sem resposta</span><span class="chip err">1 sem lead</span></div>
+    </div><button class="btn btn-sm" data-act="ir-disparos">Ver</button></div>
+    <div class="disp"><div style="flex:1">
+      <strong style="font-size:12.5px">Base fria</strong>
+      <div class="muted" style="font-size:11.5px;margin-top:2px">3.688 no funil Disparo · 422 do acervo de faltas · teto de ${CONFIG.teto} por dia</div>
+    </div><button class="btn btn-primary btn-sm" data-act="disparo">Montar</button></div></div>`;
+}
+
+/* =========================================================================
+   TELAS
+   ========================================================================= */
+/* =========================================================================
+   ARRANJOS 4 a 7
+   ========================================================================= */
+const MOTIVO_FILA = {
+  risco:['pediu para remarcar','q1','remarcar'], call:['call hoje sem confirmar','q2','confirmar'],
+  espera:['esperando resposta','q1','sem resposta'], semconvite:['nunca foi convidado','q3','sem convite'], falta:['faltou','','faltou']
+};
+function filaTrabalho(){
+  const ordem={risco:0,call:1,espera:2,semconvite:3,falta:4};
+  return LEADS.filter(l=>!l.agendado).sort((a,b)=>(ordem[a.grupo]-ordem[b.grupo])||0);
+}
+function msgsHtml(l, limite){
+  const c=CONVERSAS[l&&l.conversa]||CONVERSAS.curto;
+  const ms=limite?c.msgs.slice(-limite):c.msgs;
+  return ms.map(m=>m.g?`<div class="gap-note">${esc(m.g)}</div>`
+    :`<div class="msg ${m.d}">${m.a?`<span class="autor">${esc(m.a)}</span>`:''}${esc(m.t)}<span class="when">${esc(m.q)}</span></div>`).join('');
+}
+function porqueTexto(l){
+  if(l.grupo==='risco') return `Clicou em <b>preciso remarcar</b> às 09:12. A call das ${l.hora} fica segurada até as ${CONFIG.seguraAte}; depois disso o horário é liberado e ele vira fila de remarcação.`;
+  if(l.grupo==='call') return `Tem call hoje às ${l.hora} com ${l.vend} e <b>não respondeu à confirmação</b> da manhã. Cliente calado nas 24h antes falta 33,9% das vezes, contra 18,2% de quem responde.`;
+  if(l.grupo==='espera') return `Escreveu ${l.desde} e <b>ninguém respondeu até agora</b>: ${l.horas} horas. Acima de 12 horas o agendamento cai de cerca de 32% para 21,8%.`;
+  if(l.grupo==='semconvite') return `Trocou ${l.msgs} mensagens e <b>nunca recebeu convite</b> para a videochamada, há ${l.dias} dias. São 2.560 conversas assim no histórico, e quando o convite vem 45,8% agenda.`;
+  return `Faltou na call de ${l.quando} com ${l.vend} e não teve contato desde então. O acervo tem 422 pessoas nessa situação, nenhuma delas pediu para não ser chamada.`;
+}
+function renderFoco(){
+  const lista=filaTrabalho();
+  if(state.sim==='vazia'||!lista.length){
+    return alertas()+`<div class="foco"><div class="card"><div class="estado-vazio"><strong>Nada na fila</strong>
+      Ninguém esperando resposta e nenhuma call sem confirmação. Boa hora para a base fria.
+      <div style="margin-top:12px"><button class="btn btn-gold" data-act="ir-disparos">Montar um disparo</button></div></div></div></div>`;
+  }
+  if(state.foco>=lista.length) state.foco=0;
+  const l=lista[state.foco], p=pontuacao(l);
+  const livresAmanha=livres('04/08').slice(0,3);
+  const livresHoje=livres('03/08').filter(x=>x.h>='15:00').slice(0,3);
+  const rap=(livresHoje.length?livresHoje:livresAmanha);
+  const diaRap=livresHoje.length?'03/08':'04/08';
+  return alertas()+`<div class="foco">
+    <div class="trilha">
+      <button class="btn btn-sm" data-foco="-1">Anterior</button>
+      <span><b style="color:var(--cbc-text-primary)">${state.foco+1}</b> de ${lista.length} na fila de hoje</span>
+      <span class="prog"><i style="width:${Math.round(100*state.foco/lista.length)}%"></i></span>
+      <button class="btn btn-sm" data-foco="1">Pular por agora</button>
+    </div>
+    <div class="card">
+      <div class="lead-head">
+        <div class="name-line" style="margin-bottom:6px">
+          ${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:'<span class="tag none">resort não identificado</span>'}
+          ${l.quitado?'<span class="tag">cota quitada</span>':''}
+          ${l.quente?'<span class="tag hot">lead quente</span>':''}
+          ${p&&p.faltando.length<2?`<span class="tag ok">nota ${p.n}</span>`:'<span class="tag">nota a apurar</span>'}
+          <span class="tag">${MOTIVO_FILA[l.grupo][0]}</span>
+        </div>
+        <h2>${esc(l.nome)}</h2>
+        <p class="porque">${porqueTexto(l)}</p>
+      </div>
+      <div class="duas">
+        <div class="conv">${msgsHtml(l)}</div>
+        <div class="lado">
+          <div>
+            <div class="dado"><span>Lead no Kommo</span><span>${l.kommo?l.kommo:'não encontrado'}</span></div>
+            <div class="dado"><span>Resort</span><span>${l.resort?esc(l.resort):'a descobrir'}</span></div>
+            <div class="dado"><span>Situação da cota</span><span>${l.quitado?'quitada':'a descobrir'}</span></div>
+            <div class="dado"><span>Valor já pago</span><span>${l.valor?('R$ '+l.valor.toLocaleString('pt-BR')):'pergunta depois do sim'}</span></div>
+            <div class="dado"><span>Responsável</span><span>${esc(l.dono)}</span></div>
+          </div>
+          ${l.grupo==='call' ? `<div>
+            <p style="font-size:12.5px;font-weight:700;margin-bottom:7px">Já tem horário</p>
+            <p style="font-size:12.5px;color:var(--cbc-text-secondary)">Call hoje às <b>${l.hora}</b> com <b>${esc(l.vend)}</b>, e o cliente não respondeu à confirmação das 08:00.</p>
+            <p class="hint">O que falta aqui não é horário, é resposta. Cobrar a confirmação vale mais que remarcar.</p>
+          </div>` : `<div>
+            <p style="font-size:12.5px;font-weight:700;margin-bottom:7px">Encaixar em ${diaRap==='03/08'?'hoje ainda':'amanhã'}</p>
+            <div class="rapidos">${rap.map(x=>`<button data-rapido="${diaRap}|${x.v}|${x.h}">${x.h}<small>${x.v}</small></button>`).join('')}</div>
+            <p class="hint">Marcar para hoje ou amanhã importa: call no mesmo dia falta 9,8% das vezes, contra 19% depois de dois dias.</p>
+          </div>`}
+        </div>
+      </div>
+      <div class="barra-acao">
+        ${l.grupo==='call'
+          ? `<button class="btn btn-gold" data-act="confirmar" data-id="${l.id}">Cobrar a confirmação</button>
+             <button class="btn" data-act="remarcar" data-id="${l.id}">Remarcar</button>`
+          : l.grupo==='risco'
+          ? `<button class="btn btn-gold" data-act="remarcar" data-id="${l.id}">Remarcar</button>`
+          : `<button class="btn btn-gold" data-act="agendar" data-id="${l.id}">Escolher outro horário</button>`}
+        <button class="btn btn-primary" data-act="kommo" data-id="${l.id}">Responder no Kommo</button>
+        <button class="btn btn-danger" data-foco-descartar="${l.id}">Descartar</button>
+        <span class="right atalhos"><span><b>A</b>agendar</span><span><b>K</b>Kommo</span><span><b>N</b>próximo</span></span>
+      </div>
+    </div></div>`;
+}
+function renderLinha(){
+  const dia=state.dia, evs=AGENDA[dia]||[];
+  const AGORA='14:05';
+  const espera=LEADS.filter(l=>l.grupo==='espera'&&!l.agendado).sort((a,b)=>b.horas-a.horas);
+  let usados=0;
+  const linhas=HORAS.map(h=>{
+    const doHorario=evs.filter(e=>e.h===h);
+    const passou=h<AGORA;
+    const marcador=(!passou&&HORAS[HORAS.indexOf(h)-1]&&HORAS[HORAS.indexOf(h)-1]<AGORA)
+      ? `<div class="agora">agora, ${AGORA}</div>`:'';
+    const vagos=VENDS.filter(v=>{const vd=CONFIG.vendedores.find(x=>x.nome===v);return (!vd||vd.ativo)&&!doHorario.some(e=>e.v===v&&e.st!=='moved');});
+    let sugestao='';
+    if(!passou && vagos.length && espera[usados]){
+      const cand=espera[usados]; usados++;
+      sugestao=`<button class="encaixe" data-rapido="${dia}|${vagos[0]}|${h}" data-lead="${cand.id}">encaixar <b>${esc(cand.nome)}</b>, ${cand.horas}h sem resposta, com ${vagos[0]}</button>`;
+    } else if(!passou && vagos.length){
+      sugestao=`<button class="encaixe" data-rapido="${dia}|${vagos[0]}|${h}">${vagos.length} ${vagos.length===1?'agenda livre':'agendas livres'}</button>`;
+    }
+    const blocos=doHorario.map(e=>`<span class="bloco ${e.st}" data-ev="${e.id}">${esc(e.nome)} <small>${esc(e.v)} · ${esc(e.nota)}</small></span>`).join('');
+    return marcador+`<div class="tl-hora ${passou?'passou':''}">${h}</div>
+      <div class="tl-faixa ${passou?'passou':''}">${blocos}${sugestao||(passou&&!blocos?'<span class="muted" style="font-size:11.5px">sem call</span>':'')}</div>`;
+  }).join('');
+  const sobra=espera.slice(usados);
+  return alertas()+`<div class="resumo">
+      <span><b>${evs.length}</b>calls no dia</span>
+      <span><b>5</b>já aconteceram</span>
+      <span><b>1</b>falta</span>
+      <span><b>${LEADS.filter(l=>l.grupo==='call'&&!l.conf&&!l.semLead).length}</b>sem confirmar</span>
+      <span><b>${espera.length}</b>esperando resposta</span>
+      <span><b>81,1%</b>de comparecimento em 30 dias</span>
+      <span class="right"><span class="daytabs">${['03/08','04/08'].map(d=>`<button type="button" data-dia="${d}" aria-pressed="${d===state.dia}">${d==='03/08'?'Hoje':'Amanhã'}</button>`).join('')}</span></span>
+    </div>
+    <div class="card"><div class="card-top"><h2 class="sec-title">${dia==='03/08'?'Segunda, 03 de agosto':'Terça, 04 de agosto'}</h2>
+      <span class="muted" style="font-size:12.5px">o dia inteiro em ordem, com quem cabe em cada buraco</span></div>
+      <div class="tl">${linhas}</div>
+      ${sobra.length?`<div class="legend">Não coube na agenda de ${dia==='03/08'?'hoje':'amanhã'}: ${sobra.map(l=>esc(l.nome)+' ('+l.horas+'h)').join(' · ')}.</div>`:''}
+    </div>`;
+}
+function renderDensa(){
+  const ls=filtrados().filter(l=>!l.agendado);
+  const linhas=ls.map(l=>{
+    const p=pontuacao(l), m=MOTIVO_FILA[l.grupo];
+    const semDados=!p||p.faltando.length>=2;
+    const quando = l.grupo==='espera'?l.horas+'h':l.grupo==='call'||l.grupo==='risco'?l.hora:l.dias+'d';
+    return `<div class="row" data-open="${l.id}" tabindex="0" role="button">
+      <div class="name-line"><span class="name">${esc(l.nome)}</span>${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:''}</div>
+      <div class="porq ${m[1]}">${m[2]}</div>
+      <div class="score ${semDados?'vazio':(p.n>=70?'alto':'')}">${semDados?'—':p.n}</div>
+      <div class="wait ${l.grupo==='espera'?'late':''}">${quando}</div>
+      <div class="acts"><button class="btn btn-sm btn-gold" data-act="${l.grupo==='call'?'confirmar':'agendar'}" data-id="${l.id}">${l.grupo==='call'?'Confirmar':'Agendar'}</button></div></div>`;
+  }).join('');
+  return alertas()+`<div class="cols">
+    <div class="card"><div class="card-top" style="padding:9px 12px"><h2 class="sec-title" style="font-size:17px">Fila</h2>
+      <span class="muted" style="font-size:11.5px">${ls.length} pendências, sem separar em grupos</span></div>
+      ${barraFiltros()}${ls.length?linhas:'<div class="estado-vazio"><strong>Fila zerada</strong>Nada pendente agora.</div>'}</div>
+    <div class="card"><div class="card-top" style="padding:9px 12px"><h2 class="sec-title" style="font-size:17px">Hoje e amanhã</h2></div>
+      <div class="tgrid">${grade('03/08')}</div>
+      <div class="legend">Amanhã, 04/08</div>
+      <div class="tgrid">${grade('04/08')}</div></div>
+    <div class="card mini"><div class="card-top" style="padding:9px 12px"><h2 class="sec-title" style="font-size:17px">Números e disparos</h2></div>
+      ${METRICAS}${dispResumo()}</div></div>`;
+}
+function renderInbox(){
+  const ls=filaTrabalho();
+  if(!ls.length) return alertas()+'<div class="card"><div class="estado-vazio"><strong>Caixa vazia</strong>Nenhuma conversa esperando.</div></div>';
+  if(!ls.some(l=>l.id===state.inbox)) state.inbox=ls[0].id;
+  const l=byId(state.inbox), p=pontuacao(l);
+  const itens=ls.map(x=>{
+    const q=x.grupo==='espera'?x.horas+'h':x.grupo==='call'||x.grupo==='risco'?x.hora:x.dias+'d';
+    const ini=x.nome.replace(/[^A-Za-zÀ-ú ]/g,'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'??';
+    return `<div class="item" data-inbox="${x.id}" aria-current="${x.id===state.inbox}" tabindex="0" role="button">
+      <span class="ini">${esc(ini)}</span>
+      <span class="txt"><span class="l1"><b>${esc(x.nome)}</b><em>${q}</em></span>
+      <span class="l2">${esc(MOTIVO_FILA[x.grupo][0])}${x.resort?' · '+esc(x.resort):''}</span></span></div>`;
+  }).join('');
+  const rap=livres('04/08').slice(0,3);
+  return alertas()+`<div class="card"><div class="ibx">
+    <div><div class="card-top" style="padding:10px 12px"><strong style="font-size:12.5px">Fila</strong>
+      <span class="right muted" style="font-size:11px">${ls.length} conversas</span></div>
+      <div class="lista">${itens}</div></div>
+    <div>
+      <div class="conv-top"><h3>${esc(l.nome)}</h3>
+        <span class="muted" style="font-size:11.5px">${l.kommo?'lead '+l.kommo:'sem lead no Kommo'}${l.resort?' · '+esc(l.resort):''}</span></div>
+      <div class="dr-warn">${esc((CONVERSAS[l.conversa]||CONVERSAS.curto).fonte)} O espelho de mensagens ainda não existe no banco.</div>
+      <div class="conv">${msgsHtml(l)}</div>
+      <div class="conv-foot">
+        <button class="btn btn-primary" data-act="kommo" data-id="${l.id}">Responder no Kommo</button>
+        <span class="hint" style="margin:0">A resposta livre acontece lá; daqui saem os disparos padronizados.</span></div></div>
+    <div><div class="ctx">
+      <div>
+        <p style="font-size:12.5px;font-weight:700;margin-bottom:7px">Por que está na fila</p>
+        <p style="font-size:12px;color:var(--cbc-text-secondary)">${porqueTexto(l)}</p></div>
+      <div>
+        <div class="dado" style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--cbc-border)"><span class="muted">Nota</span><span style="font-weight:700">${p&&p.faltando.length<2?p.n:'a apurar'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--cbc-border)"><span class="muted">Resort</span><span style="font-weight:700">${l.resort?esc(l.resort):'a descobrir'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--cbc-border)"><span class="muted">Situação</span><span style="font-weight:700">${l.quitado?'quitada':'a descobrir'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0"><span class="muted">Valor pago</span><span style="font-weight:700">${l.valor?('R$ '+l.valor.toLocaleString('pt-BR')):'depois do sim'}</span></div></div>
+      <div>
+        <p style="font-size:12.5px;font-weight:700;margin-bottom:7px">Horários livres amanhã</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+          ${rap.map(x=>`<button class="btn btn-sm" data-rapido="04/08|${x.v}|${x.h}" data-lead="${l.id}">${x.h}<br><span class="muted" style="font-weight:400;font-size:10px">${x.v}</span></button>`).join('')}</div></div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:auto">
+        <button class="btn btn-gold" data-act="agendar" data-id="${l.id}">Agendar</button>
+        <button class="btn btn-danger" data-foco-descartar="${l.id}">Descartar</button></div>
+    </div></div></div></div>`;
+}
+
+function renderExtras(){
+  if(state.view==='m4') $('#m4').innerHTML=renderFoco();
+  if(state.view==='m5') $('#m5').innerHTML=renderLinha();
+  if(state.view==='m6') $('#m6').innerHTML=renderDensa();
+  if(state.view==='m7') $('#m7').innerHTML=renderInbox();
+}
+
+function render(){
+  const A=alertas();
+  renderExtras();
+  if(state.view==='m1'){
+    $('#m1').innerHTML = A + kpis() + `<div class="layout">
+      <div class="card"><div class="card-top"><h2 class="sec-title">Fila</h2>
+        <span class="muted" style="font-size:12.5px">ordenada por onde está o dinheiro</span>
+        <span class="right muted" style="font-size:11px">clique no nome para ver a conversa</span></div>
+        ${barraFiltros()}${fila()}
+        <div class="legend">A nota combina valor pago, resort e situação da cota, com os pesos que os sócios definem na Configuração. Sem esses dados ela fica parcial.</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><div class="agenda-head"><strong style="font-size:12px">Hoje · seg 03/08</strong>
+          <span class="right muted" style="font-size:11px">${(AGENDA['03/08']||[]).length} calls</span></div>${trilho('03/08')}
+          <div class="legend">Clique numa call para remarcar, cancelar ou corrigir o resultado.</div></div>
+        <div class="card"><div class="agenda-head"><strong style="font-size:12px">Amanhã · ter 04/08</strong>
+          <span class="right muted" style="font-size:11px">${(AGENDA['04/08']||[]).length} calls</span></div>${trilho('04/08')}</div>
+        <div class="card"><div class="panel" style="padding-bottom:4px"><span class="eyebrow">Disparos</span></div>${dispResumo()}</div>
+      </div></div>`;
+  }
+  if(state.view==='m2'){
+    $('#m2').innerHTML = A + kpis() + `<div class="layout">
+      <div class="card"><div class="card-top"><h2 class="sec-title">Fila</h2></div>${barraFiltros()}${fila()}</div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><div class="card-top"><h2 class="sec-title">Agenda</h2>
+          <div class="daytabs">${['03/08','04/08'].map(d=>`<button type="button" data-dia="${d}" aria-pressed="${d===state.dia}">${d==='03/08'?'Hoje, 03/08':'Amanhã, 04/08'}</button>`).join('')}</div>
+          <span class="right muted" style="font-size:11.5px">${(AGENDA[state.dia]||[]).length} calls</span></div>
+          <div class="tgrid">${grade(state.dia)}</div>
+          <div class="legend">Verde: aconteceu. Cinza: marcada, sem confirmação. Âmbar: pediu remarcar ou saiu do lugar. Azul: agendada agora. Vazio: clique para agendar.</div></div>
+        <div class="card">
+          <details class="fold" open><summary>Disparos</summary>${dispResumo()}</details>
+          <details class="fold"><summary>Números medidos</summary>${METRICAS}</details></div>
+      </div></div>`;
+  }
+  if(state.view==='m3'){
+    const espera=LEADS.filter(l=>l.grupo==='espera'&&!l.agendado).length;
+    const semConf=LEADS.filter(l=>l.grupo==='call'&&!l.conf&&!l.semLead).length;
+    const risco=LEADS.filter(l=>l.grupo==='risco').length;
+    $('#m3').innerHTML = A + `<div class="now-grid">
+      <div class="now-card alert"><span class="eyebrow">Resolver agora</span>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="big">${risco}</span><span style="font-size:12.5px" class="muted">pediu para remarcar</span></div>
+        <p class="muted" style="font-size:11.5px">A Rosi clicou às 09:12. O horário das 10:30 fica segurado até as ${CONFIG.seguraAte} e depois é liberado sozinho.</p>
+        ${risco?'<button class="btn btn-gold btn-sm" style="align-self:flex-start;margin-top:auto" data-act="remarcar" data-id="r1">Remarcar agora</button>':''}</div>
+      <div class="now-card urgent"><span class="eyebrow">Risco de falta</span>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="big">${semConf}</span><span style="font-size:12.5px" class="muted">calls hoje sem confirmação</span></div>
+        <p class="muted" style="font-size:11.5px">Silêncio nas 24h antes quase dobra a chance de falta.</p>
+        <button class="btn btn-primary btn-sm" style="align-self:flex-start;margin-top:auto" data-act="confirmar-todos">Cobrar de novo</button></div>
+      <div class="now-card"><span class="eyebrow">Esperando você</span>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="big">${espera}</span><span style="font-size:12.5px" class="muted">sem nenhuma resposta</span></div>
+        <p class="muted" style="font-size:11.5px">O mais antigo escreveu há 44h. Quatro chegaram depois das 20h.</p></div>
+      <div class="now-card"><span class="eyebrow">Já aconteceu hoje</span>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="big">5</span><span style="font-size:12.5px" class="muted">calls feitas · 1 falta</span></div>
+        <p class="muted" style="font-size:11.5px">Guto esperou 5min44 sozinho antes de a Beatriz entrar.</p></div></div>
+      <div class="card" style="margin-bottom:14px"><div class="card-top"><h2 class="sec-title">O dia das três agendas</h2>
+        <div class="daytabs">${['03/08','04/08'].map(d=>`<button type="button" data-dia="${d}" aria-pressed="${d===state.dia}">${d==='03/08'?'Hoje':'Amanhã'}</button>`).join('')}</div></div>
+        <div class="tgrid">${grade(state.dia)}</div></div>
+      <div class="split">
+        <div class="card"><div class="card-top"><h2 class="sec-title">Fila completa</h2></div>${barraFiltros()}${fila()}</div>
+        <div class="card"><div class="card-top"><h2 class="sec-title">Disparos e números</h2></div>${dispResumo()}${METRICAS}</div></div>`;
+  }
+
+if(state.view==='funil'){
+    const f=FUNIS.find(x=>x.id===state.funil);
+    const cols=f.etapas.map(et=>{
+      const cards=(CARDS[et.id]||[]).map(c=>{
+        const l=byId(c.id); if(!l) return '';
+        const p=pontuacao(l);
+        const sub=l.grupo==='espera'?`${l.horas}h sem resposta`:l.grupo==='call'?`call ${l.hora} com ${l.vend}`
+          :l.grupo==='risco'?'pediu remarcar':l.grupo==='semconvite'?`${l.msgs} mensagens, ${l.dias} dias sem convite`:`faltou em ${l.quando}`;
+        return `<div class="kb-card" draggable="true" data-card="${l.id}" data-open="${l.id}" tabindex="0" role="button">
+          <div class="kc-name">${esc(l.nome)}</div><div class="kc-meta">${esc(sub)}</div>
+          <div class="kc-foot">${l.resort?`<span class="tag resort">${esc(l.resort)}</span>`:'<span class="tag none">sem resort</span>'}
+            ${p&&p.faltando.length<2?`<span class="tag">nota ${p.n}</span>`:''}
+            <button class="btn btn-sm right" data-act="kommo" data-id="${l.id}">Kommo</button></div></div>`;
+      }).join('');
+      const resto=et.n-(CARDS[et.id]||[]).length;
+      return `<div class="kb-col ${et.nova?'nova':''}" data-col="${et.id}">
+        <h4>${esc(et.nome)}${et.nova?' <span class="chip" style="font-size:9px">nova</span>':''}<em>${et.n.toLocaleString('pt-BR')}</em></h4>
+        <div class="kb-list">${cards||'<div class="kb-empty">nenhum lead da fila de hoje aqui</div>'}
+        ${resto>0&&cards?`<div class="kb-empty">e mais ${resto.toLocaleString('pt-BR')} leads</div>`:''}</div></div>`;
+    }).join('');
+    $('#funil').innerHTML = A + `<div class="card"><div class="card-top"><h2 class="sec-title">Funil do Kommo</h2>
+      <div class="kb-tabs">${FUNIS.map(x=>`<button type="button" data-funil="${x.id}" aria-pressed="${x.id===state.funil}">${x.nome}<b>${x.total.toLocaleString('pt-BR')}</b></button>`).join('')}</div>
+      <span class="right muted" style="font-size:11.5px">arraste para mudar de etapa · clique para abrir a conversa</span></div>
+      <div class="kanban">${cols}</div>
+      <div class="legend">Etapas e contagens reais (varredura de 16.013 leads). As três marcadas como <b>nova</b> precisam ser criadas no Kommo: hoje 7.590 leads moram em "Follow UP" e "limbo", que não dizem o que fazer com eles.</div></div>`;
+  }
+  if(state.view==='disparos'){
+    const linhas=CAMPANHAS.map(c=>{
+      const pct=n=>c.enviados?Math.round(100*n/c.enviados):0;
+      return `<tr><td><strong>${esc(c.nome)}</strong><div class="muted" style="font-size:11px">${esc(c.tpl)} · ${c.dia}</div></td>
+        <td class="num">${c.alvo}</td><td class="num">${c.enviados}</td><td class="num">${c.entregues}</td>
+        <td class="num">${c.respond}<div class="muted" style="font-weight:400;font-size:10.5px">${pct(c.respond)}%</div></td>
+        <td class="num">${c.agend}<div class="muted" style="font-weight:400;font-size:10.5px">${pct(c.agend)}%</div></td>
+        <td class="num" style="color:var(--cbc-success)">${c.compar}</td>
+        <td class="num" style="color:var(--cbc-danger)">${c.faltou}</td><td class="num">${c.bloq}</td>
+        <td><div class="bar" style="width:120px">
+          <i style="width:${pct(c.compar)}%;background:var(--cbc-success)"></i>
+          <i style="width:${pct(c.agend)-pct(c.compar)}%;background:var(--cbc-gold)"></i>
+          <i style="width:${pct(c.respond)-pct(c.agend)}%;background:var(--cbc-navy)"></i></div></td></tr>`;
+    }).join('');
+    const conf=CONFIRMACOES.map(c=>{
+      const m={ok:['confirmou','ok'],mudo:['sem resposta','mute'],remarcar:['pediu remarcar','warn'],semlead:['sem lead no Kommo','err']}[c.st];
+      return `<tr><td>${esc(c.nome)}</td><td>${c.hora}</td><td>${esc(c.vend)}</td>
+        <td><span class="chip ${m[1]}">${m[0]}</span></td>
+        <td>${c.st==='mudo'?'<button class="btn btn-sm btn-primary" data-act="confirmar-todos">Cobrar de novo</button>':''}
+            ${c.st==='remarcar'?'<button class="btn btn-sm btn-gold" data-act="remarcar" data-id="r1">Remarcar</button>':''}
+            ${c.st==='semlead'?'<button class="btn btn-sm btn-gold" data-act="casar" data-id="p4">Casar lead</button>':''}</td></tr>`;
+    }).join('');
+    $('#disparos').innerHTML = A + `
+      <div class="card" style="margin-bottom:14px"><div class="card-top"><h2 class="sec-title">Confirmação da manhã</h2>
+        <span class="muted" style="font-size:12.5px">saiu às 08:00 para as 9 calls de hoje, pelo template confirmacao_call_v1</span>
+        <span class="right"><button class="btn btn-sm" data-act="nada">Editar horário e template</button></span></div>
+        <table class="tb"><thead><tr><th>Cliente</th><th>Hora</th><th>Vendedor</th><th>Resposta</th><th></th></tr></thead><tbody>${conf}</tbody></table>
+        <div class="legend">Quem clica em "Confirmo" fica verde sozinho. Quem clica em "Preciso remarcar" vai para o topo da fila e o horário fica segurado até as ${CONFIG.seguraAte}.</div></div>
+      <div class="card"><div class="card-top"><h2 class="sec-title">Disparos para base fria</h2>
+        <span class="muted" style="font-size:12.5px">teto de ${CONFIG.teto} por dia · não repete para quem recebeu nos últimos ${CONFIG.cooldown} dias</span>
+        <span class="right"><button class="btn btn-primary btn-sm" data-act="disparo">Novo disparo</button></span></div>
+        <table class="tb"><thead><tr><th>Campanha</th><th class="num">Alvo</th><th class="num">Enviados</th><th class="num">Entregues</th>
+          <th class="num">Responderam</th><th class="num">Agendaram</th><th class="num">Compareceram</th><th class="num">Faltaram</th><th class="num">Pediram parar</th><th>Funil</th></tr></thead>
+          <tbody>${linhas}</tbody></table>
+        <div class="legend">Cada pessoa disparada vira uma linha própria, e é assim que "agendou" e "compareceu" ficam ligados ao disparo que os gerou. As três campanhas somam 786 enviados, 104 respostas, 34 agendamentos e 23 comparecimentos.</div></div>`;
+  }
+  if(state.view==='templates'){
+    const linhas=TEMPLATES.map(t=>{
+      const cor={aprovado:'ok','em análise':'warn',reprovado:'err'}[t.st];
+      return `<tr><td><strong>${esc(t.nome)}</strong>${t.obs?`<div style="font-size:11px;color:var(--cbc-danger)">${esc(t.obs)}</div>`:''}</td>
+        <td><span class="chip ${t.cat==='MARKETING'?'warn':'mute'}">${t.cat}</span></td>
+        <td><span class="chip ${cor}">${t.st}</span></td>
+        <td style="max-width:340px"><div class="muted" style="font-size:11.5px;white-space:normal">${esc(t.corpo)}</div>
+          ${t.botoes!=='—'?`<div class="chips"><span class="chip">${esc(t.botoes)}</span></div>`:''}</td>
+        <td>${esc(t.uso)}<div class="muted" style="font-size:11px">etapa: ${esc(t.etapa)}</div></td>
+        <td><button class="btn btn-sm" data-act="nada">Editar</button></td></tr>`;
+    }).join('');
+    $('#templates').innerHTML = A + `<div class="card"><div class="card-top"><h2 class="sec-title">Templates de WhatsApp</h2>
+      <span class="muted" style="font-size:12.5px">criados pelo Kommo e aprovados pela Meta</span>
+      <span class="right"><button class="btn btn-primary btn-sm" data-act="novo-template">Criar template</button></span></div>
+      <table class="tb"><thead><tr><th>Nome</th><th>Categoria</th><th>Situação</th><th>Texto</th><th>Onde é usado</th><th></th></tr></thead><tbody>${linhas}</tbody></table>
+      <div class="legend">⚠️ A API do Kommo cria template e acompanha a aprovação, mas <b>só devolve os que ela mesma criou</b>. Os 17 que já existem entram por um cadastro espelho feito uma vez. Fora da janela de 24 horas só template aprovado sai, e é por isso que a confirmação da manhã e o disparo frio dependem desta tela.</div></div>`;
+  }
+  if(state.view==='config'){
+    const vends=CONFIG.vendedores.map((v,i)=>`<tr><td><strong>${esc(v.nome)}</strong><div class="muted" style="font-size:11px">${esc(v.email)}</div></td>
+      <td><label style="font-size:12.5px"><input type="checkbox" data-vend="${i}" data-campo="ativo" ${v.ativo?'checked':''}> recebendo calls</label></td>
+      <td><label style="font-size:12.5px"><input type="checkbox" data-vend="${i}" data-campo="topo" ${v.topo?'checked':''}> recebe os leads de maior nota</label></td>
+      <td class="num">${(AGENDA['03/08']||[]).filter(e=>e.v===v.nome&&e.st!=='moved').length} hoje</td></tr>`).join('');
+    $('#config').innerHTML = A + `<div class="card"><div class="card-top"><h2 class="sec-title">Configuração</h2>
+      <span class="muted" style="font-size:12.5px">só Paulo, Bruno e Lorenza editam; o SDR vê e não muda</span></div>
+      <div class="panel"><span class="eyebrow">Atendimento</span>
+        <div class="grid3" style="margin-top:8px">
+          <div class="field"><label>Começa</label><input value="${CONFIG.grade.ini}" data-cfg="grade.ini"></div>
+          <div class="field"><label>Termina</label><input value="${CONFIG.grade.fim}" data-cfg="grade.fim"></div>
+          <div class="field"><label>Dias</label><input value="${CONFIG.grade.dias}" data-cfg="grade.dias"></div></div>
+        <div class="grid3">
+          <div class="field"><label>Duração da call (min)</label><input value="${CONFIG.duracao}" data-cfg="duracao"></div>
+          <div class="field"><label>Antecedência mínima (min)</label><input value="${CONFIG.antecedencia}" data-cfg="antecedencia"></div>
+          <div class="field"><label>Quantos dias para frente</label><input value="${CONFIG.horizonte}" data-cfg="horizonte"></div></div>
+        <div class="grid3">
+          <div class="field"><label>Meta de SLA (min)</label><input value="${CONFIG.slaMeta}" data-cfg="slaMeta"></div>
+          <div class="field"><label>Máximo de remarcações</label><input value="${CONFIG.maxReag}" data-cfg="maxReag"></div>
+          <div class="field"><label>Segura o horário até</label><input value="${CONFIG.seguraAte}" data-cfg="seguraAte"></div></div></div>
+      <div class="panel" style="border-top:1px solid var(--cbc-border)"><span class="eyebrow">Pontuação do lead</span>
+        <p class="hint" style="margin-bottom:8px">Muda a nota da fila na hora. Quem passa de 70 vai para quem estiver marcado como topo; o resto entra no rodízio.</p>
+        <div class="grid3">
+          <div class="field"><label>Peso do valor pago</label><input value="${CONFIG.pesos.valor}" data-cfg="pesos.valor"></div>
+          <div class="field"><label>Peso do resort</label><input value="${CONFIG.pesos.resort}" data-cfg="pesos.resort"></div>
+          <div class="field"><label>Peso da cota quitada</label><input value="${CONFIG.pesos.quitado}" data-cfg="pesos.quitado"></div></div>
+        <div class="field"><label>Piso de valor pago que conta como alto</label><input value="${CONFIG.pisoValor}" data-cfg="pisoValor"></div>
+        <div class="field"><label>Resorts prioritários</label>
+          <div class="chips">${CONFIG.resortsPrioritarios.map(r=>`<span class="chip ok">${esc(r)}</span>`).join('')}
+          <span class="chip mute">Hot Beach comum fica fora: fecha 5,8%</span></div></div>
+        <button class="btn btn-sm" data-act="salvar-config">Recalcular a fila</button></div>
+      <div class="panel" style="border-top:1px solid var(--cbc-border)"><span class="eyebrow">Disparos</span>
+        <div class="grid3" style="margin-top:8px">
+          <div class="field"><label>Teto por dia</label><input value="${CONFIG.teto}" data-cfg="teto"></div>
+          <div class="field"><label>Não repetir antes de (dias)</label><input value="${CONFIG.cooldown}" data-cfg="cooldown"></div>
+          <div class="field"><label>Confirmação da manhã sai às</label><input value="08:00"></div></div></div>
+      <div class="panel" style="border-top:1px solid var(--cbc-border)"><span class="eyebrow">Vendedores</span>
+        <table class="tb" style="margin-top:8px"><tbody>${vends}</tbody></table>
+        <p class="hint">Desmarcar "recebendo calls" tira a pessoa do rodízio na hora e some da grade de horários livres.</p></div>
+      <div class="md-foot" style="border-top:1px solid var(--cbc-border)"><span class="hint right" style="margin:0 auto 0 0">Toda alteração fica registrada com quem mudou e quando.</span>
+        <button class="btn btn-gold" data-act="salvar-config">Salvar</button></div></div>`;
+  }
+}
+
+/* =========================================================================
+   GAVETA E MODAIS
+   ========================================================================= */
+function abrirConversa(id){
+  const l=byId(id); if(!l) return;
+  state.leadAberto=id;
+  const c=CONVERSAS[l.conversa]||CONVERSAS.curto;
+  const p=pontuacao(l);
+  $('#dr-nome').textContent=l.nome;
+  $('#dr-meta').textContent=[l.kommo?'lead '+l.kommo:'sem lead no Kommo, telefone '+l.tel,
+    l.resort?l.resort:'resort não identificado', p?'nota '+p.n:null,
+    l.hora?'call '+l.hora+' com '+l.vend:null].filter(Boolean).join(' · ');
+  $('#dr-warn').textContent=c.fonte+' O espelho de mensagens ainda não existe no banco: é a aba que passa a criá-lo.';
+  $('#dr-msgs').innerHTML=c.msgs.map(m=>m.g?`<div class="gap-note">${esc(m.g)}</div>`
+    :`<div class="msg ${m.d}">${m.a?`<span class="autor">${esc(m.a)}</span>`:''}${esc(m.t)}<span class="when">${esc(m.q)}</span></div>`).join('');
+  $('#dr-kommo').disabled=!l.kommo;
+  $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+}
+function fechar(){$('#drawer').classList.remove('on');$('#modal').classList.remove('on');$('#scrim').classList.remove('on');state.escolha=null;}
+function abrirModal(){$('#modal').classList.add('on');$('#scrim').classList.add('on');}
+
+function modalAgendar(id, pre, remarcandoEv){
+  if(state.sim==='google'||state.sim==='token'){toast('Não dá para agendar sem enxergar as agendas. Resolva o acesso ao Google primeiro.','err');return;}
+  const l=byId(id); state.escolha=pre&&pre.h?pre:null; state.remarcandoEv=remarcandoEv||null;
+  const dia=(pre&&pre.dia)||'04/08';
+  const sug=sugerido(dia,l);
+  const opts=livres(dia);
+  const p=pontuacao(l);
+  $('#md-titulo').textContent=remarcandoEv?('Remarcar: '+(l?l.nome:remarcandoEv.nome)):(l?'Agendar videochamada: '+l.nome:'Agendar videochamada');
+  $('#md-body').innerHTML=`
+    ${remarcandoEv?`<div class="alerta warn"><span>↻</span><div>Remarcação da call de ${esc(remarcandoEv.h)} com ${esc(remarcandoEv.v)}. O evento é movido, <b>o link do Meet continua o mesmo</b> e o Google reenvia o convite. Conta como reagendamento, não como falta.</div></div>`:''}
+    <div class="grid2">
+      <div class="field"><label>Resort da cota</label><select id="f-resort">
+        <option value="">a confirmar na conversa</option>
+        ${['Solar das Águas','Thermas São Pedro','Ondas Praia','Hot Beach You','Hot Beach','Barretos Country','Olímpia Park','Hard Rock'].map(r=>`<option ${l&&l.resort===r?'selected':''}>${r}</option>`).join('')}</select></div>
+      <div class="field"><label>Situação da cota</label><select id="f-sit">
+        <option value="">a confirmar</option><option>ainda pagando</option><option ${l&&l.quitado?'selected':''}>já quitada</option></select></div></div>
+    <div class="grid2">
+      <div class="field"><label>Titular do contrato</label><select><option>sim</option><option>não, é o cônjuge</option><option>os dois, casal na mesma call</option></select></div>
+      <div class="field"><label>Lead quente (julgamento do SDR)</label><select id="f-quente"><option value="">não</option><option value="1" ${l&&l.quente?'selected':''}>sim, mandar para quem recebe o topo</option></select></div></div>
+    <div class="field"><label>Dia</label>
+      <div class="daytabs" id="md-dias">
+        <button type="button" data-mdia="03/08" aria-pressed="${dia==='03/08'}">Hoje, 03/08</button>
+        <button type="button" data-mdia="04/08" aria-pressed="${dia==='04/08'}">Amanhã, 04/08</button></div>
+      <p class="hint">Marcar para <b>hoje ou amanhã</b> importa: call no mesmo dia falta 9,8% das vezes, contra 19% quando fica para depois de dois dias.</p></div>
+    <div class="field"><label>Horários livres nas agendas ativas</label>
+      <div class="slotpick" id="md-slots">${opts.slice(0,16).map(s=>`
+        <button type="button" data-pick="${dia}|${s.v}|${s.h}" aria-pressed="${state.escolha&&state.escolha.v===s.v&&state.escolha.h===s.h?'true':'false'}">
+          ${s.h}<small>${s.v}${s.v===sug?' · sugerido':''}</small></button>`).join('')}</div>
+      <p class="hint">Sugerido: <b>${sug}</b>${p&&p.n>=70?', porque a nota do lead passa de 70':', que está com menos calls no dia'}.</p></div>
+    <div class="pos-sim"><span class="eyebrow">Depois do sim</span>
+      <p class="hint" style="margin:4px 0 8px">Perguntar o valor <b>antes</b> do convite derruba o agendamento de 69% para 50,7%. Por isso ele é coletado aqui, com a call já marcada.</p>
+      <div class="grid2">
+        <div class="field" style="margin:0"><label>Valor aproximado já pago</label><input id="f-valor" placeholder="ex.: 61000" value="${l&&l.valor?l.valor:''}"></div>
+        <div class="field" style="margin:0"><label>Observação para o vendedor</label><input placeholder="ex.: casal, marido decide junto"></div></div></div>`;
+  $('#md-foot').innerHTML=`<span class="hint right" style="margin:0 auto 0 0">${remarcandoEv?'Move o evento e reenvia o convite.':'Cria o evento no Google com Meet, convida o cliente e move o lead no Kommo.'}</span>
+    <button class="btn" data-act="fechar">Cancelar</button>
+    <button class="btn btn-gold" id="md-ok" ${state.escolha?'':'disabled'}>${remarcandoEv?'Confirmar remarcação':'Confirmar agendamento'}</button>`;
+  abrirModal();
+}
+function confirmarAgendamento(){
+  const p=state.escolha; if(!p) return;
+  const l=byId(state.leadAberto)||{};
+  const valor=$('#f-valor')?$('#f-valor').value.replace(/\D/g,''):'';
+  const resort=$('#f-resort')?$('#f-resort').value:'';
+  const quente=$('#f-quente')?$('#f-quente').value:'';
+  if(l.id){ if(resort)l.resort=resort; if(valor)l.valor=Number(valor); if(quente)l.quente=true; }
+  const ev=state.remarcandoEv;
+  if(ev){
+    ev.st='moved'; ev.nota='remarcada p/ '+p.dia+' '+p.h;
+    (AGENDA[p.dia]=AGENDA[p.dia]||[]).push({id:'x'+Math.round(performance.now()),h:p.h,v:p.v,nome:l.nome||ev.nome,st:'novo',nota:'remarcada',lead:l.id,meet:ev.meet,veioDe:ev.h});
+    state.reagendados++; state.remarcandoEv=null;
+    if(l.id){l.grupo='call';l.hora=p.h;l.vend=p.v;l.conf=true;l.agendado=p.dia+' '+p.h;}
+    fechar(); render();
+    toast('Remarcada para '+p.dia+' às '+p.h+' com '+p.v+'. Mesmo link do Meet, convite reenviado, e fica registrado que veio da call anterior.','ok');
+    return;
+  }
+  (AGENDA[p.dia]=AGENDA[p.dia]||[]).push({id:'x'+Math.round(performance.now()),h:p.h,v:p.v,nome:l.nome||'Novo agendamento',st:'novo',nota:'agendada agora',lead:l.id,meet:'meet.google.com/novo-aaaa-bbb'});
+  if(l.id){ l.agendado=p.dia+' '+p.h; l.conf=true;
+    Object.keys(CARDS).forEach(k=>{CARDS[k]=CARDS[k].filter(c=>c.id!==l.id);});
+    CARDS.video.push({id:l.id});
+    FUNIS.find(x=>x.id==='venda').etapas.find(e=>e.id==='video').n++;
+  }
+  fechar(); render();
+  toast('Agendado '+p.dia+' às '+p.h+' com '+p.v+'. Evento criado com Meet, convite enviado e lead movido para "Vídeo Chamada".','ok');
+}
+function modalEvento(evId){
+  const e=evById(evId); if(!e) return;
+  state.eventoAberto=evId;
+  const l=e.lead?byId(e.lead):null;
+  $('#md-titulo').textContent='Call das '+e.h+' com '+e.v;
+  $('#md-body').innerHTML=`
+    <div class="grid2">
+      <div class="field"><label>Cliente</label><input value="${esc(e.nome)}" readonly></div>
+      <div class="field"><label>Link do Meet</label><input value="${esc(e.meet||'gerado ao criar')}" readonly></div></div>
+    ${e.veioDe?`<div class="alerta warn"><span>↻</span><div>Esta call <b>veio da remarcação</b> das ${esc(e.veioDe)}.</div></div>`:''}
+    ${e.st==='risco'?`<div class="alerta warn"><span>⚠</span><div>O cliente pediu para remarcar às 09:12. O horário fica segurado até as ${CONFIG.seguraAte}; depois disso é liberado e o lead vai para a fila de remarcação.</div></div>`:''}
+    ${e.st==='miss'?'<div class="alerta err"><span>✕</span><div>Ninguém entrou na sala. A auditoria do Meet confirmou a falta, então isso não depende de alguém lembrar de pintar o evento.</div></div>':''}
+    ${e.st==='ok'?`<div class="alerta warn" style="background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)"><span>✔</span><div>Aconteceu, com ${esc(e.nota)} medidos no Meet.</div></div>`:''}
+    <div class="field"><label>Resultado</label>
+      <div class="chips">
+        <button class="btn btn-sm ${e.st==='ok'?'btn-primary':''}" data-res="ok">Realizada</button>
+        <button class="btn btn-sm ${e.st==='miss'?'btn-danger':''}" data-res="miss">Não compareceu</button>
+        <button class="btn btn-sm" data-res="fechou">Fechou contrato</button></div>
+      <p class="hint">Normalmente quem marca é o vendedor, e a auditoria do Meet já preenche sozinha. Isto aqui é para corrigir.</p></div>`;
+  $('#md-foot').innerHTML=`<button class="btn btn-danger" data-act="cancelar-call">Cancelar a call</button>
+    <span style="flex:1"></span><button class="btn" data-act="fechar">Fechar</button>
+    ${l?`<button class="btn btn-primary" data-act="ver-conversa" data-id="${l.id}">Ver conversa</button>`:''}
+    <button class="btn btn-gold" data-act="remarcar-ev" data-ev="${e.id}">Remarcar</button>`;
+  abrirModal();
+}
+function modalCancelar(){
+  const e=evById(state.eventoAberto); if(!e) return;
+  $('#md-titulo').textContent='Cancelar a call';
+  $('#md-body').innerHTML=`<div class="alerta err"><span>⚠</span><div>Cancelar apaga o evento e <b>o Google avisa o cliente automaticamente</b>. Se a ideia é só mudar o horário, use remarcar: aí o cliente recebe convite novo em vez de aviso de cancelamento.</div></div>
+    <div class="field"><label>Motivo (obrigatório)</label><select id="f-motivo">
+      <option value="">escolha um motivo</option>
+      <option>Cliente desistiu</option><option>Cliente não é caso de distrato</option>
+      <option>Vendedor indisponível</option><option>Marcada por engano</option><option>Duplicada</option></select></div>
+    <div class="field"><label>Observação</label><input placeholder="opcional"></div>`;
+  $('#md-foot').innerHTML='<button class="btn" data-act="fechar">Voltar</button><button class="btn btn-danger" data-act="confirma-cancelar">Cancelar a call</button>';
+  abrirModal();
+}
+function modalDescartar(){
+  const l=byId(state.leadAberto); if(!l) return;
+  $('#md-titulo').textContent='Descartar: '+l.nome;
+  $('#md-body').innerHTML=`<p class="hint" style="margin-bottom:10px">No censo de 160 conversas, <b>22,5% não eram lead</b>: candidato a vaga, advogado da parte contrária, cliente do escritório, fornecedor. Registrar o motivo é o que separa lead ruim de lead mal atendido.</p>
+    <div class="field"><label>Motivo (obrigatório)</label><select id="f-motivo">
+      <option value="">escolha um motivo</option>${MOTIVOS.map(m=>`<option>${m}</option>`).join('')}</select></div>
+    <div class="field"><label>Observação</label><input placeholder="opcional"></div>
+    <div class="field"><label><input type="checkbox" id="f-bloq" style="width:auto"> Nunca mais disparar para esta pessoa</label>
+      <p class="hint">Vai para a lista de bloqueio, que é separada da etapa do Kommo: mover o card por engano não faz a pessoa voltar a receber disparo.</p></div>`;
+  $('#md-foot').innerHTML='<button class="btn" data-act="fechar">Voltar</button><button class="btn btn-danger" data-act="confirma-descarte">Descartar</button>';
+  abrirModal();
+}
+function modalCasar(id){
+  const l=byId(id);
+  $('#md-titulo').textContent='Casar o evento com um lead do Kommo';
+  $('#md-body').innerHTML=`<p class="muted" style="font-size:12.5px;margin-bottom:12px">O evento das ${l.hora} está na agenda da ${l.vend} só com o telefone <b>${esc(l.tel)}</b>. Duas das nove calls de hoje estão assim.</p>
+    <div class="field"><label>Procurar no Kommo</label><input value="${esc(l.tel)}"></div>
+    <div class="card" style="box-shadow:none">
+      <div class="row" data-pickcasar="1" style="grid-template-columns:1fr 1fr auto"><div class="name-line"><span class="name">Marcos A. Ferreira</span><span class="tag resort">Olímpia Park</span></div>
+        <div class="sub2">telefone bate · última mensagem em 31/07</div><div class="acts"><span class="chip ok">provável</span></div></div>
+      <div class="row" data-pickcasar="2" style="grid-template-columns:1fr 1fr auto"><div class="name-line"><span class="name">M. Aparecida F.</span><span class="tag none">sem resort</span></div>
+        <div class="sub2">telefone parecido, difere em 1 dígito</div><div class="acts"><span class="chip mute">duvidoso</span></div></div></div>
+    <p class="hint">Casar aqui grava o vínculo, e o evento deixa de aparecer como "sem lead casado" no funil e nas métricas.</p>`;
+  $('#md-foot').innerHTML='<button class="btn" data-act="fechar">Cancelar</button>';
+  abrirModal();
+}
+function modalDisparo(){
+  $('#md-titulo').textContent='Montar disparo para base fria';
+  $('#md-body').innerHTML=`
+    <div class="grid2">
+      <div class="field"><label>Funil e etapa</label><select>
+        <option>Disparo · sem resposta a 24 horas (3.499)</option>
+        <option>Venda · Follow UP (4.706)</option>
+        <option>Venda · limbo (2.884)</option>
+        <option>Acervo de faltas, elegíveis (422)</option></select></div>
+      <div class="field"><label>Template aprovado</label><select>
+        ${TEMPLATES.filter(t=>t.st==='aprovado').map(t=>`<option>${t.nome} · ${t.cat}</option>`).join('')}</select></div></div>
+    <div class="grid2">
+      <div class="field"><label>Não repetir para quem recebeu nos últimos</label><select><option>${CONFIG.cooldown} dias</option><option>60 dias</option><option>90 dias</option><option>sem limite, pode repetir</option></select></div>
+      <div class="field"><label>Teto de hoje</label><input value="${CONFIG.teto}"></div></div>
+    <div class="card" style="box-shadow:none"><div class="panel">
+      <div class="metric-line"><span class="m-lbl">Na etapa escolhida</span><span class="m-val">3.499</span></div>
+      <div class="metric-line"><span class="m-lbl">Menos quem pediu para não ser chamado</span><span class="m-val">−33</span></div>
+      <div class="metric-line"><span class="m-lbl">Menos quem já recebeu nos últimos ${CONFIG.cooldown} dias</span><span class="m-val">−187</span></div>
+      <div class="metric-line"><span class="m-lbl">Menos quem já tem call marcada</span><span class="m-val">−18</span></div>
+      <div class="metric-line"><span class="m-lbl">Sai hoje</span><span class="m-val" style="color:var(--cbc-gold-text)">${CONFIG.teto}</span><span class="m-goal">o resto entra amanhã</span></div></div></div>
+    <p class="hint">Cada pessoa vira uma linha que acompanha o resto: <b>respondeu, agendou, compareceu ou faltou</b>. É o que aparece na tela de Disparos.</p>`;
+  $('#md-foot').innerHTML=`<button class="btn" data-act="fechar">Cancelar</button><button class="btn btn-gold" id="md-disparar">Disparar ${CONFIG.teto}</button>`;
+  abrirModal();
+}
+function modalTemplate(){
+  $('#md-titulo').textContent='Criar template de WhatsApp';
+  $('#md-body').innerHTML=`
+    <div class="grid2">
+      <div class="field"><label>Nome</label><input placeholder="ex.: retomada_barretos_v1"></div>
+      <div class="field"><label>Categoria</label><select><option>UTILITY, aviso sobre algo que a pessoa já tem</option><option>MARKETING, retomada e oferta</option></select></div></div>
+    <div class="field"><label>Texto (use as chaves duplas para as variáveis)</label>
+      <textarea placeholder="Olá, {{1}}. Aqui é da Advocacia CBC..."></textarea></div>
+    <div class="grid2">
+      <div class="field"><label>Botões de resposta rápida</label><input placeholder="Quero retomar · Não tenho interesse"></div>
+      <div class="field"><label>Usar em qual etapa do funil</label><select>${FUNIS[0].etapas.map(e=>`<option>${e.nome}</option>`).join('')}</select></div></div>
+    <div class="alerta warn"><span>ℹ</span><div>Ao salvar, o template vai para a <b>aprovação da Meta</b>, que leva de minutos a alguns dias, e só pode ser disparado depois de aprovado. Template de MARKETING precisa oferecer saída e é o que mais pesa na nota de qualidade do número.</div></div>`;
+  $('#md-foot').innerHTML='<button class="btn" data-act="fechar">Cancelar</button><button class="btn btn-gold" id="md-tpl">Enviar para aprovação</button>';
+  abrirModal();
+}
+function irPara(v){
+  state.view=v;
+  ['m1','m2','m3','m4','m5','m6','m7','funil','disparos','templates','config'].forEach(x=>$('#'+x).hidden=x!==v);
+  document.querySelectorAll('.switch button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.go===v)));
+  render(); window.scrollTo({top:0});
+}
+
+/* =========================================================================
+   EVENTOS
+   ========================================================================= */
+document.addEventListener('click', ev=>{
+  const t=ev.target, bt=t.closest('button');
+  if(bt&&bt.dataset.go){irPara(bt.dataset.go);return;}
+  if(bt&&bt.dataset.dia){state.dia=bt.dataset.dia;render();return;}
+  if(bt&&bt.dataset.funil){state.funil=bt.dataset.funil;render();return;}
+  if(bt&&bt.dataset.mdia){const l=byId(state.leadAberto);modalAgendar(l?l.id:null,{dia:bt.dataset.mdia},state.remarcandoEv);return;}
+  if(bt&&bt.dataset.pick){
+    const [dia,v,h]=bt.dataset.pick.split('|'); state.escolha={dia,v,h};
+    document.querySelectorAll('#md-slots button').forEach(x=>x.setAttribute('aria-pressed',String(x===bt)));
+    $('#md-ok').disabled=false; return;
+  }
+  if(bt&&bt.dataset.res){
+    const e=evById(state.eventoAberto);
+    if(e){ if(bt.dataset.res==='fechou'){e.st='ok';e.nota='fechou contrato';}
+      else{e.st=bt.dataset.res;e.nota=bt.dataset.res==='ok'?'realizada':'faltou';} }
+    fechar(); render(); toast('Resultado gravado. A cor do evento no Google acompanha, e o funil recalcula.','ok'); return;
+  }
+  if(bt&&bt.id==='md-ok'){confirmarAgendamento();return;}
+  if(bt&&bt.id==='md-disparar'){
+    fechar(); toast('Disparo iniciado: '+CONFIG.teto+' mensagens saindo ao longo do dia. 33 bloqueados, 187 recentes e 18 com call marcada ficaram de fora.','ok');
+    setTimeout(()=>toast('Primeiras respostas: 7 pessoas responderam e 1 pediu para não ser chamada de novo, já bloqueada.'),2600);
+    return;
+  }
+  if(bt&&bt.id==='md-tpl'){fechar();toast('Template enviado para aprovação da Meta. Fica como "em análise" na lista até ela responder.','ok');return;}
+
+  if(bt&&bt.dataset.foco){
+    const lista=filaTrabalho();
+    state.foco=(state.foco+Number(bt.dataset.foco)+lista.length)%Math.max(lista.length,1);
+    render(); return;
+  }
+  if(bt&&bt.dataset.focoDescartar){state.leadAberto=bt.dataset.focoDescartar;modalDescartar();return;}
+  if(bt&&bt.dataset.rapido){
+    const [dia,v,h]=bt.dataset.rapido.split('|');
+    if(bt.dataset.lead) state.leadAberto=bt.dataset.lead;
+    else if(state.view==='m4'){const lst=filaTrabalho(); if(lst[state.foco]) state.leadAberto=lst[state.foco].id;}
+    state.remarcandoEv=null; modalAgendar(state.leadAberto,{dia,v,h}); return;
+  }
+  if(bt&&bt.dataset.act){
+    const id=bt.dataset.id, l=byId(id); ev.stopPropagation();
+    switch(bt.dataset.act){
+      case 'kommo':
+        if(state.sim==='kommo'){toast('O Kommo não está respondendo agora.','err');return;}
+        if(!l||!l.kommo){toast('Esse evento não tem lead no Kommo. Use "Casar lead" para vincular.','warn');return;}
+        window.open(KOMMO+l.kommo,'_blank','noopener'); toast('Abrindo a conversa no Kommo (lead '+l.kommo+') numa aba nova.'); return;
+      case 'confirmar': l.conf=true; render(); toast(l.nome+' confirmou a call das '+l.hora+'. O vendedor foi avisado.','ok'); return;
+      case 'confirmar-todos':
+        LEADS.filter(x=>x.grupo==='call'&&!x.conf&&!x.semLead).forEach(x=>x.conf=true);
+        render(); toast('Pedido de confirmação reenviado pelo template confirmacao_call_v1.','ok'); return;
+      case 'agendar': state.leadAberto=id; state.remarcandoEv=null; modalAgendar(id); return;
+      case 'remarcar': {state.leadAberto=id; const e=(AGENDA['03/08']||[]).find(x=>x.lead===id); modalAgendar(id,{dia:'04/08'},e||null); return;}
+      case 'remarcar-ev': {const e=evById(bt.dataset.ev); state.leadAberto=e&&e.lead?e.lead:null; modalAgendar(state.leadAberto,{dia:'04/08'},e); return;}
+      case 'ver-conversa': fechar(); abrirConversa(id); return;
+      case 'cancelar-call': modalCancelar(); return;
+      case 'confirma-cancelar': {
+        const sel=$('#f-motivo');
+        if(!sel||!sel.value){toast('Escolha o motivo: cancelamento sem motivo não entra no sistema.','warn');return;}
+        const e=evById(state.eventoAberto);
+        if(e){Object.keys(AGENDA).forEach(d=>{AGENDA[d]=AGENDA[d].filter(x=>x.id!==e.id);});
+          if(e.lead){const ll=byId(e.lead); if(ll){ll.grupo='falta';ll.quando='hoje';ll.dias=0;}}}
+        fechar(); render(); toast('Call cancelada com o motivo registrado. O Google avisou o cliente.','warn'); return;}
+      case 'casar': modalCasar(id); return;
+      case 'disparo': modalDisparo(); return;
+      case 'novo-template': modalTemplate(); return;
+      case 'ir-disparos': irPara('disparos'); return;
+      case 'confirma-descarte': {
+        const sel=$('#f-motivo');
+        if(!sel||!sel.value){toast('Escolha o motivo do descarte.','warn');return;}
+        const bloq=$('#f-bloq')&&$('#f-bloq').checked;
+        const ll=byId(state.leadAberto);
+        if(ll){LEADS=LEADS.filter(x=>x.id!==ll.id);Object.keys(CARDS).forEach(k=>{CARDS[k]=CARDS[k].filter(c=>c.id!==ll.id);});}
+        fechar(); render();
+        toast('Descartado como "'+sel.value+'"'+(bloq?' e bloqueado para disparos':'')+'. Vai para o funil Contato Perdido.','warn'); return;}
+      case 'salvar-config': render(); toast('Configuração salva. A nota da fila e o rodízio já usam os valores novos.','ok'); return;
+      case 'fechar': fechar(); return;
+      case 'nada': toast('Aqui o protótipo para: a tela existe no desenho, mas não foi montada.'); return;
+    }
+  }
+  if(t.closest('[data-pickcasar]')){fechar();toast('Evento casado com o lead 22290110. Ele sai da lista de "sem lead casado".','ok');return;}
+  const slot=t.closest('[data-slot]');
+  if(slot){const [dia,v,h]=slot.dataset.slot.split('|');state.leadAberto=null;state.remarcandoEv=null;modalAgendar(null,{dia,v,h});return;}
+  const evEl=t.closest('[data-ev]');
+  if(evEl){modalEvento(evEl.dataset.ev);return;}
+  const inbx=t.closest('[data-inbox]');
+  if(inbx){state.inbox=inbx.dataset.inbox;render();return;}
+  const open=t.closest('[data-open]');
+  if(open){abrirConversa(open.dataset.open);return;}
+  if(t.id==='scrim'||t.id==='dr-close'||t.id==='md-close'){fechar();return;}
+  if(t.id==='dr-agendar'){state.remarcandoEv=null;modalAgendar(state.leadAberto);return;}
+  if(t.id==='dr-kommo'){const l=byId(state.leadAberto);if(l&&l.kommo){window.open(KOMMO+l.kommo,'_blank','noopener');toast('Abrindo a conversa no Kommo numa aba nova.');}return;}
+  if(t.id==='dr-descartar'){modalDescartar();return;}
+});
+document.addEventListener('input', e=>{
+  const t=e.target;
+  if(t.id==='f-q'){state.filtro.q=t.value;render();const el=$('#f-q');if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length);}return;}
+  if(t.dataset&&t.dataset.cfg){
+    const p=t.dataset.cfg.split('.');
+    let o=CONFIG; for(let i=0;i<p.length-1;i++)o=o[p[i]];
+    const v=t.value; o[p[p.length-1]]=(v!==''&&!isNaN(Number(v)))?Number(v):v;
+  }
+});
+document.addEventListener('change', e=>{
+  const t=e.target;
+  if(t.id==='f-grupo'){state.filtro.grupo=t.value;render();return;}
+  if(t.id==='f-dono'){state.filtro.dono=t.value;render();return;}
+  if(t.id==='sim'){state.sim=t.value;render();
+    if(t.value==='token')toast('Simulando: o acesso do sistema às agendas expirou.','err');
+    if(t.value==='google')toast('Simulando: o Google Agenda não responde. Agendar fica bloqueado.','err');
+    if(t.value==='kommo')toast('Simulando: o Kommo está fora. A fila segue com o que está espelhado.','warn');
+    if(t.value==='vazia')toast('Simulando: o SDR zerou a fila do dia.','ok');
+    return;}
+  if(t.dataset&&t.dataset.vend!==undefined){
+    CONFIG.vendedores[Number(t.dataset.vend)][t.dataset.campo]=t.checked; render();
+    if(t.dataset.campo==='ativo'&&!t.checked) toast('Vendedor fora do rodízio. As calls futuras dele podem ser redistribuídas.','warn');
+  }
+});
+document.addEventListener('keydown', ev=>{
+  if(ev.key==='Escape') fechar();
+  const digitando = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');
+  const modalAberto = $('#modal').classList.contains('on')||$('#drawer').classList.contains('on');
+  if(state.view==='m4' && !digitando && !modalAberto){
+    const lista=filaTrabalho(), atual=lista[state.foco];
+    const k=ev.key.toLowerCase();
+    if(k==='n'){ev.preventDefault();state.foco=(state.foco+1)%Math.max(lista.length,1);render();return;}
+    if(k==='a'&&atual){ev.preventDefault();state.leadAberto=atual.id;state.remarcandoEv=null;modalAgendar(atual.id);return;}
+    if(k==='k'&&atual&&atual.kommo){ev.preventDefault();window.open(KOMMO+atual.kommo,'_blank','noopener');toast('Abrindo a conversa no Kommo numa aba nova.');return;}
+  }
+  const el=document.activeElement;
+  if((ev.key==='Enter'||ev.key===' ')&&el&&el.dataset&&el.dataset.open&&el.tagName!=='INPUT'){ev.preventDefault();abrirConversa(el.dataset.open);}
+});
+document.addEventListener('dragstart',e=>{const c=e.target.closest('.kb-card');if(c){c.classList.add('dragging');e.dataTransfer.setData('text/plain',c.dataset.card);}});
+document.addEventListener('dragend',e=>{const c=e.target.closest('.kb-card');if(c)c.classList.remove('dragging');document.querySelectorAll('.kb-col').forEach(x=>x.classList.remove('drop'));});
+document.addEventListener('dragover',e=>{const col=e.target.closest('.kb-col');if(col){e.preventDefault();col.classList.add('drop');}});
+document.addEventListener('dragleave',e=>{const col=e.target.closest('.kb-col');if(col)col.classList.remove('drop');});
+document.addEventListener('drop',e=>{
+  const col=e.target.closest('.kb-col'); if(!col) return; e.preventDefault();
+  const id=e.dataTransfer.getData('text/plain'), destino=col.dataset.col;
+  let origem=null; Object.keys(CARDS).forEach(k=>{if(CARDS[k].some(c=>c.id===id))origem=k;});
+  if(!origem||origem===destino) return;
+  if(state.sim==='kommo'){toast('O Kommo está fora: a mudança de etapa fica na fila e sai quando ele voltar.','warn');return;}
+  CARDS[origem]=CARDS[origem].filter(c=>c.id!==id); CARDS[destino].push({id});
+  const f=FUNIS.find(x=>x.id===state.funil);
+  const eo=f.etapas.find(x=>x.id===origem), ed=f.etapas.find(x=>x.id===destino);
+  if(eo)eo.n--; if(ed)ed.n++;
+  render();
+  const l=byId(id);
+  toast((l?l.nome:'Lead')+' movido para "'+(ed?ed.nome:destino)+'". O card muda de etapa no Kommo também.','ok');
+});
+
+const tbtn=$('#theme');
+let dark=window.matchMedia('(prefers-color-scheme: dark)').matches;
+const paint=()=>{document.documentElement.setAttribute('data-theme',dark?'dark':'light');tbtn.textContent=dark?'Tema claro':'Tema escuro';};
+paint(); tbtn.addEventListener('click',()=>{dark=!dark;paint();});
+render();
+</script>
+</body>
+</html>

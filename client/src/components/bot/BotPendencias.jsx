@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { normalize } from './botApi';
 import { WrenchScrewdriverIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 /**
  * Painel de pendencias de parametrizacao — alimentado pelo catalogo que o
@@ -53,7 +54,7 @@ export default function BotPendencias({ onGoTo }) {
   if (info.semCatalogo) {
     return (
       <div className="rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 mb-2 text-xs opacity-70">
-        ⚙️ O catálogo de etapas/tarefas será sincronizado na próxima rodada do monitor (9h/18h).
+        <Ico nome="info" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />O catálogo de etapas/tarefas será sincronizado na próxima rodada do monitor (9h/18h).
       </div>
     );
   }
@@ -61,9 +62,9 @@ export default function BotPendencias({ onGoTo }) {
   const nov = info.novidades || {};
   const chips = [];
   if (nov.etapas_novas?.length) chips.push(`🆕 ${nov.etapas_novas.length} etapa(s) nova(s): ${nov.etapas_novas.slice(0, 3).map(x => x.name).join(', ')}${nov.etapas_novas.length > 3 ? '…' : ''}`);
-  if (nov.etapas_removidas?.length) chips.push(`🗑 ${nov.etapas_removidas.length} etapa(s) removida(s) do ADVBOX (template desativado automaticamente)`);
+  if (nov.etapas_removidas?.length) chips.push(`${nov.etapas_removidas.length} etapa(s) removida(s) do ADVBOX (template desativado automaticamente)`);
   if (nov.tarefas_novas?.length) chips.push(`🆕 ${nov.tarefas_novas.length} tipo(s) de tarefa novo(s): ${nov.tarefas_novas.slice(0, 3).map(x => x.name).join(', ')}${nov.tarefas_novas.length > 3 ? '…' : ''}`);
-  if (nov.tarefas_removidas?.length) chips.push(`🗑 ${nov.tarefas_removidas.length} tipo(s) de tarefa removido(s) (template desativado)`);
+  if (nov.tarefas_removidas?.length) chips.push(`${nov.tarefas_removidas.length} tipo(s) de tarefa removido(s) (template desativado)`);
 
   const tudoOk = info.etapasPend === 0 && info.tarefasPend === 0 && chips.length === 0;
   if (tudoOk) return null; // nada pendente — nao ocupa espaco

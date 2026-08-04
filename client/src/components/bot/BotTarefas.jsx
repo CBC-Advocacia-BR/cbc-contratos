@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { botApi, normalize } from './botApi';
 import { ArrowPathIcon, CheckIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 export default function BotTarefas() {
   const [tasks, setTasks] = useState([]);       // tipos de tarefa do ADVBOX
@@ -115,7 +116,7 @@ export default function BotTarefas() {
                   title="Oculta do cliente: não aparece nas respostas do bot, não vira nota no Kommo nem alerta de novidade. Continua indo para o banco/BI normalmente.">
                   <input type="checkbox" checked={!!t.ocultar_cliente || isIgnored(task.name)} disabled={isIgnored(task.name)}
                     onChange={e => toggleOcultar(task, e.target.checked)} />
-                  🚫 ocultar do cliente{isIgnored(task.name) ? ' (regra automática)' : ''}
+                  <Ico nome="bloqueado" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />ocultar do cliente{isIgnored(task.name) ? ' (regra automática)' : ''}
                 </label>
                 <label className="text-xs flex items-center gap-1" title="Marcar como relevante para comunicar o cliente quando concluída">
                   <input type="checkbox" checked={!!t.notificar} onChange={e => edit(task.id, 'notificar', e.target.checked)} /> relevante p/ cliente

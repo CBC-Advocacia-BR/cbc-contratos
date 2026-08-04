@@ -272,7 +272,7 @@ class ErrorBoundary extends React.Component {
             </details>
           )}
           <button onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 rounded-lg text-xs font-bold text-white cursor-pointer" style={{ background: '#1B3A5C' }}>
+            className="px-4 py-2 rounded-lg text-xs font-bold text-white cursor-pointer" style={{ background: 'var(--cbc-navy)' }}>
             Tentar novamente
           </button>
         </div>
@@ -595,7 +595,7 @@ function AppContent() {
           setCelebrationName(row.nome_contratante1 || '');
           setTimeout(() => setCelebrationName(''), 4500);
           if (Notification.permission === 'granted') {
-            new Notification('🏆 PRA CIMA CBC!', { body: msg.message, icon: '/favicon.png' });
+            new Notification('PRA CIMA CBC!', { body: msg.message, icon: '/favicon.png' });
           }
           // ADVBOX + Drive auto-sync handled by pollZapSign (no duplicate calls here)
         }

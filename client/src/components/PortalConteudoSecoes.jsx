@@ -374,7 +374,7 @@ export function CorrelacaoCard() {
         ))}
       </div>
       <div className="flex gap-4 mt-2 text-[10.5px] opacity-60">
-        <span><span className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{ background: '#1B3A5C' }} />acessos ao portal</span>
+        <span><span className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{ background: 'var(--cbc-navy)' }} />acessos ao portal</span>
         <span><span className="inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1" style={{ background: '#C9A84C' }} />mensagens recebidas (Kommo)</span>
       </div>
     </div>

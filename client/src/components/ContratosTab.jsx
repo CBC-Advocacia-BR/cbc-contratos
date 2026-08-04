@@ -56,6 +56,7 @@ import ReminderModal from './ReminderModal';
 import { BellAlertIcon } from '@heroicons/react/24/outline';
 // (item 204) fonte unica da leitura dos signatarios do ZapSign
 import { lerSignatarios, linksMudaram } from '../../netlify/functions/_lib/zapsignSigners.mjs';
+import Ico from './ui/Ico';
 
 function AdvboxSyncButton({ dados, dataAssinatura, contractId, existingLawsuitId, existingCustomers }) {
   const [status, setStatus] = useState(''); // '' | 'loading' | 'success' | 'error'
@@ -603,7 +604,7 @@ const WhatsAppAssinaturaStrip = memo(function WhatsAppAssinaturaStrip({ ka, cont
           <div className="flex gap-1.5 flex-wrap mt-1.5">
             {enviados.map((l, i) => (
               <span key={i} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(true)}>
-                ✓ {(l.contratantes || []).join(' + ')}{l.sent_at ? ` · ${fmtHora(l.sent_at)}` : ''}
+                <Ico nome="ok" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{(l.contratantes || []).join(' + ')}{l.sent_at ? ` · ${fmtHora(l.sent_at)}` : ''}
               </span>
             ))}
           </div>
@@ -629,12 +630,12 @@ const WhatsAppAssinaturaStrip = memo(function WhatsAppAssinaturaStrip({ ka, cont
           <div className="flex gap-1.5 flex-wrap mt-1.5">
             {enviados.map((l, i) => (
               <span key={`ok-${i}`} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(true)}>
-                ✓ {(l.contratantes || []).join(' + ')} · enviada {fmtHora(l.sent_at)}
+                <Ico nome="ok" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{(l.contratantes || []).join(' + ')} · enviada {fmtHora(l.sent_at)}
               </span>
             ))}
             {pendentes.map((l, i) => (
               <span key={`p-${i}`} className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full" style={chipStyle(false)}>
-                ⚠ {(l.contratantes || []).join(' + ')} · {l.resultado === 'fora_janela' ? (l.last_msg_at ? `última msg ${fmtHora(l.last_msg_at)}` : 'sem conversa recente') : 'erro'}
+                <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{(l.contratantes || []).join(' + ')} · {l.resultado === 'fora_janela' ? (l.last_msg_at ? `última msg ${fmtHora(l.last_msg_at)}` : 'sem conversa recente') : 'erro'}
               </span>
             ))}
           </div>
@@ -651,7 +652,7 @@ const WhatsAppAssinaturaStrip = memo(function WhatsAppAssinaturaStrip({ ka, cont
               {kommoUrl && (
                 <a href={kommoUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2.5 py-1.5 rounded-lg text-white cursor-pointer hover:opacity-90 transition-all"
-                  style={{ background: '#1B3A5C' }}>
+                  style={{ background: 'var(--cbc-navy)' }}>
                   <ChatBubbleLeftRightIcon className="w-3.5 h-3.5" aria-hidden="true" /> Abrir conversa
                 </a>
               )}
@@ -772,7 +773,7 @@ const ContratoRow = memo(function ContratoRow({ contract: c, isSelected, isExpan
             className="ml-1 inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-100 border border-purple-300 px-1.5 py-0.5 rounded normal-case dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/50"
             title={`Importado manualmente${c.imported_at ? ' em ' + fmtData(c.imported_at) : ''}${c.imported_by ? ' por ' + c.imported_by : ''}`}
           >
-            <span aria-hidden="true">📥</span>
+            <Ico nome="baixar" className="w-4 h-4" />
             Importado
           </span>
         )}
@@ -809,7 +810,7 @@ function Pagination({ page, totalPages, onPageChange }) {
             className={`w-7 h-7 rounded text-[10px] font-bold cursor-pointer transition-all ${
               p === page ? 'text-white' : 'text-gray-500 hover:bg-gray-100'
             }`}
-            style={p === page ? { background: '#1B3A5C' } : {}}>{p}</button>
+            style={p === page ? { background: 'var(--cbc-navy)' } : {}}>{p}</button>
         )
       ))}
       <button onClick={() => onPageChange(page + 1)} disabled={page >= totalPages}
@@ -1705,7 +1706,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
           </div>
           <button onClick={fetchContratos}
             className="px-3 md:px-4 py-2 text-xs font-bold uppercase rounded-lg text-white cursor-pointer shrink-0"
-            style={{ background: '#1B3A5C' }}>Buscar</button>
+            style={{ background: 'var(--cbc-navy)' }}>Buscar</button>
           <button onClick={syncZapSign} disabled={syncing} title="Sincronizar status ZapSign"
             className={`px-2 py-2 rounded-lg cursor-pointer shrink-0 transition-all ${syncing ? 'animate-spin' : 'hover:bg-gray-100'}`}
             style={{ color: '#1B3A5C' }}>
@@ -1735,7 +1736,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
               className={`px-3 py-1 text-[10px] font-bold uppercase rounded-full cursor-pointer transition-all whitespace-nowrap shrink-0 ${
                 filterStatus === opt.value ? 'text-white' : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
               }`}
-              style={filterStatus === opt.value ? { background: '#1B3A5C' } : {}}>{opt.label}</button>
+              style={filterStatus === opt.value ? { background: 'var(--cbc-navy)' } : {}}>{opt.label}</button>
           ))}
           {/* (audit) Toggle "Ver arquivados" — separa da listagem padrao */}
           <label
@@ -2077,7 +2078,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                         <button
                           onClick={() => setDriveFolderModalContractId(detail.id)}
                           className="btn-primary text-xs px-3 py-1.5 font-bold uppercase rounded-lg text-white cursor-pointer inline-flex items-center gap-1 shrink-0"
-                          style={{ background: '#1B3A5C' }}
+                          style={{ background: 'var(--cbc-navy)' }}
                         >
                           <FolderPlusIcon className="w-3.5 h-3.5" aria-hidden="true" />
                           Atribuir pasta
@@ -2118,7 +2119,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                           <button
                             onClick={() => setDriveFolderModalContractId(detail.id)}
                             className="btn-primary text-xs px-3 py-1 font-bold uppercase rounded-lg text-white cursor-pointer inline-flex items-center gap-1"
-                            style={{ background: '#1B3A5C' }}
+                            style={{ background: 'var(--cbc-navy)' }}
                           >
                             <FolderIcon className="w-3 h-3" aria-hidden="true" />
                             Trocar pasta
@@ -2139,7 +2140,7 @@ export default function ContratosTab({ onLoadContract, onRequestDestructiveConfi
                       {detail.dados && (
                         <button onClick={() => handleLoadContract(detail.dados, detail.id)}
                           className="px-3 py-1.5 text-[10px] font-bold uppercase rounded-lg text-white cursor-pointer"
-                          style={{ background: '#1B3A5C' }}>Carregar no Formulario</button>
+                          style={{ background: 'var(--cbc-navy)' }}>Carregar no Formulario</button>
                       )}
                       {/* (#215) Lembrar-me sobre este contrato */}
                       {currentUser && (

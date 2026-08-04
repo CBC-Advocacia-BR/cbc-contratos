@@ -3,6 +3,7 @@ import { buscarClientes, editarCliente, setRelacao as svcSetRelacao, fundirClien
 import { buildLedgers } from '../utils/prestacaoLedger';
 import { exportClientesPlanilha } from '../utils/excelExport';
 import LinhaCasoView from './clientes/LinhaCasoView';
+import Ico from './ui/Ico';
 import './clientes/clientes.css';
 
 // Export completo da planilha: visivel apenas para o trio (a RPC tambem confere o e-mail no servidor)
@@ -265,7 +266,7 @@ export default function ClientesTab({ isAdmin = false, userEmail = '' }) {
 
       {tab === 'lista' && <>
         <div className="toolbar">
-          <div className="search"><span aria-hidden>🔎</span><input placeholder="buscar por nome, CPF, telefone ou e-mail…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="search"><Ico nome="buscar" className="w-4 h-4" /><input placeholder="buscar por nome, CPF, telefone ou e-mail…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           {[['todos', 'Todos'], ['clientes', 'Clientes'], ['pc', 'Parte contrária'], ['leads', 'Leads']].map(([k, l]) => (<button key={k} className={'chip' + (tipo === k ? ' active' : '')} onClick={() => setTipo(k)}>{l}</button>))}
           {extra && <button className="chip warn active" onClick={() => setExtra(null)}>✕ {saude.find((s) => s.key === extra)?.label}</button>}
         </div>
@@ -301,7 +302,7 @@ export default function ClientesTab({ isAdmin = false, userEmail = '' }) {
                   <td className="tnum" style={cpfInvalido(r) ? { color: 'var(--c-danger)', fontWeight: 700 } : undefined}>{cpfFmt(r.cpf, r.cpf_fmt)}{cpfInvalido(r) && <span className="badge bad" title="dígito verificador inválido">CPF inválido</span>}</td>
                   <td>{r.relacao === 'cliente' && <span className="badge cliente">cliente</span>}{r.relacao === 'parte_contraria' && <span className="badge pc">parte contrária</span>}{r.relacao === 'lead' && <span className="badge lead">lead</span>}</td>
                   <td className="tnum">{telFmt(r.telefone)}</td>
-                  <td className="tnum">{idade(r.nascimento) ? idade(r.nascimento) + ' anos' : '—'}{extra === 'aniversario' && aniversarioData(r.nascimento) ? <span style={{ marginLeft: 6, color: 'var(--c-gold-dark)', fontWeight: 700, whiteSpace: 'nowrap' }}>🎂 {aniversarioData(r.nascimento)}</span> : (aniversarioMes(r) && ' 🎂')}</td>
+                  <td className="tnum">{idade(r.nascimento) ? idade(r.nascimento) + ' anos' : '—'}{extra === 'aniversario' && aniversarioData(r.nascimento) ? <span style={{ marginLeft: 6, color: 'var(--c-gold-dark)', fontWeight: 700, whiteSpace: 'nowrap' }} title="Faz aniversário"><Ico nome="celebrar" className="w-3 h-3 inline align-[-2px]" /> {aniversarioData(r.nascimento)}</span> : (aniversarioMes(r) && <Ico nome="celebrar" className="w-3 h-3 inline align-[-2px] ml-1" />)}</td>
                   <td className="muted">{r.cidade ? `${r.cidade}/${r.uf || ''}` : '—'}</td>
                   <td>{r.pasta ? <span className="badge" style={{ background: '#eef2f6', color: 'var(--c-navy)', fontWeight: 600 }}>{r.pasta}</span> : '—'}</td>
                   <td>{r.em_advbox && <span className="sys">AdvBox</span>}{r.em_asaas && <span className="sys">Asaas</span>}{r.em_kommo && <span className="sys">Kommo</span>}{r.em_contrato && <span className="sys">Contrato</span>}</td>
@@ -474,7 +475,7 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
     (info.conjuge_n_vencidos > 0) && 'Cônjuge com cobrança vencida',
   ].filter(Boolean) : [];
   const risco = alertas.length === 0 ? 'ok' : (info && info.r_boleto_velho) ? 'alto' : 'medio';
-  const fld = (campo, label, type) => (<div className="field" key={campo}><label>{label} <span className="seal">{manualFields.has(campo) ? '🔒 manual' : 'AdvBox'}</span></label><input type={type || 'text'} value={buf[campo]} onChange={set(campo)} /></div>);
+  const fld = (campo, label, type) => (<div className="field" key={campo}><label>{label} <span className="seal">{manualFields.has(campo) ? 'manual' : 'AdvBox'}</span></label><input type={type || 'text'} value={buf[campo]} onChange={set(campo)} /></div>);
   return (
     <>
       <div className="scrim" onClick={onClose} />
@@ -488,12 +489,12 @@ function Ficha({ row, isAdmin, busy, clientes = [], onAbrir, onClose, onSave, on
               na tela — e quem le decide achando que o cliente nao tem aquele dado */}
           {falhas.length > 0 && (
             <div role="alert" style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: '#B45309', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '5px 8px', lineHeight: 1.4 }}>
-              ⚠ Não foi possível carregar: {falhas.join(', ')}. Estas seções aparecem vazias por falha de carregamento, não por falta de dado.
+              <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Não foi possível carregar: {falhas.join(', ')}. Estas seções aparecem vazias por falha de carregamento, não por falta de dado.
             </div>
           )}
           {info && (risco === 'ok'
-            ? <div style={{ marginTop: 6, fontSize: 12, color: '#16A34A', fontWeight: 700 }}>🟢 Sem alertas</div>
-            : <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, color: risco === 'alto' ? 'var(--c-danger)' : '#D97706' }}>{risco === 'alto' ? '🔴' : '🟡'} {alertas.length} alerta(s)</div>)}
+            ? <div style={{ marginTop: 6, fontSize: 12, color: '#16A34A', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><Ico nome="okCirculo" className="w-3.5 h-3.5" /> Sem alertas</div>
+            : <div style={{ marginTop: 6, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: risco === 'alto' ? 'var(--c-danger)' : '#D97706' }}><Ico nome="aviso" className="w-3.5 h-3.5" /> {alertas.length} alerta(s){risco === 'alto' ? ' — grave' : ''}</div>)}
         </header>
         <div className="body">
           {bad && <div className="pend-box bad"><div className="pend-t">⚠ CPF inválido (dígito verificador não confere)</div></div>}

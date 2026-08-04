@@ -17,6 +17,7 @@ import { filtroInadimplencia } from '../lib/statusTokens';
 import MoneyValue from './ui/MoneyValue';
 import { ymdLocal, fmtData} from '../utils/format';
 import { fetchAllPaged } from '../utils/supabasePaged';
+import Ico from './ui/Ico';
 
 const KOMMO_BASE = 'https://advocaciacbc.kommo.com/leads/detail/';
 
@@ -355,7 +356,8 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
         return (
           <div className="rounded-xl p-3 flex items-center gap-3 text-[12.5px]"
             style={{ background: ok ? 'var(--cbc-success-bg)' : 'var(--cbc-warning-bg)', border: `1px solid ${ok ? 'var(--cbc-success-border)' : 'var(--cbc-warning-border)'}` }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden="true">{ok ? '✅' : '⚠️'}</span>
+            <Ico nome={ok ? 'okCirculo' : 'aviso'} className="w-[18px] h-[18px] shrink-0"
+              style={{ color: ok ? 'var(--cbc-success)' : 'var(--cbc-warning)' }} />
             <div className="flex-1 min-w-0">
               <div className="font-bold" style={{ color: ok ? 'var(--cbc-success)' : 'var(--cbc-warning)' }}>
                 Envio automático de boleto {ok ? '— funcionando' : '— com erros'}
@@ -436,7 +438,7 @@ export default function CobrancaPanel({ userEmail = '', onVerHistorico }) {
                 title="Seleciona todos os devedores prontos para cobrar hoje (com lead, fora do cooldown, sem 'não perturbe') — ignora o filtro de faixa."
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-[11.5px] font-bold rounded-lg cursor-pointer text-white shadow-sm"
                 style={{ background: 'var(--cbc-gold,#C9A84C)' }}>
-                🎯 Cobrar hoje ({acionaveisHoje.length})
+                <Ico nome="info" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />Cobrar hoje ({acionaveisHoje.length})
               </button>
             )}
             {view !== 'estagio' && (
@@ -646,7 +648,7 @@ const ClienteRow = memo(function ClienteRow({ d, selected, expanded, parcels, on
           </button>
           <button onClick={() => optout(cpf, !optedOut, d.customer_name)} aria-pressed={optedOut}
             title={optedOut ? 'Voltar a cobrar este cliente' : 'Marcar “não perturbe” (não recebe cobrança)'}
-            className="text-[14px] leading-none px-1.5 py-1 rounded cursor-pointer">{optedOut ? '🔕' : '🔔'}</button>
+            className="px-1.5 py-1 rounded cursor-pointer inline-flex items-center"><Ico nome={optedOut ? 'sinoMudo' : 'sino'} className="w-4 h-4" /></button>
         </span>
         <VincPill d={d} />
         <span className="text-right font-bold tabular-nums w-[88px]" style={{ color: 'var(--cbc-danger)' }}><MoneyValue value={d.total_em_aberto} /></span>

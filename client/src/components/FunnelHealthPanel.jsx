@@ -10,6 +10,7 @@ import { computeFunnel, computeSla, computeDuracaoCalls, computeFunilPorVendedor
 import { fetchProcessosDistribuidos, fetchProcessosGuiaPaga, fetchVideochamadasFunil, fetchMetaAdsFunil, fetchFunilSla, fetchFunilPorVendedora } from '../utils/funilSources';
 import { fetchAllPaged } from '../utils/supabasePaged';
 import PontualidadePanel from './PontualidadePanel';
+import Ico from './ui/Ico';
 
 const SERIF = "'Cormorant Garamond', Georgia, serif";
 const fmtDias = (d) => (d == null ? '—' : `${(Math.round(d * 10) / 10).toLocaleString('pt-BR')} d`);
@@ -217,7 +218,7 @@ export default function FunnelHealthPanel() {
                 </div>
                 {slaResumo.nuncaRespondidos > 0 && (
                   <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-danger, #DC2626)' }}>
-                    ✕ {fmtInt(slaResumo.nuncaRespondidos)} lead{slaResumo.nuncaRespondidos > 1 ? 's' : ''} ({fmtPct(slaResumo.pctNuncaRespondidos)}) nunca recebe{slaResumo.nuncaRespondidos > 1 ? 'ram' : 'u'} resposta
+                    <Ico nome="fechar" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{fmtInt(slaResumo.nuncaRespondidos)} lead{slaResumo.nuncaRespondidos > 1 ? 's' : ''} ({fmtPct(slaResumo.pctNuncaRespondidos)}) nunca recebe{slaResumo.nuncaRespondidos > 1 ? 'ram' : 'u'} resposta
                   </div>
                 )}
               </>
@@ -258,7 +259,7 @@ export default function FunnelHealthPanel() {
                 </div>
                 {duracao.conectouECaiu > 0 && (
                   <div className="pl-32 text-[11px] font-bold tracking-wide" style={{ color: 'var(--cbc-warning, #D97706)' }}>
-                    ⚠ {fmtInt(duracao.conectouECaiu)} cliente{duracao.conectouECaiu > 1 ? 's' : ''} entr{duracao.conectouECaiu > 1 ? 'aram' : 'ou'} na sala e sa{duracao.conectouECaiu > 1 ? 'íram' : 'iu'} antes dos 5 min
+                    <Ico nome="aviso" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />{fmtInt(duracao.conectouECaiu)} cliente{duracao.conectouECaiu > 1 ? 's' : ''} entr{duracao.conectouECaiu > 1 ? 'aram' : 'ou'} na sala e sa{duracao.conectouECaiu > 1 ? 'íram' : 'iu'} antes dos 5 min
                     {' '}— contam como falta, mas abriram o link (diferente das {fmtInt(duracao.naoEntrou)} que nunca entraram)
                   </div>
                 )}

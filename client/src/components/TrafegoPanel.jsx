@@ -27,6 +27,7 @@ import { fetchVideochamadasFunil } from '../utils/funilSources';
 const SERIF = "'Cormorant Garamond', Georgia, serif";
 // (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
 import { TRAFEGO_ACAO_EMAILS } from '../utils/acessos';
+import Ico from './ui/Ico';
 const BOLETO_PAGO = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH', 'DUNNING_RECEIVED'];
 
 const fmtInt = (n) => (n || 0).toLocaleString('pt-BR');
@@ -669,7 +670,7 @@ export default function TrafegoPanel() {
               <ul className="space-y-1.5">
                 {recs.slice(0, 5).map((r, i) => (
                   <li key={i} className="text-[12.5px] leading-snug flex gap-2">
-                    <span style={{ color: 'var(--cbc-gold-text, #8A6A12)' }}>➜</span><span className="opacity-95">{r.texto}</span>
+                    <Ico nome="enviar" className="w-4 h-4" /><span className="opacity-95">{r.texto}</span>
                   </li>
                 ))}
               </ul>

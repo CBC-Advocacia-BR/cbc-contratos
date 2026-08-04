@@ -188,7 +188,7 @@ export default function ZapSignModal({ onClose, onSaveAfterSend }) {
     <div className="fixed inset-0 modal-backdrop-glass z-50 flex items-center justify-center p-4" onClick={() => { if (!loading) onClose(); }}>
       <div className="modal-glass rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="text-white text-center py-3 px-5 rounded-t-xl" style={{ background: '#1B3A5C' }}>
+        <div className="text-white text-center py-3 px-5 rounded-t-xl" style={{ background: 'var(--cbc-navy)' }}>
           <div className="text-[13px] font-bold uppercase tracking-[1px]">Enviar para ZapSign</div>
           <div className="text-[11px] opacity-70 mt-0.5">Assinatura Digital com Validade Juridica</div>
         </div>
@@ -204,7 +204,7 @@ export default function ZapSignModal({ onClose, onSaveAfterSend }) {
                     <p className="font-bold text-sm" style={{ color: '#1A1A1A' }}>{s.name}</p>
                     <p className="text-[11px] text-gray-500">{s.email}</p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white" style={{ background: '#1B3A5C' }}>{s.qualification}</span>
+                  <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--cbc-navy)' }}>{s.qualification}</span>
                 </div>
               ))}
             </div>
@@ -217,7 +217,7 @@ export default function ZapSignModal({ onClose, onSaveAfterSend }) {
           {!result && !loading && (
             <div className="space-y-2">
               <button className="btn-ripple btn-press w-full py-3 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#0F2035' }}
+                style={{ background: 'var(--cbc-navy-dark)' }}
                 onMouseDown={ripple}
                 onClick={() => handleSend('completo')} disabled={loading}>
                 {loadingType === 'completo' ? 'Gerando PDF e enviando...' : 'Enviar Contrato + Procuracao'}
@@ -259,13 +259,13 @@ export default function ZapSignModal({ onClose, onSaveAfterSend }) {
                       <p className="font-bold text-xs" style={{ color: '#1B3A5C' }}>{s.name}</p>
                       <p className="text-[10px] text-blue-600 truncate">{s.sign_url}</p>
                     </div>
-                    <button className="text-[11px] text-white px-3 py-1.5 rounded-lg cursor-pointer font-bold shrink-0" style={{ background: '#1B3A5C' }}
+                    <button className="text-[11px] text-white px-3 py-1.5 rounded-lg cursor-pointer font-bold shrink-0" style={{ background: 'var(--cbc-navy)' }}
                       onClick={() => copyText(s.sign_url, i)}>{copied[i] ? 'Copiado!' : 'Copiar'}</button>
                   </div>
                 ))}
               </div>
               <button className="w-full mt-3 py-2.5 rounded-lg text-white font-bold text-xs uppercase tracking-wide cursor-pointer transition-all hover:opacity-90"
-                style={{ background: '#0F2035' }}
+                style={{ background: 'var(--cbc-navy-dark)' }}
                 onClick={copyAll}>
                 {copied.all ? 'Links Copiados!' : 'Copiar Todos os Links'}
               </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { botApi } from './botApi';
 import { ArrowPathIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import Ico from '../ui/Ico';
 
 const PLACEHOLDERS = '{{primeiro_nome}} {{cliente}} {{processo}} {{tipo}} {{fase}} {{advogado}} {{ultimo_andamento}} {{data_ultimo_andamento}} {{prazo_medio}}';
 
@@ -140,7 +141,7 @@ export default function BotEtapas() {
                           <label className={`text-xs flex items-center gap-1 cursor-pointer ${t.ocultar_cliente ? 'text-red-600 dark:text-red-400 font-bold' : ''}`}
                             title="O bot não revela o nome técnico desta etapa ao cliente (mostra 'Em andamento com nossa equipe' + os textos parametrizados, se houver)">
                             <input type="checkbox" checked={!!t.ocultar_cliente} onChange={e => edit(stage.id, 'ocultar_cliente', e.target.checked)} />
-                            🚫 não revelar ao cliente
+                            <Ico nome="bloqueado" className="w-3.5 h-3.5 inline align-[-2px] mr-1" />não revelar ao cliente
                           </label>
                           <label className="text-xs flex items-center gap-1">
                             <input type="checkbox" checked={t.active !== false} onChange={e => edit(stage.id, 'active', e.target.checked)} /> ativa

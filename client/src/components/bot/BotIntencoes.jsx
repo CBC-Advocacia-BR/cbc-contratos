@@ -67,7 +67,7 @@ export default function BotIntencoes() {
           value={test} onChange={e => setTest(e.target.value)} />
         {test.trim() && (
           <div className={`mt-2 text-sm p-2 rounded ${testMatch ? 'bg-green-50 dark:bg-green-900/20' : 'bg-amber-50 dark:bg-amber-900/20'}`}>
-            {testMatch ? <>✅ Intenção: <b>{testMatch.name}</b> ({testMatch.intent_key}) → ação: {testMatch.action}</> : '⚠️ Nenhuma intenção casou — cairia no fallback.'}
+            {testMatch ? <>✅ Intenção: <b>{testMatch.name}</b> ({testMatch.intent_key}) → ação: {testMatch.action}</> : 'Nenhuma intenção casou — cairia no fallback.'}
           </div>
         )}
       </div>

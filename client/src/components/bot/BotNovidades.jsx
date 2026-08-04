@@ -6,7 +6,7 @@ import {
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 
-const KIND_LABEL = { movement: '⚖️ Andamento', task_created: '📋 Tarefa criada', task_completed: '✅ Tarefa concluída' };
+const KIND_LABEL = { movement: 'Andamento', task_created: 'Tarefa criada', task_completed: 'Tarefa concluída' };
 
 // Cabecalho ordenavel (componente estatico — fora do render)
 function Th({ col, sort, onSort, children }) {
@@ -154,7 +154,7 @@ export default function BotNovidades() {
                   <div className="opacity-60">{r.customer_name || ''}</div>
                 </td>
                 <td className="p-2 text-xs max-w-md"><div className="line-clamp-2">{r.title}</div></td>
-                <td className="p-2 text-xs whitespace-nowrap">{r.kommo_note_posted ? '📝 nota ok' : (r.kommo_lead_id ? 'lead ' + r.kommo_lead_id : '—')}</td>
+                <td className="p-2 text-xs whitespace-nowrap">{r.kommo_note_posted ? 'nota ok' : (r.kommo_lead_id ? 'lead ' + r.kommo_lead_id : '—')}</td>
                 <td className="p-2 text-right whitespace-nowrap">
                   {r.lawsuit_id && (
                     <button className="btn-outline text-[11px] px-2 py-1 mr-1" title="Gerar resposta pronta e copiar"

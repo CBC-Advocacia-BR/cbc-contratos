@@ -20,6 +20,7 @@ import { supabase } from '../lib/supabase';
 import { useToast } from './Toast';
 import { friendlyError } from '../utils/friendlyError';
 import { fmtData } from '../utils/format';
+import Ico from './ui/Ico';
 import {
   PerguntasClientes, FaqPortal, EducacaoPortal, CorrelacaoCard,
   ContatoPortal, ReviewPortal, ExplicadorPortal, EquipePortal,
@@ -210,7 +211,7 @@ function Selo({ ok, rotulo }) {
     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded border ${
       ok ? 'bg-[color:var(--cbc-success-bg)] text-[color:var(--cbc-success)] border-[color:var(--cbc-success-border)]'
          : 'bg-[color:var(--cbc-danger-bg)] text-[color:var(--cbc-danger)] border-[color:var(--cbc-danger-border)]'}`}>
-      {ok ? '✓' : '✕'} {rotulo}
+      <Ico nome={ok ? 'ok' : 'fechar'} className="w-3 h-3 shrink-0" /> {rotulo}
     </span>
   );
 }
@@ -329,7 +330,7 @@ function IncSection({ chave, dados, onAcao }) {
                 {info.acaoRotulo && onAcao && (
                   <button onClick={() => agir(i)} disabled={busyId === i.customer_id}
                     className="shrink-0 text-[11px] font-bold px-2 py-1 rounded border border-[color:var(--cbc-gold-dark)] text-[color:var(--cbc-gold-dark)] dark:text-[color:var(--cbc-gold)] dark:border-[color:var(--cbc-gold)]/60 hover:bg-[color:var(--cbc-gold)]/10 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--cbc-gold-dark)]/40">
-                    {busyId === i.customer_id ? '…' : `✓ ${info.acaoRotulo}`}
+                    {busyId === i.customer_id ? '…' : `${info.acaoRotulo}`}
                   </button>
                 )}
               </div>

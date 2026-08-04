@@ -61,5 +61,5 @@ export function resumoFrescor({ fontes, atrasadas, maisAntiga }) {
     return maisAntiga ? `Dados atualizados até ${maisAntiga.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : '';
   }
   const nomes = atrasadas.map((f) => f.rotulo).join(', ');
-  return `⚠️ Pode estar desatualizado: ${nomes}`;
+  return `Pode estar desatualizado: ${nomes}`;
 }

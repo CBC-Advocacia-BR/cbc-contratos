@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { computeNegativacaoCandidates, resumoNegativacao, NEGATIVACAO_FEE, computeRecuperado, RECUPERACAO_JANELA_DIAS } from '../utils/negativacao';
+import Ico from './ui/Ico';
 
 // Negativação Serasa (22/07/2026) — Mockup B: sub-aba "console" da aba Boletos.
 // Candidatos +90 dias, KPIs (incl. custo R$ 9,90/negativação), e acompanhamento das
@@ -326,7 +327,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" style={{ background: 'rgba(15,32,53,.55)' }} onClick={() => !running && setConfirmOpen(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 text-white flex items-center gap-3" style={{ background: 'var(--cbc-danger,#B91C1C)' }}>
-              <span className="text-xl">⚖️</span><div className="font-bold text-[15px]">Confirmar negativação no Serasa</div>
+              <Ico nome="juridico" className="w-4 h-4" /><div className="font-bold text-[15px]">Confirmar negativação no Serasa</div>
             </div>
             <div className="p-5">
               <p className="text-[13px] mb-3" style={{ color: 'var(--cbc-text-secondary,#4A5568)' }}>
@@ -347,7 +348,7 @@ export default function NegativacaoPanel({ userEmail = '' }) {
               <button onClick={() => !running && setConfirmOpen(false)} className="px-4 py-2 rounded-lg border text-sm font-bold cursor-pointer" style={{ borderColor: 'var(--cbc-border,#E2E8F0)', color: 'var(--cbc-text-secondary,#4A5568)' }}>Cancelar</button>
               <button disabled={running || typed.trim().toUpperCase() !== 'NEGATIVAR'} onClick={dispararLote}
                 className="px-4 py-2 rounded-lg text-white text-sm font-bold cursor-pointer disabled:opacity-40" style={{ background: 'var(--cbc-danger,#B91C1C)' }}>
-                {running ? 'Negativando…' : `⚖️ Confirmar (${fmt(custoSel)})`}
+                {running ? 'Negativando…' : `Confirmar (${fmt(custoSel)})`}
               </button>
             </div>
           </div>

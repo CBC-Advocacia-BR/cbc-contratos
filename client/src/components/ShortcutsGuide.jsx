@@ -20,7 +20,7 @@ export default function ShortcutsGuide({ onClose }) {
   return (
     <div className="fixed inset-0 modal-backdrop-glass z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="modal-glass rounded-xl w-full max-w-md overflow-hidden max-h-[85dvh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="text-white text-center py-3 px-5" style={{ background: '#1B3A5C' }}>
+        <div className="text-white text-center py-3 px-5" style={{ background: 'var(--cbc-navy)' }}>
           <div className="text-[13px] font-bold uppercase tracking-[1px]">Atalhos do Teclado</div>
         </div>
         <div className="p-4 space-y-1.5">
