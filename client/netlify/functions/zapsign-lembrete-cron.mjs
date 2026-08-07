@@ -13,8 +13,11 @@
 import { heartbeat, logAdvbox } from './_lib/botDb.mjs';
 
 export const config = {
-  // 12h UTC = 09h BRT — horario comercial, depois da abertura do escritorio.
-  schedule: '0 12 * * *',
+  // 14h/19h UTC = 11h/16h BRT — os dois picos de assinatura medidos na base
+  // (analise 07/08/2026: 11h e 16h sao as horas com mais assinaturas; decisao
+  // do Paulo 07/08: 2 lembretes por dia). O worker garante o intervalo minimo
+  // entre lembretes do mesmo contrato (intervalo_horas, padrao 4h).
+  schedule: '0 14,19 * * *',
 };
 
 const SELF = process.env.URL || 'https://contratos-cbc.netlify.app';

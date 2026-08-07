@@ -17,10 +17,13 @@
  * o controle (kill-switch, teto, horario, registro) do nosso lado.
  *
  * Decisao do Paulo (01/08): enviar TODO DIA por e-mail, para todos os pendentes.
+ * Decisao do Paulo (07/08): 2 lembretes por dia, 11h e 16h BRT — os dois picos de
+ * assinatura medidos na base (analise de 400 assinaturas por signatario).
  *
  * SEGURANCA DE OPERACAO (o que impede isto de virar spam ou de repetir):
  *  - kill-switch em bot_config.zapsign_lembrete.ativo (desliga sem redeploy);
- *  - so 1 rodada por dia por contrato (marca `ultimo_lembrete_em` em advbox_data);
+ *  - intervalo minimo de 4h entre lembretes do MESMO contrato (marca
+ *    `zapsign_lembrete.ultimo_em` em advbox_data) — separa as rodadas de 11h/16h;
  *  - teto diario configuravel (`max_por_dia`) — evita disparo em massa acidental;
  *  - `dias_min` / `dias_max`: idade do envio em que o lembrete faz sentido;
  *  - `?simular=1` lista quem receberia SEM enviar nada (use antes do disparo real);
@@ -41,10 +44,15 @@ const PANEL_KEY = process.env.BOT_PANEL_KEY || '';
 
 const PADRAO = {
   ativo: true,
-  max_por_dia: 60,     // teto de seguranca (hoje ha ~51 pendentes)
+  max_por_dia: 60,     // teto de seguranca por RODADA (hoje ha ~22 pendentes na janela)
   dias_min: 1,         // nao cutuca quem recebeu o link hoje
   dias_max: 120,       // acima disso o contrato provavelmente esfriou — decisao humana
-  intervalo_dias: 1,   // "todo dia" (Paulo 01/08). Suba p/ 2/3 se virar incomodo.
+  // Paulo 07/08: 2 lembretes/dia, nas rodadas de 11h e 16h (picos de assinatura
+  // medidos na base). O intervalo minimo em HORAS separa as duas rodadas do dia
+  // (11h -> 16h = 5h) e da idempotencia se o cron disparar 2x seguidas.
+  // Volta ao comportamento antigo (1/dia) setando intervalo_horas: 24 na config,
+  // sem redeploy. `intervalo_dias` legado na config continua respeitado.
+  intervalo_horas: 4,
 };
 
 const json = (status, body) => new Response(JSON.stringify(body), {
@@ -119,11 +127,13 @@ export default async (req) => {
     const pendentes = (brutos || []).filter(dentroDaJanela).slice(0, cfg.max_por_dia);
 
     const agoraMs = Date.now();
+    // intervalo minimo entre lembretes do MESMO contrato, em horas (padrao 4h —
+    // separa as rodadas de 11h e 16h). Config antiga com `intervalo_dias` segue valendo.
+    const minHoras = cfg.intervalo_horas ?? (cfg.intervalo_dias ? cfg.intervalo_dias * 24 : 4);
     const elegiveis = (pendentes || []).filter((c) => {
       const ultimo = c.advbox_data?.zapsign_lembrete?.ultimo_em;
       if (!ultimo) return true;
-      // respeita o intervalo (1 = todo dia) e garante idempotencia se o cron rodar 2x
-      return (agoraMs - new Date(ultimo).getTime()) >= cfg.intervalo_dias * 86400000;
+      return (agoraMs - new Date(ultimo).getTime()) >= minHoras * 3600000;
     });
 
     if (simular) {
