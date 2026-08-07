@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Comparecimento em videochamadas: análise do histórico</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Avenir Next", Avenir, "Gill Sans", sans-serif;
+    color: #16202B; font-size: 10.2pt; line-height: 1.5; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1, h2, h3, .serif { font-family: Baskerville, "Palatino", Georgia, serif; }
+  .capa { background: #1B3A5C; color: #fff; padding: 24mm 15mm 13mm; margin: -16mm -15mm 9mm; }
+  .capa .marca { font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase; color: #C9A84C; font-weight: 700; }
+  .capa h1 { font-size: 26pt; line-height: 1.12; margin: 7mm 0 4mm; font-weight: 600; }
+  .capa .sub { font-size: 11.5pt; color: #C9D6E4; max-width: 138mm; }
+  .capa .data { margin-top: 8mm; font-size: 9pt; color: #93A9BF; letter-spacing: .04em; }
+
+  h2 { font-size: 14.5pt; color: #1B3A5C; margin: 8mm 0 2.5mm; font-weight: 600;
+       border-bottom: 2px solid #C9A84C; padding-bottom: 1.6mm; }
+  h2 .num { color: #C9A84C; font-size: 12pt; margin-right: 3mm; }
+  h3 { font-size: 11pt; color: #1B3A5C; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 3mm; }
+  .lead { font-size: 11pt; color: #33475B; }
+  strong { color: #0F2035; }
+  .quebra { page-break-before: always; }
+  .evitar { page-break-inside: avoid; }
+  .nota { font-size: 8.4pt; color: #7A8A9A; margin-top: 1.5mm; }
+
+  .kpis { display: flex; gap: 3.5mm; margin: 4mm 0 5mm; }
+  .kpi { flex: 1; background: #F0F4F8; border-top: 3px solid #1B3A5C; padding: 3.5mm 3mm; text-align: center; }
+  .kpi.alerta { border-top-color: #DC2626; }
+  .kpi.ouro { border-top-color: #C9A84C; }
+  .kpi .n { font-family: Georgia, serif; font-size: 20pt; color: #1B3A5C; line-height: 1; }
+  .kpi.alerta .n { color: #B02020; }
+  .kpi .r { font-size: 7.6pt; color: #55677A; margin-top: 1.8mm; line-height: 1.25; text-transform: uppercase; letter-spacing: .05em; }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.4pt; }
+  th { background: #1B3A5C; color: #fff; text-align: left; padding: 2mm 3mm; font-size: 8.4pt;
+       text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  th.num, td.num { text-align: right; }
+  td { padding: 1.9mm 3mm; border-bottom: 1px solid #DDE5ED; vertical-align: top; }
+  tr:nth-child(even) td { background: #F7FAFC; }
+  td.destaque { font-weight: 700; color: #1B3A5C; white-space: nowrap; }
+  tr.melhor td { background: #EDF7F0; }
+  tr.pior td { background: #FBF0EF; }
+  tr.total td { background: #F0F4F8; font-weight: 700; border-top: 2px solid #1B3A5C; }
+  .duascol { display: flex; gap: 6mm; align-items: flex-start; }
+  .duascol > div { flex: 1; }
+
+  .grafico { margin: 3mm 0 1mm; }
+  .grafico svg { width: 100%; height: auto; display: block; }
+
+  .caixa { border: 1px solid #C9A84C; background: #FDF9EF; padding: 4mm; margin: 4mm 0; }
+  .caixa h3 { margin-top: 0; }
+  .caixa-cinza { border: 1px solid #C9D6E4; background: #F7FAFC; padding: 4mm; margin: 4mm 0; }
+  .rodape { margin-top: 7mm; padding-top: 3mm; border-top: 1px solid #DDE5ED;
+            font-size: 8.2pt; color: #7A8A9A; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.6mm; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <div class="marca">CBC Advogados</div>
+  <h1>Comparecimento em videochamadas</h1>
+  <div class="sub">Análise do histórico completo de agendamentos, de março de 2025 a agosto de 2026. Material de referência para o trabalho de agendamento (SDR): tendências, sazonalidade, reincidência e o que acontece depois de cada call.</div>
+  <div class="data">Análise interna · 6 de agosto de 2026 · números medidos no banco nesta data</div>
+</div>
+
+<p class="lead">Em 17 meses o escritório agendou <strong>2.936 videochamadas com 2.579 pessoas</strong>. Três em cada quatro compareceram. As 733 faltas (cerca de <strong>10 horários perdidos por semana</strong>) não se distribuem ao acaso: variam com o mês do ano, o horário do dia e, principalmente, com o histórico da própria pessoa. Este relatório mede cada um desses padrões.</p>
+
+<h2><span class="num">1</span>Panorama geral</h2>
+
+<div class="kpis evitar">
+  <div class="kpi"><div class="n">2.936</div><div class="r">videochamadas agendadas em 17 meses</div></div>
+  <div class="kpi"><div class="n">2.579</div><div class="r">pessoas diferentes</div></div>
+  <div class="kpi ouro"><div class="n">74,5%</div><div class="r">compareceram (2.146 calls)</div></div>
+  <div class="kpi alerta"><div class="n">25,5%</div><div class="r">faltaram (733 calls)</div></div>
+</div>
+
+<p>Das 2.936 calls agendadas, <strong>2.879 já tiveram desfecho</strong> (compareceu ou faltou); 27 ainda vão acontecer e 30 foram excluídas da agenda (não contam como falta). Toda taxa deste relatório usa como base as calls decididas.</p>
+
+<ul>
+  <li><strong>A maioria das pessoas é decidida em uma única call:</strong> 2.251 das 2.540 pessoas com call realizada ou perdida (88,6%) têm exatamente 1 agendamento no histórico. 247 têm 2 e apenas 42 têm 3 ou mais.</li>
+  <li><strong>O ritmo médio é de ~160 calls decididas por mês</strong>, com pico de 232 em julho de 2026.</li>
+  <li><strong>733 faltas em 74 semanas ≈ 10 horários de agenda perdidos por semana</strong>: cada um deles é um slot que não foi oferecido a outro lead.</li>
+</ul>
+
+<h2><span class="num">2</span>Método: de onde vem cada número</h2>
+
+<p>A fonte é a agenda do Google sincronizada no banco (view <strong>vw_pessoa_atendimentos</strong>, 1 linha por atendimento agendado, pessoa identificada pelo telefone canônico). O desfecho de cada call segue duas réguas, nesta ordem:</p>
+
+<ul>
+  <li><strong>Auditoria do Google Meet</strong> (desde 23/07/2026, cobrindo 97,5% das calls novas): o registro de quem entrou na sala e por quanto tempo. É prova, não julgamento, e tem precedência.</li>
+  <li><strong>Cor marcada na agenda</strong> (histórico anterior a 23/07): a classificação feita pela equipe. É julgamento humano; a seção 7 mede o quanto ela acerta.</li>
+</ul>
+
+<div class="caixa-cinza evitar">
+<strong>Limitação declarada:</strong> a base não guarda a data em que cada evento foi criado na agenda, então a <strong>antecedência da marcação</strong> (marcar para o mesmo dia vs. para daqui a uma semana) <strong>não é mensurável no histórico</strong>. O que é mensurável (e está na seção 6) é o intervalo entre uma falta e a remarcação seguinte. Nenhum número deste relatório vem de memória ou de medições antigas: tudo foi recalculado no banco em 06/08/2026, e a contagem de faltas por pessoa bateu com o acervo oficial de no-show com <strong>zero divergência</strong>.
+</div>
+
+<h2><span class="num">3</span>Mês a mês: a falta tem estação</h2>
+
+<p>A taxa de falta oscilou entre <strong>14,8%</strong> (maio/2025) e <strong>30,8%</strong> (fevereiro/2026). O padrão mais claro do histórico é sazonal: <strong>o verão (dezembro, janeiro e fevereiro) é o pior período</strong>, com 29% a 31% de falta, enquanto a melhor janela foi setembro e outubro (16,7% a 20%). Julho de 2026 é o melhor mês recente: volume recorde (232 calls decididas) com falta de 21,1%, bem abaixo da média histórica de 25,5%.</p>
+
+<div class="grafico evitar">
+<svg viewBox="0 0 720 196" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Taxa de falta por mês, de março de 2025 a agosto de 2026">
+  <!-- gridlines -->
+  <g stroke="#E3EAF1" stroke-width="1">
+    <line x1="42" y1="123" x2="700" y2="123"/>
+    <line x1="42" y1="96"  x2="700" y2="96"/>
+    <line x1="42" y1="69"  x2="700" y2="69"/>
+    <line x1="42" y1="42"  x2="700" y2="42"/>
+    <line x1="42" y1="15"  x2="700" y2="15"/>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="8" fill="#8A97A5">
+    <text x="38" y="126" text-anchor="end">15%</text>
+    <text x="38" y="99"  text-anchor="end">20%</text>
+    <text x="38" y="72"  text-anchor="end">25%</text>
+    <text x="38" y="45"  text-anchor="end">30%</text>
+    <text x="38" y="18"  text-anchor="end">35%</text>
+  </g>
+  <!-- media historica -->
+  <line x1="42" y1="66.3" x2="700" y2="66.3" stroke="#C0653A" stroke-width="1" stroke-dasharray="5 3"/>
+  <text x="700" y="62" text-anchor="end" font-family="Avenir Next, sans-serif" font-size="7.6" fill="#C0653A">média 25,5%</text>
+  <!-- linha principal (mar/25 a jul/26) -->
+  <polyline fill="none" stroke="#1B3A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"
+    points="50,43.6 87.5,113.8 125,124.1 162.5,50.6 200,55.5 237.5,51.2 275,113.8 312.5,96 350,61.4 387.5,45.2 425,46.9 462.5,37.7 500,48.5 537.5,60.9 575,50.1 612.5,64.7 650,90.1"/>
+  <!-- segmento parcial ago/26 -->
+  <line x1="650" y1="90.1" x2="687.5" y2="19.9" stroke="#1B3A5C" stroke-width="2" stroke-dasharray="4 3" stroke-linecap="round"/>
+  <!-- marcadores -->
+  <g fill="#1B3A5C">
+    <circle cx="50" cy="43.6" r="3"/><circle cx="87.5" cy="113.8" r="3"/><circle cx="125" cy="124.1" r="3"/>
+    <circle cx="162.5" cy="50.6" r="3"/><circle cx="200" cy="55.5" r="3"/><circle cx="237.5" cy="51.2" r="3"/>
+    <circle cx="275" cy="113.8" r="3"/><circle cx="312.5" cy="96" r="3"/><circle cx="350" cy="61.4" r="3"/>
+    <circle cx="387.5" cy="45.2" r="3"/><circle cx="425" cy="46.9" r="3"/><circle cx="462.5" cy="37.7" r="3"/>
+    <circle cx="500" cy="48.5" r="3"/><circle cx="537.5" cy="60.9" r="3"/><circle cx="575" cy="50.1" r="3"/>
+    <circle cx="612.5" cy="64.7" r="3"/><circle cx="650" cy="90.1" r="3"/>
+  </g>
+  <circle cx="687.5" cy="19.9" r="3.4" fill="#fff" stroke="#1B3A5C" stroke-width="1.8"/>
+  <!-- rotulos seletivos -->
+  <g font-family="Avenir Next, sans-serif" font-size="8.2" fill="#33475B">
+    <text x="125" y="137" text-anchor="middle">14,8%</text>
+    <text x="462.5" y="30" text-anchor="middle" font-weight="700">30,8%</text>
+    <text x="650" y="103" text-anchor="middle">21,1%</text>
+    <text x="687.5" y="11" text-anchor="end">34,1% (parcial)</text>
+  </g>
+  <!-- eixo x -->
+  <g font-family="Avenir Next, sans-serif" font-size="7" fill="#8A97A5">
+    <text x="50" y="163" text-anchor="middle">mar</text><text x="87.5" y="163" text-anchor="middle">abr</text>
+    <text x="125" y="163" text-anchor="middle">mai</text><text x="162.5" y="163" text-anchor="middle">jun</text>
+    <text x="200" y="163" text-anchor="middle">jul</text><text x="237.5" y="163" text-anchor="middle">ago</text>
+    <text x="275" y="163" text-anchor="middle">set</text><text x="312.5" y="163" text-anchor="middle">out</text>
+    <text x="350" y="163" text-anchor="middle">nov</text><text x="387.5" y="163" text-anchor="middle">dez</text>
+    <text x="425" y="163" text-anchor="middle">jan</text><text x="462.5" y="163" text-anchor="middle">fev</text>
+    <text x="500" y="163" text-anchor="middle">mar</text><text x="537.5" y="163" text-anchor="middle">abr</text>
+    <text x="575" y="163" text-anchor="middle">mai</text><text x="612.5" y="163" text-anchor="middle">jun</text>
+    <text x="650" y="163" text-anchor="middle">jul</text><text x="687.5" y="163" text-anchor="middle">ago</text>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="7.6" fill="#55677A" font-weight="600">
+    <text x="218" y="176" text-anchor="middle">2025</text>
+    <text x="556" y="176" text-anchor="middle">2026</text>
+  </g>
+  <line x1="406" y1="156" x2="406" y2="178" stroke="#DDE5ED" stroke-width="1"/>
+</svg>
+<p class="nota">Taxa de falta mensal sobre calls decididas. Linha tracejada laranja = média histórica (25,5%). Agosto/2026 em marcador vazado: mês em curso, 41 calls decididas até dia 6.</p>
+</div>
+
+<div class="duascol evitar">
+<div>
+<table>
+  <tr><th>Mês</th><th class="num">Calls</th><th class="num">Faltas</th><th class="num">% falta</th></tr>
+  <tr><td>mar/2025</td><td class="num">128</td><td class="num">38</td><td class="num">29,7%</td></tr>
+  <tr><td>abr/2025</td><td class="num">120</td><td class="num">20</td><td class="num">16,7%</td></tr>
+  <tr class="melhor"><td>mai/2025 <span style="color:#16A34A">(melhor)</span></td><td class="num">142</td><td class="num">21</td><td class="num destaque">14,8%</td></tr>
+  <tr><td>jun/2025</td><td class="num">176</td><td class="num">50</td><td class="num">28,4%</td></tr>
+  <tr><td>jul/2025</td><td class="num">207</td><td class="num">57</td><td class="num">27,5%</td></tr>
+  <tr><td>ago/2025</td><td class="num">145</td><td class="num">41</td><td class="num">28,3%</td></tr>
+  <tr><td>set/2025</td><td class="num">150</td><td class="num">25</td><td class="num">16,7%</td></tr>
+  <tr><td>out/2025</td><td class="num">195</td><td class="num">39</td><td class="num">20,0%</td></tr>
+  <tr><td>nov/2025</td><td class="num">216</td><td class="num">57</td><td class="num">26,4%</td></tr>
+  <tr><td>dez/2025</td><td class="num">204</td><td class="num">60</td><td class="num">29,4%</td></tr>
+</table>
+</div>
+<div>
+<table>
+  <tr><th>Mês</th><th class="num">Calls</th><th class="num">Faltas</th><th class="num">% falta</th></tr>
+  <tr><td>jan/2026</td><td class="num">182</td><td class="num">53</td><td class="num">29,1%</td></tr>
+  <tr class="pior"><td>fev/2026 <span style="color:#B02020">(pior)</span></td><td class="num">156</td><td class="num">48</td><td class="num destaque">30,8%</td></tr>
+  <tr><td>mar/2026</td><td class="num">184</td><td class="num">53</td><td class="num">28,8%</td></tr>
+  <tr><td>abr/2026</td><td class="num">181</td><td class="num">48</td><td class="num">26,5%</td></tr>
+  <tr><td>mai/2026</td><td class="num">123</td><td class="num">35</td><td class="num">28,5%</td></tr>
+  <tr><td>jun/2026</td><td class="num">97</td><td class="num">25</td><td class="num">25,8%</td></tr>
+  <tr><td>jul/2026</td><td class="num">232</td><td class="num">49</td><td class="num">21,1%</td></tr>
+  <tr><td>ago/2026 (parcial)</td><td class="num">41</td><td class="num">14</td><td class="num">34,1%</td></tr>
+  <tr class="total"><td>Total geral</td><td class="num">2.879</td><td class="num">733</td><td class="num">25,5%</td></tr>
+</table>
+</div>
+</div>
+
+<div class="quebra"></div>
+<h2><span class="num">4</span>Dia da semana: quinta é o pior dia</h2>
+
+<div class="duascol evitar">
+<div>
+<table>
+  <tr><th>Dia</th><th class="num">Calls</th><th class="num">Faltas</th><th class="num">% falta</th></tr>
+  <tr><td>Segunda</td><td class="num">521</td><td class="num">131</td><td class="num">25,1%</td></tr>
+  <tr><td>Terça</td><td class="num">634</td><td class="num">156</td><td class="num">24,6%</td></tr>
+  <tr><td>Quarta</td><td class="num">613</td><td class="num">153</td><td class="num">25,0%</td></tr>
+  <tr class="pior"><td>Quinta</td><td class="num">556</td><td class="num">157</td><td class="num destaque">28,2%</td></tr>
+  <tr><td>Sexta</td><td class="num">504</td><td class="num">126</td><td class="num">25,0%</td></tr>
+  <tr class="melhor"><td>Sábado</td><td class="num">51</td><td class="num">10</td><td class="num destaque">19,6%</td></tr>
+</table>
+</div>
+<div>
+<p>A semana é mais estável do que o calendário: segunda a sexta ficam entre 24,6% e 28,2%. Dois pontos fogem da linha:</p>
+<ul>
+  <li><strong>Quinta-feira é o pior dia</strong> (28,2%), cerca de 3 pontos acima dos demais dias úteis, padrão consistente nos 17 meses.</li>
+  <li><strong>Sábado tem a menor taxa</strong> (19,6%), mas com amostra pequena (51 calls): quem aceita call de sábado tende a aparecer, só que o volume é raro.</li>
+</ul>
+</div>
+</div>
+
+<h2><span class="num">5</span>Horário: a tarde falta mais que a manhã</h2>
+
+<div class="grafico evitar">
+<svg viewBox="0 0 720 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Taxa de falta por horário do dia">
+  <g stroke="#E3EAF1" stroke-width="1">
+    <line x1="42" y1="105" x2="700" y2="105"/>
+    <line x1="42" y1="60"  x2="700" y2="60"/>
+    <line x1="42" y1="15"  x2="700" y2="15"/>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="8" fill="#8A97A5">
+    <text x="38" y="108" text-anchor="end">10%</text>
+    <text x="38" y="63"  text-anchor="end">20%</text>
+    <text x="38" y="18"  text-anchor="end">30%</text>
+  </g>
+  <!-- barras (base y=150, largura 46) -->
+  <g fill="#1B3A5C">
+    <path d="M72,150 L72,54 Q72,51 75,51 L115,51 Q118,51 118,54 L118,150 Z"/>
+    <path d="M142,150 L142,45.9 Q142,42.9 145,42.9 L185,42.9 Q188,42.9 188,45.9 L188,150 Z"/>
+    <path d="M212,150 L212,36.9 Q212,33.9 215,33.9 L255,33.9 Q258,33.9 258,36.9 L258,150 Z"/>
+    <path d="M282,150 L282,45 Q282,42 285,42 L325,42 Q328,42 328,45 L328,150 Z"/>
+    <path d="M352,150 L352,67.5 Q352,64.5 355,64.5 L395,64.5 Q398,64.5 398,67.5 L398,150 Z"/>
+    <path d="M422,150 L422,57.2 Q422,54.2 425,54.2 L465,54.2 Q468,54.2 468,57.2 L468,150 Z"/>
+    <path d="M492,150 L492,30.2 Q492,27.2 495,27.2 L535,27.2 Q538,27.2 538,30.2 L538,150 Z"/>
+    <path d="M562,150 L562,24.3 Q562,21.3 565,21.3 L605,21.3 Q608,21.3 608,24.3 L608,150 Z"/>
+    <path d="M632,150 L632,23.9 Q632,20.9 635,20.9 L675,20.9 Q678,20.9 678,23.9 L678,150 Z"/>
+  </g>
+  <!-- rotulos seletivos -->
+  <g font-family="Avenir Next, sans-serif" font-size="8.2" fill="#33475B">
+    <text x="375" y="60" text-anchor="middle">19,0%</text>
+    <text x="655" y="16" text-anchor="middle" font-weight="700">28,7%</text>
+  </g>
+  <!-- eixo x -->
+  <g font-family="Avenir Next, sans-serif" font-size="8" fill="#55677A">
+    <text x="95" y="163" text-anchor="middle">8h</text><text x="165" y="163" text-anchor="middle">9h</text>
+    <text x="235" y="163" text-anchor="middle">10h</text><text x="305" y="163" text-anchor="middle">11h</text>
+    <text x="375" y="163" text-anchor="middle">12h</text><text x="445" y="163" text-anchor="middle">13h</text>
+    <text x="515" y="163" text-anchor="middle">14h</text><text x="585" y="163" text-anchor="middle">15h</text>
+    <text x="655" y="163" text-anchor="middle">16h</text>
+  </g>
+  <!-- colchetes de faixa -->
+  <g stroke="#8A97A5" stroke-width="1" fill="none">
+    <path d="M72,172 L72,176 L468,176 L468,172"/>
+    <path d="M492,172 L492,176 L678,176 L678,172"/>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="7.8" fill="#55677A">
+    <text x="270" y="186" text-anchor="middle">8h-13h: 23,6% de falta</text>
+    <text x="585" y="186" text-anchor="middle">14h-16h: 28,1%</text>
+  </g>
+</svg>
+<p class="nota">Taxa de falta por hora de início da call (calls decididas). As 3 calls das 17h ficam fora do gráfico por amostra insuficiente (regra mínima de 10).</p>
+</div>
+
+<div class="duascol evitar">
+<div>
+<table>
+  <tr><th>Início</th><th class="num">Calls</th><th class="num">Faltas</th><th class="num">% falta</th></tr>
+  <tr><td>8h</td><td class="num">141</td><td class="num">31</td><td class="num">22,0%</td></tr>
+  <tr><td>9h</td><td class="num">458</td><td class="num">109</td><td class="num">23,8%</td></tr>
+  <tr><td>10h</td><td class="num">461</td><td class="num">119</td><td class="num">25,8%</td></tr>
+  <tr><td>11h</td><td class="num">254</td><td class="num">61</td><td class="num">24,0%</td></tr>
+  <tr class="melhor"><td>12h</td><td class="num">58</td><td class="num">11</td><td class="num destaque">19,0%</td></tr>
+  <tr><td>13h</td><td class="num">328</td><td class="num">70</td><td class="num">21,3%</td></tr>
+  <tr><td>14h</td><td class="num">439</td><td class="num">120</td><td class="num">27,3%</td></tr>
+  <tr><td>15h</td><td class="num">392</td><td class="num">112</td><td class="num">28,6%</td></tr>
+  <tr class="pior"><td>16h</td><td class="num">345</td><td class="num">99</td><td class="num destaque">28,7%</td></tr>
+</table>
+</div>
+<div>
+<p>O dia se divide em três faixas claras:</p>
+<ul>
+  <li><strong>Manhã (8h às 11h): 24,4%</strong> de falta em 1.314 calls, um pouco melhor que a média.</li>
+  <li><strong>Meio do dia (12h e 13h): 21,0%</strong> em 386 calls, a melhor janela do dia. O horário de almoço, pouco usado, é o que a pessoa mais honra.</li>
+  <li><strong>Tarde (14h às 16h): 28,1%</strong> em 1.176 calls, a pior faixa, e a diferença cresce ao longo da tarde até o pico das 16h (28,7%).</li>
+</ul>
+<p>Entre a melhor janela (12h e 13h) e a pior (14h às 16h) há <strong>7 pontos percentuais</strong> de diferença: no volume atual, isso equivale a cerca de 80 faltas por ano.</p>
+</div>
+</div>
+
+<div class="quebra"></div>
+<h2><span class="num">6</span>Reincidência: a falta anuncia a próxima falta</h2>
+
+<p>627 pessoas (24,7% de quem teve call decidida) faltaram ao menos uma vez. A distribuição é concentrada: a grande maioria falta uma única vez; quem falta duas já é caso raro e previsível.</p>
+
+<div class="duascol evitar">
+<div>
+<table>
+  <tr><th>Faltas por pessoa</th><th class="num">Pessoas</th><th class="num">% das 627</th></tr>
+  <tr><td>1 falta</td><td class="num">532</td><td class="num">84,8%</td></tr>
+  <tr><td>2 faltas</td><td class="num">86</td><td class="num">13,7%</td></tr>
+  <tr><td>3 faltas</td><td class="num">7</td><td class="num">1,1%</td></tr>
+  <tr><td>4 ou mais</td><td class="num">2</td><td class="num">0,3%</td></tr>
+</table>
+<p class="nota">177 das 627 (28,2%) também compareceram em outra call. Falta não é sentença: um quarto de quem faltou voltou e apareceu.</p>
+</div>
+<div>
+<table>
+  <tr><th>Depois da 1ª falta…</th><th class="num">Pessoas</th><th class="num">%</th></tr>
+  <tr><td>Faltaram na 1ª call</td><td class="num">616</td><td class="num"></td></tr>
+  <tr><td>…ganharam uma 2ª call</td><td class="num">230</td><td class="num">37,3%</td></tr>
+  <tr class="melhor"><td>…e compareceram na 2ª</td><td class="num">139</td><td class="num destaque">60,4%</td></tr>
+  <tr class="pior"><td>…nunca mais tiveram call</td><td class="num">386</td><td class="num destaque">62,7%</td></tr>
+</table>
+<p class="nota">A taxa de 60,4% é sobre as 230 pessoas que remarcaram. Quem não remarca não tem chance nenhuma de comparecer; quem remarca comparece em 6 de cada 10 casos, mesmo já tendo faltado antes.</p>
+</div>
+</div>
+
+<h3>O intervalo da remarcação importa</h3>
+<p>Nas 275 remarcações feitas após uma falta (qualquer posição no histórico), o tempo entre a falta e a nova call muda o desfecho:</p>
+
+<table class="evitar" style="max-width:120mm">
+  <tr><th>Nova call marcada para…</th><th class="num">Remarcações</th><th class="num">Faltou de novo</th><th class="num">% falta</th></tr>
+  <tr class="melhor"><td>até 1 dia após a falta</td><td class="num">55</td><td class="num">16</td><td class="num destaque">29,1%</td></tr>
+  <tr class="pior"><td>2 a 6 dias depois</td><td class="num">91</td><td class="num">40</td><td class="num destaque">44,0%</td></tr>
+  <tr><td>7 dias ou mais</td><td class="num">129</td><td class="num">48</td><td class="num">37,2%</td></tr>
+</table>
+
+<p>Remarcar para <strong>o dia seguinte</strong> segura a pessoa (29,1% de nova falta); deixar a remarcação para <strong>a mesma semana, dias depois</strong>, é a pior janela (44,0%). O número do meio é o mais alto: a pessoa que "fica de ver na quinta" é a que mais some.</p>
+
+<div class="caixa evitar">
+<h3>O funil da recuperação, em resumo</h3>
+<p>De cada 100 pessoas que faltam na primeira call, <strong>37 remarcam e 63 se perdem sem nova tentativa</strong>. Das 37 que remarcam, 22 comparecem. O grupo dos que nunca remarcaram (386 pessoas no histórico) é hoje o maior estoque recuperável do funil, e é exatamente o público do acervo de no-show do painel SDR.</p>
+</div>
+
+<div class="quebra"></div>
+<h2><span class="num">7</span>O que a auditoria do Meet revelou</h2>
+
+<p>Desde 23/07/2026 o sistema confere no registro do Google Meet quem realmente entrou em cada sala. Em duas semanas, <strong>365 calls foram auditadas</strong>, e a auditoria mudou o retrato em um terço delas.</p>
+
+<div class="kpis evitar">
+  <div class="kpi"><div class="n">365</div><div class="r">calls auditadas pelo Meet</div></div>
+  <div class="kpi"><div class="n">16,5 min</div><div class="r">duração mediana do cliente em call realizada</div></div>
+  <div class="kpi alerta"><div class="n">82</div><div class="r">faltas comprovadas (22,5%)</div></div>
+  <div class="kpi alerta"><div class="n">35</div><div class="r">clientes esperaram sozinhos 2+ min na sala</div></div>
+</div>
+
+<table class="evitar">
+  <tr><th>O que a equipe marcou na agenda</th><th class="num">Calls</th><th>O que a auditoria concluiu</th></tr>
+  <tr><td>Marcada como <strong>realizada</strong> ou <strong>fechou</strong></td><td class="num">186</td><td>Confirmadas 178; <strong>8 eram falta</strong> (o Meet desmentiu a cor)</td></tr>
+  <tr><td>Marcada como <strong>no-show</strong></td><td class="num">52</td><td>Confirmadas 51; <strong>1 era comparecimento</strong></td></tr>
+  <tr><td>Deixada como <strong>"agendada"</strong> (ninguém atualizou)</td><td class="num">127</td><td>Auditoria resolveu: <strong>104 compareceram, 23 faltaram</strong></td></tr>
+</table>
+
+<ul>
+  <li><strong>Quando a equipe marca, acerta:</strong> 229 das 238 cores preenchidas (96,2%) foram confirmadas. O julgamento humano é bom.</li>
+  <li><strong>O problema é o que ninguém marca:</strong> 127 das 365 calls (35%) estavam paradas em "agendada": sem a auditoria, um terço do histórico recente simplesmente não teria desfecho.</li>
+  <li><strong>A call típica dura ~16 minutos e meio</strong> (mediana do tempo do cliente em sala; média de 17,5 min). Call de menos de 5 minutos conta como falta pela régua do sistema.</li>
+  <li><strong>Em 35 calls o cliente entrou e ficou 2+ minutos sozinho na sala.</strong> É a situação de maior risco de perda: a pessoa compareceu e a experiência foi de espera.</li>
+</ul>
+
+<h2><span class="num">8</span>Depois da call: comparecer multiplica o contrato</h2>
+
+<p>Cruzando cada pessoa do histórico com os contratos assinados do sistema (casamento por telefone canônico ou lead do Kommo), a diferença entre comparecer e faltar aparece na ponta:</p>
+
+<table class="evitar" style="max-width:150mm">
+  <tr><th>Coorte</th><th class="num">Pessoas</th><th class="num">Com contrato assinado</th><th class="num">Taxa</th></tr>
+  <tr class="melhor"><td>Compareceu a ao menos 1 call (histórico completo)</td><td class="num">2.090</td><td class="num">209</td><td class="num destaque">10,0%</td></tr>
+  <tr><td>Só faltou, nunca compareceu (histórico completo)</td><td class="num">450</td><td class="num">6</td><td class="num">1,3%</td></tr>
+  <tr class="melhor"><td>Compareceu (últimos 90 dias)</td><td class="num">343</td><td class="num">116</td><td class="num destaque">33,8%</td></tr>
+  <tr><td>Só faltou (últimos 90 dias)</td><td class="num">91</td><td class="num">6</td><td class="num">6,6%</td></tr>
+</table>
+
+<ul>
+  <li><strong>No histórico completo, comparecer multiplica por 7,5</strong> a chance de a pessoa ter contrato assinado (10,0% contra 1,3%).</li>
+  <li><strong>Na operação recente o efeito é maior em nível:</strong> um em cada três que compareceram nos últimos 90 dias já tem contrato (33,8%). A diferença para o número histórico reflete a evolução da operação em 2026 e o fato de contratos antigos nem sempre casarem com o telefone da agenda.</li>
+  <li>Cada ponto percentual de falta evitada devolve calls à mesa de quem converte a 33,8%: é por isso que comparecimento é a métrica central do trabalho de agendamento.</li>
+</ul>
+<p class="nota">"Com contrato assinado" = a pessoa tem contrato no status assinado no sistema, sem recorte de valor. O número mede associação (quem comparece assina mais), não prova causalidade de uma call específica.</p>
+
+<h2><span class="num">9</span>Ficha técnica</h2>
+
+<div class="rodape" style="margin-top:2mm">
+<p><strong>Medição:</strong> 6 de agosto de 2026, direto no banco de produção, numa única rodada de consultas. <strong>Fontes:</strong> vw_pessoa_atendimentos (1 linha por atendimento agendado; base = agenda Google sincronizada + auditoria do Meet), agenda_videochamadas (colunas meet_* da auditoria), contratos (status assinado; casamento por telefone canônico cbc_tel_canonico ou lead do Kommo). <strong>Régua de desfecho:</strong> auditoria do Google Meet tem precedência sobre a cor da agenda (regra vigente desde 23/07/2026, cobertura de 97,5% das calls novas; histórico anterior usa a cor marcada pela equipe). Calls excluídas da agenda não contam como falta; calls futuras ficam fora das taxas. <strong>Validação:</strong> a contagem de faltas por pessoa reproduziu a vw_noshow_acervo (acervo oficial de no-show) com zero divergência. Percentuais só são exibidos com amostra mínima de 10 (as 3 calls das 17h ficam de fora). Agosto/2026 é mês parcial e está sinalizado onde aparece. <strong>Limitação conhecida:</strong> a antecedência da marcação (dias entre criar o evento e a call) não existe na base histórica (a agenda não guarda a data de criação do evento) e por isso não é analisada aqui. <strong>Escopo:</strong> números agregados do escritório, sem recorte por vendedora (decisão de 06/08/2026); nenhum valor financeiro. Relatório produzido para o time de agendamento (SDR).</p>
+</div>
+
+</body>
+</html>

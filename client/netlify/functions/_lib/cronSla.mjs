@@ -29,6 +29,12 @@ export const CRON_SLA = {
   'db-backup-cron': 26 * 60,         // (auditoria #87) 1x/dia
   'commission-calculator': 33 * 24 * 60, // (auditoria #89) dia 20 do mes (~33d de folga)
   'kommo-queue-worker': 30,          // (auditoria #89) a cada 1min (drena a fila Kommo)
+  // (06/08/2026) vigia do proprio banco: roda a cada 3 min e e o unico robo que continua
+  // util com o Supabase fora. Se ELE parar, some a rede de seguranca — dai o SLA curto.
+  // ⚠️ Ele bate ponto no banco como todo mundo, entao durante uma queda o heartbeat fica
+  // velho por consequencia, nao por defeito. O sinal de que ele funcionou vem no log da
+  // function na Netlify e nos canais de `_lib/avisoResiliente.mjs`.
+  'supabase-vigia': 20,              // a cada 3min
   'bandwidth-check-cron': 14 * 60,   // (auditoria #93) 3x/dia
   // (28/07/2026) eventos da CAPI Meta — cron pg_cron 'meta-capi-purchase' (jobid 28),
   // de hora em hora aos :20. O heartbeat e escrito por fn_capi_healthcheck() no Supabase.

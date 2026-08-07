@@ -142,7 +142,22 @@ export default comCaptura('asaas-webhook', async (req) => {
     } else if (['PAYMENT_CREATED', 'PAYMENT_UPDATED', 'PAYMENT_RESTORED'].includes(event)) {
       // boleto novo/alterado em tempo real (se o webhook do Asaas enviar esses eventos)
       try { await mirrorUpsert([paymentRow(payment)]); }
-      catch (e) { await logAdvbox('asaas', 'erro', `webhook ${event} ${payment.id}: ${e.message}`.slice(0, 300), { event }); }
+      catch (e) {
+        // (06/08/2026) Este ramo nao tinha a protecao que o ramo de pagamento ganhou no
+        // item 121: com o banco fora, o erro era so registrado e o webhook respondia 200,
+        // e para o Asaas 200 significa "tratei" — ele risca o evento e nunca reenvia. O
+        // boleto criado durante a queda so reaparecia no sync seguinte (ate 12h depois),
+        // e ate la nao existia para a regua de cobranca nem para a inadimplencia.
+        // Falha de INFRA agora devolve 5xx para o Asaas reenviar; erro de dado continua
+        // 200, porque retentar daria o mesmo erro para sempre.
+        await logAdvbox('asaas', 'erro', `webhook ${event} ${payment.id}: ${e.message}`.slice(0, 300), { event })
+          .catch(() => {}); // o proprio log vai ao banco: nao pode impedir o 503 abaixo
+        if (ehFalhaDeInfra(e)) {
+          return new Response(JSON.stringify({ ok: false, retry: true, error: 'banco indisponivel' }), {
+            status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+          });
+        }
+      }
     }
 
     // (cobranca 29/06) conversao em tempo real: se este boleto for o ancora de algum

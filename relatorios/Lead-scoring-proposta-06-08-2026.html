@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lead scoring: proposta</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Avenir Next", Avenir, "Gill Sans", sans-serif;
+    color: #16202B; font-size: 10.2pt; line-height: 1.5; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1, h2, h3, .serif { font-family: Baskerville, "Palatino", Georgia, serif; }
+  .capa { background: #1B3A5C; color: #fff; padding: 24mm 15mm 13mm; margin: -16mm -15mm 9mm; }
+  .capa .marca { font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase; color: #C9A84C; font-weight: 700; }
+  .capa h1 { font-size: 26pt; line-height: 1.12; margin: 7mm 0 4mm; font-weight: 600; }
+  .capa .sub { font-size: 11.5pt; color: #C9D6E4; max-width: 138mm; }
+  .capa .data { margin-top: 8mm; font-size: 9pt; color: #93A9BF; letter-spacing: .04em; }
+
+  h2 { font-size: 14.5pt; color: #1B3A5C; margin: 8mm 0 2.5mm; font-weight: 600;
+       border-bottom: 2px solid #C9A84C; padding-bottom: 1.6mm; }
+  h2 .num { color: #C9A84C; font-size: 12pt; margin-right: 3mm; }
+  h3 { font-size: 11pt; color: #1B3A5C; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 3mm; }
+  .lead { font-size: 11pt; color: #33475B; }
+  strong { color: #0F2035; }
+  .quebra { page-break-before: always; }
+  .evitar { page-break-inside: avoid; }
+  .nota { font-size: 8.4pt; color: #7A8A9A; margin-top: 1.5mm; }
+
+  .kpis { display: flex; gap: 3.5mm; margin: 4mm 0 5mm; }
+  .kpi { flex: 1; background: #F0F4F8; border-top: 3px solid #1B3A5C; padding: 3.5mm 3mm; text-align: center; }
+  .kpi.alerta { border-top-color: #DC2626; }
+  .kpi.ouro { border-top-color: #C9A84C; }
+  .kpi .n { font-family: Georgia, serif; font-size: 20pt; color: #1B3A5C; line-height: 1; }
+  .kpi.alerta .n { color: #B02020; }
+  .kpi .r { font-size: 7.6pt; color: #55677A; margin-top: 1.8mm; line-height: 1.25; text-transform: uppercase; letter-spacing: .05em; }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.4pt; }
+  th { background: #1B3A5C; color: #fff; text-align: left; padding: 2mm 3mm; font-size: 8.4pt;
+       text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  th.num, td.num { text-align: right; }
+  td { padding: 1.9mm 3mm; border-bottom: 1px solid #DDE5ED; vertical-align: top; }
+  tr:nth-child(even) td { background: #F7FAFC; }
+  td.destaque { font-weight: 700; color: #1B3A5C; white-space: nowrap; }
+  tr.melhor td { background: #EDF7F0; }
+  tr.pior td { background: #FBF0EF; }
+  tr.total td { background: #F0F4F8; font-weight: 700; border-top: 2px solid #1B3A5C; }
+  .duascol { display: flex; gap: 6mm; align-items: flex-start; }
+  .duascol > div { flex: 1; }
+
+  .grafico { margin: 3mm 0 1mm; }
+  .grafico svg { width: 100%; height: auto; display: block; }
+
+  .caixa { border: 1px solid #C9A84C; background: #FDF9EF; padding: 4mm; margin: 4mm 0; }
+  .caixa h3 { margin-top: 0; }
+  .caixa-cinza { border: 1px solid #C9D6E4; background: #F7FAFC; padding: 4mm; margin: 4mm 0; }
+  .caixa-alerta { border: 1px solid #DC2626; background: #FBF0EF; padding: 4mm; margin: 4mm 0; }
+  .caixa-alerta h3 { margin-top: 0; color: #B02020; }
+  .rodape { margin-top: 7mm; padding-top: 3mm; border-top: 1px solid #DDE5ED;
+            font-size: 8.2pt; color: #7A8A9A; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.6mm; }
+  .rot { font-size: 8pt; text-transform: uppercase; letter-spacing: .1em; color: #8A6A12;
+         font-weight: 700; display: block; margin-bottom: 1.5mm; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <div class="marca">CBC Advogados</div>
+  <h1>Lead scoring</h1>
+  <div class="sub">Proposta de um sistema que ordena a fila de atendimento e estima o valor de cada lead que chega, construído sobre o histórico de atendimento, o cadastro único de clientes, as campanhas do Meta Ads e os honorários efetivamente recebidos na prestação de contas.</div>
+  <div class="data">Documento interno para decisão dos sócios · 6 de agosto de 2026 · todos os números medidos no banco nesta data</div>
+</div>
+
+<p class="lead">O escritório recebe leads por WhatsApp o dia inteiro e os atende por ordem de chegada. Este documento propõe substituir essa ordem por uma fila calculada, e mostra, com números da própria casa, que a diferença entre um lead e outro é grande o bastante para justificar a mudança: entre dois leads que chegam na mesma hora, um tem <strong>dez vezes</strong> mais chance de virar videochamada que o outro, e entre dois casos que assinam contrato, um pode render <strong>quatro vezes</strong> mais honorário que o outro.</p>
+
+<div class="kpis evitar">
+  <div class="kpi ouro"><div class="n">10&times;</div><div class="r">diferença de conversão entre leads, já mensurável hoje</div></div>
+  <div class="kpi alerta"><div class="n">8,9%</div><div class="r">do que entra na fila de vendas não é lead, é cliente atual</div></div>
+  <div class="kpi"><div class="n">R$ 863.852</div><div class="r">honorários de êxito medidos em 80 prestações</div></div>
+  <div class="kpi"><div class="n">16,0</div><div class="r">meses medianos do ajuizamento até o dinheiro cair</div></div>
+</div>
+
+<h2><span class="num">1</span>O que o sistema faz, e o que ele não faz</h2>
+
+<p>A proposta é calcular, para cada lead, <strong>dois números independentes</strong>, porque medimos que eles não andam juntos:</p>
+
+<ul>
+  <li><strong>P, a chance de o lead avançar.</strong> Ordena a fila: quem a equipe atende primeiro e com quanto esforço.</li>
+  <li><strong>V, o valor esperado do caso.</strong> Aciona a trilha de atendimento sênior e alimenta o Meta Ads com o valor real de cada conversão, para que a plataforma otimize por lead bom em vez de lead barato.</li>
+</ul>
+
+<p>Separar os dois não é preciosismo: já está medido que o valor pago na cota prevê fortemente o <strong>tamanho</strong> do êxito e quase nada a <strong>chance</strong> de fechar. Um número único misturaria as duas coisas e erraria nas duas.</p>
+
+<div class="caixa evitar">
+<h3>Três limites que a proposta assume de saída</h3>
+<ul>
+  <li><strong>O score ordena, nunca descarta.</strong> Todo lead tem piso de atendimento. Se o score decidisse quem fica sem resposta, ele se confirmaria sozinho: o lead marcado como frio não seria atendido, não converteria, e o número pareceria certo sem ser.</li>
+  <li><strong>Nenhuma pergunta nova ao cliente.</strong> O score usa apenas o que chega sozinho. Isso limita a precisão do eixo de valor, e o documento é explícito sobre onde.</li>
+  <li><strong>O cálculo é nosso, o Kommo é vitrine.</strong> O Kommo tem um campo de score no lead, mas ele é somente leitura e não pode ser preenchido por integração. O número será gravado em campo personalizado, pelo mesmo caminho já usado hoje para o link de assinatura e o link do Asaas.</li>
+</ul>
+</div>
+
+<h2><span class="num">2</span>Onde está o dinheiro parado</h2>
+
+<p>O funil de 2026 (janeiro a julho) recebeu <strong>2.939 leads</strong> de campanha, dos quais 1.035 chegaram a marcar videochamada e 352 viraram clientes. O vazamento dominante não está na videochamada nem no fechamento: <strong>1.904 leads morrem antes de agendar</strong>, mais de quatro vezes o que se perde por falta na call.</p>
+
+<p>Dentro desse topo, três fatos medidos explicam por que uma fila ordenada muda o resultado:</p>
+
+<ul>
+  <li><strong>23% dos leads nunca receberam uma resposta</strong> do escritório, e isso era invisível até a medição de julho.</li>
+  <li><strong>O tempo mediano da primeira resposta é de 69 minutos</strong>, com fins de semana chegando a 17 e 45 horas.</li>
+  <li><strong>Quando respondemos, o lead volta a falar em 4,4 minutos.</strong> O gargalo é do escritório, não do cliente.</li>
+</ul>
+
+<h2><span class="num">3</span>A primeira regra: nem tudo que entra é lead</h2>
+
+<p>Medindo 585 leads que chegaram a partir de 24 de junho de 2026, comparando o estado da base <strong>no instante da chegada</strong> (e não hoje, para não ler o futuro), o resultado é este:</p>
+
+<table class="evitar">
+<thead><tr><th>Quem era a pessoa quando chegou</th><th class="num">Leads</th><th class="num">Agendaram</th><th class="num">Taxa</th></tr></thead>
+<tbody>
+<tr class="melhor"><td class="destaque">Desconhecido do escritório</td><td class="num">533</td><td class="num">155</td><td class="num">29,1%</td></tr>
+<tr class="pior"><td class="destaque">Já era cliente, com processo em andamento</td><td class="num">46</td><td class="num">0</td><td class="num">0,0%</td></tr>
+<tr class="pior"><td class="destaque">Já constava no cadastro, sem processo</td><td class="num">6</td><td class="num">0</td><td class="num">0,0%</td></tr>
+</tbody>
+</table>
+
+<p><strong>52 pessoas, 8,9% de tudo que entrou, eram clientes atuais perguntando do próprio processo. Nenhuma delas agendou videochamada.</strong> Isso não é lead frio, é fila errada. A primeira coisa que o sistema faz, antes de qualquer nota, é reconhecer essas pessoas pelo telefone e encaminhá-las ao atendimento, tirando quase um décimo do ruído do trabalho comercial e melhorando o serviço a quem já é cliente.</p>
+
+<h2><span class="num">4</span>O eixo P: o que prevê o lead avançar</h2>
+
+<h3>O sinal mais forte é comportamental, e é gratuito</h3>
+
+<p>O que a pessoa faz na conversa separa muito mais do que qualquer característica de perfil:</p>
+
+<div class="grafico evitar">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Taxa de agendamento conforme o comportamento na conversa">
+  <g stroke="#E3EAF1" stroke-width="1">
+    <line x1="60" y1="150" x2="700" y2="150"/>
+    <line x1="60" y1="110" x2="700" y2="110"/>
+    <line x1="60" y1="70"  x2="700" y2="70"/>
+    <line x1="60" y1="30"  x2="700" y2="30"/>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="9" fill="#8A97A5">
+    <text x="52" y="153" text-anchor="end">0%</text>
+    <text x="52" y="113" text-anchor="end">20%</text>
+    <text x="52" y="73" text-anchor="end">40%</text>
+    <text x="52" y="33" text-anchor="end">60%</text>
+  </g>
+  <rect x="100" y="50"    width="130" height="100"  fill="#1B3A5C"/>
+  <rect x="300" y="102.2" width="130" height="47.8" fill="#607F9E"/>
+  <rect x="500" y="140"   width="130" height="10"   fill="#B02020"/>
+  <g font-family="Georgia, serif" font-size="15" fill="#0F2035" text-anchor="middle">
+    <text x="165" y="43">50,0%</text>
+    <text x="365" y="95">23,9%</text>
+    <text x="565" y="133">5,0%</text>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="9" fill="#55677A" text-anchor="middle">
+    <text x="165" y="168">Respondemos e o lead</text><text x="165" y="180">voltou a falar (n=84)</text>
+    <text x="365" y="168">Nunca respondemos</text><text x="365" y="180">(n=46)</text>
+    <text x="565" y="168">Respondemos e o lead</text><text x="565" y="180">sumiu (n=40)</text>
+  </g>
+</svg>
+</div>
+
+<p>Quem responde de volta agenda <strong>dez vezes mais</strong> que quem some depois do nosso contato. Nenhuma variável de perfil chega perto disso, e ela não custa uma pergunta sequer ao cliente. Vale a honestidade: engajar é quase o mesmo ato que agendar, então parte do poder desse sinal vem da proximidade com o desfecho. Ainda assim, é o que ordena corretamente a fila de hoje à tarde.</p>
+
+<div class="caixa-alerta evitar">
+<h3>Impedimento operacional a resolver antes de tudo</h3>
+<p style="margin-bottom:0">A coleta desse sinal <strong>está parada</strong>. A tabela que registra tempo de resposta e engajamento tem sua última linha em 2 de agosto, e o processo agendado que a alimenta não reporta execução alguma no painel de monitoramento, enquanto os processos vizinhos do Kommo rodaram normalmente hoje. Sem religar essa coleta, o melhor preditor do sistema simplesmente não existe. É a primeira tarefa da implantação, e não depende de nenhuma decisão de negócio.</p>
+</div>
+
+<h3>O anúncio de origem também separa</h3>
+
+<p>Desde 23 de julho o sistema captura de qual anúncio veio cada lead que clica no WhatsApp. Em 321 leads capturados, dois criativos rodando no mesmo período tiveram desempenho bem diferente:</p>
+
+<table class="evitar">
+<thead><tr><th>Anúncio</th><th class="num">Leads</th><th class="num">Agendaram</th><th class="num">Taxa</th></tr></thead>
+<tbody>
+<tr class="melhor"><td class="destaque">[VD] 0911</td><td class="num">168</td><td class="num">55</td><td class="num">32,7%</td></tr>
+<tr><td class="destaque">[VD] Ei, estava em um momento</td><td class="num">143</td><td class="num">32</td><td class="num">22,4%</td></tr>
+</tbody>
+</table>
+
+<p>Uma diferença de <strong>1,5 vez entre dois criativos</strong>, para o mesmo público e no mesmo período. Além disso, o simples fato de o lead ter origem rastreada já indica qualidade: o conjunto dos 321 converteu 28,0%, contra cerca de 20% da base geral.</p>
+
+<h3>O que foi medido e ficou de fora</h3>
+
+<p>Isso importa tanto quanto o que entra, porque variável fraca dilui variável forte. Foram testados e descartados: <strong>dia da semana</strong> e <strong>hora</strong> da chegada do lead (ambos oscilam sem padrão e com amostras pequenas), <strong>DDD como preditor de conversão</strong> (a faixa real é quase plana), <strong>renda do município</strong> (correlação praticamente nula com o valor do caso) e <strong>demografia</strong> (idade, gênero e estado civil não separam cliente de alto valor).</p>
+
+<h2><span class="num">5</span>O eixo V: quanto o caso vale de verdade</h2>
+
+<p>Aqui a investigação mudou de conclusão duas vezes, e o resultado final é o oposto do ponto de partida. Vale acompanhar o percurso, porque ele mostra por que não bastaria olhar uma fonte só.</p>
+
+<h3>Primeira leitura: o valor pago na cota</h3>
+
+<p>A mineração dos documentos do Drive deu o valor pago por 2.212 clientes. Por resort, a mediana varia mais de quatro vezes, de <strong>R$ 65.685</strong> no Golden Laghetto a <strong>R$ 14.582</strong> no Hot Beach You. Parecia a base natural do eixo de valor.</p>
+
+<h3>Segunda leitura: o réu paga o que acorda?</h3>
+
+<p>Cruzando com os acordos registrados, apareceu um problema. Comparando resorts com a mesma estrutura de parcelamento (4 parcelas) e acordos de idade parecida:</p>
+
+<table class="evitar">
+<thead><tr><th>Resort</th><th class="num">Acordos</th><th class="num">Idade mediana</th><th class="num">Recebido</th><th class="num">Previsto pela régua</th><th class="num">Aderência</th></tr></thead>
+<tbody>
+<tr class="melhor"><td class="destaque">Hot Beach</td><td class="num">19</td><td class="num">122 dias</td><td class="num">71,3%</td><td class="num">75,5%</td><td class="num">94%</td></tr>
+<tr><td class="destaque">Hot Beach You</td><td class="num">7</td><td class="num">72 dias</td><td class="num">51,6%</td><td class="num">84,0%</td><td class="num">61%</td></tr>
+<tr><td class="destaque">Praias do Lago</td><td class="num">5</td><td class="num">101 dias</td><td class="num">31,1%</td><td class="num">72,9%</td><td class="num">43%</td></tr>
+<tr class="pior"><td class="destaque">Ondas Praia</td><td class="num">30</td><td class="num">104 dias</td><td class="num">19,7%</td><td class="num">71,9%</td><td class="num">27%</td></tr>
+</tbody>
+</table>
+
+<p>Ondas Praia entrega <strong>27% do que a régua previa</strong>, enquanto Hot Beach entrega 94%. Não é acordo recente nem parcelamento mais longo, é o réu não pagando o que assinou, o que se reconhece de imediato como o comportamento do grupo que motivou toda a estratégia de penhora de recebíveis do escritório.</p>
+
+<h3>Terceira leitura, e a que vale: o honorário que entrou na conta</h3>
+
+<p>As duas leituras anteriores são indiretas. A prestação de contas registra o desfecho real: quanto o escritório efetivamente recebeu, e quanto tempo levou. São <strong>80 prestações, todas por alvará judicial</strong>, nenhuma por acordo voluntário.</p>
+
+<div class="kpis evitar">
+  <div class="kpi ouro"><div class="n">R$ 863.852</div><div class="r">honorários de êxito recebidos</div></div>
+  <div class="kpi"><div class="n">R$ 6.323</div><div class="r">mediana por caso</div></div>
+  <div class="kpi"><div class="n">R$ 21.106</div><div class="r">no décimo superior dos casos</div></div>
+  <div class="kpi"><div class="n">16,0 meses</div><div class="r">do ajuizamento ao dinheiro na conta</div></div>
+</div>
+
+<div class="grafico evitar">
+<svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Honorários recebidos por resort">
+  <g font-family="Avenir Next, sans-serif" font-size="9" fill="#33475B">
+    <text x="0" y="20">Solar das Águas</text>
+    <text x="0" y="44">Ondas Praia</text>
+    <text x="0" y="68">Aquan Prime</text>
+    <text x="0" y="92">Gran Paradiso</text>
+    <text x="0" y="116">Water Park</text>
+    <text x="0" y="140">Olímpia Park</text>
+    <text x="0" y="164">Thermas São Pedro</text>
+    <text x="0" y="188">Ipioca Beach</text>
+  </g>
+  <g>
+    <rect x="118" y="8"   width="420"   height="16" fill="#C9A84C"/>
+    <rect x="118" y="32"  width="341.8" height="16" fill="#1B3A5C"/>
+    <rect x="118" y="56"  width="89.5"  height="16" fill="#607F9E"/>
+    <rect x="118" y="80"  width="74.3"  height="16" fill="#607F9E"/>
+    <rect x="118" y="104" width="53.9"  height="16" fill="#607F9E"/>
+    <rect x="118" y="128" width="46.3"  height="16" fill="#607F9E"/>
+    <rect x="118" y="152" width="44.2"  height="16" fill="#607F9E"/>
+    <rect x="118" y="176" width="42.3"  height="16" fill="#607F9E"/>
+  </g>
+  <g font-family="Avenir Next, sans-serif" font-size="8.5" fill="#0F2035">
+    <text x="546" y="20">R$ 258.430 em 9 casos</text>
+    <text x="468" y="44">R$ 210.328 em 26 casos</text>
+    <text x="215" y="68">R$ 55.090 em 2</text>
+    <text x="200" y="92">R$ 45.740 em 1</text>
+    <text x="180" y="116">R$ 33.194 em 1</text>
+    <text x="172" y="140">R$ 28.507 em 1</text>
+    <text x="170" y="164">R$ 27.197 em 3</text>
+    <text x="168" y="188">R$ 26.007 em 3</text>
+  </g>
+</svg>
+</div>
+
+<table class="evitar">
+<thead><tr><th>Resort</th><th class="num">Prestações</th><th class="num">Honorários</th><th class="num">Mediana por caso</th><th class="num">Meses até o dinheiro</th></tr></thead>
+<tbody>
+<tr class="melhor"><td class="destaque">Solar das Águas</td><td class="num">9</td><td class="num">R$ 258.430</td><td class="num">R$ 15.430</td><td class="num">13,2</td></tr>
+<tr><td class="destaque">Ondas Praia</td><td class="num">26</td><td class="num">R$ 210.328</td><td class="num">R$ 7.946</td><td class="num">18,9</td></tr>
+<tr><td class="destaque">Aquan Prime</td><td class="num">2</td><td class="num">R$ 55.090</td><td class="num">R$ 27.545</td><td class="num">21,6</td></tr>
+<tr><td class="destaque">Thermas São Pedro</td><td class="num">3</td><td class="num">R$ 27.197</td><td class="num">R$ 9.982</td><td class="num">17,9</td></tr>
+<tr><td class="destaque">Ipioca Beach</td><td class="num">3</td><td class="num">R$ 26.007</td><td class="num">R$ 8.210</td><td class="num">23,9</td></tr>
+<tr><td class="destaque">Royal Prime</td><td class="num">2</td><td class="num">R$ 20.304</td><td class="num">R$ 10.152</td><td class="num">17,8</td></tr>
+<tr><td class="destaque">Hot Beach</td><td class="num">3</td><td class="num">R$ 18.130</td><td class="num">R$ 6.043</td><td class="num">2,8</td></tr>
+<tr class="pior"><td class="destaque">Golden Laghetto</td><td class="num">3</td><td class="num">R$ 14.037</td><td class="num">R$ 4.871</td><td class="num">11,6</td></tr>
+<tr><td class="destaque">Praias do Lago</td><td class="num">2</td><td class="num">R$ 12.280</td><td class="num">R$ 6.140</td><td class="num">36,2</td></tr>
+<tr><td class="destaque">Terra Nova Ondas</td><td class="num">3</td><td class="num">R$ 11.917</td><td class="num">R$ 4.410</td><td class="num">7,8</td></tr>
+</tbody>
+</table>
+<p class="nota">Resorts com um único caso de valor atípico foram deixados fora desta relação por decisão editorial, para não distorcer a leitura.</p>
+
+<div class="caixa evitar">
+<h3>Duas conclusões que só apareceram na terceira fonte</h3>
+<p><strong>Ondas Praia paga, mas na via judicial.</strong> Pela leitura dos acordos ele parecia o pior caso da carteira, com 27% de aderência. Na prestação de contas é o <strong>maior volume da casa, 26 prestações e R$ 210.328</strong>. O dinheiro não vem de acordo voluntário, vem de alvará: penhora, cumprimento, execução. É exatamente a estratégia que o escritório já construiu para esse grupo. O custo é tempo: 18,9 meses, contra 13,2 do Solar das Águas.</p>
+<p style="margin-bottom:0"><strong>Cota cara não é honorário alto.</strong> Golden Laghetto lidera a cota mediana (R$ 65.685) e é o mais rápido a encerrar a fase de conhecimento (51,4% em 12,9 meses), mas entrega mediana de <strong>R$ 4.871</strong> em honorário, abaixo da mediana da casa. Um score de valor construído sobre a cota, que era o desenho inicial, mandaria a equipe priorizar exatamente o caso errado.</p>
+</div>
+
+<p><strong>O campeão real é o Solar das Águas: R$ 258.430 em 9 prestações, mais honorário que Ondas Praia com um terço dos casos</strong>, mediana 1,9 vez maior e 5,7 meses mais rápido. Nas duas leituras anteriores ele aparecia como um resort mediano.</p>
+
+<h3>A fórmula do eixo de valor</h3>
+
+<p>Do percurso acima sai uma hierarquia de evidência, aplicada nesta ordem para cada resort:</p>
+
+<ul>
+  <li><strong>Honorário mediano efetivamente recebido</strong>, quando o resort tem histórico de prestação suficiente. É a verdade, e hoje só Solar das Águas e Ondas Praia têm massa.</li>
+  <li><strong>Dividido pelo tempo até o dinheiro</strong>, medido do ajuizamento ao crédito em conta. É onde a duração do processo entra com peso, conforme decidido: 13 meses e 24 meses não valem o mesmo dinheiro.</li>
+  <li><strong>Valor pago na cota como estimativa de reserva</strong>, para os resorts ainda sem histórico de prestação. Cobre quase toda a carteira, mas já sabemos que é proxy fraca e ela cede lugar assim que houver honorário medido.</li>
+</ul>
+
+<h2><span class="num">6</span>Rigor: quatro armadilhas encontradas no caminho</h2>
+
+<p>Os números deste documento passaram por correções que vale registrar, porque cada uma teria produzido uma decisão errada com aparência de fundamentada.</p>
+
+<table class="evitar">
+<thead><tr><th style="width:32%">O que parecia</th><th>O que era</th></tr></thead>
+<tbody>
+<tr><td class="destaque">Terça-feira converte 7,4%, muito abaixo dos outros dias</td><td>596 leads foram criados por importação em massa numa única madrugada de 23 de junho, 565 deles na mesma hora. Excluída a importação, a diferença entre dias praticamente desaparece.</td></tr>
+<tr><td class="destaque">Cliente que já assinou conosco agenda 47,6%, o dobro de um lead novo</td><td>Leitura do futuro. Em 79 dos 81 casos, a pessoa entrou no cadastro <strong>depois</strong> de o lead chegar: o cadastro nasceu porque o lead converteu. A regra foi descartada. O que sobreviveu, medindo o estado anterior à chegada, foi o oposto: cliente antigo não agenda.</td></tr>
+<tr><td class="destaque">Hot Beach encerra em 11 meses</td><td>Aqueles 11 meses eram a idade mediana de todos os processos, não o tempo até encerrar. Com a métrica correta são 20,6 meses.</td></tr>
+<tr><td class="destaque">Ondas Praia é o pior negócio da carteira</td><td>Conclusão tirada só dos acordos. A prestação de contas mostra que ele é o maior gerador de honorários da casa, por via judicial.</td></tr>
+</tbody>
+</table>
+
+<p>Além disso, conforme orientação, os arquivamentos de <strong>agravo de instrumento</strong> foram retirados da conta de duração: são 43 processos em 6 etapas distintas, e encerram o recurso, não a fase de conhecimento. Pelo mesmo critério saíram os processos remetidos a outro foro, os analisados e não distribuídos, os parados por falta de custas e os incidentes de desconsideração da personalidade jurídica.</p>
+
+<h2><span class="num">7</span>O que muda na operação</h2>
+
+<table class="evitar">
+<thead><tr><th style="width:26%">Peça</th><th>O que acontece</th></tr></thead>
+<tbody>
+<tr><td class="destaque">Roteador de entrada</td><td>Antes de qualquer nota, o telefone é conferido contra o cadastro. Cliente atual sai da fila comercial e vai para o atendimento. Cobre 8,9% do volume.</td></tr>
+<tr><td class="destaque">Fila ordenada</td><td>A lista de leads do Kommo passa a ser ordenada por P, com o número gravado em campo personalizado e uma etiqueta de faixa visível na própria lista.</td></tr>
+<tr><td class="destaque">Recálculo ao vivo</td><td>O score se atualiza em três momentos: na chegada (anúncio, resort, origem), depois da primeira interação (respondeu, em quanto tempo, voltou a falar) e ao agendar. Cada recálculo aperta o número.</td></tr>
+<tr><td class="destaque">Trilha de valor</td><td>Lead com V alto recebe atendimento sênior e prioridade de horário, seguindo a regra já conhecida de que a call longa indica caso grande.</td></tr>
+<tr><td class="destaque">Meta Ads</td><td>V é enviado como valor da conversão, para a plataforma otimizar por lead valioso em vez de lead barato.</td></tr>
+<tr><td class="destaque">Painel de auditoria</td><td>Tela no sistema do escritório com a fila, o motivo de cada nota e o histórico, para conferência dos sócios.</td></tr>
+</tbody>
+</table>
+
+<p>Cada lead carrega a explicação do próprio número, em linguagem direta, do tipo: <em>respondeu em 3 minutos e voltou a falar, veio do anúncio 0911, resort Solar das Águas</em>. Sem isso a equipe não confia na fila, e com razão.</p>
+
+<h2><span class="num">8</span>Como saberemos se funcionou</h2>
+
+<p>A proposta inclui a própria verificação, porque um score sem medição vira superstição:</p>
+
+<ul>
+  <li><strong>Registro do estado no momento da decisão.</strong> Desde o primeiro dia, o sistema grava as características de cada lead no instante em que a nota foi dada, junto com o desfecho que veio depois. Isso hoje não existe em lugar nenhum, e é a razão de o histórico antigo servir tão pouco.</li>
+  <li><strong>Meta operacional.</strong> Elevar a taxa de lead para videochamada de 35% para 45%, o que representa cerca de 294 reuniões a mais por ano e aproximadamente 100 clientes adicionais, sem verba nova de mídia.</li>
+  <li><strong>Prazo de avaliação.</strong> Sessenta dias para o eixo P, que tem desfecho rápido. O eixo V só pode ser avaliado de verdade quando os casos maturarem, o que leva os mesmos 16 meses medianos.</li>
+  <li><strong>Revisão dos pesos.</strong> Em três a seis meses haverá base própria suficiente para substituir os pesos calibrados por pesos medidos, sem trocar o sistema.</li>
+</ul>
+
+<h2><span class="num">9</span>Limites que o documento assume</h2>
+
+<ul>
+  <li><strong>A amostra de honorários é curta.</strong> As 80 prestações vão de março de 2026 até hoje. É o começo da colheita de uma carteira ajuizada ao longo de anos: resort cujos casos ainda não maturaram aparece pequeno por idade, não por qualidade. Fora Solar das Águas e Ondas Praia, todos os resorts têm três casos ou menos.</li>
+  <li><strong>Sem perguntar nada, o eixo de valor é estimativa.</strong> O preditor mais forte do tamanho do caso é o valor pago na cota, que só se conhece perguntando. A opção de não perguntar foi deliberada, e o custo é que o valor só se confirma na videochamada.</li>
+  <li><strong>Grafia de resort inconsistente entre sistemas.</strong> O mesmo resort aparece escrito de formas diferentes na prestação de contas e no CRM, o que dividiria a evidência de um resort em dois. Precisa passar pelo dicionário de nomes antes de virar peso.</li>
+  <li><strong>A etiqueta de resort no CRM resolve em cerca de um terço dos leads</strong> na forma exata, e mais um tanto pelo resolvedor de apelidos já existente. Para o restante, o eixo de valor começa neutro e se define na conversa.</li>
+</ul>
+
+<h2><span class="num">10</span>O que depende de decisão dos sócios</h2>
+
+<div class="caixa-cinza evitar">
+<div class="rot">Decisão 1</div>
+<p style="margin-bottom:0"><strong>A lista de resorts prioritários.</strong> Para 14 dos 20 resorts com volume relevante, a base não tem nenhum acordo ou prestação registrada: ela não sabe se o réu paga. Essa lacuna se preenche com o julgamento jurídico dos sócios, que conhecem tese madura, jurisprudência firmada e réu solvente. A proposta é que a lista seja editável em tela, com o motivo registrado, sem depender de nova versão do sistema. Três casos pedem leitura específica: <strong>Solar das Águas</strong>, que o dado aponta como campeão com 9 casos; <strong>Ondas Praia</strong>, que rende R$ 210 mil mas exige 18,9 meses e via judicial; e <strong>Golden Laghetto</strong>, de cota altíssima e honorário baixo.</p>
+</div>
+
+<div class="caixa-cinza evitar">
+<div class="rot">Decisão 2</div>
+<p style="margin-bottom:0"><strong>O peso relativo entre volume e valor.</strong> Priorizar o caso grande significa, na prática, atender depois alguns casos pequenos. A proposta assume que ninguém fica sem resposta, mas a ordem tem consequência e ela é dos sócios.</p>
+</div>
+
+<div class="caixa-cinza evitar">
+<div class="rot">Decisão 3</div>
+<p style="margin-bottom:0"><strong>O envio do valor ao Meta Ads.</strong> Alimentar a plataforma com o valor de cada conversão melhora a eficiência da mídia, e envolve enviar dados de pessoas de forma criptografada. Já existe envio semelhante em produção, mas a extensão ao valor do caso merece confirmação expressa.</p>
+</div>
+
+<div class="caixa-cinza evitar">
+<h3>Sequência proposta</h3>
+<ul style="margin-bottom:0">
+  <li><strong>Imediato, sem decisão pendente:</strong> religar a coleta de tempo de resposta e engajamento, que está parada desde 2 de agosto.</li>
+  <li><strong>Primeira etapa:</strong> roteador de entrada, que resolve 8,9% do volume e não depende de nenhuma calibragem.</li>
+  <li><strong>Segunda etapa:</strong> eixo P e a fila ordenada no CRM, com registro do estado no momento da decisão.</li>
+  <li><strong>Terceira etapa:</strong> eixo V, após a lista de resorts, e depois dele o envio de valor ao Meta Ads.</li>
+</ul>
+</div>
+
+<div class="rodape">
+CBC Advogados · Documento interno de decisão · 6 de agosto de 2026. Fontes: cadastro único de clientes, espelho do CRM Kommo, agenda de videochamadas com auditoria do Google Meet, captura de anúncios do Meta Ads, espelho do ADVBOX, acordos e prestação de contas. Todos os números foram recalculados no banco nesta data. Onde a amostra é pequena, o tamanho está declarado ao lado do número.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Lembretes automaticos de videochamada</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Avenir Next", Avenir, "Gill Sans", sans-serif;
+    color: #16202B; font-size: 10.4pt; line-height: 1.5; margin: 0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1, h2, h3, .serif { font-family: Baskerville, "Palatino", Georgia, serif; }
+  .capa { background: #1B3A5C; color: #fff; padding: 24mm 15mm 13mm; margin: -16mm -15mm 9mm; }
+  .capa .marca { font-size: 8.5pt; letter-spacing: .22em; text-transform: uppercase; color: #C9A84C; font-weight: 700; }
+  .capa h1 { font-size: 27pt; line-height: 1.12; margin: 7mm 0 4mm; font-weight: 600; }
+  .capa .sub { font-size: 11.5pt; color: #C9D6E4; max-width: 132mm; }
+  .capa .data { margin-top: 8mm; font-size: 9pt; color: #93A9BF; letter-spacing: .04em; }
+
+  h2 { font-size: 15pt; color: #1B3A5C; margin: 8mm 0 2.5mm; font-weight: 600;
+       border-bottom: 2px solid #C9A84C; padding-bottom: 1.6mm; }
+  h2 .num { color: #C9A84C; font-size: 12pt; margin-right: 3mm; }
+  h3 { font-size: 11pt; color: #1B3A5C; margin: 5mm 0 1.5mm; }
+  p { margin: 0 0 3mm; }
+  .lead { font-size: 11pt; color: #33475B; }
+  strong { color: #0F2035; }
+  .quebra { page-break-before: always; }
+  .evitar { page-break-inside: avoid; }
+
+  .kpis { display: flex; gap: 3.5mm; margin: 4mm 0 5mm; }
+  .kpi { flex: 1; background: #F0F4F8; border-top: 3px solid #1B3A5C; padding: 3.5mm 3mm; text-align: center; }
+  .kpi.alerta { border-top-color: #DC2626; }
+  .kpi.ouro { border-top-color: #C9A84C; }
+  .kpi .n { font-family: Georgia, serif; font-size: 21pt; color: #1B3A5C; line-height: 1; }
+  .kpi.alerta .n { color: #B02020; }
+  .kpi .r { font-size: 7.8pt; color: #55677A; margin-top: 1.8mm; line-height: 1.25; text-transform: uppercase; letter-spacing: .05em; }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.6pt; }
+  th { background: #1B3A5C; color: #fff; text-align: left; padding: 2.2mm 3mm; font-size: 8.6pt;
+       text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  td { padding: 2.2mm 3mm; border-bottom: 1px solid #DDE5ED; vertical-align: top; }
+  tr:nth-child(even) td { background: #F7FAFC; }
+  td.destaque { font-weight: 700; color: #1B3A5C; white-space: nowrap; }
+
+  .zap { background: #DCE7F0; border-radius: 3mm; padding: 5mm 4mm; margin: 3mm 0 4mm; }
+  .balao { position: relative; background: #fff; border-radius: 2.5mm;
+           box-shadow: 0 .4mm 1mm rgba(15,32,53,.14);
+           padding: 3mm 3.5mm; margin: 0 6mm 4mm 0; font-size: 9.6pt; }
+  .balao::after { content: ""; position: absolute; left: -1.6mm; bottom: 2.6mm; width: 0; height: 0;
+                  border: 1.7mm solid transparent; border-right-color: #fff; border-left: 0;
+                  filter: drop-shadow(-.2mm .2mm .2mm rgba(15,32,53,.10)); }
+  .balao:last-child { margin-bottom: 0; }
+  .balao .quando { display: block; font-size: 7.6pt; text-transform: uppercase; letter-spacing: .08em;
+                   color: #8A6A12; font-weight: 700; margin-bottom: 1.5mm; }
+  .botoes { margin-top: 2.5mm; }
+  .botao { display: inline-block; border: 1px solid #1B3A5C; color: #1B3A5C; border-radius: 4mm;
+           padding: 1mm 3mm; font-size: 8.2pt; margin-right: 2mm; }
+
+  .fluxo { background: #0F2035; color: #DCE6F0; border-radius: 2mm; padding: 5mm; margin: 4mm 0;
+           font-family: "SF Mono", Menlo, monospace; font-size: 8.6pt; line-height: 1.75; }
+  .fluxo b { color: #C9A84C; font-weight: 600; }
+
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.6mm; }
+  .nao li::marker { color: #DC2626; }
+  .sim li::marker { color: #16A34A; }
+
+  .caixa { border: 1px solid #C9A84C; background: #FDF9EF; padding: 4mm; margin: 4mm 0; }
+  .caixa h3 { margin-top: 0; }
+  .rodape { margin-top: 7mm; padding-top: 3mm; border-top: 1px solid #DDE5ED;
+            font-size: 8.2pt; color: #7A8A9A; }
+  .selo { display: inline-block; background: #1B3A5C; color: #fff; font-size: 7.6pt; padding: .8mm 2.5mm;
+          border-radius: 2mm; text-transform: uppercase; letter-spacing: .06em; }
+  .selo.ok { background: #16A34A; }
+  .selo.aberto { background: #D97706; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <div class="marca">CBC Advogados</div>
+  <h1>Lembretes automáticos de videochamada</h1>
+  <div class="sub">Como reduzir a falta nas videochamadas de vendas usando a agenda que a equipe já usa e o WhatsApp oficial que o escritório já tem.</div>
+  <div class="data">Proposta interna, 4 de agosto de 2026</div>
+</div>
+
+<p class="lead">Hoje o escritório marca cerca de <strong>150 videochamadas por mês</strong> nas agendas do Google das vendedoras e <strong>não envia nenhum lembrete automático</strong>. Um em cada quatro clientes não aparece. Esta proposta mostra o que muda, quanto custa e o que já foi conferido no sistema real.</p>
+
+<h2><span class="num">1</span>O tamanho do problema</h2>
+<p>Números medidos no banco em 4 de agosto de 2026, sobre os <strong>últimos 90 dias</strong>, com o comparecimento auditado pelo registro do Google Meet e não pela cor da agenda.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">446</div><div class="r">videochamadas em 90 dias</div></div>
+  <div class="kpi alerta"><div class="n">108</div><div class="r">faltas, 24,2% do total</div></div>
+  <div class="kpi ouro"><div class="n">20,2%</div><div class="r">fecham contrato quando comparecem</div></div>
+  <div class="kpi alerta"><div class="n">0</div><div class="r">lembretes enviados em 17 meses</div></div>
+</div>
+
+<table>
+  <tr><th style="width:62%">O que os dados mostram</th><th>Medida</th></tr>
+  <tr><td>Pessoas com pelo menos uma falta no histórico</td><td class="destaque">617 pessoas</td></tr>
+  <tr><td>Faltas acumuladas desde março de 2025</td><td class="destaque">721 faltas</td></tr>
+  <tr><td>Clientes que entram na sala depois da hora marcada</td><td class="destaque">86%</td></tr>
+  <tr><td>Clientes que entram mais de 5 minutos atrasados</td><td class="destaque">42%</td></tr>
+  <tr><td>Atraso mediano de quem comparece</td><td class="destaque">3,8 minutos</td></tr>
+</table>
+
+<p>Há casos de uma mesma pessoa faltando quatro vezes seguidas, com a mesma vendedora, e a agenda sendo oferecida nas quatro como se fosse a primeira. Cada linha dessas é um horário nobre que não foi para outro cliente.</p>
+
+<h2><span class="num">2</span>Quanto isso vale</h2>
+<p>A conta é direta e usa só números já medidos: <strong>20,2% de quem comparece fecha contrato</strong>. Ou seja, a cada cinco comparecimentos recuperados, um contrato a mais.</p>
+
+<table>
+  <tr><th style="width:62%">Cenário conservador, por mês</th><th>Resultado</th></tr>
+  <tr><td>Videochamadas marcadas</td><td class="destaque">~150</td></tr>
+  <tr><td>Faltas hoje, a 24,2%</td><td class="destaque">~36</td></tr>
+  <tr><td>Se a falta cair para 19%, patamar comum com lembrete</td><td class="destaque">~28</td></tr>
+  <tr><td>Comparecimentos recuperados</td><td class="destaque">~8 por mês</td></tr>
+  <tr><td>Contratos a mais, aplicando os 20,2%</td><td class="destaque">1 a 2 por mês</td></tr>
+  <tr><td>Custo mensal das mensagens</td><td class="destaque">R$ 10 a R$ 30</td></tr>
+</table>
+
+<p>A queda de 24,2% para 19% é uma <strong>estimativa</strong>, não uma medição: ninguém aqui mandou lembrete antes, então não existe base própria para comparar. O que não é estimativa é o custo, o volume e a taxa de fechamento.</p>
+
+<div class="caixa evitar">
+  <h3>Um efeito colateral que talvez valha mais que a falta</h3>
+  <p style="margin-bottom:0">86% dos clientes entram atrasados, com mediana de quase 4 minutos. Numa reunião de 30 minutos vendida como "leva 10 minutos", isso é tempo de argumentação perdido em todas as calls, não só nas que viram falta. O lembrete de uma hora antes ataca esse ponto sem custo nenhum.</p>
+</div>
+
+<h2><span class="num">3</span>O que o cliente recebe</h2>
+<p>Quatro toques no WhatsApp, sempre pelo número oficial do escritório, na mesma conversa que a vendedora já usa. Os textos são ajustáveis a qualquer momento, sem mexer no sistema.</p>
+
+<div class="zap evitar">
+  <div class="balao">
+    <span class="quando">Véspera, 18h</span>
+    Olá, Bianca! Aqui é a Ana, do escritório Conforto Bergonsi. Sua videochamada está confirmada para amanhã, terça (05/08), às 13h00. Podemos contar com você?
+    <div class="botoes"><span class="botao">Confirmo minha presença</span><span class="botao">Preciso remarcar</span></div>
+  </div>
+  <div class="balao">
+    <span class="quando">Manhã do dia, 8h, só para quem ainda não respondeu</span>
+    Olá, Bianca! Sua videochamada é hoje às 13h00. Vamos analisar o seu caso e definir os próximos passos.
+    <div class="botoes"><span class="botao">Entrar na videochamada</span><span class="botao">Preciso remarcar</span></div>
+  </div>
+  <div class="balao">
+    <span class="quando">Uma hora antes, só para quem confirmou</span>
+    Bianca, sua videochamada começa em 1 hora, às 13h00. É só tocar no botão no horário.
+    <div class="botoes"><span class="botao">Entrar na videochamada</span></div>
+  </div>
+  <div class="balao">
+    <span class="quando">Dez minutos depois, só se o cliente não entrou</span>
+    Olá, Bianca! Não conseguimos falar com você hoje. Podemos reagendar para outro dia?
+    <div class="botoes"><span class="botao">Quero remarcar</span><span class="botao">Prefiro não continuar</span></div>
+  </div>
+</div>
+
+<p>Duas regras de bom senso estão embutidas: <strong>quem já confirmou na véspera não recebe a mensagem da manhã</strong>, e o link da sala só aparece nos toques do dia, nunca na véspera, para ninguém entrar numa sala vazia e achar que errou.</p>
+
+<h2><span class="num">4</span>O que muda para a equipe: nada</h2>
+<p>Esta é a decisão central do desenho. As vendedoras continuam marcando no Google Agenda exatamente como fazem hoje, com o nome e o telefone no título do evento. O sistema apenas <strong>lê</strong> a agenda.</p>
+
+<ul class="nao">
+  <li><strong>O robô não escreve na agenda de ninguém.</strong> Não apaga, não move, não pinta evento.</li>
+  <li><strong>O robô não remarca sozinho.</strong> Quem pede outro horário vira tarefa para a vendedora, com o histórico na conversa.</li>
+  <li><strong>Não há inteligência artificial conversando com o cliente.</strong> Quem decide o disparo é o calendário. Texto livre do cliente não é interpretado, é encaminhado para a pessoa responsável.</li>
+  <li><strong>O robô nunca escreve para quem ele não identificou com certeza.</strong> Sem vínculo confirmado entre o evento e o cadastro, não sai mensagem: sai um aviso para a vendedora confirmar à mão.</li>
+</ul>
+
+<h2><span class="num">5</span>Como funciona por dentro</h2>
+<div class="fluxo">
+<b>Google Agenda</b> das quatro vendedoras, que continua sendo a agenda oficial<br>
+&nbsp;&nbsp;&darr;&nbsp; o sistema lê a cada 45 minutos, como já faz hoje<br>
+<b>Espelho no banco</b>, com o comparecimento auditado pelo Google Meet<br>
+&nbsp;&nbsp;&darr;&nbsp; a cada 15 minutos, decide quem recebe o quê agora<br>
+<b>Kommo</b>, na mesma conversa que a vendedora acompanha<br>
+&nbsp;&nbsp;&darr;<br>
+<b>WhatsApp oficial</b> do escritório
+</div>
+
+<p>Quase tudo já existe e está em produção: as quatro agendas sincronizadas, a auditoria do Meet que sabe em minutos quem entrou na sala, o canal de WhatsApp oficial com 16 modelos já aprovados pela Meta e o mecanismo de envio de mensagem pelo Kommo, hoje usado na cobrança e no envio de contrato para assinatura. <strong>O que falta construir é a peça que decide e dispara.</strong></p>
+
+<h2><span class="num">6</span>O que já foi conferido</h2>
+<p>Antes de escrever qualquer linha de código, cada premissa foi testada contra o sistema real, sem enviar nenhuma mensagem. As videochamadas já marcadas para os próximos dias foram usadas como amostra.</p>
+
+<table>
+  <tr><th style="width:56%">Pergunta</th><th style="width:14%">Situação</th><th>Resultado</th></tr>
+  <tr><td>O sistema consegue achar o cliente certo a partir do evento da agenda?</td><td><span class="selo ok">Provado</span></td><td>17 de 17 telefones conferem, zero erro</td></tr>
+  <tr><td>Dá para saber o primeiro nome do cliente?</td><td><span class="selo ok">Provado</span></td><td>Todas têm nome no título do evento</td></tr>
+  <tr><td>Quantas conversas estão abertas e não custam nada?</td><td><span class="selo ok">Medido</span></td><td>10 abertas, 7 fechadas: 41% usaria modelo pago</td></tr>
+  <tr><td>Quantos clientes o robô não conseguiria alcançar?</td><td><span class="selo ok">Medido</span></td><td>5 de 22, que viram tarefa manual</td></tr>
+  <tr><td>Botões de resposta rápida funcionam no nosso WhatsApp?</td><td><span class="selo ok">Provado</span></td><td>Já em uso, 30 botões nos modelos atuais</td></tr>
+  <tr><td>O modelo consegue exibir data e hora variáveis?</td><td><span class="selo ok">Provado</span></td><td>Sim, o modelo lê campos do cadastro</td></tr>
+  <tr><td>O botão pode levar direto à sala da videochamada?</td><td><span class="selo aberto">Não dá</span></td><td>Sem prejuízo: o link vai no texto</td></tr>
+</table>
+
+<p>A única limitação encontrada foi o botão: o WhatsApp do escritório só aceita botão com endereço fixo, e cada videochamada tem uma sala própria. <strong>Isso não atrapalha</strong>, porque os avisos que levam o link são justamente os do dia, enviados a quem já respondeu na véspera. Nessa situação a conversa está aberta, a mensagem é comum e o link vai no texto, sem restrição de formato. Quem não responder na véspera recebe o aviso da manhã sem link e usa o link do convite da agenda, que já está com ele.</p>
+
+<h2><span class="num">7</span>Prazo, custo e o que depende de decisão</h2>
+<table>
+  <tr><th style="width:34%">Item</th><th>Situação</th></tr>
+  <tr><td class="destaque">Construção</td><td>Cerca de uma semana, seguida de piloto em funil de teste com número interno antes de qualquer cliente receber</td></tr>
+  <tr><td class="destaque">Custo mensal</td><td>R$ 10 a R$ 30 em mensagens. Nenhuma assinatura nova, nenhum custo de inteligência artificial</td></tr>
+  <tr><td class="destaque">Depende dos sócios</td><td>Aprovar três modelos de mensagem junto à Meta, criar dois campos e um robô de envio no Kommo, e uma configuração no servidor</td></tr>
+  <tr><td class="destaque">Não depende</td><td>De mudar o acesso às agendas, de contratar ferramenta, nem de a equipe mudar a forma de trabalhar</td></tr>
+</table>
+
+<h2><span class="num">8</span>Riscos e limites, ditos com clareza</h2>
+<ul>
+  <li><strong>O vínculo depende do título do evento.</strong> É de lá que sai o telefone que encontra o cliente. Hoje o hábito da equipe já está correto em todos os eventos, mas título mal preenchido significa cliente sem lembrete, e não lembrete errado.</li>
+  <li><strong>Um em cada cinco clientes não será alcançado no primeiro dia</strong>, porque o cadastro não existe ou está duplicado. Esses casos aparecem como pendência, não somem em silêncio.</li>
+  <li><strong>Mensagem repetida cansa e prejudica o canal.</strong> Por isso quem confirma não recebe de novo, e existe um teto diário de mensagens.</li>
+  <li><strong>Se o sistema parar, alguém precisa saber.</strong> Um lembrete que morre em silêncio é pior que não existir, porque a equipe passa a confiar nele. Cada peça tem alarme, e o acesso às agendas do Google já caiu uma vez, em 23 de julho, sem ninguém perceber na hora.</li>
+  <li><strong>A queda de faltas é estimativa até o primeiro mês de operação.</strong> O sistema mede o resultado sozinho: comparação de falta antes e depois, por vendedora e por horário.</li>
+</ul>
+
+<div class="rodape">
+  Documento preparado para decisão interna. Todos os números vêm do banco de dados do sistema de contratos e da auditoria do Google Meet, medidos em 4 de agosto de 2026. Nenhuma mensagem foi enviada a cliente durante a apuração.
+</div>
+
+</body>
+</html>

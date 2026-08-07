@@ -115,4 +115,31 @@ describe('linksMudaram — evita gravar (e auditar) a cada 5 minutos sem motivo'
   it('nulo x vazio não conta como mudança', () => {
     expect(linksMudaram(null, [])).toBe(false);
   });
+
+  // (06/08/2026) O bug que manteve 45,7 mil gravacoes em 20 dias apesar do guard:
+  // o Postgres REORDENA as chaves de um objeto jsonb (por tamanho e depois alfabeto).
+  // O objeto novo tem as chaves na ordem do codigo; o que volta do banco vem na ordem
+  // do jsonb. Conteudo identico, JSON.stringify diferente -> "mudou" toda rodada de
+  // 5 minutos. Este teste compara a lista recem-construida com a MESMA lista na ordem
+  // em que o banco a devolve.
+  it('mesma lista com chaves na ordem do jsonb do banco NAO conta como mudança', () => {
+    const fresca = lerSignatarios([cru()]).links;
+    const doBanco = fresca.map((l) => {
+      const ordenado = {};
+      // ordem do jsonb: tamanho da chave, depois bytes — como o PostgREST devolve
+      for (const k of Object.keys(l).sort((a, b) => a.length - b.length || (a < b ? -1 : 1))) {
+        ordenado[k] = l[k];
+      }
+      return ordenado;
+    });
+    expect(JSON.stringify(doBanco)).not.toBe(JSON.stringify(fresca)); // a armadilha existe...
+    expect(linksMudaram(doBanco, fresca)).toBe(false);                // ...e o guard nao pode cair nela
+  });
+
+  it('diferenca real continua sendo detectada mesmo com ordens diferentes', () => {
+    const fresca = lerSignatarios([cru({ status: 'signed' })]).links;
+    const doBancoOutroStatus = lerSignatarios([cru({ status: 'link-opened' })]).links
+      .map((l) => Object.fromEntries(Object.entries(l).reverse()));
+    expect(linksMudaram(doBancoOutroStatus, fresca)).toBe(true);
+  });
 });

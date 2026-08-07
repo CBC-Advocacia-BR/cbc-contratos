@@ -66,7 +66,23 @@ export function lerSignatarios(signers, agora = new Date()) {
 /**
  * A lista de links mudou em relação à guardada? Evita gravação (e linha de auditoria)
  * a cada verificação quando nada aconteceu — a verificação roda de 5 em 5 minutos.
+ *
+ * ⚠️ (06/08/2026) A comparação tem que ser POR CONTEÚDO, nunca por JSON.stringify puro:
+ * o Postgres reordena as chaves de um objeto jsonb (tamanho, depois bytes), então a
+ * lista que volta do banco tem as MESMAS informações em OUTRA ordem de chaves. O
+ * stringify direto via essa reordenação como "mudança" e o guard nunca segurava nada —
+ * foram 45,7 mil gravações idênticas em 20 dias com o guard "ligado".
  */
+const canonico = (v) => {
+  if (v === undefined || v === null) return 'null';
+  if (Array.isArray(v)) return '[' + v.map(canonico).join(',') + ']';
+  if (typeof v === 'object') {
+    return '{' + Object.keys(v).sort()
+      .map((k) => JSON.stringify(k) + ':' + canonico(v[k])).join(',') + '}';
+  }
+  return JSON.stringify(v);
+};
+
 export function linksMudaram(anteriores, novos) {
-  return JSON.stringify(anteriores || []) !== JSON.stringify(novos || []);
+  return canonico(anteriores || []) !== canonico(novos || []);
 }
