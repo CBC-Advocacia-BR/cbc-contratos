@@ -1,5 +1,10 @@
 [build]
-  command = "npm run build"
+  # (11/08/2026) O apagamento de mapas feito no deploy.sh NAO chegava a producao: o
+  # Netlify roda o proprio build aqui e regenerava os .map, publicando o codigo-fonte
+  # inteiro. Conferido: SdrPanel-*.js.map e AdminPanel-*.js.map eram baixaveis por
+  # qualquer visitante. Agora quem apaga e o proprio comando de build, que e o unico
+  # ponto por onde os dois caminhos (local e remoto) passam.
+  command = "npm run build && find dist -name '*.map' -delete"
   publish = "dist"
 
 [functions]
