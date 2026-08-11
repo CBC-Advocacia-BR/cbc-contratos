@@ -86,3 +86,29 @@ export async function carregarFunilCards(pipelineId, porEtapa = 12) {
   if (error) throw error;
   return data || [];
 }
+
+/** Parametros da operacao. Uma linha so (id = 1). */
+export async function carregarConfig() {
+  const { data, error } = await supabase.from('sdr_config').select('*').eq('id', 1).single();
+  if (error) throw error;
+  return data;
+}
+
+/** Campos que a tela pode gravar. Lista explicita em vez de "tudo menos": assim uma
+ *  coluna nova no banco nao passa a ser gravavel por acidente. */
+const CAMPOS_EDITAVEIS = [
+  'grade_inicio', 'grade_fim', 'sla_meta_min', 'segura_horario_ate', 'max_remarcacoes',
+  'peso_valor', 'peso_resort', 'peso_quitado', 'piso_valor', 'limiar_topo',
+  'teto_disparo_dia', 'dias_reinclusao',
+];
+
+/** So socios chegam aqui: a tela desabilita os campos para os demais. */
+export async function salvarConfig(cfg) {
+  const campos = {};
+  CAMPOS_EDITAVEIS.forEach((k) => { if (cfg?.[k] !== undefined) campos[k] = cfg[k]; });
+  const { error } = await supabase.from('sdr_config').update({
+    ...campos,
+    atualizado_em: new Date().toISOString(),
+  }).eq('id', 1);
+  if (error) throw error;
+}

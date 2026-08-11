@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { carregarSemResposta, carregarCallsDoDia } from './sdr/api';
+import { carregarSemResposta, carregarCallsDoDia, carregarConfig } from './sdr/api';
 import { ordenarFila, grupoDoLead } from '../utils/sdrRegras';
 import { ymdLocal } from '../utils/format';
 import QuadroSemResposta from './sdr/QuadroSemResposta';
 import FilaSdr from './sdr/FilaSdr';
 import ConversaDrawer from './sdr/ConversaDrawer';
 import FunilKanban from './sdr/FunilKanban';
+import ConfigSdr from './sdr/ConfigSdr';
+import { useAuth } from '../AuthContext';
+import { SOCIOS_EMAILS } from '../utils/acessos';
 
 /** Hora no fuso do escritorio. O runtime pode estar em UTC; a call, nunca. */
 const horaBrt = (iso) => {
@@ -24,13 +27,20 @@ export default function SdrPanel() {
   const [erro, setErro] = useState('');
   const [aberto, setAberto] = useState(null);
   const [secao, setSecao] = useState('fila');
+  const [config, setConfig] = useState(null);
+  const { user } = useAuth();
+  const ehSocio = SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro('');
     try {
       const hoje = ymdLocal(new Date());
-      const [sr, cs] = await Promise.all([carregarSemResposta(), carregarCallsDoDia(hoje)]);
-      setLinhas(sr || []); setCalls(cs || []);
+      const [sr, cs, cfg] = await Promise.all([
+        carregarSemResposta(), carregarCallsDoDia(hoje),
+        // a configuracao nao pode derrubar a fila: sem ela a nota usa o padrao
+        carregarConfig().catch(() => null),
+      ]);
+      setLinhas(sr || []); setCalls(cs || []); setConfig(cfg);
     } catch (e) {
       // fila vazia por falha de consulta e pior que erro na tela: o SDR acharia que zerou
       setErro('Não consegui carregar a fila. ' + (e?.message || ''));
@@ -86,7 +96,7 @@ export default function SdrPanel() {
         </div>
       )}
       <div className="flex items-center gap-2 mb-3" role="tablist" aria-label="Seções da aba SDR">
-        {[['fila', 'Fila e conversas'], ['funil', 'Funil']].map(([k, rotulo]) => (
+        {[['fila', 'Fila e conversas'], ['funil', 'Funil'], ['config', 'Configuração']].map(([k, rotulo]) => (
           <button key={k} type="button" role="tab" aria-selected={secao === k}
             onClick={() => setSecao(k)}
             className="text-xs font-bold px-4 py-2 rounded-full border"
@@ -100,11 +110,13 @@ export default function SdrPanel() {
 
       {secao === 'fila' ? (
         <div className="grid gap-4 items-start" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
-          <FilaSdr itens={itens} onAbrir={setAberto} />
-          <QuadroSemResposta linhas={linhas} onAbrir={setAberto} />
+          <FilaSdr itens={itens} onAbrir={setAberto} config={config} />
+          <QuadroSemResposta linhas={linhas} onAbrir={setAberto} config={config} />
         </div>
-      ) : (
+      ) : secao === 'funil' ? (
         <FunilKanban onAbrir={setAberto} />
+      ) : (
+        <ConfigSdr podeEditar={ehSocio} onSalvo={setConfig} />
       )}
       <ConversaDrawer key={aberto?.conversa_id || aberto?.lead_id || "vazio"} lead={aberto} onFechar={() => setAberto(null)} />
     </div>

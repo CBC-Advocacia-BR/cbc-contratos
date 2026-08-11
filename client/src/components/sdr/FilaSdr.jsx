@@ -1,4 +1,5 @@
 import { fmtEspera, minutosSemResposta } from '../../utils/sdrRegras';
+import NotaBadge from './NotaBadge';
 
 /**
  * A fila de trabalho do SDR, ja ordenada pelas regras puras (utils/sdrRegras).
@@ -12,7 +13,7 @@ const ROTULO = {
   falta: ['faltou', 'var(--cbc-text-muted)'],
 };
 
-export default function FilaSdr({ itens, onAbrir }) {
+export default function FilaSdr({ itens, onAbrir, config }) {
   if (!itens?.length) {
     return (
       <div className="card p-8 text-center" style={{ color: 'var(--cbc-text-muted)' }}>
@@ -45,8 +46,11 @@ export default function FilaSdr({ itens, onAbrir }) {
             <button key={id} type="button" onClick={() => onAbrir?.(lead)}
               className="w-full text-left grid gap-3 px-4 py-2 border-t items-center hover:bg-[var(--cbc-bg-subtle)]"
               style={{ borderColor: 'var(--cbc-border)', gridTemplateColumns: 'minmax(0,1.4fr) 160px 110px' }}>
-              <span className="font-bold text-sm truncate">
-                {lead.nome || lead.telefone || `lead ${lead.lead_id || 'sem vinculo'}`}
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-sm truncate">
+                  {lead.nome || lead.telefone || `lead ${lead.lead_id || 'sem vinculo'}`}
+                </span>
+                <NotaBadge lead={lead} config={config} />
               </span>
               <span className="text-[10px] font-bold uppercase tracking-wide truncate" style={{ color: cor }}>
                 {texto}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { janelaAberta, minutosSemResposta, fmtEspera } from '../../utils/sdrRegras';
+import NotaBadge from './NotaBadge';
 
 /**
  * Uma linha por conversa cuja ULTIMA mensagem foi do cliente. A mais antiga no topo.
@@ -8,7 +9,7 @@ import { janelaAberta, minutosSemResposta, fmtEspera } from '../../utils/sdrRegr
  * da Meta: passando de 24h, so sai template aprovado. Sem isso na tela, o SDR digita
  * uma resposta que nunca vai sair.
  */
-export default function QuadroSemResposta({ linhas, onAbrir }) {
+export default function QuadroSemResposta({ linhas, onAbrir, config }) {
   const [, setTique] = useState(0);
   useEffect(() => {
     // o cronometro anda de minuto em minuto: espera aqui se mede em horas, nao em segundos
@@ -56,8 +57,11 @@ export default function QuadroSemResposta({ linhas, onAbrir }) {
             <button key={l.conversa_id} type="button" onClick={() => onAbrir?.(l)}
               className="w-full text-left grid gap-3 px-4 py-2 border-t items-center hover:bg-[var(--cbc-bg-subtle)]"
               style={{ borderColor: 'var(--cbc-border)', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1.5fr) 110px 96px' }}>
-              <span className="font-bold text-sm truncate">
-                {l.nome || l.telefone || `lead ${l.lead_id || 'sem vinculo'}`}
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="font-bold text-sm truncate">
+                  {l.nome || l.telefone || `lead ${l.lead_id || 'sem vinculo'}`}
+                </span>
+                <NotaBadge lead={l} config={config} />
               </span>
               <span className="text-xs truncate" style={{ color: 'var(--cbc-text-muted)' }}>
                 {l.ultima_mensagem || '(sem texto)'}

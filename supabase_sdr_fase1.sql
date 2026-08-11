@@ -188,3 +188,23 @@ select s.lead_id::text as lead_id, s.pipeline_id, s.status_id, s.lead_updated_at
 
 grant select on public.vw_sdr_funil_etapas to authenticated;
 grant select on public.vw_sdr_funil_cards  to authenticated;
+
+-- ============================================================================
+-- Etapa 7 (11/08/2026): parametros de operacao e pesos da pontuacao.
+-- A formula do lead score esta EM AVALIACAO (decisao do Paulo): por isso os pesos moram
+-- no banco, editaveis, e a tela recalcula a fila sem deploy. O historico de faltas NAO
+-- entra na nota, tambem por decisao dele.
+-- Migracao: sdr_config_pontuacao
+-- ============================================================================
+alter table sdr_config
+  add column if not exists peso_valor        int     not null default 40,
+  add column if not exists peso_resort       int     not null default 35,
+  add column if not exists peso_quitado      int     not null default 25,
+  add column if not exists piso_valor        numeric not null default 40000,
+  add column if not exists resorts_prioritarios text[] not null default
+    array['Hot Beach You','Hard Rock','Barretos Country','Ondas Praia','Solar das Águas'],
+  add column if not exists limiar_topo       int     not null default 70,
+  add column if not exists teto_disparo_dia  int     not null default 300,
+  add column if not exists dias_reinclusao   int     not null default 30,
+  add column if not exists max_remarcacoes   int     not null default 2,
+  add column if not exists segura_horario_ate time   not null default '17:00';
