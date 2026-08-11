@@ -48,6 +48,18 @@ export default async (req) => {
       await logAdvbox('bot', 'erro', `Falha ao despachar o worker do bot — mensagem do cliente pode ter se perdido: ${e.message}`.slice(0, 300), { raw: String(raw).slice(0, 2000), contentType });
     } catch { /* best-effort */ }
   }
+
+  // (sdr etapa 1) o espelho de mensagens NAO pode depender do bot: despacho separado,
+  // e a falha de um nunca derruba o outro.
+  try {
+    await fetch(`${SELF_URL}/.netlify/functions/sdr-mensagem-worker-background`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contentType, raw }),
+    });
+  } catch (e) {
+    console.error('[kommo-advbox-webhook] falha ao despachar espelho SDR:', e.message);
+  }
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 };
 
