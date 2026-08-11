@@ -9,6 +9,16 @@
 -- recebeu uma linha (o codigo que a alimentaria via webhook foi revertido
 -- antes de ir pra producao) e foi apagada junto com seus indices. A migracao
 -- que fez essa correcao foi `sdr_fase1_view_atendimento`.
+--
+-- CORRECAO 11/08/2026 (revisao pos-Task 6): a coluna usada pelo frontend para
+-- paginar vw_sdr_sem_resposta era lead_id, e um comentario afirmava que ela
+-- e unica. Nao e: 3 das 930 linhas tem lead_id nulo (nem toda conversa tem
+-- lead casado no Kommo). client/src/utils/supabasePaged.js exige ORDER BY
+-- numa coluna UNICA, senao pagina repete/pula linha ao passar de 1000 (hoje
+-- nao estoura, mas a garantia estava errada). A view ganhou a coluna
+-- conversa_id (id de atendimento.conversas, que ja e a chave do DISTINCT ON
+-- da CTE "ultima" e portanto unica e sem nulo no resultado final) e o
+-- frontend passou a ordenar por ela. Migracao: `sdr_view_conversa_id`.
 
 create table if not exists sdr_lead_estado (
   lead_id        text primary key,
@@ -61,6 +71,10 @@ insert into sdr_config (id) values (1) on conflict (id) do nothing;
 -- abaixo): a view roda com o dono (postgres) e enxerga atendimento.* sem
 -- depender da RLS daquele schema; o acesso de quem usa o app e controlado
 -- pelo grant select na propria view, so para authenticated.
+--
+-- conversa_id vai no FIM do select de proposito: CREATE OR REPLACE VIEW nao
+-- deixa mudar nome/posicao de coluna existente, so acrescentar depois das
+-- que ja existem (Postgres 42P16 se tentar na frente).
 create or replace view public.vw_sdr_sem_resposta as
 with ultima as (
   select distinct on (m.conversa_id)
@@ -96,7 +110,8 @@ select
   e.situacao_cota,
   e.valor_pago,
   e.quente,
-  e.estado
+  e.estado,
+  u.conversa_id as conversa_id
 from ultima u
 join atendimento.conversas c on c.id = u.conversa_id
 left join talk_lead tl on tl.chat_id = c.kommo_chat_id
@@ -106,7 +121,7 @@ where u.autor = 'cliente'
   and coalesce(e.estado, 'novo') <> 'descartado';
 
 comment on view public.vw_sdr_sem_resposta is
-  'SDR fase 1: uma linha por conversa do Kommo (atendimento.mensagens/conversas/kommo_talks/contatos) cuja ultima mensagem foi do cliente. Refeita em 11/08/2026 para ler o espelho real em vez de public.sdr_mensagens (nunca alimentada).';
+  'SDR fase 1: uma linha por conversa do Kommo (atendimento.mensagens/conversas/kommo_talks/contatos) cuja ultima mensagem foi do cliente. conversa_id (migracao sdr_view_conversa_id, 11/08/2026) e a chave unica real para paginar - lead_id pode ser nulo.';
 
 grant select on public.vw_sdr_sem_resposta to authenticated;
 

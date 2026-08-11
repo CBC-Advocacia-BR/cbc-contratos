@@ -42,8 +42,11 @@ export function fmtEspera(minutos) {
   return d > 0 ? `${d}d ${dois(h)}h` : `${dois(h)}h ${dois(m)}m`;
 }
 
+/** O grupo depende so dos campos do lead entre si (call_em vs faltou_em etc.),
+ *  nunca do relogio atual - por isso, ao contrario de janelaAberta/minutosSemResposta,
+ *  esta funcao nao recebe 'agora'. */
 /** @returns {'risco'|'call'|'espera'|'semconvite'|'falta'|null} */
-export function grupoDoLead(lead, agora = new Date()) {
+export function grupoDoLead(lead) {
   if (!lead || lead.estado === 'descartado') return null;
   if (lead.pediu_remarcar_em) return 'risco';
 

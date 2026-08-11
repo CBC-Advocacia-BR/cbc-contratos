@@ -7,10 +7,14 @@ import { fetchAllPaged } from '../../utils/supabasePaged';
 
 /** Conversas cuja ultima mensagem foi do cliente, da mais antiga para a mais nova.
  *  ATENCAO: fetchAllPaged recebe uma FUNCAO que monta a consulta (ela chama .range()
- *  em cada pagina). E o ORDER BY precisa ser TOTAL, por isso lead_id, que e unico. */
+ *  em cada pagina). E o ORDER BY precisa ser TOTAL, por isso conversa_id: lead_id
+ *  pode ser nulo (nem toda conversa tem lead casado no Kommo — 3 das 930 linhas em
+ *  11/08/2026), entao lead_id NAO e unico e nao serve pra paginar. conversa_id vem
+ *  do DISTINCT ON (conversa_id) da propria view (migracao sdr_view_conversa_id),
+ *  e por isso e garantidamente unico e sem nulo. */
 export async function carregarSemResposta() {
   return fetchAllPaged(() =>
-    supabase.from('vw_sdr_sem_resposta').select('*').order('lead_id', { ascending: true })
+    supabase.from('vw_sdr_sem_resposta').select('*').order('conversa_id', { ascending: true })
   );
 }
 
@@ -32,9 +36,11 @@ export async function carregarCallsDoDia(diaISO) {
  *  NOTA (11/08/2026): a tabela public.sdr_mensagens foi removida (nunca foi alimentada).
  *  O historico real de conversas vive no schema atendimento (espelho de kommo_talks).
  *  Esta funcao sera implementada quando o espelho atendimento.mensagens estiver pronto
- *  na etapa 2 (task 6b). Por enquanto, devolve lista vazia. */
-export async function carregarMensagens(leadId) {
+ *  na etapa 2 (task 6b). Por enquanto, devolve lista vazia — sem parametro, porque o
+ *  no-op nao usa nenhum; a etapa 2 recebe leadId de volta junto com a implementacao real. */
+export async function carregarMensagens() {
   // TODO: Implementar leitura do espelho atendimento.mensagens na etapa 2
+  // (assinatura futura: carregarMensagens(leadId))
   // const { data, error } = await supabase
   //   .from('atendimento.mensagens')
   //   .select('id, direcao, autor_nome, tipo, texto, criado_em')
