@@ -1,21 +1,14 @@
--- Aba SDR, etapa 1 (11/08/2026): espelho de mensagens do Kommo + estado do lead.
--- PII: sdr_mensagens guarda texto de conversa. RLS fecha para anon.
-
-create table if not exists sdr_mensagens (
-  id             bigserial primary key,
-  kommo_msg_id   text unique,              -- idempotencia do webhook
-  lead_id        text,
-  contact_id     text,
-  direcao        text not null check (direcao in ('in','out')),
-  autor_id       bigint,                   -- created_by do Kommo; 0/null = robo
-  autor_nome     text,
-  tipo           text default 'texto',     -- texto|audio|imagem|documento|outro
-  texto          text,
-  criado_em      timestamptz not null,
-  gravado_em     timestamptz not null default now()
-);
-create index if not exists idx_sdr_msg_lead_tempo on sdr_mensagens (lead_id, criado_em desc);
-create index if not exists idx_sdr_msg_contato_tempo on sdr_mensagens (contact_id, criado_em desc);
+-- Aba SDR, etapa 1 (11/08/2026): estado do lead + view "sem resposta" sobre o
+-- espelho REAL de conversas do Kommo.
+--
+-- CORRECAO 11/08/2026: a tabela public.sdr_mensagens criada nesta etapa (e a
+-- view vw_sdr_sem_resposta que lia dela) foram REMOVIDAS. Descobriu-se que o
+-- espelho de conversas do Kommo ja existe em producao, no schema
+-- `atendimento` (conversas/mensagens/kommo_talks/contatos), alimentado de 10
+-- em 10 minutos pelo projeto `kommo-conversas-sync`. sdr_mensagens nunca
+-- recebeu uma linha (o codigo que a alimentaria via webhook foi revertido
+-- antes de ir pra producao) e foi apagada junto com seus indices. A migracao
+-- que fez essa correcao foi `sdr_fase1_view_atendimento`.
 
 create table if not exists sdr_lead_estado (
   lead_id        text primary key,
@@ -45,25 +38,77 @@ create table if not exists sdr_config (
 );
 insert into sdr_config (id) values (1) on conflict (id) do nothing;
 
--- Uma linha por conversa cuja ULTIMA mensagem foi do cliente.
-create or replace view vw_sdr_sem_resposta
-with (security_invoker = true) as
+-- Uma linha por conversa do Kommo cuja ULTIMA mensagem foi do cliente.
+-- Fonte real: atendimento.mensagens/conversas/kommo_talks/contatos (schema de
+-- outro app, `kommo-conversas-sync` - so leitura, nunca mexer nele).
+--
+-- A ultima mensagem sai de atendimento.mensagens, filtrando so o que veio do
+-- Kommo (kommo_message_id is not null) para nao misturar o historico morto
+-- do ChatGuru (desligado 09/06/2026). NAO filtramos atendimento.conversas
+-- por fonte = 'kommo': a maior parte das conversas com mensagem do Kommo tem
+-- conversas.fonte = 'chatguru' (comecaram no ChatGuru e continuaram no
+-- Kommo depois da migracao) - filtrar por fonte descartaria a maioria das
+-- conversas certas (~87% no levantamento de 11/08/2026: 930 conversas com
+-- ultima mensagem do cliente contra so 290 se filtrasse por fonte).
+--
+-- O lead do Kommo vem de atendimento.kommo_talks (chat_id = conversas.
+-- kommo_chat_id, entity_type = 'lead'). Essa tabela tem varias linhas
+-- repetidas por chat_id (ate 87 no mesmo chat, quase sempre com o mesmo
+-- entity_id) - por isso o DISTINCT ON pegando a mais recente por chat_id,
+-- senao a conversa apareceria duplicada na view.
+--
+-- Sem security_invoker (padrao do Postgres, igual vw_sdr_agenda_dia logo
+-- abaixo): a view roda com o dono (postgres) e enxerga atendimento.* sem
+-- depender da RLS daquele schema; o acesso de quem usa o app e controlado
+-- pelo grant select na propria view, so para authenticated.
+create or replace view public.vw_sdr_sem_resposta as
 with ultima as (
-  select distinct on (lead_id)
-         lead_id, contact_id, direcao, texto, tipo, criado_em
-    from sdr_mensagens
-   where lead_id is not null
-   order by lead_id, criado_em desc
+  select distinct on (m.conversa_id)
+    m.conversa_id,
+    m.autor,
+    m.corpo,
+    m.tipo,
+    m.enviada_em
+  from atendimento.mensagens m
+  where m.kommo_message_id is not null
+  order by m.conversa_id, m.enviada_em desc
+),
+talk_lead as (
+  select distinct on (kt.chat_id)
+    kt.chat_id,
+    kt.entity_id as lead_id,
+    kt.contact_id
+  from atendimento.kommo_talks kt
+  where kt.entity_type = 'lead'
+  order by kt.chat_id, kt.talk_updated_at desc nulls last, kt.talk_id desc
 )
-select u.lead_id, u.contact_id, u.texto as ultima_mensagem, u.tipo, u.criado_em as ultima_em,
-       extract(epoch from (now() - u.criado_em))/60 as min_sem_resposta,
-       (now() - u.criado_em) < interval '24 hours' as janela_aberta,
-       k.nome, k.telefone, e.resort, e.situacao_cota, e.valor_pago, e.quente, e.estado
-  from ultima u
-  left join kommo_leads k on k.lead_id = u.lead_id
-  left join sdr_lead_estado e on e.lead_id = u.lead_id
- where u.direcao = 'in'
-   and coalesce(e.estado,'novo') <> 'descartado';
+select
+  tl.lead_id::text as lead_id,
+  tl.contact_id::text as contact_id,
+  u.corpo as ultima_mensagem,
+  u.tipo as tipo,
+  u.enviada_em as ultima_em,
+  (extract(epoch from (now() - u.enviada_em)) / 60::numeric) as min_sem_resposta,
+  (now() - u.enviada_em) < interval '24 hours' as janela_aberta,
+  ct.nome as nome,
+  ct.whatsapp_numero as telefone,
+  e.resort,
+  e.situacao_cota,
+  e.valor_pago,
+  e.quente,
+  e.estado
+from ultima u
+join atendimento.conversas c on c.id = u.conversa_id
+left join talk_lead tl on tl.chat_id = c.kommo_chat_id
+left join atendimento.contatos ct on ct.id = c.contato_id
+left join public.sdr_lead_estado e on e.lead_id = tl.lead_id::text
+where u.autor = 'cliente'
+  and coalesce(e.estado, 'novo') <> 'descartado';
+
+comment on view public.vw_sdr_sem_resposta is
+  'SDR fase 1: uma linha por conversa do Kommo (atendimento.mensagens/conversas/kommo_talks/contatos) cuja ultima mensagem foi do cliente. Refeita em 11/08/2026 para ler o espelho real em vez de public.sdr_mensagens (nunca alimentada).';
+
+grant select on public.vw_sdr_sem_resposta to authenticated;
 
 -- A tabela agenda_videochamadas esta com RLS LIGADA e ZERO policies: quem esta logado
 -- le zero linhas dela. As telas atuais so a enxergam por views que rodam com o dono do
@@ -76,11 +121,9 @@ select a.event_id, a.scheduled_at, a.vendedora_email, a.cliente_nome, a.telefone
  where coalesce(a.status,'') <> 'excluida';
 grant select on vw_sdr_agenda_dia to authenticated;
 
-alter table sdr_mensagens   enable row level security;
 alter table sdr_lead_estado enable row level security;
 alter table sdr_config      enable row level security;
 
-create policy sdr_msg_read    on sdr_mensagens   for select to authenticated using (true);
 create policy sdr_estado_all  on sdr_lead_estado for all    to authenticated using (true) with check (true);
 create policy sdr_config_read on sdr_config      for select to authenticated using (true);
 create policy sdr_config_write on sdr_config     for update to authenticated using (true) with check (true);
