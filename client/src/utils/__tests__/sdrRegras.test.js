@@ -23,6 +23,9 @@ describe('fmtEspera', () => {
     expect(fmtEspera(0)).toBe('00h 00m');
     expect(fmtEspera(null)).toBe('—');
   });
+  it('valor negativo vira zero (defeito 3: relogio do servidor atrasado)', () => {
+    expect(fmtEspera(-30)).toBe('00h 00m');
+  });
 });
 
 describe('grupoDoLead', () => {
@@ -47,6 +50,12 @@ describe('grupoDoLead', () => {
   it('lead descartado nunca entra na fila', () => {
     expect(grupoDoLead({ estado: 'descartado', ultima_em: hMenos(30), ultima_direcao: 'in' }, AGORA)).toBe(null);
   });
+  it('faltou_em posterior a call_em cai no grupo falta (defeito 2)', () => {
+    expect(grupoDoLead({ call_em: hMenos(10), faltou_em: hMenos(5) }, AGORA)).toBe('falta');
+  });
+  it('call_em posterior a faltou_em (remarcada apos falta antiga) cai no grupo call', () => {
+    expect(grupoDoLead({ call_em: hMenos(-2), faltou_em: hMenos(10), confirmado: false }, AGORA)).toBe('call');
+  });
 });
 
 describe('ordenarFila', () => {
@@ -58,5 +67,21 @@ describe('ordenarFila', () => {
       { id: 'd', ultima_em: hMenos(44), ultima_direcao: 'in' },
     ], AGORA);
     expect(fila.map((l) => l.id)).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('grupo call ordena pela hora da call, nao pela ultima mensagem (defeito 1)', () => {
+    const fila = ordenarFila([
+      { id: 'atrasada', call_em: hMenos(1), confirmado: false, ultima_em: hMenos(0.05) },
+      { id: 'daqui_a_pouco', call_em: hMenos(-0.1), confirmado: false, ultima_em: hMenos(20) },
+    ], AGORA);
+    expect(fila.map((l) => l.id)).toEqual(['atrasada', 'daqui_a_pouco']);
+  });
+
+  it('grupo falta ordena pela data da falta, nao pela ultima mensagem', () => {
+    const fila = ordenarFila([
+      { id: 'falta_recente', faltou_em: hMenos(2), ultima_em: hMenos(50) },
+      { id: 'falta_antiga', faltou_em: hMenos(10), ultima_em: hMenos(1) },
+    ], AGORA);
+    expect(fila.map((l) => l.id)).toEqual(['falta_antiga', 'falta_recente']);
   });
 });
