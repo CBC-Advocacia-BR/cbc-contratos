@@ -31,7 +31,7 @@
 
 **Interfaces:**
 - Consumes: nada
-- Produces: tabelas `sdr_mensagens`, `sdr_lead_estado`, `sdr_config`; view `vw_sdr_sem_resposta`
+- Produces: tabelas `sdr_mensagens`, `sdr_lead_estado`, `sdr_config`; views `vw_sdr_sem_resposta` e `vw_sdr_agenda_dia`
 
 - [ ] **Step 1: Escrever o arquivo da migração**
 
@@ -105,6 +105,17 @@ select u.lead_id, u.contact_id, u.texto as ultima_mensagem, u.tipo, u.criado_em 
  where u.direcao = 'in'
    and coalesce(e.estado,'novo') <> 'descartado';
 
+-- A tabela agenda_videochamadas esta com RLS LIGADA e ZERO policies: quem esta logado
+-- le zero linhas dela. As telas atuais so a enxergam por views que rodam com o dono do
+-- banco (padrao ja usado em 19 views deste projeto). Esta view segue o mesmo caminho e
+-- expoe SO o que a aba precisa: nada do payload cru do Google.
+create or replace view vw_sdr_agenda_dia as
+select a.event_id, a.scheduled_at, a.vendedora_email, a.cliente_nome, a.telefone,
+       a.status, a.meet_status, a.lead_id, a.kommo_match
+  from agenda_videochamadas a
+ where coalesce(a.status,'') <> 'excluida';
+grant select on vw_sdr_agenda_dia to authenticated;
+
 alter table sdr_mensagens   enable row level security;
 alter table sdr_lead_estado enable row level security;
 alter table sdr_config      enable row level security;
@@ -135,7 +146,15 @@ set local role authenticated;
 select count(*) from sdr_mensagens;
 ```
 
-Esperado: `0` sem erro.
+Esperado: `0` sem erro. E, na mesma sessao, conferir que a agenda passou a ser legivel:
+
+```sql
+set local role authenticated;
+select count(*) from vw_sdr_agenda_dia;
+```
+
+Esperado: numero maior que zero (o espelho tem 2.938 eventos). Se vier 0, a view saiu como
+`security_invoker` por engano e a aba nao vai enxergar call nenhuma.
 
 - [ ] **Step 4: Commit**
 
@@ -334,8 +353,9 @@ git commit -m "sdr etapa 1: leitura pura do webhook add_message do Kommo"
 - [ ] **Step 1: Backup do arquivo que será modificado**
 
 ```bash
-mkdir -p backups/$(date +%Y%m%d_%H%M%S)_sdr_etapa1
-cp client/netlify/functions/kommo-advbox-webhook.mjs backups/$(date +%Y%m%d_%H%M%S)_sdr_etapa1/
+DIR="backups/$(date +%Y%m%d_%H%M%S)_sdr_etapa1"   # uma variavel: dois $(date) podem cair em segundos diferentes
+mkdir -p "$DIR"
+cp client/netlify/functions/kommo-advbox-webhook.mjs "$DIR/"
 ```
 
 - [ ] **Step 2: Escrever o worker**
@@ -763,10 +783,12 @@ export async function carregarSemResposta() {
   );
 }
 
-/** Calls de um dia (YYYY-MM-DD), lendo o espelho que ja existe. */
+/** Calls de um dia (YYYY-MM-DD).
+ *  Le a VIEW, nunca a tabela: agenda_videochamadas esta com RLS ligada e sem policy,
+ *  entao consultar a tabela direto devolve zero linhas sem erro nenhum. */
 export async function carregarCallsDoDia(diaISO) {
   const { data, error } = await supabase
-    .from('agenda_videochamadas')
+    .from('vw_sdr_agenda_dia')
     .select('event_id, vendedora_email, cliente_nome, scheduled_at, status, meet_status, lead_id, kommo_match')
     .gte('scheduled_at', `${diaISO}T00:00:00-03:00`)
     .lt('scheduled_at', `${diaISO}T23:59:59-03:00`)
@@ -1051,8 +1073,9 @@ git commit -m "sdr etapa 1: aba com fila e quadro de conversas sem resposta"
 - [ ] **Step 1: Backup dos arquivos**
 
 ```bash
-mkdir -p backups/$(date +%Y%m%d_%H%M%S)_sdr_aba
-cp client/src/App.jsx client/src/components/AdminPanel.jsx backups/$(date +%Y%m%d_%H%M%S)_sdr_aba/
+DIR="backups/$(date +%Y%m%d_%H%M%S)_sdr_aba"
+mkdir -p "$DIR"
+cp client/src/App.jsx client/src/components/AdminPanel.jsx "$DIR/"
 ```
 
 - [ ] **Step 2: Registrar a aba no App.jsx**
