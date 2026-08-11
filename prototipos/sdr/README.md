@@ -38,4 +38,10 @@ Quem ja faltou 2x ou mais tem o dia sugerido puxado para hoje. Os 5 leads do gru
 
 `index.html` abre no navegador; `artifact.html` e a mesma pagina publicada como link.
 
-**Opcao escolhida:** (aguardando decisao do Paulo e do Bruno)
+8. **Painel do SDR** (11/08): o consolidado pedido pelo Paulo. Cartoes de acao no topo,
+   as 3 agendas do dia com botao de confirmar todos os agendados, a fila densa e o quadro
+   "Sem resposta nossa" com cronometro ao vivo, ordenado pelo mais antigo, badge de lead
+   score e o estado da janela de 24h por linha. A gaveta de conversa ganhou caixa de
+   escrever: dentro da janela envia texto livre pelo Kommo, fora dela so template.
+
+**Opcao escolhida:** arranjo 8 em construcao (fecha depois da formula do lead score)

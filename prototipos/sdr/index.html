@@ -299,8 +299,15 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
 #m7 .item{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--cbc-border);cursor:pointer;align-items:flex-start}
 #m7 .item:hover{background:var(--cbc-bg-subtle)}
 #m7 .item[aria-current="true"]{background:var(--cbc-info-bg)}
-#m7 .item .ini{width:30px;height:30px;border-radius:50%;background:var(--cbc-navy);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
-:root[data-theme="dark"] #m7 .item .ini{background:var(--cbc-navy-light)}
+#m7 .item .ini{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700;flex:none;border:2px solid;font-variant-numeric:tabular-nums;line-height:1}
+#m7 .item .ini.a{background:var(--cbc-gold);border-color:var(--cbc-gold-dark);color:var(--cbc-navy-dark)}
+#m7 .item .ini.b{background:var(--cbc-info-bg);border-color:var(--cbc-info);color:var(--cbc-info)}
+#m7 .item .ini.c{background:var(--cbc-bg-subtle);border-color:var(--cbc-border-strong);color:var(--cbc-text-secondary)}
+#m7 .item .ini.x{background:none;border-style:dashed;border-color:var(--cbc-border-strong);color:var(--cbc-text-muted);font-size:14px}
+#m7 .item .l1 em.cron{font-weight:700}
+#m7 .item .l1 em.cron.q{color:var(--cbc-danger)} #m7 .item .l1 em.cron.m{color:var(--cbc-warning)}
+#m7 .nota-legenda{padding:7px 12px;font-size:10.5px;color:var(--cbc-text-muted);border-bottom:1px solid var(--cbc-border);background:var(--cbc-bg-subtle);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#m7 .pill{width:19px;height:19px;font-size:10px;display:inline-grid;place-items:center;border-radius:50%;border:2px solid;font-weight:700;flex:none}
 #m7 .item .txt{flex:1;min-width:0}
 #m7 .item .l1{display:flex;gap:6px;align-items:baseline}
 #m7 .item .l1 b{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -312,6 +319,62 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
 #m7 .conv-top h3{font-family:var(--serif);font-size:20px;font-weight:700}
 #m7 .conv-foot{padding:11px 18px;border-top:1px solid var(--cbc-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--cbc-bg-card)}
 #m7 .ctx{overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:16px}
+
+
+/* 8 · painel do SDR: a proposta consolidada */
+#m8 .topo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+#m8 .cartao{background:var(--cbc-bg-card);border:1px solid var(--cbc-border);border-radius:var(--cbc-radius);padding:13px;box-shadow:var(--cbc-shadow);display:flex;flex-direction:column;gap:7px;cursor:pointer;transition:150ms cubic-bezier(.16,1,.3,1);text-align:left}
+#m8 .cartao:hover{border-color:var(--cbc-navy);transform:translateY(-1px)}
+#m8 .cartao[aria-pressed="true"]{border-color:var(--cbc-navy);box-shadow:0 0 0 2px var(--cbc-navy) inset,var(--cbc-shadow)}
+#m8 .cartao[aria-pressed="true"]::after{content:'filtrando a fila · clique para limpar';font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--cbc-navy)}
+:root[data-theme="dark"] #m8 .cartao[aria-pressed="true"]::after{color:var(--cbc-info)}
+#m8 .cartao.alerta-b[aria-pressed="true"]{box-shadow:0 0 0 2px var(--cbc-danger) inset,var(--cbc-shadow);border-color:var(--cbc-danger)}
+.ev.esmaecido,.slot.esmaecido{opacity:.22}
+#m8 .cartao.alerta-b{border-color:var(--cbc-danger-border);background:var(--cbc-danger-bg)}
+#m8 .cartao h4{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--cbc-text-muted)}
+#m8 .cartao.alerta-b h4{color:var(--cbc-danger)}
+#m8 .cartao .n{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+#m8 .cartao p{font-size:11.5px;color:var(--cbc-text-secondary);line-height:1.35}
+#m8 .duplo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;margin-top:14px}
+#m8 .row{grid-template-columns:minmax(0,1.5fr) 108px 62px 92px auto;padding:5px 11px;font-size:12px;gap:9px}
+#m8 .row .name{font-size:12.5px}
+#m8 .row .wait{font-size:12px}
+#m8 .porq{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cbc-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#m8 .porq.q1{color:var(--cbc-danger)} #m8 .porq.q2{color:var(--cbc-warning)} #m8 .porq.q3{color:var(--cbc-gold-text)}
+#m8 .tgrid > *{min-height:29px}
+
+/* badge de lead score */
+.lsb{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:1px 8px 1px 4px;font-size:11px;font-weight:700;border:1px solid;white-space:nowrap;cursor:help;font-variant-numeric:tabular-nums}
+.lsb i{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:9.5px;font-weight:700;color:#fff;flex:none}
+.lsb.a{background:var(--cbc-warning-bg);border-color:var(--cbc-gold-dark);color:var(--cbc-gold-text)} .lsb.a i{background:var(--cbc-gold-dark)}
+.lsb.b{background:var(--cbc-info-bg);border-color:var(--cbc-info-border);color:var(--cbc-info)} .lsb.b i{background:var(--cbc-info)}
+.lsb.c{background:var(--cbc-neutral-bg,rgba(107,114,128,.10));border-color:var(--cbc-border-strong);color:var(--cbc-text-secondary)} .lsb.c i{background:var(--cbc-text-muted)}
+.lsb.x{background:none;border-style:dashed;border-color:var(--cbc-border-strong);color:var(--cbc-text-muted)} .lsb.x i{background:var(--cbc-border-strong);color:var(--cbc-text-secondary)}
+
+/* quadro sem resposta */
+.sr-head{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1.5fr) 118px 96px auto;gap:10px;padding:7px 12px;background:var(--cbc-bg-subtle);border-bottom:1px solid var(--cbc-border);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cbc-text-muted)}
+.sr-linha{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1.5fr) 118px 96px auto;gap:10px;padding:7px 12px;border-bottom:1px solid var(--cbc-border);align-items:center;cursor:pointer;transition:background 140ms ease}
+.sr-linha:hover{background:var(--cbc-bg-subtle)}
+.sr-linha:first-of-type{background:var(--cbc-danger-bg)}
+.sr-linha:first-of-type:hover{background:rgba(220,38,38,.16)}
+.cron{font-family:var(--sans);font-weight:700;font-size:13.5px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;text-align:right}
+.cron small{display:block;font-weight:400;font-size:10px;letter-spacing:.02em;color:var(--cbc-text-muted)}
+.cron.q{color:var(--cbc-danger)} .cron.m{color:var(--cbc-warning)}
+.janela{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid;white-space:nowrap;text-align:center}
+.janela.on{background:var(--cbc-success-bg);border-color:var(--cbc-success-border);color:var(--cbc-success)}
+.janela.off{background:var(--cbc-danger-bg);border-color:var(--cbc-danger-border);color:var(--cbc-danger)}
+
+/* caixa de escrever */
+.compor{border-top:1px solid var(--cbc-border);padding:11px 16px;background:var(--cbc-bg-card)}
+.drawer .compor{background:var(--cbc-bg-subtle)}
+.compor .aviso{font-size:11.5px;margin-bottom:7px;display:flex;gap:7px;align-items:flex-start}
+.compor .aviso.off{color:var(--cbc-danger)}
+.compor .aviso.on{color:var(--cbc-success)}
+.compor textarea{width:100%;min-height:62px;resize:vertical;padding:9px 11px;border:1px solid var(--cbc-border-strong);border-radius:9px;background:var(--cbc-bg-card);color:var(--cbc-text-primary);font:inherit;font-size:12.5px;line-height:1.45}
+.compor textarea:disabled{background:var(--cbc-bg-subtle);color:var(--cbc-text-muted)}
+.compor .linha{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.compor select{padding:6px 9px;border:1px solid var(--cbc-border-strong);border-radius:8px;background:var(--cbc-bg-card);color:var(--cbc-text-primary);font:inherit;font-size:12px;max-width:260px}
+.compor .conta{font-size:11px;color:var(--cbc-text-muted)}
 
 /* kanban */
 .kb-tabs{display:flex;gap:6px;flex-wrap:wrap}
@@ -409,6 +472,7 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
         <button type="button" data-go="m5" aria-pressed="false">5 · Linha do dia</button>
         <button type="button" data-go="m6" aria-pressed="false">6 · Mesa densa</button>
         <button type="button" data-go="m7" aria-pressed="false">7 · Conversa no centro</button>
+        <button type="button" data-go="m8" aria-pressed="false">8 · Painel do SDR</button>
       </div>
     </div>
     <div class="grp"><span class="cap">Seções</span>
@@ -444,6 +508,7 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
   <section class="view" id="m5" hidden></section>
   <section class="view" id="m6" hidden></section>
   <section class="view" id="m7" hidden></section>
+  <section class="view" id="m8" hidden></section>
   <section class="view" id="funil" hidden></section>
   <section class="view" id="disparos" hidden></section>
   <section class="view" id="templates" hidden></section>
@@ -459,9 +524,10 @@ table.tb .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700
   </div>
   <div class="dr-warn" id="dr-warn"></div>
   <div class="dr-msgs" id="dr-msgs"></div>
+  <div class="compor" id="dr-comp"></div>
   <div class="dr-foot">
     <button class="btn btn-gold" id="dr-agendar">Agendar videochamada</button>
-    <button class="btn btn-primary" id="dr-kommo">Responder no Kommo</button>
+    <button class="btn" id="dr-kommo">Abrir no Kommo</button>
     <button class="btn btn-danger" id="dr-descartar">Descartar</button>
   </div>
 </aside>
@@ -550,19 +616,19 @@ let LEADS = [
   {id:'p2', nome:'Ariberto', kommo:22299410, dono:'SDR', grupo:'call', hora:'15:30', vend:'Mariana', conf:false, conversa:'curto', sub:'call hoje às 15:30 com a Mariana'},
   {id:'p3', nome:'Ivan Lima', kommo:22298844, dono:'SDR', grupo:'call', hora:'16:00', vend:'Mariana', conf:false, conversa:'curto', sub:'call hoje às 16:00 com a Mariana'},
   {id:'p4', nome:'(sem lead casado)', kommo:null, tel:'3591063317', dono:'SDR', grupo:'call', hora:'16:30', vend:'Mariana', conf:false, semLead:true, sub:'evento na agenda sem lead correspondente no Kommo'},
-  {id:'r1', nome:'Rosi', kommo:22288104, dono:'SDR', grupo:'risco', hora:'10:30', vend:'Mariana', conversa:'remarca', resort:'Olímpia Park', sub:'pediu para remarcar às 09:12'},
+  {id:'r1', minSR:293, ultimaFoi:'lead', nome:'Rosi', kommo:22288104, dono:'SDR', grupo:'risco', hora:'10:30', vend:'Mariana', conversa:'remarca', resort:'Olímpia Park', sub:'pediu para remarcar às 09:12'},
 
-  {id:'e1', nome:'Eduardo Paleari', kommo:22337966, dono:'SDR', grupo:'espera', horas:30, desde:'02/08 às 09:02', conversa:'curto'},
-  {id:'e2', nome:'Edvaldo Cassimiro de Brito Junior', kommo:22336630, dono:'SDR', grupo:'espera', horas:31, desde:'02/08 às 08:17', conversa:'curto'},
-  {id:'e3', nome:'Andréa', kommo:22335704, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:36', conversa:'curto'},
-  {id:'e7', nome:'paodeliciasdotrigo', kommo:22335776, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:40', conversa:'curto'},
-  {id:'e4', nome:'Gallo', kommo:22324908, dono:'SDR', grupo:'espera', horas:41, desde:'01/08 às 21:58, fora do expediente', conversa:'curto'},
-  {id:'e5', nome:'Alvaro Abreu', kommo:22322366, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:44, fora do expediente', conversa:'curto'},
-  {id:'e6', nome:'Euripedes D. H. Pereira', kommo:22321022, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:09, fora do expediente', conversa:'curto'},
-  {id:'e8', nome:'sillpassos', kommo:22318812, dono:'SDR', grupo:'espera', horas:44, desde:'01/08 às 19:14, fora do expediente', conversa:'curto'},
+  {id:'e1', minSR:1802, ultimaFoi:'lead', nome:'Eduardo Paleari', kommo:22337966, dono:'SDR', grupo:'espera', horas:30, desde:'02/08 às 09:02', conversa:'curto'},
+  {id:'e2', minSR:1861, ultimaFoi:'lead', nome:'Edvaldo Cassimiro de Brito Junior', kommo:22336630, dono:'SDR', grupo:'espera', horas:31, desde:'02/08 às 08:17', conversa:'curto'},
+  {id:'e3', minSR:1922, ultimaFoi:'lead', nome:'Andréa', kommo:22335704, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:36', conversa:'curto'},
+  {id:'e7', minSR:1918, ultimaFoi:'lead', nome:'paodeliciasdotrigo', kommo:22335776, dono:'SDR', grupo:'espera', horas:32, desde:'02/08 às 07:40', conversa:'curto'},
+  {id:'e4', minSR:2465, ultimaFoi:'lead', nome:'Gallo', kommo:22324908, dono:'SDR', grupo:'espera', horas:41, desde:'01/08 às 21:58, fora do expediente', conversa:'curto'},
+  {id:'e5', minSR:2578, ultimaFoi:'lead', nome:'Alvaro Abreu', kommo:22322366, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:44, fora do expediente', conversa:'curto'},
+  {id:'e6', minSR:2591, ultimaFoi:'lead', nome:'Euripedes D. H. Pereira', kommo:22321022, dono:'SDR', grupo:'espera', horas:43, desde:'01/08 às 20:09, fora do expediente', conversa:'curto'},
+  {id:'e8', minSR:2646, ultimaFoi:'lead', nome:'sillpassos', kommo:22318812, dono:'SDR', grupo:'espera', horas:44, desde:'01/08 às 19:14, fora do expediente', conversa:'curto'},
 
-  {id:'s1', nome:'Diego', kommo:21998412, dono:'SDR', grupo:'semconvite', resort:'Solar das Águas', quitado:true, msgs:11, dias:7, conversa:'diego'},
-  {id:'s2', nome:'Pedro (Thermas São Pedro)', kommo:21884120, dono:'SDR', grupo:'semconvite', resort:'Thermas São Pedro', valor:61000, msgs:14, dias:4, conversa:'pedro'},
+  {id:'s1', minSR:10082, ultimaFoi:'lead', nome:'Diego', kommo:21998412, dono:'SDR', grupo:'semconvite', resort:'Solar das Águas', quitado:true, msgs:11, dias:7, conversa:'diego'},
+  {id:'s2', ultimaFoi:'nos', nome:'Pedro (Thermas São Pedro)', kommo:21884120, dono:'SDR', grupo:'semconvite', resort:'Thermas São Pedro', valor:61000, msgs:14, dias:4, conversa:'pedro'},
 
   {id:'n1', nome:'Carla Cristina', kommo:22190044, dono:'SDR', grupo:'falta', quando:'30/07', vend:'Emerson', dias:4, conversa:'curto'},
   {id:'n2', nome:'Carlos Buosi', kommo:22178820, dono:'SDR', grupo:'falta', quando:'29/07', vend:'Mariana', dias:5, conversa:'curto'},
@@ -709,7 +775,7 @@ const CONFIRMACOES = [
    ESTADO
    ========================================================================= */
 const state = {view:'m1', dia:'03/08', funil:'venda', leadAberto:null, eventoAberto:null, escolha:null,
-  remarcandoEv:null, filtro:{q:'', grupo:'', dono:''}, sim:'normal', reagendados:3, foco:0, inbox:'s1'};
+  remarcandoEv:null, filtro:{q:'', grupo:'', dono:''}, sim:'normal', reagendados:3, foco:0, inbox:'s1', cardSel:null};
 const $ = (s,r=document)=>r.querySelector(s);
 const byId = id => LEADS.find(l=>l.id===id);
 const evById = id => [...(AGENDA['03/08']||[]),...(AGENDA['04/08']||[])].find(e=>e.id===id);
@@ -741,7 +807,10 @@ function sugerido(dia,lead){
 }
 function filtrados(){
   const f=state.filtro;
+  const porCard={risco:'risco', call:'call', espera:'espera'}[state.cardSel];
   return LEADS.filter(l=>{
+    if(state.cardSel==='feitas') return false;
+    if(porCard && l.grupo!==porCard) return false;
     if(f.grupo && l.grupo!==f.grupo) return false;
     if(f.dono && l.dono!==f.dono) return false;
     if(f.q && !(l.nome.toLowerCase().includes(f.q.toLowerCase()) || String(l.kommo||'').includes(f.q))) return false;
@@ -876,7 +945,7 @@ function grade(dia){
     html+=`<div class="thour">${h}</div>`;
     VENDS.forEach(v=>{
       const e=oc[v+h]||movidos.find(m=>m.v===v&&m.h===h);
-      if(e) html+=`<div class="tcell" data-ev="${e.id}"><span class="ev ${e.st}"><b>${esc(e.nome)}</b><span>${esc(e.nota)}</span></span></div>`;
+      if(e) html+=`<div class="tcell" data-ev="${e.id}"><span class="ev ${e.st}${state.view==='m8'&&state.cardSel==='feitas'&&e.st!=='ok'&&e.st!=='miss'?' esmaecido':''}"><b>${esc(e.nome)}</b><span>${esc(e.nota)}</span></span></div>`;
       else html+=`<div class="tcell empty" data-slot="${dia}|${v}|${h}"></div>`;
     });
   });
@@ -1098,27 +1167,38 @@ function renderInbox(){
   if(!ls.some(l=>l.id===state.inbox)) state.inbox=ls[0].id;
   const l=byId(state.inbox), p=pontuacao(l);
   const itens=ls.map(x=>{
-    const q=x.grupo==='espera'?x.horas+'h':x.grupo==='call'||x.grupo==='risco'?x.hora:x.dias+'d';
-    const ini=x.nome.replace(/[^A-Za-zÀ-ú ]/g,'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'??';
+    const f=faixaScore(x);
+    const espera = x.minSR && x.ultimaFoi==='lead';
+    const tempo = espera
+      ? `<em class="cron ${faixaCron(x.minSR)}" data-cron="${x.minSR}" data-fmt="curto">${fmtCronCurto(x.minSR)}</em>`
+      : `<em>${x.grupo==='call'||x.grupo==='risco'?x.hora:(x.dias||0)+'d'}</em>`;
+    const rodape = espera ? 'esperando resposta nossa' : MOTIVO_FILA[x.grupo][0];
     return `<div class="item" data-inbox="${x.id}" aria-current="${x.id===state.inbox}" tabindex="0" role="button">
-      <span class="ini">${esc(ini)}</span>
-      <span class="txt"><span class="l1"><b>${esc(x.nome)}</b><em>${q}</em></span>
-      <span class="l2">${esc(MOTIVO_FILA[x.grupo][0])}${x.resort?' · '+esc(x.resort):''}</span>
+      <span class="ini ${f.cls}" title="${f.cls==='x'?'nota a apurar: falta resort e valor':'lead score '+f.txt}">${f.txt}</span>
+      <span class="txt"><span class="l1"><b>${esc(x.nome)}</b>${tempo}</span>
+      <span class="l2">${esc(rodape)}${x.resort?' · '+esc(x.resort):''}</span>
       ${histTags(x)?`<span class="chips">${histTags(x)}</span>`:''}</span></div>`;
   }).join('');
   const rap=livres('04/08').slice(0,3);
   return alertas()+`<div class="card"><div class="ibx">
     <div><div class="card-top" style="padding:10px 12px"><strong style="font-size:12.5px">Fila</strong>
       <span class="right muted" style="font-size:11px">${ls.length} conversas</span></div>
+      <div class="nota-legenda">
+        <span class="pill" style="border-color:var(--cbc-gold-dark);background:var(--cbc-gold);color:var(--cbc-navy-dark)">70</span>quente
+        <span class="pill" style="border-color:var(--cbc-info);background:var(--cbc-info-bg);color:var(--cbc-info)">40</span>morno
+        <span class="pill" style="border-style:dashed;border-color:var(--cbc-border-strong);color:var(--cbc-text-muted)">?</span>a apurar
+        <span class="right">o relógio conta desde a última mensagem do cliente</span></div>
       <div class="lista">${itens}</div></div>
     <div>
       <div class="conv-top"><h3>${esc(l.nome)}</h3>${histTags(l)}
         <span class="muted" style="font-size:11.5px">${l.kommo?'lead '+l.kommo:'sem lead no Kommo'}${l.resort?' · '+esc(l.resort):''}</span></div>
       <div class="dr-warn">${esc((CONVERSAS[l.conversa]||CONVERSAS.curto).fonte)} O espelho de mensagens ainda não existe no banco.</div>
       <div class="conv">${msgsHtml(l)}</div>
+      <div class="compor" style="border-top:1px solid var(--cbc-border)">${composerHtml(l)}</div>
       <div class="conv-foot">
-        <button class="btn btn-primary" data-act="kommo" data-id="${l.id}">Responder no Kommo</button>
-        <span class="hint" style="margin:0">A resposta livre acontece lá; daqui saem os disparos padronizados.</span></div></div>
+        <button class="btn" data-act="kommo" data-id="${l.id}">Abrir no Kommo</button>
+        <button class="btn btn-gold" data-act="agendar" data-id="${l.id}">Agendar</button>
+        <span class="hint" style="margin:0">Áudio, imagem e anexo continuam no Kommo.</span></div></div>
     <div><div class="ctx">
       <div>
         <p style="font-size:12.5px;font-weight:700;margin-bottom:7px">Por que está na fila</p>
@@ -1138,11 +1218,166 @@ function renderInbox(){
     </div></div></div></div>`;
 }
 
+
+/* =========================================================================
+   ARRANJO 8: painel do SDR (fila + agendas + quadro de sem resposta)
+   ========================================================================= */
+const T0 = performance.now();
+function segsCorridos(){ return Math.floor((performance.now()-T0)/1000); }
+function fmtCron(minBase){
+  const total = minBase*60 + segsCorridos();
+  const d=Math.floor(total/86400), h=Math.floor(total%86400/3600), m=Math.floor(total%3600/60), sg=total%60;
+  const dois=n=>String(n).padStart(2,'0');
+  return d>0 ? `${d}d ${dois(h)}h ${dois(m)}m` : `${dois(h)}h ${dois(m)}m ${dois(sg)}s`;
+}
+function faixaCron(min){ return min>=1440?'q':(min>=720?'m':''); }
+function fmtCronCurto(minBase){
+  const total = minBase*60 + segsCorridos();
+  const d=Math.floor(total/86400), h=Math.floor(total%86400/3600), m=Math.floor(total%3600/60);
+  const dois=n=>String(n).padStart(2,'0');
+  return d>0 ? `${d}d ${dois(h)}h` : `${dois(h)}h ${dois(m)}m`;
+}
+function faixaScore(l){
+  const p=pontuacao(l);
+  if(!p||p.faltando.length>=2) return {cls:'x', txt:'?'};
+  return {cls:(p.n>=70?'a':(p.n>=40?'b':'c')), txt:String(p.n)};
+}
+function scoreBadge(l){
+  const p=pontuacao(l);
+  if(!p||p.faltando.length>=2) return `<span class="lsb x" title="Fórmula em avaliação. Sem resort e sem valor não há o que pontuar, então a nota fica em branco em vez de sair zerada."><i>?</i>a apurar</span>`;
+  const cls=p.n>=70?'a':(p.n>=40?'b':'c');
+  const nome={a:'quente',b:'morno',c:'frio'}[cls];
+  return `<span class="lsb ${cls}" title="${p.faltando.length?'nota parcial, falta '+p.faltando.join(' e '):'nota completa'}"><i>${p.n}</i>${nome}</span>`;
+}
+function semResposta(){
+  return LEADS.filter(l=>l.ultimaFoi==='lead'&&!l.agendado&&l.minSR)
+              .sort((a,b)=>b.minSR-a.minSR);
+}
+function previaUltima(l){
+  const c=CONVERSAS[l.conversa]||CONVERSAS.curto;
+  const ins=c.msgs.filter(m=>m.d==='in');
+  return ins.length?ins[ins.length-1].t:'sem prévia';
+}
+function linhaSemResposta(l){
+  const aberta=l.minSR<1440;
+  return `<div class="sr-linha" data-open="${l.id}" tabindex="0" role="button">
+    <div class="name-line"><span class="name">${esc(l.nome)}</span>${scoreBadge(l)}${histTags(l)}</div>
+    <div class="sub2">${esc(previaUltima(l))}</div>
+    <div class="cron ${faixaCron(l.minSR)}" data-cron="${l.minSR}">${fmtCron(l.minSR)}<small>sem resposta nossa</small></div>
+    <div><span class="janela ${aberta?'on':'off'}">${aberta?'janela aberta':'só template'}</span></div>
+    <div class="acts"><button class="btn btn-sm btn-primary" data-act="responder" data-id="${l.id}">${aberta?'Responder':'Reabrir'}</button></div>
+  </div>`;
+}
+function quadroSemResposta(){
+  const ls=semResposta();
+  const fora=ls.filter(l=>l.minSR>=1440).length;
+  if(!ls.length) return `<div class="card"><div class="card-top"><h2 class="sec-title">Sem resposta nossa</h2></div>
+    <div class="estado-vazio"><strong>Ninguém esperando</strong>Todas as conversas abertas já foram respondidas.</div></div>`;
+  return `<div class="card"><div class="card-top"><h2 class="sec-title">Sem resposta nossa</h2>
+      <span class="muted" style="font-size:12.5px">${ls.length} conversas, a mais antiga no topo</span>
+      <span class="right"><span class="chip err">${fora} fora da janela de 24h</span></span></div>
+    <div class="sr-head"><span>Lead e nota</span><span>Última mensagem dele</span><span style="text-align:right">Esperando há</span><span style="text-align:center">WhatsApp</span><span></span></div>
+    ${ls.map(linhaSemResposta).join('')}
+    <div class="legend">O relógio conta desde a última mensagem <b>do cliente</b>. Passando de 24 horas a Meta fecha a janela e só sai template aprovado: hoje isso vale para ${fora} das ${ls.length} conversas.</div></div>`;
+}
+function renderPainel(){
+  const espera=semResposta().length;
+  const semConf=LEADS.filter(l=>l.grupo==='call'&&!l.conf&&!l.semLead).length;
+  const risco=LEADS.filter(l=>l.grupo==='risco').length;
+  const agendadosHoje=(AGENDA['03/08']||[]).filter(e=>e.st==='wait2'||e.st==='novo').length;
+  const ls=filtrados().filter(l=>!l.agendado);
+  const linhas=ls.map(l=>{
+    const m=MOTIVO_FILA[l.grupo];
+    const quando=l.grupo==='espera'?Math.floor((l.minSR||0)/60)+'h':l.grupo==='call'||l.grupo==='risco'?l.hora:l.dias+'d';
+    return `<div class="row" data-open="${l.id}" tabindex="0" role="button">
+      <div class="name-line"><span class="name">${esc(l.nome)}</span>${scoreBadge(l)}${histTags(l)}</div>
+      <div class="porq ${m[1]}">${m[2]}</div>
+      <div class="sub2">${l.resort?esc(l.resort):'sem resort'}</div>
+      <div class="wait ${l.grupo==='espera'?'late':''}">${quando}</div>
+      <div class="acts"><button class="btn btn-sm btn-gold" data-act="${l.grupo==='call'?'confirmar':'agendar'}" data-id="${l.id}">${l.grupo==='call'?'Confirmar':'Agendar'}</button></div></div>`;
+  }).join('');
+  return alertas()+`
+    <div class="topo">
+      <div class="cartao ${risco?'alerta-b':''}" data-card="risco" role="button" tabindex="0" aria-pressed="${state.cardSel==='risco'}"><h4>Resolver agora</h4>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="n">${risco}</span><span style="font-size:12.5px" class="muted">pediu para remarcar</span></div>
+        <p>A Rosi clicou às 09:12. O horário das 10:30 fica segurado até as ${CONFIG.seguraAte} e depois é liberado sozinho.</p>
+        ${risco?'<button class="btn btn-gold btn-sm" style="align-self:flex-start;margin-top:auto" data-act="remarcar" data-id="r1">Remarcar agora</button>':''}</div>
+      <div class="cartao" data-card="call" role="button" tabindex="0" aria-pressed="${state.cardSel==='call'}"><h4>Risco de falta</h4>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="color:var(--cbc-warning)">${semConf}</span><span style="font-size:12.5px" class="muted">calls hoje sem confirmação</span></div>
+        <p>Silêncio nas 24h antes quase dobra a chance de falta.</p>
+        <button class="btn btn-primary btn-sm" style="align-self:flex-start;margin-top:auto" data-act="confirmar-dia">Disparar confirmação do dia</button></div>
+      <div class="cartao" data-card="espera" role="button" tabindex="0" aria-pressed="${state.cardSel==='espera'}"><h4>Esperando você</h4>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="color:var(--cbc-danger)">${espera}</span><span style="font-size:12.5px" class="muted">conversas sem resposta nossa</span></div>
+        <p>A mais antiga espera há ${fmtCron(semResposta()[0]?semResposta()[0].minSR:0).replace(/\s\d\dm.*/,'')}. Seis já passaram da janela de 24 horas.</p></div>
+      <div class="cartao" data-card="feitas" role="button" tabindex="0" aria-pressed="${state.cardSel==='feitas'}"><h4>Já aconteceu hoje</h4>
+        <div style="display:flex;align-items:baseline;gap:8px"><span class="n" style="color:var(--cbc-success)">5</span><span style="font-size:12.5px" class="muted">calls feitas · 1 falta</span></div>
+        <p>Guto esperou 5min44 sozinho antes de a Beatriz entrar.</p></div>
+    </div>
+
+    <div class="card"><div class="card-top"><h2 class="sec-title">As três agendas</h2>
+      <div class="daytabs">${['03/08','04/08'].map(d=>`<button type="button" data-dia="${d}" aria-pressed="${d===state.dia}">${d==='03/08'?'Hoje, 03/08':'Amanhã, 04/08'}</button>`).join('')}</div>
+      <span class="muted" style="font-size:12.5px">${(AGENDA[state.dia]||[]).length} calls</span>
+      <span class="right"><button class="btn btn-primary btn-sm" data-act="confirmar-dia">Confirmar os ${agendadosHoje} agendados do dia</button></span></div>
+      <div class="tgrid">${grade(state.dia)}</div>
+      <div class="legend">Verde: aconteceu, com a duração medida no Meet. Cinza: marcada, sem confirmação. Âmbar: pediu remarcar. Vazio: clique para agendar.</div></div>
+
+    <div class="duplo">
+      <div class="card"><div class="card-top"><h2 class="sec-title">Fila</h2>
+        <span class="muted" style="font-size:12.5px">${ls.length} pendências</span></div>
+        ${barraFiltros()}${ls.length?linhas:(state.cardSel==='feitas'
+          ? '<div class="estado-vazio"><strong>Essas calls já aconteceram</strong>A agenda ao lado está mostrando só o que foi feito hoje: 5 realizadas e 1 falta. Não há nada para fazer na fila sobre elas.</div>'
+          : '<div class="estado-vazio"><strong>Nada com esse filtro</strong>Clique de novo no cartão para ver a fila inteira.</div>')}</div>
+      ${quadroSemResposta()}
+    </div>`;
+}
+function composerHtml(l){
+  if(!l) return '';
+  const aberta=l.ultimaFoi==='lead'&&l.minSR&&l.minSR<1440;
+  const semJanela=l.ultimaFoi!=='lead'||!l.minSR||l.minSR>=1440;
+  const tpls=TEMPLATES.filter(t=>t.st==='aprovado');
+  return `<div class="aviso ${aberta?'on':'off'}">
+      <span>${aberta?'✔':'⚠'}</span>
+      <span>${aberta
+        ? `Janela aberta: falta ${Math.floor((1440-l.minSR)/60)}h para fechar. Dá para escrever à vontade, e a mensagem sai pelo número oficial, pelo Kommo.`
+        : `Fora da janela de 24 horas${l.minSR?' (o cliente falou pela última vez há '+Math.floor(l.minSR/60)+'h)':''}. A Meta só aceita <b>template aprovado</b> daqui.`}</span></div>
+    <textarea id="dr-texto" ${semJanela?'disabled':''} placeholder="${aberta?'Escreva a resposta...':'Texto livre bloqueado: escolha um template abaixo'}"></textarea>
+    <div class="linha">
+      ${semJanela?`<select id="dr-tpl">${tpls.map(t=>`<option>${t.nome}</option>`).join('')}</select>`:''}
+      <button class="btn btn-gold" id="dr-enviar">${semJanela?'Enviar template':'Enviar pelo Kommo'}</button>
+      <span class="conta">${semJanela?'Template é pago e entra na conta da Meta.':'Só texto: áudio, imagem e anexo continuam no Kommo.'}</span>
+    </div>`;
+}
+function modalConfirmarDia(){
+  const alvo=(AGENDA['03/08']||[]).filter(e=>e.st==='wait2'||e.st==='novo');
+  $('#md-titulo').textContent='Confirmar os agendados de hoje';
+  $('#md-body').innerHTML=`
+    <div class="field"><label>Template</label><select>${TEMPLATES.filter(t=>t.st==='aprovado'&&t.cat==='UTILITY').map(t=>`<option>${t.nome} · ${t.cat}</option>`).join('')}</select></div>
+    <p class="hint" style="margin-bottom:10px">O texto sai com o nome e a hora de cada um, e com os botões <b>Confirmo</b> e <b>Preciso remarcar</b>. Quem confirma fica verde sozinho; quem pede para remarcar sobe para o topo da fila.</p>
+    <div class="card" style="box-shadow:none"><table class="tb"><tbody>
+      ${alvo.map(e=>`<tr><td>${esc(e.nome)}</td><td>${e.h}</td><td>${esc(e.v)}</td>
+        <td>${e.nome.includes('sem lead')?'<span class="chip err">sem lead no Kommo</span>':'<span class="chip ok">pronto</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="hint">${alvo.filter(e=>e.nome.includes('sem lead')).length} não recebe: o evento não tem lead casado no Kommo, então não há para quem mandar.</p>`;
+  $('#md-foot').innerHTML=`<button class="btn" data-act="fechar">Cancelar</button>
+    <button class="btn btn-gold" id="md-confdia">Disparar para ${alvo.filter(e=>!e.nome.includes('sem lead')).length}</button>`;
+  abrirModal();
+}
+function tickCrons(){
+  document.querySelectorAll('[data-cron]').forEach(el=>{
+    const base=Number(el.dataset.cron);
+    const small=el.querySelector('small');
+    el.firstChild.nodeValue = el.dataset.fmt==='curto' ? fmtCronCurto(base) : fmtCron(base);
+    if(small) el.appendChild(small);
+  });
+}
+setInterval(tickCrons, 1000);
+
 function renderExtras(){
   if(state.view==='m4') $('#m4').innerHTML=renderFoco();
   if(state.view==='m5') $('#m5').innerHTML=renderLinha();
   if(state.view==='m6') $('#m6').innerHTML=renderDensa();
   if(state.view==='m7') $('#m7').innerHTML=renderInbox();
+  if(state.view==='m8') $('#m8').innerHTML=renderPainel();
 }
 
 function render(){
@@ -1305,7 +1540,10 @@ if(state.view==='funil'){
           <div class="field"><label>Máximo de remarcações</label><input value="${CONFIG.maxReag}" data-cfg="maxReag"></div>
           <div class="field"><label>Segura o horário até</label><input value="${CONFIG.seguraAte}" data-cfg="seguraAte"></div></div></div>
       <div class="panel" style="border-top:1px solid var(--cbc-border)"><span class="eyebrow">Pontuação do lead</span>
-        <p class="hint" style="margin-bottom:8px">Muda a nota da fila na hora. Quem passa de 70 vai para quem estiver marcado como topo; o resto entra no rodízio.</p>
+        <div class="alerta warn" style="margin:8px 0"><span>⚠</span><div><b>A fórmula ainda está em avaliação.</b>
+          Os pesos abaixo são um rascunho para a tela ter o que mostrar. Enquanto não fechar, o badge exibe <b>"a apurar"</b> para quem não tem resort nem valor, em vez de inventar um número.
+          <br>O <b>histórico de faltas não entra na nota</b>, por decisão de 11/08: ele aparece só como selo ("faltou 4×"), porque faltar pode ter sido falha do processo, não do cliente. Nunca foi enviado um lembrete sequer nos 2.938 agendamentos do histórico.</div></div>
+        <p class="hint" style="margin-bottom:8px">Quem passa de 70 vai para quem estiver marcado como topo; o resto entra no rodízio.</p>
         <div class="grid3">
           <div class="field"><label>Peso do valor pago</label><input value="${CONFIG.pesos.valor}" data-cfg="pesos.valor"></div>
           <div class="field"><label>Peso do resort</label><input value="${CONFIG.pesos.resort}" data-cfg="pesos.resort"></div>
@@ -1343,6 +1581,7 @@ function abrirConversa(id){
   $('#dr-warn').textContent=c.fonte+' O espelho de mensagens ainda não existe no banco: é a aba que passa a criá-lo.';
   $('#dr-msgs').innerHTML=c.msgs.map(m=>m.g?`<div class="gap-note">${esc(m.g)}</div>`
     :`<div class="msg ${m.d}">${m.a?`<span class="autor">${esc(m.a)}</span>`:''}${esc(m.t)}<span class="when">${esc(m.q)}</span></div>`).join('');
+  $('#dr-comp').innerHTML=composerHtml(l);
   $('#dr-kommo').disabled=!l.kommo;
   $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
 }
@@ -1543,7 +1782,7 @@ function modalTemplate(){
 }
 function irPara(v){
   state.view=v;
-  ['m1','m2','m3','m4','m5','m6','m7','funil','disparos','templates','config'].forEach(x=>$('#'+x).hidden=x!==v);
+  ['m1','m2','m3','m4','m5','m6','m7','m8','funil','disparos','templates','config'].forEach(x=>$('#'+x).hidden=x!==v);
   document.querySelectorAll('.switch button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.go===v)));
   render(); window.scrollTo({top:0});
 }
@@ -1574,8 +1813,44 @@ document.addEventListener('click', ev=>{
     setTimeout(()=>toast('Primeiras respostas: 7 pessoas responderam e 1 pediu para não ser chamada de novo, já bloqueada.'),2600);
     return;
   }
+  if(bt&&bt.id==='md-confdia'){
+    LEADS.filter(x=>x.grupo==='call'&&!x.semLead).forEach(x=>x.conf=false);
+    fechar(); render();
+    toast('Confirmação disparada para os agendados de hoje. As respostas caem aqui: quem confirma fica verde, quem pede remarcar sobe para o topo da fila.','ok');
+    setTimeout(()=>{const l=byId('p1'); if(l){l.conf=true; render(); toast('Flavio Alencar confirmou a call das 15:00.','ok');}},2400);
+    return;
+  }
+  if(bt&&bt.id==='dr-enviar'){
+    const naGaveta=$('#drawer').classList.contains('on');
+    const l=byId(naGaveta?state.leadAberto:state.inbox), ta=$('#dr-texto');
+    if(!l) return;
+    if(ta&&!ta.disabled){
+      if(!ta.value.trim()){toast('Escreva a mensagem antes de enviar.','warn');return;}
+      const c=CONVERSAS[l.conversa]; if(c) c.msgs=c.msgs.concat([{d:'out',a:'SDR',t:ta.value.trim(),q:'agora'}]);
+      l.ultimaFoi='nos'; l.minSR=null;
+      if(naGaveta) abrirConversa(l.id);
+      render();
+      toast('Mensagem enviada pelo Kommo, no número oficial. Ela aparece na conversa do lead e sai da lista de sem resposta.','ok');
+    } else {
+      const tpl=$('#dr-tpl')?$('#dr-tpl').value:'template';
+      const c=CONVERSAS[l.conversa]; if(c) c.msgs=c.msgs.concat([{d:'out',a:'template '+tpl,t:'(template aprovado enviado)',q:'agora'}]);
+      l.ultimaFoi='nos'; l.minSR=null;
+      if(naGaveta) abrirConversa(l.id);
+      render();
+      toast('Template '+tpl+' enviado. Se ele responder, a janela de 24 horas reabre e aí dá para escrever livre.','ok');
+    }
+    return;
+  }
   if(bt&&bt.id==='md-tpl'){fechar();toast('Template enviado para aprovação da Meta. Fica como "em análise" na lista até ela responder.','ok');return;}
 
+  const card=t.closest('[data-card]');
+  if(card && !bt){
+    state.cardSel = state.cardSel===card.dataset.card ? null : card.dataset.card;
+    state.filtro.grupo=''; render();
+    const nomes={risco:'quem pediu para remarcar',call:'as calls de hoje sem confirmação',espera:'quem está sem resposta nossa',feitas:'as calls que já aconteceram'};
+    toast(state.cardSel?('Filtrando por '+nomes[state.cardSel]+'.'):'Filtro limpo, fila inteira de volta.');
+    return;
+  }
   if(bt&&bt.dataset.foco){
     const lista=filaTrabalho();
     state.foco=(state.foco+Number(bt.dataset.foco)+lista.length)%Math.max(lista.length,1);
@@ -1611,6 +1886,8 @@ document.addEventListener('click', ev=>{
         if(e){Object.keys(AGENDA).forEach(d=>{AGENDA[d]=AGENDA[d].filter(x=>x.id!==e.id);});
           if(e.lead){const ll=byId(e.lead); if(ll){ll.grupo='falta';ll.quando='hoje';ll.dias=0;}}}
         fechar(); render(); toast('Call cancelada com o motivo registrado. O Google avisou o cliente.','warn'); return;}
+      case 'responder': abrirConversa(id); setTimeout(()=>{const ta=$('#dr-texto'); if(ta&&!ta.disabled) ta.focus();},260); return;
+      case 'confirmar-dia': modalConfirmarDia(); return;
       case 'casar': modalCasar(id); return;
       case 'disparo': modalDisparo(); return;
       case 'novo-template': modalTemplate(); return;
