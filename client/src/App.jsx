@@ -45,6 +45,8 @@ const BotAdvboxPanel = lazy(() => import('./components/BotAdvboxPanel'));
 const PortalClientePanel = lazy(() => import('./components/PortalClientePanel'));
 // Cadastro unico de clientes (golden record) — aba nova 06/2026
 const ClientesTab = lazy(() => import('./components/ClientesTab'));
+// Aba SDR (etapa 1, 11/08/2026): fila de trabalho + conversas sem resposta nossa
+const SdrPanel = lazy(() => import('./components/SdrPanel'));
 
 // (perf 31/05) Prefetch das abas lazy ao passar o mouse / focar o botao: o codigo da
 // aba chega "quentinho" antes do clique. Usa o MESMO path do lazy() acima, entao o
@@ -62,6 +64,7 @@ const TAB_PREFETCH = {
   parametrizacao_vendas: () => import('./components/VendasParametrizacaoPanel'),
   bot: () => import('./components/BotAdvboxPanel'),
   portal: () => import('./components/PortalClientePanel'),
+  sdr: () => import('./components/SdrPanel'),
   clientes: () => import('./components/ClientesTab'),
 };
 const _prefetchedTabs = new Set();
@@ -134,6 +137,7 @@ import {
   Squares2X2Icon,
   FunnelIcon,
   MegaphoneIcon,
+  QueueListIcon,
 } from '@heroicons/react/24/outline';
 // (mobile 06/2026) Sheet de navegação do dock — abas além das 3 fixas
 import MobileNavSheet from './components/MobileNavSheet';
@@ -146,6 +150,7 @@ const MOBILE_TAB_LABELS = {
   dashboard: 'Dashboard',
   socios: 'Sócios',
   funil: 'Saúde do Funil',
+  sdr: 'SDR',
   trafego: 'Tráfego',
   asaas: 'Asaas',
   boletos: 'Boletos',
@@ -174,6 +179,7 @@ const TAB_ICONS = {
   parametrizacao_vendas: DocumentCheckIcon,
   bot: ChatBubbleLeftRightIcon,
   portal: LinkIcon,
+  sdr: QueueListIcon,
 };
 
 // (quality-14) intervalos das automacoes com nome (em vez de numeros magicos)
@@ -1241,11 +1247,13 @@ function AppContent() {
     if (tab === 'funil') return SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
     // (#L19) is_admin SEMPRE mantem a aba Admin — evita auto-lockout caso o flag tabs.admin
     // seja desmarcado por engano (o checkbox da propria linha do admin era editavel).
+    // socio sempre ve a aba do SDR: a leitura do funil comercial e dele
+    if (tab === 'sdr' && SOCIOS_EMAILS.includes((user?.email || '').toLowerCase())) return true;
     if (tab === 'admin' && userPerms?.is_admin) return true;
     if (!userPerms?.tabs) return ['novo', 'contratos', 'dashboard'].includes(tab);
     return userPerms.tabs[tab];
   };
-  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
+  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'sdr', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
 
   // (auditoria 01/08/2026 — item 282) Setas/Home/End andam pelas abas, como manda o
   // padrao WAI-ARIA. Junto com o tabIndex movel dos botoes, o Tab passa a levar direto
@@ -1486,6 +1494,7 @@ function AppContent() {
                     mainTab === 'admin' ? 'Admin' :
                     mainTab === 'socios' ? 'Dashboard Socios' :
                     mainTab === 'funil' ? 'Saúde do Funil' :
+                    mainTab === 'sdr' ? 'SDR' :
                     mainTab === 'trafego' ? 'Tráfego' :
                     mainTab === 'vendas' ? 'Minhas Vendas' :
                     mainTab === 'parametrizacao_vendas' ? 'Parametrizacao Vendas' :
@@ -1689,6 +1698,8 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="vendas" className="flex-1 overflow-hidden page-enter"><div className="page-enter" key="tab-vendas"><VendasPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'parametrizacao_vendas' && userPerms?.tabs?.parametrizacao_vendas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAdmin />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="parametrizacao_vendas" className="flex-1 overflow-hidden bg-white page-enter"><div className="page-enter" key="tab-parametrizacao-vendas"><VendasParametrizacaoPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
+      ) : mainTab === 'sdr' && tabAllowed('sdr') ? (
+        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="sdr" className="flex-1 overflow-hidden page-enter"><SdrPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'trafego' && userPerms?.tabs?.trafego ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="trafego" className="flex-1 overflow-hidden page-enter"><TrafegoPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'asaas' && userPerms?.tabs?.asaas ? (

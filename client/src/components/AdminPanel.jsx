@@ -22,6 +22,7 @@ import {
   LinkIcon,
   UserGroupIcon,
   MegaphoneIcon,
+  QueueListIcon,
 } from '@heroicons/react/24/outline';
 
 // (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios
@@ -30,6 +31,7 @@ const TAB_LIST = [
   { key: 'contratos', label: 'Contratos Salvos', Icon: DocumentTextIcon },
   { key: 'clientes', label: 'Clientes', Icon: UserGroupIcon },
   { key: 'dashboard', label: 'Dashboard', Icon: ChartBarIcon },
+  { key: 'sdr', label: 'SDR', Icon: QueueListIcon },
   { key: 'trafego', label: 'Tráfego', Icon: MegaphoneIcon },
   { key: 'asaas', label: 'Asaas', Icon: CreditCardIcon },
   { key: 'boletos', label: 'Boletos', Icon: DocumentIcon },
