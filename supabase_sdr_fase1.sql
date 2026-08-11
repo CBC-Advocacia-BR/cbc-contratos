@@ -142,3 +142,21 @@ alter table sdr_config      enable row level security;
 create policy sdr_estado_all  on sdr_lead_estado for all    to authenticated using (true) with check (true);
 create policy sdr_config_read on sdr_config      for select to authenticated using (true);
 create policy sdr_config_write on sdr_config     for update to authenticated using (true) with check (true);
+
+-- ============================================================================
+-- Etapa 2 (11/08/2026): historico de conversa para a gaveta da aba.
+-- As mensagens vivem em atendimento.mensagens (687 mil linhas, espelho mantido pelo
+-- projeto kommo-conversas-sync) e o PostgREST so expoe o schema public: sem esta view
+-- a aba nao alcanca o historico. Sem security_invoker de proposito, como a view da
+-- agenda: o schema atendimento e de outro app e nao tem policy para authenticated.
+-- Migracao: sdr_view_mensagens
+-- ============================================================================
+create or replace view public.vw_sdr_mensagens as
+select m.id, m.conversa_id, m.autor, m.autor_nome,
+       m.corpo as texto, m.tipo, m.midia_label, m.enviada_em, m.kommo_message_id
+  from atendimento.mensagens m;
+
+grant select on public.vw_sdr_mensagens to authenticated;
+
+comment on view public.vw_sdr_mensagens is
+  'Historico de conversa para a aba SDR. Filtrar SEMPRE por conversa_id: a tabela de origem tem 687 mil linhas.';

@@ -33,23 +33,19 @@ export async function carregarCallsDoDia(diaISO) {
 }
 
 /** Historico de uma conversa, do mais antigo para o mais novo.
- *  NOTA (11/08/2026): a tabela public.sdr_mensagens foi removida (nunca foi alimentada).
- *  O historico real de conversas vive no schema atendimento (espelho de kommo_talks).
- *  Esta funcao sera implementada quando o espelho atendimento.mensagens estiver pronto
- *  na etapa 2 (task 6b). Por enquanto, devolve lista vazia — sem parametro, porque o
- *  no-op nao usa nenhum; a etapa 2 recebe leadId de volta junto com a implementacao real. */
-export async function carregarMensagens() {
-  // TODO: Implementar leitura do espelho atendimento.mensagens na etapa 2
-  // (assinatura futura: carregarMensagens(leadId))
-  // const { data, error } = await supabase
-  //   .from('atendimento.mensagens')
-  //   .select('id, direcao, autor_nome, tipo, texto, criado_em')
-  //   .eq('lead_id', String(leadId))
-  //   .order('criado_em', { ascending: true })
-  //   .limit(500);
-  // if (error) throw error;
-  // return data || [];
-  return [];
+ *  Le a view public.vw_sdr_mensagens, que expoe atendimento.mensagens (687 mil linhas,
+ *  espelho mantido pelo kommo-conversas-sync). O schema atendimento nao e alcancavel
+ *  pelo PostgREST, por isso a view. FILTRA SEMPRE por conversa_id. */
+export async function carregarMensagens(conversaId) {
+  if (!conversaId) return [];
+  const { data, error } = await supabase
+    .from('vw_sdr_mensagens')
+    .select('id, autor, autor_nome, texto, tipo, midia_label, enviada_em')
+    .eq('conversa_id', conversaId)
+    .order('enviada_em', { ascending: true })
+    .limit(500);
+  if (error) throw error;
+  return data || [];
 }
 
 /** Descarte exige motivo: e ele que separa lead ruim de lead mal atendido. */

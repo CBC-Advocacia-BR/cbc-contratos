@@ -4,6 +4,7 @@ import { ordenarFila, grupoDoLead } from '../utils/sdrRegras';
 import { ymdLocal } from '../utils/format';
 import QuadroSemResposta from './sdr/QuadroSemResposta';
 import FilaSdr from './sdr/FilaSdr';
+import ConversaDrawer from './sdr/ConversaDrawer';
 
 /** Hora no fuso do escritorio. O runtime pode estar em UTC; a call, nunca. */
 const horaBrt = (iso) => {
@@ -20,6 +21,7 @@ export default function SdrPanel() {
   const [calls, setCalls] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [aberto, setAberto] = useState(null);
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro('');
@@ -82,9 +84,10 @@ export default function SdrPanel() {
         </div>
       )}
       <div className="grid gap-4 items-start" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
-        <FilaSdr itens={itens} onAbrir={() => {}} />
-        <QuadroSemResposta linhas={linhas} onAbrir={() => {}} />
+        <FilaSdr itens={itens} onAbrir={setAberto} />
+        <QuadroSemResposta linhas={linhas} onAbrir={setAberto} />
       </div>
+      <ConversaDrawer key={aberto?.conversa_id || aberto?.lead_id || "vazio"} lead={aberto} onFechar={() => setAberto(null)} />
     </div>
   );
 }
