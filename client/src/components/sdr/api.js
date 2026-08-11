@@ -61,3 +61,28 @@ export async function descartarLead(leadId, motivo, quem) {
   }, { onConflict: 'lead_id' });
   if (error) throw error;
 }
+
+/** Todas as etapas de todos os funis, com a contagem de leads. Sao 129 linhas: cabe numa
+ *  consulta so, e a tela agrupa por funil sem ir ao banco de novo. */
+export async function carregarFunilEtapas() {
+  const { data, error } = await supabase
+    .from('vw_sdr_funil_etapas')
+    .select('pipeline_id, pipeline_nome, status_id, status_nome, ordem, leads')
+    .order('ordem', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+/** Os primeiros leads de cada etapa de UM funil. Nunca traz os 16 mil: a view numera
+ *  por etapa e aqui a gente corta. */
+export async function carregarFunilCards(pipelineId, porEtapa = 12) {
+  if (!pipelineId) return [];
+  const { data, error } = await supabase
+    .from('vw_sdr_funil_cards')
+    .select('lead_id, status_id, lead_updated_at, nome, telefone, resort, quente, posicao')
+    .eq('pipeline_id', pipelineId)
+    .lte('posicao', porEtapa)
+    .order('posicao', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}

@@ -83,7 +83,7 @@ export default function ConversaDrawer({ lead, onFechar }) {
           style={{ background: 'var(--cbc-bg-subtle)' }}>
           {!lead.conversa_id && (
             <p className="text-sm" style={{ color: 'var(--cbc-text-muted)' }}>
-              Esta linha veio da agenda, não de uma conversa espelhada: não há histórico para mostrar.
+              Não há conversa espelhada para este lead: a linha veio da agenda ou do funil.
             </p>
           )}
           {lead.conversa_id && carregando && (

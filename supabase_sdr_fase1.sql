@@ -160,3 +160,31 @@ grant select on public.vw_sdr_mensagens to authenticated;
 
 comment on view public.vw_sdr_mensagens is
   'Historico de conversa para a aba SDR. Filtrar SEMPRE por conversa_id: a tabela de origem tem 687 mil linhas.';
+
+-- ============================================================================
+-- Etapa 5 (11/08/2026): funil do Kommo em kanban (so leitura).
+-- Fonte: kommo_lead_status (16.575 leads com a etapa atual) + kommo_pipelines (129 etapas).
+-- ATENCAO: kommo_leads.pipeline_id esta NULO nas 19 mil linhas — quem confiar nele ve um
+-- funil vazio. A fonte certa e kommo_lead_status, mantida pelo kommo-conversas-sync.
+-- Migracao: sdr_views_funil
+-- ============================================================================
+create or replace view public.vw_sdr_funil_etapas as
+select p.pipeline_id, p.pipeline_nome, p.status_id, p.status_nome, p.ordem,
+       count(s.lead_id) as leads
+  from kommo_pipelines p
+  left join kommo_lead_status s
+         on s.pipeline_id = p.pipeline_id and s.status_id = p.status_id
+ group by p.pipeline_id, p.pipeline_nome, p.status_id, p.status_nome, p.ordem;
+
+create or replace view public.vw_sdr_funil_cards as
+select s.lead_id::text as lead_id, s.pipeline_id, s.status_id, s.lead_updated_at,
+       k.nome, k.telefone, e.resort, e.quente,
+       row_number() over (partition by s.pipeline_id, s.status_id
+                          order by s.lead_updated_at desc nulls last, s.lead_id desc) as posicao
+  from kommo_lead_status s
+  left join kommo_leads k on k.lead_id = s.lead_id::text
+  left join sdr_lead_estado e on e.lead_id = s.lead_id::text
+ where coalesce(e.estado, 'novo') <> 'descartado';
+
+grant select on public.vw_sdr_funil_etapas to authenticated;
+grant select on public.vw_sdr_funil_cards  to authenticated;

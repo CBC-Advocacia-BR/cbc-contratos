@@ -5,6 +5,7 @@ import { ymdLocal } from '../utils/format';
 import QuadroSemResposta from './sdr/QuadroSemResposta';
 import FilaSdr from './sdr/FilaSdr';
 import ConversaDrawer from './sdr/ConversaDrawer';
+import FunilKanban from './sdr/FunilKanban';
 
 /** Hora no fuso do escritorio. O runtime pode estar em UTC; a call, nunca. */
 const horaBrt = (iso) => {
@@ -22,6 +23,7 @@ export default function SdrPanel() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [aberto, setAberto] = useState(null);
+  const [secao, setSecao] = useState('fila');
 
   const carregar = useCallback(async () => {
     setCarregando(true); setErro('');
@@ -83,10 +85,27 @@ export default function SdrPanel() {
           <button type="button" className="btn btn-sm ml-auto" onClick={carregar}>Tentar de novo</button>
         </div>
       )}
-      <div className="grid gap-4 items-start" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
-        <FilaSdr itens={itens} onAbrir={setAberto} />
-        <QuadroSemResposta linhas={linhas} onAbrir={setAberto} />
+      <div className="flex items-center gap-2 mb-3" role="tablist" aria-label="Seções da aba SDR">
+        {[['fila', 'Fila e conversas'], ['funil', 'Funil']].map(([k, rotulo]) => (
+          <button key={k} type="button" role="tab" aria-selected={secao === k}
+            onClick={() => setSecao(k)}
+            className="text-xs font-bold px-4 py-2 rounded-full border"
+            style={secao === k
+              ? { background: 'var(--cbc-navy)', borderColor: 'var(--cbc-navy)', color: '#fff' }
+              : { borderColor: 'var(--cbc-border-strong)', color: 'var(--cbc-text-secondary)' }}>
+            {rotulo}
+          </button>
+        ))}
       </div>
+
+      {secao === 'fila' ? (
+        <div className="grid gap-4 items-start" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)' }}>
+          <FilaSdr itens={itens} onAbrir={setAberto} />
+          <QuadroSemResposta linhas={linhas} onAbrir={setAberto} />
+        </div>
+      ) : (
+        <FunilKanban onAbrir={setAberto} />
+      )}
       <ConversaDrawer key={aberto?.conversa_id || aberto?.lead_id || "vazio"} lead={aberto} onFechar={() => setAberto(null)} />
     </div>
   );
