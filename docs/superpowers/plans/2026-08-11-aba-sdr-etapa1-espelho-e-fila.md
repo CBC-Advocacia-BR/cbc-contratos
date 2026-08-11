@@ -8,6 +8,26 @@
 
 **Tech Stack:** Netlify Functions (Node 22, `.mjs`), Supabase (Postgres + RLS), React 19 + Vite, Vitest, Tailwind com tokens `--cbc-*`.
 
+## ⚠️ Correção de rota, 11/08/2026 (durante a execução)
+
+**As Tasks 2, 3 e 4 foram REVOGADAS e revertidas** (commit `4ff888c`). Elas construíam um espelho
+de mensagens do Kommo que **já existe em produção**: o projeto `kommo-conversas-sync` roda de 10 em
+10 minutos e mantém `atendimento.mensagens` com 687.462 mensagens, sendo 63.588 do Kommo, unificadas
+com o histórico do ChatGuru desde 2023.
+
+O que mudou:
+- A view `vw_sdr_sem_resposta` foi refeita sobre `atendimento.mensagens` (migração
+  `sdr_fase1_view_atendimento`, commit `fe316e0`). Devolve **930 conversas** esperando resposta,
+  50 delas dentro da janela de 24h, em 223 ms.
+- A tabela `sdr_mensagens` foi removida: nunca recebeu uma linha.
+- Sutileza achada na correção: **6.746 conversas começaram no ChatGuru e continuaram no Kommo**,
+  então filtrar por `conversas.fonte = 'kommo'` devolveria 290 em vez de 930. O filtro certo é pela
+  mensagem (`kommo_message_id is not null`), não pela conversa.
+- Preço aceito: a fila fica com até 10 minutos de atraso em vez de tempo real. Para uma fila que mede
+  espera em horas, não muda nada.
+
+As Tasks 5 a 9 seguem valendo como escritas.
+
 ## Global Constraints
 
 - **Backup antes de editar** qualquer arquivo em `client/` ou `netlify/functions/`: copiar para `backups/YYYYMMDD_HHMMSS_sdr_etapa1/` (REGRA #1 do projeto).
