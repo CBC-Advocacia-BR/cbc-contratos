@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { carregarMensagens } from './api';
+import { carregarMensagens, enviarMensagem } from './api';
 import { janelaAberta, minutosSemResposta, fmtEspera } from '../../utils/sdrRegras';
 import { useModalEscape } from '../../hooks/useModalEscape';
 
@@ -20,6 +20,9 @@ export default function ConversaDrawer({ lead, onFechar }) {
   const [msgs, setMsgs] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [texto, setTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [avisoEnvio, setAvisoEnvio] = useState('');
 
   useModalEscape(!!lead, onFechar);
 
@@ -117,11 +120,49 @@ export default function ConversaDrawer({ lead, onFechar }) {
           })}
         </div>
 
+        <div className="px-4 py-3 border-t" style={{ borderColor: 'var(--cbc-border)', background: 'var(--cbc-bg-subtle)' }}>
+          <textarea value={texto} onChange={(e) => setTexto(e.target.value)}
+            disabled={!aberta || !lead.lead_id || enviando}
+            placeholder={!lead.lead_id ? 'Sem lead no Kommo: não há para onde enviar'
+              : aberta ? 'Escreva a resposta...'
+              : 'Fora da janela de 24 horas: só template aprovado sai daqui'}
+            className="w-full rounded-lg px-3 py-2 text-[12.5px]"
+            style={{ minHeight: 62, resize: 'vertical', border: '1px solid var(--cbc-border-strong)',
+                     background: aberta && lead.lead_id ? 'var(--cbc-bg-card)' : 'var(--cbc-bg-subtle)',
+                     color: 'var(--cbc-text-primary)' }} />
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <button type="button" className="btn btn-gold btn-sm"
+              disabled={!aberta || !lead.lead_id || enviando || !texto.trim()}
+              onClick={async () => {
+                setEnviando(true); setAvisoEnvio('');
+                try {
+                  await enviarMensagem(lead.lead_id, texto.trim());
+                  setMsgs((m) => m.concat([{ id: `local-${Date.now()}`, autor: 'atendente',
+                    autor_nome: 'você, pela aba', texto: texto.trim(), enviada_em: new Date().toISOString() }]));
+                  setTexto('');
+                  setAvisoEnvio('Enviada pelo número oficial. Ela aparece na conversa do Kommo em alguns segundos.');
+                } catch (e) {
+                  setAvisoEnvio(e?.message || 'não consegui enviar');
+                } finally { setEnviando(false); }
+              }}>
+              {enviando ? 'Enviando...' : 'Enviar pelo Kommo'}
+            </button>
+            <span className="text-[11px]" style={{ color: 'var(--cbc-text-muted)' }}>
+              Só texto: áudio, imagem e anexo continuam no Kommo.
+            </span>
+          </div>
+          {avisoEnvio && (
+            <p className="text-[11px] mt-2" style={{ color: /não consegui|fora da janela|sem |falha/i.test(avisoEnvio) ? 'var(--cbc-danger)' : 'var(--cbc-success)' }}>
+              {avisoEnvio}
+            </p>
+          )}
+        </div>
+
         <div className="px-4 py-3 border-t flex items-center gap-2 flex-wrap"
           style={{ borderColor: 'var(--cbc-border)' }}>
           {lead.lead_id ? (
             <a className="btn btn-primary btn-sm" href={`${KOMMO}${lead.lead_id}`}
-              target="_blank" rel="noopener noreferrer">Responder no Kommo</a>
+              target="_blank" rel="noopener noreferrer">Abrir no Kommo</a>
           ) : (
             <span className="text-[11px]" style={{ color: 'var(--cbc-warning)' }}>
               Sem lead casado no Kommo: não há conversa para abrir lá.

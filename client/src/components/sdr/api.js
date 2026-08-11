@@ -112,3 +112,19 @@ export async function salvarConfig(cfg) {
   }).eq('id', 1);
   if (error) throw error;
 }
+
+/** Envia UMA mensagem de texto pelo WhatsApp oficial, passando pelo Kommo.
+ *  A funcao no servidor confere a sessao, a permissao da aba e a janela de 24h: o que
+ *  a tela mostra pode estar velho, e quem decide e o servidor. */
+export async function enviarMensagem(leadId, texto) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('sessao expirada, faca login de novo');
+  const r = await fetch('/.netlify/functions/sdr-enviar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ leadId, texto }),
+  });
+  const corpo = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(corpo.error || `falha ao enviar (HTTP ${r.status})`);
+  return corpo;
+}

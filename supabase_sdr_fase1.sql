@@ -208,3 +208,27 @@ alter table sdr_config
   add column if not exists dias_reinclusao   int     not null default 30,
   add column if not exists max_remarcacoes   int     not null default 2,
   add column if not exists segura_horario_ate time   not null default '17:00';
+
+-- ============================================================================
+-- Etapa 2, parte de envio (11/08/2026): mandar texto pela aba.
+-- Reusa o que ja funciona em producao para cobranca e assinatura: grava o texto num
+-- campo do lead e roda um Salesbot de um bloco que ecoa o campo. Conferido no Kommo em
+-- 11/08: bot "CBC - Ana" (103102) e campo "CBC Ana" (2444884) ja existem e fazem isso.
+-- ZERO campo novo e ZERO bot novo, que era a preocupacao do Paulo.
+-- RISCO: se a Ana (desligada) for ligada, os dois escrevem no MESMO campo e um pode
+-- sobrescrever o outro antes do bot rodar. Se acontecer, criar campo proprio do SDR.
+-- Migracao: sdr_envios
+-- ============================================================================
+alter table sdr_config
+  add column if not exists kommo_campo_msg_id bigint not null default 2444884,
+  add column if not exists kommo_bot_msg_id   bigint not null default 103102;
+
+create table if not exists sdr_envios (
+  id bigserial primary key, lead_id text not null, conversa_id uuid, texto text not null,
+  caminho text not null default 'campo+salesbot', enviado_por text,
+  resultado text not null default 'enfileirado', erro text,
+  criado_em timestamptz not null default now()
+);
+create index if not exists idx_sdr_envios_lead on sdr_envios (lead_id, criado_em desc);
+alter table sdr_envios enable row level security;
+create policy sdr_envios_read on sdr_envios for select to authenticated using (true);

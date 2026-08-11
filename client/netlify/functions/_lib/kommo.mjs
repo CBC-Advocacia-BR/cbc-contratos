@@ -196,9 +196,11 @@ async function opCobrancaSend({ leadId, fieldId, value, fieldId2, value2, botId 
   return true;
 }
 
+// (sdr 11/08) 'sdr_send' e a mesma operacao: texto no campo do lead + Salesbot de um
+// bloco que ecoa o campo. Alias proprio so para a fila dizer de onde veio o job.
 // (assinatura 02/07) 'assinatura_send' e a MESMA operacao composta da cobranca
 // (campo do lead + Salesbot no mesmo job) — alias p/ rastreabilidade na fila.
-const OPS = { lead_field: opLeadField, contact_field: opContactField, lead_move: opLeadMove, task: opTask, salesbot: opSalesbot, note: opNote, cobranca_send: opCobrancaSend, assinatura_send: opCobrancaSend };
+const OPS = { lead_field: opLeadField, contact_field: opContactField, lead_move: opLeadMove, task: opTask, salesbot: opSalesbot, note: opNote, cobranca_send: opCobrancaSend, assinatura_send: opCobrancaSend, sdr_send: opCobrancaSend };
 
 /** Executa a operacao real no Kommo (chamada pelo drain/worker). */
 export async function runKommoOp(kind, payload) {
