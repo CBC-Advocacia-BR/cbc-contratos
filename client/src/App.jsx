@@ -1547,6 +1547,7 @@ function AppContent() {
               : tab === 'parametrizacao_vendas' ? 'Param. Vendas'
               : tab === 'bot' ? 'Bot ADVBOX'
               : tab === 'portal' ? 'Portal Cliente'
+              : tab === 'sdr' ? 'SDR'
               : 'Dashboard';
             return (
               <React.Fragment key={tab}>
