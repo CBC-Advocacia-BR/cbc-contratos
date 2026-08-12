@@ -67,9 +67,9 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
   <p style="margin:0 0 8px"><strong>O prazo está correndo.</strong></p>
   <p style="margin:0 0 16px">O direito de discutir um contrato de multipropriedade e pedir de
     volta o que foi pago <strong>não dura para sempre</strong>. Ele tem prazo, corre sozinho,
-    com você tomando providência ou não, e quando se esgota a oportunidade de cancelar o
-    contrato deixa de existir. Não é questão de querer mais tarde: passado o prazo, não há mais
-    o que fazer.</p>
+    com você tomando providência ou não, e quando se esgota a oportunidade de cancelar,
+    <strong>você fica preso para sempre em um contrato desfavorável</strong>. Não é questão de
+    querer mais tarde: passado o prazo, não há mais o que fazer.</p>
 
   <p style="margin:0 0 8px"><strong>Na conversa, cuidamos do seu caso do começo ao fim.</strong></p>
   <p style="margin:0 0 16px">Analisamos o seu contrato e o seu extrato de pagamentos, tiramos
@@ -78,9 +78,9 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
     escritório faz em cada etapa. Você sai da conversa sabendo exatamente onde está pisando.</p>
 
   <p style="margin:0 0 20px">Desde 2017 já conduzimos <strong>mais de 3.500 ações</strong> desse
-    tipo, em <strong>215 empreendimentos</strong> diferentes. É o mesmo caso, repetido milhares
-    de vezes: a sua situação provavelmente não é inédita para nós, e as respostas que você
-    procura nós já demos centenas de vezes.</p>
+    tipo, em <strong>215 empreendimentos</strong> diferentes. É sempre o mesmo tipo de caso: a
+    sua situação provavelmente não é inédita para nós, e as respostas que você procura nós já
+    demos <strong>milhares de vezes</strong>.</p>
 
   <p style="margin:0 0 12px">${botao(WHATS_COM_TEXTO, 'Remarcar pelo WhatsApp')}</p>
 
@@ -103,7 +103,8 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
     'O PRAZO ESTÁ CORRENDO.',
     'O direito de discutir um contrato de multipropriedade e pedir de volta o que foi pago',
     'não dura para sempre. Ele tem prazo, corre sozinho, e quando se esgota a oportunidade',
-    'de cancelar o contrato deixa de existir. Passado o prazo, não há mais o que fazer.',
+    'de cancelar, você fica preso para sempre em um contrato desfavorável.',
+    'Passado o prazo, não há mais o que fazer.',
     '',
     'NA CONVERSA, CUIDAMOS DO SEU CASO DO COMEÇO AO FIM.',
     'Analisamos o seu contrato e o seu extrato de pagamentos, tiramos todas as suas dúvidas',
@@ -112,7 +113,8 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
     'em cada etapa. Você sai da conversa sabendo exatamente onde está pisando.',
     '',
     'Desde 2017 já conduzimos mais de 3.500 ações desse tipo, em 215 empreendimentos.',
-    'A sua situação provavelmente não é inédita para nós.',
+    'A sua situação provavelmente não é inédita para nós, e as respostas que você procura',
+    'nós já demos milhares de vezes.',
     '',
     `Remarcar pelo WhatsApp: ${WHATS_LINK}`,
     '',
