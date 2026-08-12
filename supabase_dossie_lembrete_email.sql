@@ -1,0 +1,18 @@
+-- (12/08/2026) Lembrete 3h antes da videochamada + aviso de e-mail digitado errado.
+-- Aplicado via MCP como migracao `dossie_lembrete_e_email_suspeito`.
+--
+-- COLUNAS: email_aviso_em (para o aviso nao repetir a cada 15 min), lembrete_em,
+-- lembrete_erro. Indice parcial para a fila do lembrete.
+--
+-- RPCs: lembrete_pendentes (janela em horas, vinda da config), lembrete_marcar,
+-- email_aviso_marcar. A dossie_pendentes foi RECRIADA (drop + create, porque mudar
+-- colunas de retorno nao passa por create or replace) para devolver tambem o link
+-- do Meet, que agora vive no raw, e o carimbo do aviso de e-mail.
+--
+-- POR QUE O AVISO DE E-MAIL EXISTE: medido em 12/08/2026, 4 dos 476 atendimentos
+-- dos ultimos 60 dias tinham dominio inexistente por digitacao, e DOIS DELES
+-- faltaram. O endereco vai no convite da agenda, entao errado ele nao so perde o
+-- nosso dossie: o Google nao entrega o convite e a pessoa fica sem o link do Meet.
+--
+-- Corpo completo das funcoes:
+--   select pg_get_functiondef('public.lembrete_pendentes(text,numeric,integer)'::regprocedure);

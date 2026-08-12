@@ -1,61 +1,94 @@
 /**
- * WORKER do dossie da videochamada. Chamado pelo agenda-videochamadas-sync ao fim
- * de cada rodada (aos :00 e :45 de cada hora) e tambem por HTTP com x-bot-key.
+ * WORKER do e-mail da videochamada. Chamado pelo agenda-videochamadas-sync ao fim
+ * de cada rodada (de 15 em 15 min) e tambem por HTTP com x-bot-key.
+ *
+ * Faz TRES coisas, na mesma rodada, porque as tres dependem da mesma config, do
+ * mesmo Gmail e do mesmo ritmo:
+ *   1. DOSSIE     ao detectar o agendamento, com o PDF personalizado;
+ *   2. AVISO      quando o e-mail do convite parece digitado errado, por nota no
+ *                 Kommo (se houver lead) ou pelo sino do app para a vendedora;
+ *   3. LEMBRETE   3 horas antes da chamada, sem anexo, com o link do Meet.
  *
  * NAO tem `schedule` de proposito: a Netlify responde 403 a qualquer chamada HTTP
- * externa feita a uma function AGENDADA (bloqueio na borda, antes do codigo rodar).
- * Sem isto nao daria para disparar a mao no dia do teste. Mesmo padrao de
- * backup-diario -> backup-worker-background e zapsign-lembrete-cron -> worker.
+ * externa feita a uma function AGENDADA, e o disparo manual e necessario em teste.
  *
- * ⚠️ NADA e enviado enquanto bot_config.dossie_videochamada tiver ativo=false ou
- * corte_em nulo. Sao duas travas independentes, e existem porque a tabela tem 3.043
- * linhas antigas cuja videochamada aconteceu semanas atras: sem elas, o primeiro
- * deploy viraria um disparo em massa para gente que ja foi atendida.
+ * ⚠️ NADA sai enquanto bot_config.dossie_videochamada tiver ativo=false ou
+ * corte_em nulo. Sao duas travas independentes.
  */
 import { db, logAdvbox, heartbeat, getConfig } from './_lib/botDb.mjs';
 import { primeiroNome } from './_lib/dossieNome.mjs';
 import { elegivel, quandoPorExtenso } from './_lib/dossieVideochamada.mjs';
 import { montarEmail } from './_lib/dossieTexto.mjs';
+import { montarLembrete } from './_lib/dossieLembrete.mjs';
 import { montarDossie, ativosDisponiveis } from './_lib/dossiePdf.mjs';
 import { enviarPeloGmail } from './_lib/gmailEnviar.mjs';
+import { avaliarEmail, textoDoAviso } from './_lib/emailSuspeito.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const DE = 'Conforto, Bergonsi & Cavalari Advogados <institucional@advocaciacbc.com>';
 const ANEXO = 'CBC-Advogados-Apresentacao.pdf';
-const TETO_POR_RODADA = 25;   // 8 videochamadas por dia util: folga de 3x
+const TETO_POR_RODADA = 25;
+const HORAS_LEMBRETE_PADRAO = 3;   // decisao do Paulo: 3h da tempo de remarcar; 1h nao
 
-// ⚠️ Medido em producao (12/08/2026, virada de chave): cada dossie leva ~3,5s
-// (montar 4 MB + subir para o Gmail), e 17 seguidos levaram 55s. Isso passa do
-// tempo de uma function sincrona, e a chamada devolve resposta invalida no meio
-// do caminho. Naquele dia nao houve estrago porque cada linha e marcada logo
-// apos o envio, entao ninguem recebeu duas vezes, mas o retorno virou mentira.
-//
-// Em regime normal sao 1 ou 2 por rodada (8 por dia util em 32 rodadas), entao
-// isto so aparece quando ha acumulo: fila parada, cron fora do ar, virada de
-// chave. A guarda de tempo resolve sem depender de adivinhar quantos cabem: para
-// no limite e deixa o resto para a rodada seguinte, 45 minutos depois.
+// ⚠️ Medido em producao: cada dossie leva ~3,5s (montar 4 MB + subir ao Gmail), e
+// 17 seguidos levaram 55s, alem do tempo de uma function sincrona. A guarda para
+// e deixa o resto para a rodada seguinte, 15 min depois.
 const LIMITE_MS = 20000;
 
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json' },
 });
 
+/** Avisa a equipe do e-mail suspeito: nota no Kommo se houver lead, senao o sino. */
+async function avisarEmailSuspeito(linha, avaliacao, quandoTexto) {
+  const texto = textoDoAviso({ email: linha.cliente_email, avaliacao, quandoTexto });
+  let canal = null;
+
+  if (linha.lead_id) {
+    try {
+      const r = await fetch(`${process.env.URL}/.netlify/functions/kommo-note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: String(linha.lead_id),
+          marker: `CBC.email.suspeito:${linha.event_id}`,
+          text: texto,
+        }),
+        signal: AbortSignal.timeout(12000),
+      });
+      if (r.ok) canal = 'kommo';
+    } catch { /* cai no sino */ }
+  }
+
+  // Sem lead (ou com o Kommo fora), o aviso vai pelo sino do app para a vendedora
+  // dona da agenda: e ela quem corrige o convidado no evento.
+  if (!canal) {
+    const { error } = await db.from('notifications').insert({
+      user_email: linha.vendedora_email,
+      type: 'error',
+      title: '⚠️ E-mail do convite parece digitado errado',
+      body: texto,
+      metadata: { origem: 'dossie', event_id: linha.event_id, email: linha.cliente_email },
+    });
+    if (!error) canal = 'sino';
+  }
+  return canal;
+}
+
 export default async (req) => {
-  // duas portas: o sync interno (que conhece o BOT_RPC_SECRET) e o disparo manual
-  // do painel (BOT_PANEL_KEY). Comparacao direta basta: nenhuma das duas e
-  // adivinhavel e o endpoint nao expoe dado, so age.
   const chavePainel = process.env.BOT_PANEL_KEY || '';
   const interna = !!RPC_SECRET && req.headers.get('x-cbc-interno') === RPC_SECRET;
   const doPainel = !!chavePainel && req.headers.get('x-bot-key') === chavePainel;
   if (!interna && !doPainel) return json(401, { ok: false, error: 'nao autorizado' });
 
-  const resumo = { enviados: 0, pulados: 0, falhas: 0, detalhe: [] };
+  const resumo = {
+    enviados: 0, pulados: 0, falhas: 0,
+    avisos_email: 0, lembretes: 0, lembretes_falha: 0, detalhe: [],
+  };
+
   try {
-    // Conferido ANTES de qualquer coisa, e a cada rodada: o empacotador da Netlify
-    // ignora arquivo que nao seja importado por JS, e sem o `included_files` do
-    // netlify.toml os PDF e as fontes simplesmente nao sobem. Como os ativos so
-    // sao lidos ao montar um dossie, um sistema desligado nunca revelaria a falta,
-    // e a descoberta viria no dia da virada de chave, com cliente esperando.
+    // Conferido a cada rodada: o empacotador da Netlify ignora arquivo que nao
+    // seja importado por JS, e sem os ativos o envio quebra so na hora do envio.
     const ativos = ativosDisponiveis();
     if (!ativos.ok) {
       const msg = `ativos do dossie ausentes no servidor: ${ativos.faltando.join(', ')}`;
@@ -65,26 +98,47 @@ export default async (req) => {
     }
 
     const cfg = (await getConfig())?.dossie_videochamada || {};
-    const modoTeste = cfg.modo_teste !== false;          // padrao: teste
+    const modoTeste = cfg.modo_teste !== false;
     const emailTeste = cfg.email_teste || 'paulo@advocaciacbc.com';
+    const horasLembrete = Number(cfg.lembrete_horas || HORAS_LEMBRETE_PADRAO);
+    const paraQuem = (real) => (modoTeste ? emailTeste : real);
 
-    const { data: linhas, error } = await db.rpc('dossie_pendentes', {
+    const agora = new Date();
+    const comecou = Date.now();
+    const acabouOTempo = () => Date.now() - comecou > LIMITE_MS;
+
+    // ── 1. DOSSIE (e o aviso de e-mail errado, que mora no mesmo laco) ──────
+    const { data: pendentes, error } = await db.rpc('dossie_pendentes', {
       p_chave: RPC_SECRET, p_limite: TETO_POR_RODADA,
     });
     if (error) throw new Error(`dossie_pendentes: ${error.message}`);
 
-    const agora = new Date();
-    const comecou = Date.now();
-    for (const linha of linhas || []) {
-      if (Date.now() - comecou > LIMITE_MS) {
-        resumo.parou_por_tempo = true;
-        resumo.restaram = (linhas.length - resumo.enviados - resumo.pulados - resumo.falhas);
-        break;   // o que sobrou entra na proxima rodada, em 45 min
-      }
+    for (const linha of pendentes || []) {
+      if (acabouOTempo()) { resumo.parou_por_tempo = true; break; }
+
       const veredito = elegivel(linha, cfg, agora);
       if (!veredito.ok) {
         resumo.pulados += 1;
         resumo.detalhe.push({ event_id: linha.event_id, pulado: veredito.motivo });
+        continue;
+      }
+
+      // O e-mail vem digitado a mao no convite. Endereco errado nao e so o nosso
+      // dossie indo para o vazio: o convite do Google tambem nao chega, e a
+      // pessoa fica sem o link do Meet. Entao AVISA e nao envia.
+      const avaliacao = avaliarEmail(linha.cliente_email);
+      if (!avaliacao.ok) {
+        const quando = quandoPorExtenso(linha.scheduled_at);
+        if (!linha.email_aviso_em) {
+          const canal = await avisarEmailSuspeito(linha, avaliacao, quando.texto);
+          if (canal) {
+            await db.rpc('email_aviso_marcar', { p_chave: RPC_SECRET, p_event_id: linha.event_id });
+            resumo.avisos_email += 1;
+            resumo.detalhe.push({ event_id: linha.event_id, aviso: avaliacao.motivo, canal });
+          }
+        }
+        resumo.pulados += 1;
+        resumo.detalhe.push({ event_id: linha.event_id, pulado: `email_${avaliacao.motivo}` });
         continue;
       }
 
@@ -99,26 +153,20 @@ export default async (req) => {
         const pdf = await montarDossie({ nome, quandoTexto: quando.texto });
         resultado = await enviarPeloGmail({
           de: DE,
-          para: modoTeste ? emailTeste : linha.cliente_email,
+          para: paraQuem(linha.cliente_email),
           responderPara: cfg.responder_para === 'institucional' ? null : responderPara,
           assunto, html, texto,
           anexo: { nome: ANEXO, bytes: pdf },
         });
       } catch (e) {
-        // montagem do PDF nunca deve derrubar a rodada inteira: uma linha ruim
-        // faria as outras 24 ficarem sem dossie
         resultado = { ok: false, erro: `montagem: ${String(e?.message || e).slice(0, 180)}` };
       }
 
-      // marca SEMPRE, com sucesso ou com erro: e o que impede a linha de ser
-      // tentada para sempre e o que faz o teto de tentativas valer
       const { error: erroMarca } = await db.rpc('dossie_marcar', {
         p_chave: RPC_SECRET, p_event_id: linha.event_id,
         p_erro: resultado.ok ? null : resultado.erro,
       });
       if (erroMarca) {
-        // se a marcacao falha o e-mail JA saiu, entao isto precisa gritar: a
-        // proxima rodada mandaria de novo para a mesma pessoa
         await logAdvbox('dossie', 'erro',
           `dossie enviado mas NAO marcado (${linha.event_id}): ${erroMarca.message}`.slice(0, 300),
           { event_id: linha.event_id, risco: 'reenvio' }).catch(() => {});
@@ -136,12 +184,60 @@ export default async (req) => {
       }
     }
 
+    // ── 2. LEMBRETE de 3 horas antes ───────────────────────────────────────
+    // Independe de o dossie ter saido: quem agendou com menos de 3h de
+    // antecedencia recebe so o lembrete, e ainda assim vale.
+    if (cfg.ativo && cfg.corte_em) {
+      const { data: paraLembrar, error: erroLembrete } = await db.rpc('lembrete_pendentes', {
+        p_chave: RPC_SECRET, p_horas: horasLembrete, p_limite: TETO_POR_RODADA,
+      });
+      if (erroLembrete) throw new Error(`lembrete_pendentes: ${erroLembrete.message}`);
+
+      for (const linha of paraLembrar || []) {
+        if (acabouOTempo()) { resumo.parou_por_tempo = true; break; }
+
+        // mesmo corte do dossie: nao lembrar quem e anterior a virada de chave
+        if (new Date(linha.primeiro_visto_em) < new Date(cfg.corte_em)) continue;
+        if (!avaliarEmail(linha.cliente_email).ok) continue;
+
+        const nome = primeiroNome(linha.titulo, linha.nome_kommo);
+        const quando = quandoPorExtenso(linha.scheduled_at);
+        const { assunto, html, texto } = montarLembrete({
+          nome, quando, meetLink: linha.meet_link, config: cfg,
+        });
+
+        const r = await enviarPeloGmail({
+          de: DE,
+          para: paraQuem(linha.cliente_email),
+          responderPara: cfg.responder_para === 'institucional' ? null : linha.vendedora_email,
+          assunto, html, texto,
+        });
+
+        await db.rpc('lembrete_marcar', {
+          p_chave: RPC_SECRET, p_event_id: linha.event_id, p_erro: r.ok ? null : r.erro,
+        });
+
+        if (r.ok) {
+          resumo.lembretes += 1;
+          resumo.detalhe.push({ event_id: linha.event_id, lembrete: true, teste: modoTeste });
+        } else {
+          resumo.lembretes_falha += 1;
+          await logAdvbox('dossie', 'erro',
+            `lembrete falhou p/ ${linha.event_id}: ${r.erro}`.slice(0, 300),
+            { event_id: linha.event_id }).catch(() => {});
+        }
+      }
+    }
+
     const msg = `dossie: ${resumo.enviados} enviados, ${resumo.pulados} pulados, `
-              + `${resumo.falhas} falhas${modoTeste ? ' (MODO TESTE)' : ''}`
-              + `${resumo.parou_por_tempo ? `, parou no tempo com ${resumo.restaram} na fila` : ''}`
-              + ' | ativos ok';
-    if (resumo.enviados || resumo.falhas) {
-      await logAdvbox('dossie', resumo.falhas ? 'aviso' : 'info', msg, resumo).catch(() => {});
+              + `${resumo.falhas} falhas | lembretes: ${resumo.lembretes}`
+              + `${resumo.lembretes_falha ? ` (${resumo.lembretes_falha} falha)` : ''}`
+              + `${resumo.avisos_email ? ` | ${resumo.avisos_email} aviso(s) de e-mail errado` : ''}`
+              + `${modoTeste ? ' (MODO TESTE)' : ''}`
+              + `${resumo.parou_por_tempo ? ', parou no tempo' : ''}`;
+    if (resumo.enviados || resumo.falhas || resumo.lembretes || resumo.avisos_email) {
+      const nivel = (resumo.falhas || resumo.lembretes_falha) ? 'aviso' : 'info';
+      await logAdvbox('dossie', nivel, msg, resumo).catch(() => {});
     }
     await heartbeat('videochamada-dossie', true, msg);
     return json(200, { ok: true, modo_teste: modoTeste, ativos: ativos.bytes, ...resumo });
