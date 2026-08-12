@@ -7,6 +7,42 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### 🟡 DEPLOYADO 12/08/2026, DESLIGADO — dossiê institucional por e-mail ao agendar videochamada
+
+**Deploy `6a7ccd0a...`** (rollback: `./rollback.sh 6a7cc2cd27c059ea5b70ef9b`). **927 testes** (78 novos), lint no baseline 18, smoke 200/200/200. Migração `dossie_videochamada` aplicada.
+
+⚠️ **NADA é enviado hoje.** `bot_config.dossie_videochamada` está com `ativo: false` **e** `corte_em: null`, duas travas independentes, e `modo_teste: true`. Ligar exige os dois passos do Paulo no Google (abaixo).
+
+Quando a videochamada é agendada numa das agendas, o lead recebe no e-mail o PDF institucional do Canva **com o nome dele e o dia e a hora na capa**, enviado de `institucional@advocaciacbc.com`. Objetivo: autoridade, menos no-show (**28,5% de falta** em 90 dias, 119 de 417 conferidas pelo Meet) e desarmar a objeção de golpe.
+
+**Sem cron novo:** o `agenda-videochamadas-sync` (que já roda aos :00 e :45) despacha o `videochamada-dossie-worker` ao fim de cada rodada. Espera máxima de 45 min, média ~19.
+
+| Peça | O que é |
+|---|---|
+| `_assets/dossie-{capa-base,miolo}.pdf` + 2 TTF | 16,5 MB do Canva viraram capa de 49 KB e miolo de 4,1 MB. Gerados **offline** por `scripts/dossie/gerar_ativos.py` |
+| `_lib/dossieNome.mjs` | cascata do nome |
+| `_lib/dossieVideochamada.mjs` | elegibilidade + data por extenso em BRT |
+| `_lib/dossieTexto.mjs` | assunto e corpo do e-mail (editáveis em `bot_config`) |
+| `_lib/dossiePdf.mjs` | monta o PDF (98 ms, 4,1 MB, 19 links vivos) |
+| `_lib/gmailEnviar.mjs` | OAuth + MIME + envio |
+
+🔑 **A cascata do nome é título do evento → Kommo → sem nome, e a ordem é contraintuitiva de propósito.** Medido: em **63 de 334 pares (18,9%)** os dois divergem e o **título ganha quase sempre**, porque é o que a vendedora escreveu depois de falar com a pessoa ("Patty" contra `PATRICIA DE OLIVEIRA MOURA FROS`, cujo e-mail é `pattyfros90@`; "Cidinha" contra `MARIA APARECIDA NOGUEIRA E SILVA`). O Kommo ainda tem sobrenome-primeiro (`SILVA IRASMON` daria "Silva") e apelido de sistema (`robsonagnelo98`). Cobertura: **461 de 465 pelo título, 4 pelo Kommo, nenhum sem nome**.
+
+⚠️ **Três armadilhas já pagas, não repetir:**
+1. **Cobrir não é apagar.** Retângulo da cor do fundo sobre o `{{nome}}` fica visualmente perfeito e deixa o placeholder **copiável na camada de texto**. Tem de ser redação (`apply_redactions`).
+2. **`select()` da PyMuPDF deixa lixo.** A capa sozinha saiu com **16,4 MB** por esse caminho: as imagens das outras páginas viram objetos órfãos e nem `garbage=4` remove. Montar documento novo com `insert_pdf`.
+3. **O empacotador da Netlify ignora arquivo que não é importado por JS.** Sem `included_files` no `netlify.toml` os PDF não sobem, e como os ativos só são lidos ao montar um dossiê, **sistema desligado nunca revelaria a falta**. O worker agora confere na entrada e grita no Monitor.
+
+E um erro meu que vale como regra: **não procure texto nos bytes crus de um PDF.** O conteúdo vai comprimido, e `{{` apareceu 2 vezes por acaso em 49 KB, reprovando um ativo correto. Conferir na camada de texto, com `pdfjs-dist`.
+
+**Agendas monitoradas mudaram:** entra `anacristina@` (Ana Piva), sai `mizael@` (zero atendimentos em 90 dias).
+
+**Falta o Paulo fazer, e sem isso nada sai:** publicar o app OAuth como **Interno** no Google Cloud Console (em modo Testing o refresh token morre em dias, foi o que derrubou as agendas em 23/07) · autorizar uma vez logado na `institucional@` com escopo `gmail.send` e pôr o refresh token em `GMAIL_OAUTH_REFRESH_TOKEN` no Netlify (exige redeploy, variável secreta) · definir o `corte_em`. A credencial já entrou no `tokens-vigia-cron`.
+
+**Decisões do Paulo (12/08):** páginas 9 a 11 do PDF (avaliações, depoimentos, matérias) **ficam**, com o risco do Provimento 205/2021 do CFOAB apresentado e assumido · só o cliente recebe, a vendedora não · sem envio retroativo · sem grupo de controle · link do Meet e automação dos números do acervo **ficam fora** desta leva.
+
+Spec: `docs/superpowers/specs/2026-08-12-dossie-videochamada-email-design.md` · Plano: `docs/superpowers/plans/2026-08-12-dossie-videochamada-email.md`
+
 ### ✅ DEPLOYADO 03/08/2026 — Link Kommo conferido na ORIGEM (mata a causa do erro 226)
 
 **Deploy `6a7086c0408f6f7b3e0fd182`** (rollback: `./rollback.sh 6a7085acbf94677b8ead8856`). **774 testes** (era 732), lint no baseline 18, smoke 200/200/200, `resolve-kommo-lead` respondendo 401/405 em produção (não 502).
