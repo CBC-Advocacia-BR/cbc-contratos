@@ -14,7 +14,7 @@
  */
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const NAVY = rgb(0x0b / 255, 0x23 / 255, 0x42 / 255);
@@ -40,6 +40,37 @@ function ativos() {
     };
   }
   return cache;
+}
+
+const NOMES_ATIVOS = ['dossie-capa-base.pdf', 'dossie-miolo.pdf',
+                      'Montserrat-Medium.ttf', 'Montserrat-Bold.ttf'];
+
+/**
+ * Os quatro ativos chegaram ao servidor?
+ *
+ * Existe por causa de uma armadilha que so aparece em producao: o empacotador da
+ * Netlify segue os imports de JS e ignora qualquer outro arquivo. Sem o
+ * `included_files` no netlify.toml, o codigo sobe inteiro e funciona ate o primeiro
+ * envio de verdade, quando estoura ENOENT. Como o worker so le os ativos ao montar
+ * um PDF, um sistema desligado (ou sem pendencias) nunca revelaria a falta.
+ *
+ * Chamado a cada rodada do worker, custa 4 statSync e transforma uma falha muda
+ * numa linha no console do Monitor.
+ *
+ * @returns {{ok: boolean, faltando: string[], bytes: Object<string, number>}}
+ */
+export function ativosDisponiveis() {
+  const faltando = [];
+  const bytes = {};
+  for (const nome of NOMES_ATIVOS) {
+    try {
+      const t = statSync(caminhoAtivo(nome)).size;
+      if (t > 0) bytes[nome] = t; else faltando.push(`${nome} (vazio)`);
+    } catch {
+      faltando.push(nome);
+    }
+  }
+  return { ok: faltando.length === 0, faltando, bytes };
 }
 
 /** Quebra o texto em linhas que cabem na largura, medindo na fonte real. */

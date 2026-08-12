@@ -16,7 +16,7 @@ import { db, logAdvbox, heartbeat, getConfig } from './_lib/botDb.mjs';
 import { primeiroNome } from './_lib/dossieNome.mjs';
 import { elegivel, quandoPorExtenso } from './_lib/dossieVideochamada.mjs';
 import { montarEmail } from './_lib/dossieTexto.mjs';
-import { montarDossie } from './_lib/dossiePdf.mjs';
+import { montarDossie, ativosDisponiveis } from './_lib/dossiePdf.mjs';
 import { enviarPeloGmail } from './_lib/gmailEnviar.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
@@ -39,6 +39,19 @@ export default async (req) => {
 
   const resumo = { enviados: 0, pulados: 0, falhas: 0, detalhe: [] };
   try {
+    // Conferido ANTES de qualquer coisa, e a cada rodada: o empacotador da Netlify
+    // ignora arquivo que nao seja importado por JS, e sem o `included_files` do
+    // netlify.toml os PDF e as fontes simplesmente nao sobem. Como os ativos so
+    // sao lidos ao montar um dossie, um sistema desligado nunca revelaria a falta,
+    // e a descoberta viria no dia da virada de chave, com cliente esperando.
+    const ativos = ativosDisponiveis();
+    if (!ativos.ok) {
+      const msg = `ativos do dossie ausentes no servidor: ${ativos.faltando.join(', ')}`;
+      await logAdvbox('dossie', 'erro', msg, ativos).catch(() => {});
+      await heartbeat('videochamada-dossie', false, msg);
+      return json(500, { ok: false, error: msg, ativos });
+    }
+
     const cfg = (await getConfig())?.dossie_videochamada || {};
     const modoTeste = cfg.modo_teste !== false;          // padrao: teste
     const emailTeste = cfg.email_teste || 'paulo@advocaciacbc.com';
@@ -106,12 +119,12 @@ export default async (req) => {
     }
 
     const msg = `dossie: ${resumo.enviados} enviados, ${resumo.pulados} pulados, `
-              + `${resumo.falhas} falhas${modoTeste ? ' (MODO TESTE)' : ''}`;
+              + `${resumo.falhas} falhas${modoTeste ? ' (MODO TESTE)' : ''} | ativos ok`;
     if (resumo.enviados || resumo.falhas) {
       await logAdvbox('dossie', resumo.falhas ? 'aviso' : 'info', msg, resumo).catch(() => {});
     }
     await heartbeat('videochamada-dossie', true, msg);
-    return json(200, { ok: true, modo_teste: modoTeste, ...resumo });
+    return json(200, { ok: true, modo_teste: modoTeste, ativos: ativos.bytes, ...resumo });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);
     await logAdvbox('dossie', 'erro', `worker do dossie falhou: ${msg}`, {}).catch(() => {});

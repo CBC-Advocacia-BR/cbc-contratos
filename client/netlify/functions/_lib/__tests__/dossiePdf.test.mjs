@@ -97,3 +97,14 @@ describe('montagem do dossie', () => {
     expect(Date.now() - t0).toBeLessThan(3000);
   });
 });
+
+describe('conferencia dos ativos no servidor', () => {
+  it('acha os quatro arquivos e informa o tamanho', async () => {
+    const { ativosDisponiveis } = await import('../dossiePdf.mjs');
+    const r = ativosDisponiveis();
+    expect(r.ok).toBe(true);
+    expect(r.faltando).toEqual([]);
+    expect(Object.keys(r.bytes)).toHaveLength(4);
+    expect(r.bytes['dossie-miolo.pdf']).toBeGreaterThan(1_000_000);
+  });
+});
