@@ -9,6 +9,10 @@
 
 [functions]
   directory = "netlify/functions"
+  # (12/08/2026) O empacotador da Netlify segue os imports de JS e mais nada. Sem
+  # esta linha os PDF e as fontes do dossie da videochamada NAO sobem, e a function
+  # so descobre isso em producao, com ENOENT no primeiro envio.
+  included_files = ["netlify/functions/_assets/**"]
 
 # (#126) Edge Functions — versoes migradas das funcoes leves (proxies e health).
 # Rodam em Deno no edge mais proximo do usuario (<50ms). Endpoints antigos em
