@@ -20,6 +20,7 @@ import { primeiroNome } from './_lib/dossieNome.mjs';
 import { elegivel, quandoPorExtenso } from './_lib/dossieVideochamada.mjs';
 import { montarEmail } from './_lib/dossieTexto.mjs';
 import { montarLembrete } from './_lib/dossieLembrete.mjs';
+import { montarRecuperacao } from './_lib/dossieRecuperacao.mjs';
 import { montarDossie, ativosDisponiveis } from './_lib/dossiePdf.mjs';
 import { enviarPeloGmail } from './_lib/gmailEnviar.mjs';
 import { avaliarEmail, textoDoAviso } from './_lib/emailSuspeito.mjs';
@@ -75,11 +76,72 @@ async function avisarEmailSuspeito(linha, avaliacao, quandoTexto) {
   return canal;
 }
 
+/**
+ * Modo AMOSTRA: manda um exemplar de um dos textos para quem pedir, com dados de
+ * exemplo. Existe porque revisar copy olhando codigo nao funciona, e esperar um
+ * atendimento real para ver como o e-mail chega e lento demais.
+ *
+ * POST { amostra: 'dossie' | 'lembrete' | 'recuperacao', para: 'alguem@...' }
+ * Exige x-bot-key. So envia para endereco @advocaciacbc.com: amostra e coisa
+ * interna, e um erro de digitacao aqui mandaria texto de teste para um cliente.
+ */
+async function enviarAmostra({ amostra, para, cfg }) {
+  const destino = String(para || '').trim().toLowerCase();
+  if (!/@advocaciacbc\.com$/.test(destino)) {
+    return { ok: false, erro: 'amostra so vai para endereco do escritorio' };
+  }
+
+  const nome = 'Sueli';
+  const quando = quandoPorExtenso(new Date(Date.now() + 3 * 3600e3).toISOString());
+  const ontem = quandoPorExtenso(new Date(Date.now() - 20 * 3600e3).toISOString());
+  const vendedora = 'anacristina@advocaciacbc.com';
+
+  if (amostra === 'lembrete') {
+    const m = montarLembrete({
+      nome, quando, meetLink: 'https://meet.google.com/exemplo-teste-abc', config: cfg,
+    });
+    return enviarPeloGmail({
+      de: DE, para: destino, responderPara: vendedora,
+      assunto: `[AMOSTRA] ${m.assunto}`, html: m.html, texto: m.texto,
+    });
+  }
+
+  if (amostra === 'recuperacao') {
+    const m = montarRecuperacao({ nome, quandoFaltou: ontem, config: cfg });
+    return enviarPeloGmail({
+      de: DE, para: destino, responderPara: vendedora,
+      assunto: `[AMOSTRA] ${m.assunto}`, html: m.html, texto: m.texto,
+    });
+  }
+
+  if (amostra === 'dossie') {
+    const m = montarEmail({ nome, quando, vendedoraEmail: vendedora, config: cfg });
+    const pdf = await montarDossie({ nome, quandoTexto: quando.texto });
+    return enviarPeloGmail({
+      de: DE, para: destino, responderPara: vendedora,
+      assunto: `[AMOSTRA] ${m.assunto}`, html: m.html, texto: m.texto,
+      anexo: { nome: ANEXO, bytes: pdf },
+    });
+  }
+
+  return { ok: false, erro: `amostra desconhecida: ${amostra}` };
+}
+
 export default async (req) => {
   const chavePainel = process.env.BOT_PANEL_KEY || '';
   const interna = !!RPC_SECRET && req.headers.get('x-cbc-interno') === RPC_SECRET;
   const doPainel = !!chavePainel && req.headers.get('x-bot-key') === chavePainel;
   if (!interna && !doPainel) return json(401, { ok: false, error: 'nao autorizado' });
+
+  // amostra: caminho curto, nao mexe em fila nem marca nada no banco
+  let corpo = {};
+  try { corpo = await req.json(); } catch { /* rodada normal nao manda corpo */ }
+  if (corpo?.amostra) {
+    if (!doPainel) return json(403, { ok: false, error: 'amostra exige x-bot-key' });
+    const cfg = (await getConfig())?.dossie_videochamada || {};
+    const r = await enviarAmostra({ amostra: corpo.amostra, para: corpo.para, cfg });
+    return json(r.ok ? 200 : 400, { ok: r.ok, amostra: corpo.amostra, para: corpo.para, erro: r.erro });
+  }
 
   const resumo = {
     enviados: 0, pulados: 0, falhas: 0,
