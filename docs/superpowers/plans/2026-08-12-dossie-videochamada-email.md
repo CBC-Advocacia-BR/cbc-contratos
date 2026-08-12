@@ -73,13 +73,15 @@ import { PDFDocument } from 'pdf-lib';
 const ativo = (n) => fileURLToPath(new URL(`../../_assets/${n}`, import.meta.url));
 
 describe('ativos do dossie', () => {
-  it('a capa-base tem 1 pagina e nao tem placeholder', async () => {
-    const bytes = readFileSync(ativo('dossie-capa-base.pdf'));
-    const doc = await PDFDocument.load(bytes);
-    expect(doc.getPageCount()).toBe(1);
-    // o texto antigo tinha de ser REMOVIDO, nao coberto: se alguem cobrir com
-    // um retangulo, "{{nome}}" continua copiavel na camada de texto
-    expect(bytes.toString('latin1')).not.toContain('{{');
+  it('a capa-base nao tem placeholder na camada de texto', async () => {
+    // ⚠️ NAO procurar "{{" nos bytes crus do arquivo. A primeira versao deste
+    // teste fazia isso e reprovou um ativo CORRETO: o conteudo do PDF vai
+    // comprimido, e a chance de os dois bytes 0x7B aparecerem por acaso em 49 KB
+    // passa de 50% (foram achadas 2 ocorrencias, ambas em stream binario).
+    // A conferencia honesta e na camada de texto, via pdfjs-dist.
+    const texto = await textoDaPagina(ativo('dossie-capa-base.pdf'));
+    expect(texto).not.toContain('{{');
+    expect(texto).not.toContain('agendada');
   });
 
   it('a capa-base mede 810 x 1012,5 pt', async () => {
