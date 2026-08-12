@@ -67,11 +67,26 @@ describe('ativos do dossie', () => {
     expect(doc.getPageCount()).toBe(11);
   });
 
+  it('o miolo diz a duracao NOVA, e nao a antiga', async () => {
+    // o e-mail diz 10 a 15 minutos; se o anexo disser 30, ele contradiz o
+    // proprio e-mail na pagina mais lida do documento
+    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
+    expect(texto).toContain('10 a 15 minutos');
+    expect(texto).not.toContain('30 minutos');
+  });
+
+  it('o remendo da duracao nao comeu o titulo da pagina', async () => {
+    // a redacao remove o texto INTEIRO que encostar no retangulo, e o titulo
+    // desce ate y=442,3: por 6 pt de folga ele sumia
+    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
+    expect(texto).toContain('chamada?');
+  });
+
   it('o miolo comeca por "Como funciona a videochamada"', async () => {
     // a razao de existir da reordenacao: essa e a pagina que reduz falta, e no
     // celular quase ninguem chegava ate a setima
     const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
-    expect(texto).toContain('30 minutos');
+    expect(texto).toContain('10 a 15 minutos');
     expect(texto).toContain('não é necessário tomar nenhuma decisão');
   });
 

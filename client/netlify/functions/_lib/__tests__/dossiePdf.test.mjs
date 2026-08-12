@@ -64,7 +64,7 @@ describe('montagem do dossie', () => {
   it('mantem a videochamada como segunda pagina', async () => {
     const pdf = await montarDossie({ nome: 'Ana', quandoTexto: QUANDO });
     const texto = await textoDaPagina(pdf, 2);
-    expect(texto).toContain('30 minutos');
+    expect(texto).toContain('10 a 15 minutos');
   });
 
   it('preserva os 19 links das materias', async () => {

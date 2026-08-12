@@ -94,8 +94,85 @@ def gerar_capa_base(origem, saida):
     return sobrou
 
 
+# ── remendo da duracao da videochamada ───────────────────────────────────────
+# Decisao do Paulo (12/08/2026): a conversa dura de 10 a 15 minutos, nao 30. O
+# e-mail ja diz isso; sem este remendo o anexo contradiria o proprio e-mail, na
+# pagina que foi promovida para a 2a posicao justamente por ser a mais lida.
+#
+# Isto e paliativo. O certo e o marketing corrigir no Canva; quando o arquivo novo
+# chegar, apague esta secao e rode o gerador de novo.
+#
+# Geometria medida na versao de agosto/2026 da pagina:
+DUR_ZONA = fitz.Rect(85.6, 443.0, 797.9, 534.0)   # ⚠️ comeca em 443: o titulo desce ate 442,3
+DUR_X0, DUR_X1 = 91.6, 791.9
+DUR_TAMANHO = 22.5
+DUR_BASE_Y = 465.5
+DUR_ENTRELINHA = 28.7
+DUR_FUNDO = (13 / 255, 55 / 255, 86 / 255)        # #0D3756
+DUR_FONTE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..',
+                         'client', 'netlify', 'functions', '_assets',
+                         'Montserrat-Medium.ttf')
+DUR_TEXTO = ('A videochamada dura de 10 a 15 minutos e é conduzida por um '
+             'profissional da nossa equipe, com suporte jurídico quando necessário.')
+
+
+def _justificar(page, font, linhas, largura):
+    """
+    Ultima linha a esquerda; as demais esticadas ate a margem, como o Canva faz.
+
+    ⚠️ Escreve com TextWriter, e nao com page.insert_text. Os dois desenham igual
+    na tela, mas o insert_text produziu texto que o pdfjs NAO consegue extrair:
+    o poppler e o proprio PyMuPDF liam, o pdfjs devolvia a pagina inteira sem o
+    paragrafo. Isso quebraria a selecao de texto, a busca e o leitor de tela em
+    todo visualizador baseado em pdfjs, que inclui pre-visualizacao de webmail.
+    Pego pelo teste de ativos, que confere justamente pelo pdfjs.
+    """
+    espaco = font.text_length(' ', DUR_TAMANHO)
+    escritor = fitz.TextWriter(page.rect, color=(1, 1, 1))
+    for i, palavras in enumerate(linhas):
+        y = DUR_BASE_Y + i * DUR_ENTRELINHA
+        ultima = i == len(linhas) - 1
+        sobra = largura - font.text_length(' '.join(palavras), DUR_TAMANHO)
+        extra = 0 if (ultima or len(palavras) < 2) else sobra / (len(palavras) - 1)
+        x = DUR_X0
+        for palavra in palavras:
+            escritor.append((x, y), palavra, font=font, fontsize=DUR_TAMANHO)
+            x += font.text_length(palavra, DUR_TAMANHO) + espaco + extra
+    escritor.write_text(page)
+
+
+def corrigir_duracao(page):
+    """Troca '30 minutos' por '10 a 15 minutos' reescrevendo o paragrafo inteiro."""
+    if '30 minutos' not in page.get_text():
+        print('  aviso: a pagina nao diz "30 minutos"; remendo da duracao IGNORADO')
+        return False
+
+    page.add_redact_annot(DUR_ZONA, fill=DUR_FUNDO)
+    page.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE,
+                          graphics=fitz.PDF_REDACT_LINE_ART_NONE)
+
+    largura = DUR_X1 - DUR_X0
+    font = fitz.Font(fontfile=DUR_FONTE)
+    linhas, atual = [], []
+    for palavra in DUR_TEXTO.split():
+        teste = atual + [palavra]
+        if font.text_length(' '.join(teste), DUR_TAMANHO) <= largura or not atual:
+            atual = teste
+        else:
+            linhas.append(atual)
+            atual = [palavra]
+    if atual:
+        linhas.append(atual)
+    if len(linhas) > 3:
+        raise SystemExit(f'ERRO: o texto novo ocupa {len(linhas)} linhas e so cabem 3')
+
+    _justificar(page, font, linhas, largura)
+    return True
+
+
 def gerar_miolo(origem, saida):
     d = _so_estas_paginas(origem, ORDEM_MIOLO)
+    corrigir_duracao(d[0])   # a pagina da videochamada e a 1a do miolo
     n = comprimir(d)
     d.save(saida, garbage=4, deflate=True, clean=True)
     paginas, links = len(d), sum(len(d[i].get_links()) for i in range(len(d)))
