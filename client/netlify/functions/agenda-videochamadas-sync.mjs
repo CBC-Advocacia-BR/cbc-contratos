@@ -93,4 +93,13 @@ export default async () => {
   }
 };
 
-export const config = { schedule: '*/45 * * * *' };
+// (12/08/2026) De 45 para 15 minutos, a pedido do Paulo, por causa do dossie: a
+// espera do lead nao vem do envio (3,5s), vem de QUANDO o sistema descobre o
+// agendamento. Espera maxima cai de 45 para 15 min, media de ~19 para ~7,5.
+//
+// ⚠️ `*/45` nao era "a cada 45 min": em cron isso dispara nos minutos 0 e 45, com
+// vaos alternados de 45 e 15 min. `*/15` e regular de verdade (0, 15, 30, 45).
+//
+// Custo: 96 execucoes por dia em vez de 48, com 4 leituras de agenda cada. A cota
+// do Google e de 1 milhao de consultas por dia, entao o limite real esta longe.
+export const config = { schedule: '*/15 * * * *' };

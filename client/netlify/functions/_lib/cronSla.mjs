@@ -54,7 +54,14 @@ export const CRON_SLA = {
   'kommo-view-check': 90,                // a cada 30min
   'kommo-leads-sync': 90,                // a cada 30min
   'kommo-sla-sync': 90,                  // a cada 30min
-  'agenda-videochamadas-sync': 90,       // a cada 45min — alimenta o funil
+  // (12/08/2026) passou de 45 para 15 min por causa do dossie da videochamada;
+  // o prazo caiu junto, de 90 para 45 (tres rodadas perdidas ja e alarme).
+  'agenda-videochamadas-sync': 45,       // a cada 15min — alimenta o funil e o dossie
+  // (12/08/2026) O DOSSIE PRECISA ESTAR AQUI. Ele emite heartbeat, mas era esta lista
+  // que faltava: sem a linha declarativa, o worker podia parar de rodar e o silencio
+  // passaria por paz — que e exatamente a doenca do item 143 e o que escondeu o
+  // apagao de 16 dias do backup. Roda junto com o sync, entao mesmo prazo.
+  'videochamada-dossie': 45,             // a cada 15min, despachado pelo sync das agendas
   'meet-auditoria-sync': 26 * 60,        // 1x/dia — comparecimento das calls
   'advbox-vendas-sync': 14 * 60,         // 3x/dia (06h/12h/18h)
   'clientes-reconciliar': 26 * 60,       // 1x/dia — cadastro unico
