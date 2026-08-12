@@ -11,10 +11,14 @@
  *  AUTORIDADE  números do acervo próprio, conferidos no banco: 3.516 ações desde
  *              2017, em 215 empreendimentos. Não é adjetivo, é contagem.
  *
- *  URGÊNCIA    a prescrição. É a única urgência honesta deste negócio: o prazo
- *              existe na lei, corre sozinho e não foi inventado para vender.
- *              Escrita sem prometer prazo específico, porque ele varia com o caso
- *              e afirmar número viraria consulta jurídica por e-mail.
+ *  URGÊNCIA    a prescrição, dita com todas as letras (pedido do Paulo, 12/08):
+ *              o prazo corre e a oportunidade de cancelar o contrato pode deixar
+ *              de existir. É a única urgência honesta deste negócio, porque o
+ *              prazo está na lei e corre sozinho, não foi inventado para vender.
+ *              ⚠️ Escrita SEM prazo em número: ele varia com o caso, e cravar data
+ *              por e-mail viraria consulta jurídica. E SEM prometer devolução, que
+ *              é o que o Provimento 205 veda com mais clareza e o que mais volta
+ *              contra o escritório se o caso não andar como o cliente entendeu.
  *
  *  ESCASSEZ    a agenda. ⚠️ Só é honesta se for real. O texto fala em "os horários
  *              da semana costumam fechar", que descreve o padrão, e não "restam 2
@@ -60,28 +64,28 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
 
   <p style="margin:0 0 16px">Antes de você decidir, duas coisas que valem saber.</p>
 
-  <p style="margin:0 0 8px"><strong>O tempo corre a favor de quem vendeu a cota.</strong></p>
+  <p style="margin:0 0 8px"><strong>O prazo está correndo.</strong></p>
   <p style="margin:0 0 16px">O direito de discutir um contrato de multipropriedade e pedir de
-    volta o que foi pago tem prazo, e ele corre sozinho, com você tomando providência ou não.
-    Não acaba amanhã, mas cada mês que passa é um mês a menos, e há casos em que essa diferença
-    é de milhares de reais.</p>
+    volta o que foi pago <strong>não dura para sempre</strong>. Ele tem prazo, corre sozinho,
+    com você tomando providência ou não, e quando se esgota a oportunidade de cancelar o
+    contrato deixa de existir. Não é questão de querer mais tarde: passado o prazo, não há mais
+    o que fazer.</p>
 
-  <p style="margin:0 0 8px"><strong>A conversa não compromete você a nada.</strong></p>
-  <p style="margin:0 0 16px">São de 10 a 15 minutos. A gente olha o seu contrato e o seu extrato
-    e diz com franqueza se há caso ou não. Quando não há, a gente fala, e você não perdeu nada
-    além de quinze minutos.</p>
+  <p style="margin:0 0 8px"><strong>Na conversa, cuidamos do seu caso do começo ao fim.</strong></p>
+  <p style="margin:0 0 16px">Analisamos o seu contrato e o seu extrato de pagamentos, tiramos
+    todas as suas dúvidas e explicamos cada detalhe: o que a lei permite pedir na sua situação e
+    o que ela não permite, como funciona o processo, quanto tempo costuma levar e o que o
+    escritório faz em cada etapa. Você sai da conversa sabendo exatamente onde está pisando.</p>
 
   <p style="margin:0 0 20px">Desde 2017 já conduzimos <strong>mais de 3.500 ações</strong> desse
     tipo, em <strong>215 empreendimentos</strong> diferentes. É o mesmo caso, repetido milhares
-    de vezes, o que quer dizer que a sua situação provavelmente não é inédita para nós.</p>
+    de vezes: a sua situação provavelmente não é inédita para nós, e as respostas que você
+    procura nós já demos centenas de vezes.</p>
 
   <p style="margin:0 0 12px">${botao(WHATS_COM_TEXTO, 'Remarcar pelo WhatsApp')}</p>
 
   <p style="margin:0 0 20px;color:#4b5563;font-size:14px">Os horários da semana costumam fechar
     rápido, então quanto antes você escolher, mais opção de dia e de hora você tem.</p>
-
-  <p style="margin:0 0 16px">E se preferir não seguir com isso agora, tudo bem. Este é o único
-    e-mail que enviaremos sobre a conversa que não aconteceu.</p>
 
   <p style="margin:0"><strong>${ESCRITORIO}</strong></p>
 
@@ -96,23 +100,24 @@ export function montarRecuperacao({ nome, quandoFaltou, config = {} }) {
     `Tínhamos uma conversa marcada ${quando} e você não conseguiu participar.`,
     'Acontece, e remarcar não custa nada.',
     '',
-    'O TEMPO CORRE A FAVOR DE QUEM VENDEU A COTA.',
+    'O PRAZO ESTÁ CORRENDO.',
     'O direito de discutir um contrato de multipropriedade e pedir de volta o que foi pago',
-    'tem prazo, e ele corre sozinho. Cada mês que passa é um mês a menos.',
+    'não dura para sempre. Ele tem prazo, corre sozinho, e quando se esgota a oportunidade',
+    'de cancelar o contrato deixa de existir. Passado o prazo, não há mais o que fazer.',
     '',
-    'A CONVERSA NÃO COMPROMETE VOCÊ A NADA.',
-    'São de 10 a 15 minutos. A gente olha o seu contrato e diz com franqueza se há caso.',
-    'Quando não há, a gente fala.',
+    'NA CONVERSA, CUIDAMOS DO SEU CASO DO COMEÇO AO FIM.',
+    'Analisamos o seu contrato e o seu extrato de pagamentos, tiramos todas as suas dúvidas',
+    'e explicamos cada detalhe: o que a lei permite pedir na sua situação e o que ela não',
+    'permite, como funciona o processo, quanto tempo costuma levar e o que o escritório faz',
+    'em cada etapa. Você sai da conversa sabendo exatamente onde está pisando.',
     '',
     'Desde 2017 já conduzimos mais de 3.500 ações desse tipo, em 215 empreendimentos.',
+    'A sua situação provavelmente não é inédita para nós.',
     '',
     `Remarcar pelo WhatsApp: ${WHATS_LINK}`,
     '',
     'Os horários da semana costumam fechar rápido, então quanto antes você escolher,',
     'mais opção de dia e de hora você tem.',
-    '',
-    'E se preferir não seguir agora, tudo bem. Este é o único e-mail que enviaremos',
-    'sobre a conversa que não aconteceu.',
     '',
     'Conforto, Bergonsi & Cavalari Advogados',
   ].join('\n');
