@@ -924,7 +924,7 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
 }
 ```
 
-⚠️ Se `escapeHtml` não existir em `_lib/validate.mjs`, adicione lá (não crie uma cópia local):
+⚠️ **Conferido em 12/08/2026: `escapeHtml` NÃO existe em `_lib/validate.mjs`.** Adicione lá (o `alertEmail.mjs` tem uma cópia local incompleta, que não escapa aspas; não replique esse caminho):
 
 ```javascript
 export function escapeHtml(s) {
@@ -1888,8 +1888,10 @@ git commit -m "dossie: vigia diario da credencial do Gmail da institucional"
 
 - [ ] **Step 1: Semear a configuração DESLIGADA**
 
+⚠️ A assinatura real é `bot_config_merge(p_chave text, p_key text, p_patch jsonb)`: o **primeiro** argumento é o `BOT_RPC_SECRET`, não a chave de configuração.
+
 ```sql
-select bot_config_merge('dossie_videochamada', jsonb_build_object(
+select bot_config_merge('<BOT_RPC_SECRET real>', 'dossie_videochamada', jsonb_build_object(
   'ativo', false,
   'modo_teste', true,
   'email_teste', 'paulo@advocaciacbc.com',
@@ -1935,7 +1937,7 @@ Pré-requisito, e só o Paulo pode fazer: app OAuth publicado como **Interno** n
 Depois disso, crie um evento de teste numa das quatro agendas, com um convidado externo e link do Meet, título `Teste +5519999999999`, para daqui a 2 dias. Então:
 
 ```sql
-select bot_config_merge('dossie_videochamada', jsonb_build_object(
+select bot_config_merge('<BOT_RPC_SECRET real>', 'dossie_videochamada', jsonb_build_object(
   'ativo', true, 'corte_em', (now() - interval '10 minutes')::text));
 ```
 
@@ -1951,7 +1953,7 @@ Confira na mensagem recebida: assunto com acento correto, o anexo abre, a segund
 - [ ] **Step 6: A virada de chave (só com o "ok" do Paulo)**
 
 ```sql
-select bot_config_merge('dossie_videochamada', jsonb_build_object(
+select bot_config_merge('<BOT_RPC_SECRET real>', 'dossie_videochamada', jsonb_build_object(
   'modo_teste', false, 'corte_em', now()::text));
 ```
 
