@@ -14,8 +14,9 @@
  */
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const NAVY = rgb(0x0b / 255, 0x23 / 255, 0x42 / 255);
 const ALT_PAGINA = 1012.5;
@@ -26,7 +27,38 @@ const LARGURA_TEXTO = 718;
 // cima. Uma unica conversao aqui evita errar o sinal em cada uso.
 const doTopo = (y) => ALT_PAGINA - y;
 
-const caminhoAtivo = (n) => fileURLToPath(new URL(`../_assets/${n}`, import.meta.url));
+/**
+ * Onde procurar os ativos.
+ *
+ * ⚠️ Descoberto em producao (12/08/2026): `new URL('../_assets/x', import.meta.url)`
+ * funciona na maquina e NAO funciona na Netlify. O empacotador junta tudo num
+ * arquivo so, num diretorio que nao e o do fonte, entao o ".." aponta para outro
+ * lugar; e os arquivos de `included_files` sao copiados preservando o caminho a
+ * partir da raiz do build, que vira o diretorio de trabalho da lambda.
+ *
+ * Por isso a busca tenta os candidatos em ordem, em vez de apostar em um. A funcao
+ * de conferencia devolve a lista tentada quando nao acha nada, senao o diagnostico
+ * vira adivinhacao.
+ */
+function candidatos(n) {
+  const daPasta = dirname(fileURLToPath(import.meta.url));
+  return [
+    join(daPasta, '..', '_assets', n),                        // fonte, sem empacotar
+    join(daPasta, '_assets', n),                              // bundle ao lado de _assets
+    join(process.cwd(), 'netlify', 'functions', '_assets', n), // included_files a partir da raiz
+    join(process.cwd(), '_assets', n),
+    join(process.cwd(), 'client', 'netlify', 'functions', '_assets', n),
+  ];
+}
+
+function caminhoAtivo(n) {
+  for (const c of candidatos(n)) {
+    try { if (statSync(c).size > 0) return c; } catch { /* tenta o proximo */ }
+  }
+  const e = new Error(`ativo ${n} nao encontrado. Tentei: ${candidatos(n).join(' | ')}`);
+  e.code = 'ATIVO_AUSENTE';
+  throw e;
+}
 
 // lidos uma vez por instancia da function, nao a cada envio
 let cache = null;
@@ -64,13 +96,22 @@ export function ativosDisponiveis() {
   const bytes = {};
   for (const nome of NOMES_ATIVOS) {
     try {
-      const t = statSync(caminhoAtivo(nome)).size;
-      if (t > 0) bytes[nome] = t; else faltando.push(`${nome} (vazio)`);
+      bytes[nome] = statSync(caminhoAtivo(nome)).size;
     } catch {
       faltando.push(nome);
     }
   }
-  return { ok: faltando.length === 0, faltando, bytes };
+  const r = { ok: faltando.length === 0, faltando, bytes };
+  // Sem isto o diagnostico e "sumiu", que nao ajuda ninguem a achar o problema.
+  if (!r.ok) {
+    r.tentei = candidatos(NOMES_ATIVOS[0]);
+    r.cwd = process.cwd();
+    try { r.no_cwd = readdirSync(process.cwd()).slice(0, 25); } catch { /* sem permissao */ }
+    try {
+      r.na_pasta = readdirSync(dirname(fileURLToPath(import.meta.url))).slice(0, 25);
+    } catch { /* idem */ }
+  }
+  return r;
 }
 
 /** Quebra o texto em linhas que cabem na largura, medindo na fonte real. */
