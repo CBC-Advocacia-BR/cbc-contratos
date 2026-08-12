@@ -8,8 +8,13 @@ no e-mail um PDF institucional personalizado (nome, dia e hora na capa) enviado 
 "isso é golpe". O lead chega à videochamada depois de uma qualificação feita no WhatsApp, sem
 nunca ter visto o escritório.
 
-**Linha de base medida (12/08/2026):** nos últimos 90 dias houve 537 videochamadas; das 417
-conferidas pela auditoria do Meet, **119 faltaram (28,5%)**. Volume atual: cerca de 8 por dia
+**Linha de base medida (12/08/2026):** nos últimos 90 dias, das 430 videochamadas conferidas
+pela auditoria do Meet, **96 faltaram (22,3%)**. Contando também as não auditadas dá quase o
+mesmo: 123 de 550, ou 22,4%.
+
+⚠️ Uma versão anterior deste documento dizia **28,5%**, e estava errada: dividia as faltas de
+TODOS os atendimentos pelo total de apenas os auditados, ou seja, numerador de um conjunto
+maior que o denominador. Volume atual: cerca de 8 por dia
 útil, 230 por mês.
 
 ---
@@ -212,7 +217,7 @@ tem custo de privacidade e não muda decisão nenhuma aqui.
 ## Como saberemos se funcionou
 
 A base já audita comparecimento pelo Meet. Sem grupo de controle (decisão do Paulo), a
-comparação é contra os 90 dias anteriores: **28,5% de falta** é a linha de base. Cada ponto
+comparação é contra os 90 dias anteriores: **22,3% de falta** é a linha de base. Cada ponto
 percentual recuperado vale cerca de 1,8 atendimento por mês.
 
 ## Pendências com o Paulo

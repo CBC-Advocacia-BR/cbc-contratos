@@ -13,7 +13,7 @@
 
 ⚠️ **NADA é enviado hoje.** `bot_config.dossie_videochamada` está com `ativo: false` **e** `corte_em: null`, duas travas independentes, e `modo_teste: true`. Ligar exige os dois passos do Paulo no Google (abaixo).
 
-Quando a videochamada é agendada numa das agendas, o lead recebe no e-mail o PDF institucional do Canva **com o nome dele e o dia e a hora na capa**, enviado de `institucional@advocaciacbc.com`. Objetivo: autoridade, menos no-show (**28,5% de falta** em 90 dias, 119 de 417 conferidas pelo Meet) e desarmar a objeção de golpe.
+Quando a videochamada é agendada numa das agendas, o lead recebe no e-mail o PDF institucional do Canva **com o nome dele e o dia e a hora na capa**, enviado de `institucional@advocaciacbc.com`. Objetivo: autoridade, menos no-show (**22,3% de falta** em 90 dias, 96 de 430 conferidas pelo Meet) e desarmar a objeção de golpe.
 
 **Sem cron novo:** o `agenda-videochamadas-sync` (que já roda aos :00 e :45) despacha o `videochamada-dossie-worker` ao fim de cada rodada. Espera máxima de 45 min, média ~19.
 
