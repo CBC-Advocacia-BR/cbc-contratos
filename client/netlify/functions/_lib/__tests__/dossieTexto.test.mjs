@@ -30,9 +30,19 @@ describe('corpo', () => {
   it('repete no corpo o essencial que esta no anexo', () => {
     // anexo de 4,5 MB muita gente nao abre no celular
     const h = base().html;
-    expect(h).toContain('30 minutos');
+    expect(h).toContain('10 a 15 minutos');
     expect(h).toContain('não precisa decidir nada');
     expect(h).toContain('contrato de');
+    expect(h).not.toContain('30 minutos');   // a duracao mudou em 12/08/2026
+  });
+
+  it('destaca o anexo em bloco proprio, no HTML e no texto puro', () => {
+    // pedido do Paulo: o PDF e o motivo do e-mail existir, nao pode ficar
+    // diluido no meio de um paragrafo
+    const r = base();
+    expect(r.html).toContain('Em anexo: a apresentação do escritório');
+    expect(r.html).toContain('border-left:4px solid #1B3A5C');   // o bloco destacado
+    expect(r.texto).toContain('>> EM ANEXO: a apresentação do escritório, em PDF.');
   });
 
   it('traz o bloco de verificacao, que e o que desarma a objecao de golpe', () => {

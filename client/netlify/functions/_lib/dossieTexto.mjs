@@ -63,11 +63,20 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
     O link já está no convite que chegou na sua agenda.</p>
 
   <p style="margin:0 0 16px">Enviamos este e-mail para que você chegue à conversa sabendo com
-    quem está falando. Em anexo vai uma apresentação do escritório: quem somos, os sócios,
-    como conduzimos um caso do início ao fim e como funciona a videochamada.</p>
+    quem está falando.</p>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
+         style="margin:0 0 20px;background:#F0F4F8;border-left:4px solid #1B3A5C;border-radius:4px">
+    <tr><td style="padding:16px 18px">
+      <p style="margin:0 0 6px;font-size:16px"><strong>📎 Em anexo: a apresentação do escritório,
+        em PDF</strong></p>
+      <p style="margin:0;color:#4b5563">Quem somos, os sócios com os números de OAB, a equipe,
+        como conduzimos um caso do início ao fim e como funciona a videochamada.</p>
+    </td></tr>
+  </table>
 
   <p style="margin:0 0 8px"><strong>Sobre a conversa</strong></p>
-  <p style="margin:0 0 16px">Dura cerca de 30 minutos e serve para entendermos a sua situação.
+  <p style="margin:0 0 16px">Dura de 10 a 15 minutos e serve para entendermos a sua situação.
     Você não precisa decidir nada durante a chamada. Se puder, tenha em mãos o contrato de
     compra da cota e o extrato ou os comprovantes de pagamento. Se não tiver, tudo bem: a
     conversa acontece do mesmo jeito.</p>
@@ -102,9 +111,12 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
     'O link já está no convite que chegou na sua agenda.',
     '',
     'Enviamos este e-mail para que você chegue à conversa sabendo com quem está falando.',
-    'Em anexo vai uma apresentação do escritório.',
     '',
-    'Sobre a conversa: dura cerca de 30 minutos e serve para entendermos a sua situação.',
+    '>> EM ANEXO: a apresentação do escritório, em PDF.',
+    '   Quem somos, os sócios com os números de OAB, a equipe, como conduzimos um caso',
+    '   do início ao fim e como funciona a videochamada.',
+    '',
+    'Sobre a conversa: dura de 10 a 15 minutos e serve para entendermos a sua situação.',
     'Você não precisa decidir nada durante a chamada. Se puder, tenha em mãos o contrato de',
     'compra da cota e o extrato ou os comprovantes de pagamento. Se não tiver, tudo bem.',
     '',
