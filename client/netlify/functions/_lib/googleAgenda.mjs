@@ -47,6 +47,21 @@ export async function listEvents(calendarId, timeMin, timeMax, accessToken) {
   return out;
 }
 
+/**
+ * Endereço do Meet do evento.
+ *
+ * O `hangoutLink` é o campo direto, mas nem todo evento com conferência o traz:
+ * quando a conferência é criada pela API, o endereço só aparece em
+ * `conferenceData.entryPoints`, no ponto de entrada de vídeo. Por isso as duas
+ * fontes, nesta ordem.
+ */
+export function linkDoMeet(ev) {
+  if (ev?.hangoutLink) return ev.hangoutLink;
+  const pontos = ev?.conferenceData?.entryPoints || [];
+  const video = pontos.find((p) => p.entryPointType === 'video' && p.uri);
+  return video ? video.uri : null;
+}
+
 /** Classifica um evento. Retorna a linha do atendimento, ou null se NÃO for atendimento de venda. */
 export function classifyEvent(ev, vendedoraEmail) {
   if (!ev || ev.status === 'cancelled') return null;
@@ -63,7 +78,17 @@ export function classifyEvent(ev, vendedoraEmail) {
     color_id: ev.colorId || null,
     scheduled_at: scheduledAt,
     tem_meet: temMeet,
-    raw: { summary: ev.summary || null, htmlLink: ev.htmlLink || null, colorId: ev.colorId || null },
+    // (12/08/2026) `meetLink` entra no raw, e não numa coluna nova, de propósito:
+    // o upsert já grava o raw inteiro e o sobrescreve a cada rodada, então em até
+    // 15 minutos TODOS os eventos da janela passam a ter o link, sem migração e
+    // sem mexer na RPC. É o que sustenta o botão "Entrar na videochamada" do
+    // lembrete do dia: sem ele o lembrete perde justamente o que importa.
+    raw: {
+      summary: ev.summary || null,
+      htmlLink: ev.htmlLink || null,
+      colorId: ev.colorId || null,
+      meetLink: linkDoMeet(ev),
+    },
   };
 }
 

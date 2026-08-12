@@ -1,0 +1,20 @@
+-- (12/08/2026) Cruzamento agenda<->Kommo: reavaliar os 'nao_encontrado'.
+-- Aplicado via MCP como migracao `agenda_kommo_match_reavaliar`.
+--
+-- O DEFEITO: a funcao avaliava SO quem tinha kommo_match nulo, ou seja, uma vez por
+-- evento e nunca mais. Se no instante em que o evento aparece o espelho kommo_leads
+-- ainda nao tem aquele lead, a linha era carimbada 'nao_encontrado' PARA SEMPRE.
+--
+-- PROVA: a videochamada da Fatima (14/08) estava 'nao_encontrado' e o lead 23036306
+-- existe no espelho, mesmo nome e telefone batendo exatamente.
+--
+-- MEDIDO antes de aplicar: 6 vinculos recuperados (Anderson, Dani, Fatima, Pedro,
+-- Ricardo, Wanderson). Os demais nao estao mesmo no espelho, nem procurando pelos
+-- 8 ultimos digitos — isso e questao do espelho, nao do cruzamento.
+--
+-- ⚠️ So reavalia atendimento futuro (ou de ate 1 dia atras): varrer as 3 mil linhas
+-- historicas a cada 15 min seria trabalho de graca, e para chamada que ja aconteceu
+-- o vinculo nao muda mais nada.
+--
+-- O corpo completo esta na migracao. Veja com:
+--   select pg_get_functiondef('public.agenda_kommo_match(text)'::regprocedure);
