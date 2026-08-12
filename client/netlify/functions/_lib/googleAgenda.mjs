@@ -67,5 +67,10 @@ export function classifyEvent(ev, vendedoraEmail) {
   };
 }
 
-/** Vendedoras monitoradas (lista fixa — decisão do Paulo 26/06). */
-export const VENDEDORAS = ['beatriz@advocaciacbc.com', 'marianamaciel@advocaciacbc.com', 'emerson@advocaciacbc.com', 'mizael@advocaciacbc.com'];
+/**
+ * Vendedoras monitoradas (lista fixa).
+ * 26/06/2026: Beatriz, Mariana Maciel, Emerson e Mizael.
+ * 12/08/2026 (decisão do Paulo): entra Ana Piva (anacristina@); sai Mizael, que
+ * não tinha nenhum atendimento nos 90 dias anteriores.
+ */
+export const VENDEDORAS = ['beatriz@advocaciacbc.com', 'marianamaciel@advocaciacbc.com', 'emerson@advocaciacbc.com', 'anacristina@advocaciacbc.com'];

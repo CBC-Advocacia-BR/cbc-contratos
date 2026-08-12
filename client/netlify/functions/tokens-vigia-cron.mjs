@@ -104,6 +104,19 @@ export default async (req) => {
     }));
   }
 
+  // ── Gmail da institucional@: sustenta o envio do dossie da videochamada ──
+  // Este é o token mais frágil do conjunto. O app OAuth deste projeto já teve
+  // refresh token morrer sozinho por estar em modo Testing (23/07/2026), e um
+  // token morto aqui significa dossiê nenhum enviado por semanas, em silêncio:
+  // ninguém repara na ausência de um e-mail que deveria ter saído.
+  if (process.env.GMAIL_OAUTH_REFRESH_TOKEN) {
+    checagens.push(checar('Gmail institucional', async () => {
+      const { tokenGmail } = await import('./_lib/gmailEnviar.mjs');
+      await tokenGmail();
+      return 'refresh token aceito, envio do dossie funcionando';
+    }));
+  }
+
   const resultados = await Promise.all(checagens);
   const quebrados = resultados.filter((r) => !r.ok);
 

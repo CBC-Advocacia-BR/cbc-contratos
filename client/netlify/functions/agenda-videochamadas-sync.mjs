@@ -61,11 +61,31 @@ export default async () => {
       match = m;
     } catch { /* best-effort */ }
 
+    // (12/08/2026) Dossie institucional por e-mail ao lead. Vai DEPOIS do upsert e
+    // do match com o Kommo de proposito: o worker precisa da linha ja gravada e,
+    // quando houver, do nome do lead como reserva.
+    //
+    // Com `await`, e nao fire-and-forget: a licao do item 96 da auditoria e que
+    // fetch sem await morre quando a function responde, e foi assim que o backup
+    // diario passou 16 dias sem rodar sem ninguem perceber.
+    let dossie = null;
+    try {
+      const r = await fetch(`${process.env.URL}/.netlify/functions/videochamada-dossie-worker`, {
+        method: 'POST',
+        headers: { 'x-cbc-interno': RPC_SECRET },
+        signal: AbortSignal.timeout(25000),
+      });
+      dossie = await r.json().catch(() => null);
+    } catch (e) {
+      // nunca derruba o sync das agendas, que alimenta o funil inteiro
+      await logAdvbox('dossie', 'erro', `despacho do dossie falhou: ${e.message}`.slice(0, 200), {}).catch(() => {});
+    }
+
     await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
     // (observ 28/07) heartbeat p/ o watchdog enxergar: o token Google que sustenta as
     // agendas ja expirou uma vez (23/07) sem alerta.
     await heartbeat('agenda-videochamadas-sync', true, `${rows.length} atendimentos de ${totalEventos} eventos`);
-    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match });
+    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match, dossie });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `videochamadas sync falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
     await heartbeat('agenda-videochamadas-sync', false, e.message);
