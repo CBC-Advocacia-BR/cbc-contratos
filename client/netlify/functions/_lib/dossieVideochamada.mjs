@@ -1,0 +1,90 @@
+/**
+ * Regras do envio do dossie: quem recebe e como a data e escrita. Modulo PURO.
+ * O texto do e-mail fica em dossieTexto.mjs, para separar decisao de copy.
+ */
+
+const INTERNO = /@advocaciacbc\.com$/i;
+const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira',
+              'quinta-feira', 'sexta-feira', 'sábado'];
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
+               'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+/**
+ * Decide se esta linha da agenda deve receber o dossie AGORA.
+ *
+ * A ordem das checagens importa para o log: o motivo devolvido e o PRIMEIRO que
+ * barrou, e os mais informativos ("sem_corte", "ja_enviado") vem antes dos mais
+ * banais, para o painel nao ficar cheio de "status_nao_agendada" quando na verdade
+ * a automacao inteira esta desligada.
+ *
+ * @returns {{ok: boolean, motivo: string|null}} motivo e um codigo estavel, para log
+ */
+export function elegivel(linha, config, agora = new Date()) {
+  if (!config?.ativo) return { ok: false, motivo: 'desligado' };
+
+  // Sem corte configurado o padrao e NAO enviar. O contrario transformaria um
+  // deploy distraido em milhares de e-mails para gente cuja videochamada ja
+  // aconteceu semanas atras.
+  if (!config.corte_em) return { ok: false, motivo: 'sem_corte' };
+
+  if (linha.dossie_email_em) return { ok: false, motivo: 'ja_enviado' };
+
+  const tentativas = Number(linha.dossie_email_tentativas || 0);
+  if (tentativas >= Number(config.max_tentativas || 3)) {
+    return { ok: false, motivo: 'tentativas_esgotadas' };
+  }
+
+  const visto = linha.primeiro_visto_em ? new Date(linha.primeiro_visto_em) : null;
+  if (!visto || visto < new Date(config.corte_em)) {
+    return { ok: false, motivo: 'anterior_ao_corte' };
+  }
+
+  if (linha.status !== 'agendada') return { ok: false, motivo: 'status_nao_agendada' };
+
+  const quando = linha.scheduled_at ? new Date(linha.scheduled_at) : null;
+  if (!quando || quando <= agora) return { ok: false, motivo: 'ja_passou' };
+
+  const email = String(linha.cliente_email || '').trim();
+  if (!email) return { ok: false, motivo: 'sem_email' };
+  if (INTERNO.test(email)) return { ok: false, motivo: 'email_interno' };
+
+  return { ok: true, motivo: null };
+}
+
+/**
+ * Data e hora por extenso, SEMPRE no horario de Brasilia.
+ *
+ * REGRA #11 do projeto: o runtime das functions e UTC, e uma chamada as 21h30 BRT
+ * ja e o dia seguinte em UTC. Escrever "sexta" numa chamada que o cliente tem na
+ * quinta e o erro classico deste projeto (auditoria de datas de 31/07/2026, 27
+ * ocorrencias corrigidas). Aqui o fuso e resolvido pelo Intl, que entende
+ * calendario, e nao por subtracao de 3 horas.
+ *
+ * @param {string} iso instante em ISO (o scheduled_at da agenda)
+ * @returns {{diaSemana: string, dataExtenso: string, dataCurta: string, hora: string, texto: string}}
+ */
+export function quandoPorExtenso(iso) {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(iso))
+    .reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {});
+
+  const dia = Number(partes.day);
+  const hora24 = Number(partes.hour) % 24;   // algumas implementacoes devolvem 24 na meia-noite
+  const minuto = Number(partes.minute);
+
+  // o indice do dia da semana sai de uma data ancorada ao MEIO-DIA BRT, para a
+  // hora nunca empurrar o calculo para o dia vizinho
+  const ancora = new Date(`${partes.year}-${partes.month}-${partes.day}T12:00:00-03:00`);
+  const diaSemana = DIAS[ancora.getUTCDay()];
+
+  const hora = minuto === 0 ? `${hora24}h` : `${hora24}h${String(minuto).padStart(2, '0')}`;
+  const dataExtenso = `${dia} de ${MESES[Number(partes.month) - 1]}`;
+  const dataCurta = `${String(dia).padStart(2, '0')}/${partes.month}`;
+
+  return {
+    diaSemana, dataExtenso, dataCurta, hora,
+    texto: `${diaSemana}, ${dataExtenso}, às ${hora}`,
+  };
+}

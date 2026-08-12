@@ -13,6 +13,18 @@ export function isPlainObject(v) {
   return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
+// Escapa texto que vai para dentro de HTML. Vive aqui, e nao numa copia por
+// arquivo, porque copia sempre nasce incompleta: a que existe no alertEmail.mjs
+// nao escapa aspas, o que basta para um valor injetado escapar de um atributo.
+export function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Retorna { ok:true } ou { ok:false, missing:[...], motivo:'...' }.
 // "Ausente" = undefined | null | '' (string vazia).
 export function requireFields(obj, fields) {
