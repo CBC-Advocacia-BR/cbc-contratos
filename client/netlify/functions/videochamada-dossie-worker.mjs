@@ -24,6 +24,18 @@ const DE = 'Conforto, Bergonsi & Cavalari Advogados <institucional@advocaciacbc.
 const ANEXO = 'CBC-Advogados-Apresentacao.pdf';
 const TETO_POR_RODADA = 25;   // 8 videochamadas por dia util: folga de 3x
 
+// ⚠️ Medido em producao (12/08/2026, virada de chave): cada dossie leva ~3,5s
+// (montar 4 MB + subir para o Gmail), e 17 seguidos levaram 55s. Isso passa do
+// tempo de uma function sincrona, e a chamada devolve resposta invalida no meio
+// do caminho. Naquele dia nao houve estrago porque cada linha e marcada logo
+// apos o envio, entao ninguem recebeu duas vezes, mas o retorno virou mentira.
+//
+// Em regime normal sao 1 ou 2 por rodada (8 por dia util em 32 rodadas), entao
+// isto so aparece quando ha acumulo: fila parada, cron fora do ar, virada de
+// chave. A guarda de tempo resolve sem depender de adivinhar quantos cabem: para
+// no limite e deixa o resto para a rodada seguinte, 45 minutos depois.
+const LIMITE_MS = 20000;
+
 const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json' },
 });
@@ -62,7 +74,13 @@ export default async (req) => {
     if (error) throw new Error(`dossie_pendentes: ${error.message}`);
 
     const agora = new Date();
+    const comecou = Date.now();
     for (const linha of linhas || []) {
+      if (Date.now() - comecou > LIMITE_MS) {
+        resumo.parou_por_tempo = true;
+        resumo.restaram = (linhas.length - resumo.enviados - resumo.pulados - resumo.falhas);
+        break;   // o que sobrou entra na proxima rodada, em 45 min
+      }
       const veredito = elegivel(linha, cfg, agora);
       if (!veredito.ok) {
         resumo.pulados += 1;
@@ -119,7 +137,9 @@ export default async (req) => {
     }
 
     const msg = `dossie: ${resumo.enviados} enviados, ${resumo.pulados} pulados, `
-              + `${resumo.falhas} falhas${modoTeste ? ' (MODO TESTE)' : ''} | ativos ok`;
+              + `${resumo.falhas} falhas${modoTeste ? ' (MODO TESTE)' : ''}`
+              + `${resumo.parou_por_tempo ? `, parou no tempo com ${resumo.restaram} na fila` : ''}`
+              + ' | ativos ok';
     if (resumo.enviados || resumo.falhas) {
       await logAdvbox('dossie', resumo.falhas ? 'aviso' : 'info', msg, resumo).catch(() => {});
     }
