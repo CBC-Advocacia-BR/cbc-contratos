@@ -78,11 +78,11 @@ describe('elegibilidade', () => {
 describe('data por extenso, sempre em BRT', () => {
   it('escreve o dia da semana, a data e a hora', () => {
     const q = quandoPorExtenso('2026-08-14T18:00:00Z');   // 15h BRT
-    expect(q.diaSemana).toBe('sexta-feira');
+    expect(q.diaSemana).toBe('Sexta-feira');
     expect(q.dataExtenso).toBe('14 de agosto');
     expect(q.dataCurta).toBe('14/08');
     expect(q.hora).toBe('15h');
-    expect(q.texto).toBe('sexta-feira, 14 de agosto, às 15h');
+    expect(q.texto).toBe('Sexta-feira, 14 de agosto, às 15h');
   });
 
   it('mostra os minutos quando nao e hora cheia', () => {
@@ -94,14 +94,14 @@ describe('data por extenso, sempre em BRT', () => {
     // chamada que o cliente tem na quinta e o erro classico deste projeto (ver a
     // auditoria de datas de 31/07/2026)
     const q = quandoPorExtenso('2026-08-14T00:30:00Z');
-    expect(q.diaSemana).toBe('quinta-feira');
+    expect(q.diaSemana).toBe('Quinta-feira');
     expect(q.dataExtenso).toBe('13 de agosto');
     expect(q.hora).toBe('21h30');
   });
 
   it('acerta o domingo e a segunda, que sao as bordas do vetor de dias', () => {
-    expect(quandoPorExtenso('2026-08-16T15:00:00Z').diaSemana).toBe('domingo');
-    expect(quandoPorExtenso('2026-08-17T15:00:00Z').diaSemana).toBe('segunda-feira');
+    expect(quandoPorExtenso('2026-08-16T15:00:00Z').diaSemana).toBe('Domingo');
+    expect(quandoPorExtenso('2026-08-17T15:00:00Z').diaSemana).toBe('Segunda-feira');
   });
 
   it('acerta a virada de mes', () => {

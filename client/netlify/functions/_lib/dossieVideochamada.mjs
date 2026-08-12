@@ -4,8 +4,12 @@
  */
 
 const INTERNO = /@advocaciacbc\.com$/i;
-const DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira',
-              'quinta-feira', 'sexta-feira', 'sábado'];
+// Maiuscula por decisao do Paulo (12/08/2026), olhando as amostras: na capa o dia
+// abre a linha de destaque, e "quinta-feira" em caixa baixa ali fica com cara de
+// texto solto. Vale para todos os usos (capa, assunto e corpo), para o material
+// nao falar duas linguas.
+const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+              'Quinta-feira', 'Sexta-feira', 'Sábado'];
 const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
                'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 

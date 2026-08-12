@@ -10,7 +10,7 @@ const base = (extra = {}) => montarEmail({
 
 describe('assunto', () => {
   it('diz o dia e a hora, que e o que faz abrir', () => {
-    expect(base().assunto).toBe('Sua videochamada de sexta-feira (14/08), às 15h');
+    expect(base().assunto).toBe('Sua videochamada de Sexta-feira (14/08), às 15h');
   });
 });
 
@@ -58,7 +58,7 @@ describe('corpo', () => {
   it('tem versao em texto puro, para quem bloqueia HTML', () => {
     const t = base().texto;
     expect(t).toContain('Olá, Fátima.');
-    expect(t).toContain('sexta-feira, 14 de agosto, às 15h');
+    expect(t).toContain('Sexta-feira, 14 de agosto, às 15h');
     expect(t).not.toMatch(/<[a-z]/i);
   });
 
