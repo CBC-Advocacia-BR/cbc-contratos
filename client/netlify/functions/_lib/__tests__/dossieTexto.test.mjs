@@ -62,6 +62,24 @@ describe('corpo', () => {
     expect(t).not.toMatch(/<[a-z]/i);
   });
 
+  it('manda remarcar pelo WhatsApp, com link clicavel', () => {
+    // decisao do Paulo (12/08): quem remarca decide em cima da hora, e e-mail
+    // tem latencia de horas
+    const r = base();
+    expect(r.html).toContain('(19) 98805-1878');
+    expect(r.html).toContain('https://wa.me/5519988051878');
+    expect(r.html).toContain('Falar no WhatsApp agora');
+    expect(r.html).not.toContain('é só responder este e-mail');
+    // no texto puro o link precisa ir na mao, senao ninguem consegue clicar
+    expect(r.texto).toContain('(19) 98805-1878');
+    expect(r.texto).toContain('https://wa.me/5519988051878');
+  });
+
+  it('o link do WhatsApp leva o numero em formato internacional', () => {
+    // wa.me sem o 55 abre conversa com numero errado
+    expect(base().html).toMatch(/wa\.me\/5519988051878/);
+  });
+
   it('devolve a vendedora como responder-para', () => {
     expect(base().responderPara).toBe('beatriz@advocaciacbc.com');
   });

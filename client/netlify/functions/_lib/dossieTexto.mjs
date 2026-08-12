@@ -22,6 +22,15 @@ const OAB = 'OAB/SP 55.227';
 const CNPJ = '56.096.172/0001-65';
 const ENDERECO = 'Rua Guatemala, 122, Jardim Santo Antônio, Americana/SP, CEP 13465-761';
 
+// Remarcacao vai pelo WhatsApp, nao por resposta ao e-mail (decisao do Paulo,
+// 12/08/2026): quem precisa remarcar costuma decidir em cima da hora, e e-mail
+// tem latencia de horas. O numero e o mesmo da ultima pagina do dossie.
+const WHATS_NUMERO = '(19) 98805-1878';
+const WHATS_LINK = 'https://wa.me/5519988051878';
+// texto ja preenchido na conversa: poupa a pessoa de explicar quem e
+const WHATS_LINK_COM_TEXTO = `${WHATS_LINK}?text=${
+  encodeURIComponent('Olá! Preciso remarcar a minha videochamada com o escritório.')}`;
+
 const preencher = (modelo, vars) =>
   String(modelo).replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? ''));
 
@@ -68,7 +77,15 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
     Advogados, ${OAB}, CNPJ ${CNPJ}.<br>${ENDERECO}.<br>
     Inscrição consultável no site da OAB/SP e em confortobergonsi.com.br.</p>
 
-  <p style="margin:0 0 16px">Se precisar remarcar, é só responder este e-mail.</p>
+  <p style="margin:0 0 8px"><strong>Se precisar remarcar</strong>, entre em contato imediatamente
+    pelo WhatsApp <strong>${WHATS_NUMERO}</strong>.</p>
+
+  <p style="margin:0 0 20px">
+    <a href="${WHATS_LINK_COM_TEXTO}"
+       style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;
+              font-weight:bold;font-size:15px;padding:12px 22px;border-radius:8px">
+      Falar no WhatsApp agora</a>
+  </p>
 
   <p style="margin:0 0 4px">Até ${quando.diaSemana},</p>
   <p style="margin:0 0 24px"><strong>${ESCRITORIO}</strong></p>
@@ -95,7 +112,8 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
     `Conforto, Bergonsi & Cavalari Sociedade de Advogados, ${OAB}, CNPJ ${CNPJ}.`,
     `${ENDERECO}.`,
     '',
-    'Se precisar remarcar, é só responder este e-mail.',
+    `Se precisar remarcar, entre em contato imediatamente pelo WhatsApp ${WHATS_NUMERO}:`,
+    WHATS_LINK,
     '',
     `Até ${quando.diaSemana},`,
     'Conforto, Bergonsi & Cavalari Advogados',
