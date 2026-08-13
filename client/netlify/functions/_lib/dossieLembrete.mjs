@@ -30,11 +30,13 @@ const botao = (href, cor, texto) => `<a href="${href}"
          font-weight:bold;font-size:16px;padding:14px 26px;border-radius:8px">${texto}</a>`;
 
 /**
- * @param {{nome: string|null, quando: object, meetLink: string|null, config: object}} p
- *   `quando` é o retorno de quandoPorExtenso()
+ * @param {{nome: string|null, quando: object, meetLink: string|null,
+ *           urlSim: string|null, urlRemarcar: string|null, config: object}} p
+ *   `quando` é o retorno de quandoPorExtenso(); as urls vêm assinadas por
+ *   confirmacaoToken. Sem elas o e-mail cai no botão único do WhatsApp.
  * @returns {{assunto: string, html: string, texto: string}}
  */
-export function montarLembrete({ nome, quando, meetLink, config = {} }) {
+export function montarLembrete({ nome, quando, meetLink, urlSim, urlRemarcar, config = {} }) {
   const assunto = String(config.assunto_lembrete || 'Sua videochamada é hoje às {{hora}}')
     .replace(/\{\{hora\}\}/g, quando.hora)
     .replace(/\{\{primeiro_nome\}\}/g, nome || '')
@@ -67,10 +69,18 @@ export function montarLembrete({ nome, quando, meetLink, config = {} }) {
   <p style="margin:0 0 20px">Se puder, tenha em mãos o contrato de compra da cota e o extrato
     ou os comprovantes de pagamento. Se não tiver, tudo bem.</p>
 
-  <p style="margin:0 0 10px"><strong>Não vai conseguir?</strong> Avise pelo WhatsApp
+  ${urlSim ? `<p style="margin:0 0 10px"><strong>Nos avise se estará por lá.</strong> É um clique,
+    e ajuda a nossa equipe a se organizar.</p>
+
+  <p style="margin:0 0 24px">
+    ${botao(urlSim, '#1B7F4B', 'Confirmo que estarei')}
+    <span style="display:inline-block;width:8px"></span>
+    ${botao(urlRemarcar || WHATS_LINK_COM_TEXTO, '#8A6A12', 'Preciso remarcar')}
+  </p>`
+    : `<p style="margin:0 0 10px"><strong>Não vai conseguir?</strong> Avise pelo WhatsApp
     <strong>${WHATS_NUMERO}</strong> e a gente remarca.</p>
 
-  <p style="margin:0 0 24px">${botao(WHATS_LINK_COM_TEXTO, '#25D366', 'Falar no WhatsApp')}</p>
+  <p style="margin:0 0 24px">${botao(WHATS_LINK_COM_TEXTO, '#25D366', 'Falar no WhatsApp')}</p>`}
 
   <p style="margin:0 0 4px">Até logo,</p>
   <p style="margin:0"><strong>${ESCRITORIO}</strong></p>
@@ -92,8 +102,12 @@ export function montarLembrete({ nome, quando, meetLink, config = {} }) {
     'Se puder, tenha em mãos o contrato de compra da cota e o extrato ou os comprovantes',
     'de pagamento. Se não tiver, tudo bem.',
     '',
-    `Não vai conseguir? Avise pelo WhatsApp ${WHATS_NUMERO} e a gente remarca:`,
-    WHATS_LINK,
+    ...(urlSim
+      ? ['Nos avise se estará por lá, é um clique:',
+         `Confirmo que estarei: ${urlSim}`,
+         `Preciso remarcar: ${urlRemarcar || WHATS_LINK}`]
+      : [`Não vai conseguir? Avise pelo WhatsApp ${WHATS_NUMERO} e a gente remarca:`,
+         WHATS_LINK]),
     '',
     'Até logo,',
     'Conforto, Bergonsi & Cavalari Advogados',

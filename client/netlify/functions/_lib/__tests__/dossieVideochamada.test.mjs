@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { elegivel, quandoPorExtenso } from '../dossieVideochamada.mjs';
+import { elegivel, quandoPorExtenso, horarioCivilizado } from '../dossieVideochamada.mjs';
 
 const AGORA = new Date('2026-08-12T18:00:00Z');   // 15h BRT
 const CONFIG = { ativo: true, corte_em: '2026-08-10T00:00:00Z', max_tentativas: 3 };
@@ -108,5 +108,31 @@ describe('data por extenso, sempre em BRT', () => {
     const q = quandoPorExtenso('2026-09-01T12:00:00Z');
     expect(q.dataExtenso).toBe('1 de setembro');
     expect(q.dataCurta).toBe('01/09');
+  });
+});
+
+describe('janela de horario civilizado', () => {
+  // o worker roda 24h por dia; sem esta guarda os 8 e-mails de recuperacao
+  // pendentes teriam saido as 3 da manha
+  const em = (iso) => new Date(iso);
+
+  it('recusa madrugada', () => {
+    expect(horarioCivilizado(em('2026-08-13T06:00:00Z'))).toBe(false);   // 3h BRT
+    expect(horarioCivilizado(em('2026-08-13T08:59:00Z'))).toBe(false);   // 5h59 BRT
+  });
+
+  it('aceita a partir das 7h BRT', () => {
+    expect(horarioCivilizado(em('2026-08-13T10:00:00Z'))).toBe(true);    // 7h BRT
+    expect(horarioCivilizado(em('2026-08-13T15:00:00Z'))).toBe(true);    // 12h BRT
+  });
+
+  it('recusa a partir das 20h BRT', () => {
+    expect(horarioCivilizado(em('2026-08-13T22:59:00Z'))).toBe(true);    // 19h59 BRT
+    expect(horarioCivilizado(em('2026-08-13T23:00:00Z'))).toBe(false);   // 20h BRT
+  });
+
+  it('a janela e configuravel', () => {
+    expect(horarioCivilizado(em('2026-08-13T12:00:00Z'), 10, 18)).toBe(false);  // 9h BRT
+    expect(horarioCivilizado(em('2026-08-13T13:00:00Z'), 10, 18)).toBe(true);   // 10h BRT
   });
 });

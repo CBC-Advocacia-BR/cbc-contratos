@@ -1,0 +1,22 @@
+-- (12/08/2026) Recuperacao de no-show + confirmacao em um clique no lembrete.
+-- Aplicado via MCP como migracao `dossie_recuperacao_e_confirmacao`.
+--
+-- COLUNAS: recuperacao_em, recuperacao_erro, confirmado_em, confirmacao.
+--
+-- O FILTRO da recuperacao_pendentes e o coracao disto, e cada linha saiu de um
+-- caso real medido:
+--   a) a fonte e a AUDITORIA DO MEET, nao a cor: 156 chamadas realizadas seguem
+--      com a cor 'agendada' porque a vendedora nunca voltou para marcar;
+--   b) mas a cor VETA: em 7 casos o Meet disse no_show e a vendedora marcou
+--      'realizada' ou 'fechou', TRES delas clientes que fecharam contrato.
+--      Filtrar so pelo Meet mandaria "podemos remarcar?" para quem acabou de
+--      contratar. Discordancia entre as fontes = nao falar nada;
+--   c) quem ja remarcou sozinho fica de fora (9 dos 85 no-shows de 60 dias);
+--   d) so depois de uma noite e no maximo 7 dias depois.
+--
+-- confirmar_presenca e chamada pelo endpoint publico videochamada-confirmar, que
+-- so aceita link ASSINADO (_lib/confirmacaoToken.mjs): os ids do Google Calendar
+-- nao sao secretos, entao sem assinatura qualquer um confirmaria presenca em nome
+-- de outro cliente varrendo ids.
+--
+--   select pg_get_functiondef('public.recuperacao_pendentes(text,integer)'::regprocedure);

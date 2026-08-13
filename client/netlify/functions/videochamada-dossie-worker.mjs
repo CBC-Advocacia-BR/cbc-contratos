@@ -17,13 +17,14 @@
  */
 import { db, logAdvbox, heartbeat, getConfig } from './_lib/botDb.mjs';
 import { primeiroNome } from './_lib/dossieNome.mjs';
-import { elegivel, quandoPorExtenso } from './_lib/dossieVideochamada.mjs';
+import { elegivel, quandoPorExtenso, horarioCivilizado } from './_lib/dossieVideochamada.mjs';
 import { montarEmail } from './_lib/dossieTexto.mjs';
 import { montarLembrete } from './_lib/dossieLembrete.mjs';
 import { montarRecuperacao } from './_lib/dossieRecuperacao.mjs';
 import { montarDossie, ativosDisponiveis } from './_lib/dossiePdf.mjs';
 import { enviarPeloGmail } from './_lib/gmailEnviar.mjs';
 import { avaliarEmail, textoDoAviso } from './_lib/emailSuspeito.mjs';
+import { linkConfirmacao } from './_lib/confirmacaoToken.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const DE = 'Conforto, Bergonsi & Cavalari Advogados <institucional@advocaciacbc.com>';
@@ -145,7 +146,8 @@ export default async (req) => {
 
   const resumo = {
     enviados: 0, pulados: 0, falhas: 0,
-    avisos_email: 0, lembretes: 0, lembretes_falha: 0, detalhe: [],
+    avisos_email: 0, lembretes: 0, lembretes_falha: 0,
+    recuperacoes: 0, recuperacoes_falha: 0, detalhe: [],
   };
 
   try {
@@ -153,7 +155,7 @@ export default async (req) => {
     // seja importado por JS, e sem os ativos o envio quebra so na hora do envio.
     const ativos = ativosDisponiveis();
     if (!ativos.ok) {
-      const msg = `ativos do dossie ausentes no servidor: ${ativos.faltando.join(', ')}`;
+      const msg = `ativos do PDF de apresentacao ausentes no servidor: ${ativos.faltando.join(', ')}`;
       await logAdvbox('dossie', 'erro', msg, ativos).catch(() => {});
       await heartbeat('videochamada-dossie', false, msg);
       return json(500, { ok: false, error: msg, ativos });
@@ -230,7 +232,7 @@ export default async (req) => {
       });
       if (erroMarca) {
         await logAdvbox('dossie', 'erro',
-          `dossie enviado mas NAO marcado (${linha.event_id}): ${erroMarca.message}`.slice(0, 300),
+          `PDF de apresentacao enviado mas NAO marcado (${linha.event_id}): ${erroMarca.message}`.slice(0, 300),
           { event_id: linha.event_id, risco: 'reenvio' }).catch(() => {});
       }
 
@@ -241,7 +243,7 @@ export default async (req) => {
         resumo.falhas += 1;
         resumo.detalhe.push({ event_id: linha.event_id, erro: resultado.erro });
         await logAdvbox('dossie', 'erro',
-          `dossie falhou p/ ${linha.event_id}: ${resultado.erro}`.slice(0, 300),
+          `PDF de apresentacao falhou p/ ${linha.event_id}: ${resultado.erro}`.slice(0, 300),
           { event_id: linha.event_id }).catch(() => {});
       }
     }
@@ -249,7 +251,12 @@ export default async (req) => {
     // ── 2. LEMBRETE de 3 horas antes ───────────────────────────────────────
     // Independe de o dossie ter saido: quem agendou com menos de 3h de
     // antecedencia recebe so o lembrete, e ainda assim vale.
-    if (cfg.ativo && cfg.corte_em) {
+    // A janela vale para lembrete e recuperacao, nao para o PDF de apresentacao:
+    // aquele sai logo apos o agendamento, que so acontece em horario comercial.
+    const civil = horarioCivilizado(agora, Number(cfg.hora_inicio ?? 7), Number(cfg.hora_fim ?? 20));
+    if (!civil) resumo.fora_da_janela = true;
+
+    if (civil && cfg.ativo && cfg.corte_em) {
       const { data: paraLembrar, error: erroLembrete } = await db.rpc('lembrete_pendentes', {
         p_chave: RPC_SECRET, p_horas: horasLembrete, p_limite: TETO_POR_RODADA,
       });
@@ -264,8 +271,13 @@ export default async (req) => {
 
         const nome = primeiroNome(linha.titulo, linha.nome_kommo);
         const quando = quandoPorExtenso(linha.scheduled_at);
+        // links assinados: sem a assinatura ninguem confirma presenca em nome de
+        // outro cliente varrendo ids de agenda, que nao sao secretos
+        const base = process.env.URL || 'https://contratos-cbc.netlify.app';
         const { assunto, html, texto } = montarLembrete({
           nome, quando, meetLink: linha.meet_link, config: cfg,
+          urlSim: linkConfirmacao(base, linha.event_id, 'sim', RPC_SECRET),
+          urlRemarcar: linkConfirmacao(base, linha.event_id, 'remarcar', RPC_SECRET),
         });
 
         const r = await enviarPeloGmail({
@@ -291,21 +303,69 @@ export default async (req) => {
       }
     }
 
-    const msg = `dossie: ${resumo.enviados} enviados, ${resumo.pulados} pulados, `
+    // ── 3. RECUPERACAO de quem faltou ──────────────────────────────────────
+    // O filtro mora na RPC recuperacao_pendentes, e cada linha dele saiu de um
+    // caso real: a auditoria do Meet como fonte, a cor da agenda como VETO (7
+    // casos onde as fontes discordam, 3 deles clientes que fecharam contrato) e
+    // quem ja remarcou sozinho fora.
+    if (civil && cfg.ativo && cfg.corte_em && cfg.recuperacao !== false) {
+      const { data: faltosos, error: erroRec } = await db.rpc('recuperacao_pendentes', {
+        p_chave: RPC_SECRET, p_limite: 25,
+      });
+      if (erroRec) throw new Error(`recuperacao_pendentes: ${erroRec.message}`);
+
+      for (const linha of faltosos || []) {
+        if (acabouOTempo()) { resumo.parou_por_tempo = true; break; }
+        if (new Date(linha.primeiro_visto_em) < new Date(cfg.corte_em)) continue;
+        if (!avaliarEmail(linha.cliente_email).ok) continue;
+
+        const nome = primeiroNome(linha.titulo, linha.nome_kommo);
+        const { assunto, html, texto } = montarRecuperacao({
+          nome, quandoFaltou: quandoPorExtenso(linha.scheduled_at), config: cfg,
+        });
+
+        const r = await enviarPeloGmail({
+          de: DE,
+          para: paraQuem(linha.cliente_email),
+          responderPara: cfg.responder_para === 'institucional' ? null : linha.vendedora_email,
+          assunto, html, texto,
+        });
+
+        await db.rpc('recuperacao_marcar', {
+          p_chave: RPC_SECRET, p_event_id: linha.event_id, p_erro: r.ok ? null : r.erro,
+        });
+
+        if (r.ok) {
+          resumo.recuperacoes += 1;
+          resumo.detalhe.push({ event_id: linha.event_id, recuperacao: true, teste: modoTeste });
+        } else {
+          resumo.recuperacoes_falha += 1;
+          await logAdvbox('dossie', 'erro',
+            `recuperacao falhou p/ ${linha.event_id}: ${r.erro}`.slice(0, 300),
+            { event_id: linha.event_id }).catch(() => {});
+        }
+      }
+    }
+
+    const msg = `PDF de apresentacao: ${resumo.enviados} enviados, ${resumo.pulados} pulados, `
               + `${resumo.falhas} falhas | lembretes: ${resumo.lembretes}`
               + `${resumo.lembretes_falha ? ` (${resumo.lembretes_falha} falha)` : ''}`
+              + `${resumo.recuperacoes ? ` | recuperacao: ${resumo.recuperacoes}` : ''}`
               + `${resumo.avisos_email ? ` | ${resumo.avisos_email} aviso(s) de e-mail errado` : ''}`
               + `${modoTeste ? ' (MODO TESTE)' : ''}`
-              + `${resumo.parou_por_tempo ? ', parou no tempo' : ''}`;
-    if (resumo.enviados || resumo.falhas || resumo.lembretes || resumo.avisos_email) {
-      const nivel = (resumo.falhas || resumo.lembretes_falha) ? 'aviso' : 'info';
+              + `${resumo.parou_por_tempo ? ', parou no tempo' : ''}`
+              + `${resumo.fora_da_janela ? ' | fora da janela de horario' : ''}`;
+    if (resumo.enviados || resumo.falhas || resumo.lembretes || resumo.avisos_email
+        || resumo.recuperacoes || resumo.recuperacoes_falha) {
+      const nivel = (resumo.falhas || resumo.lembretes_falha || resumo.recuperacoes_falha)
+        ? 'aviso' : 'info';
       await logAdvbox('dossie', nivel, msg, resumo).catch(() => {});
     }
     await heartbeat('videochamada-dossie', true, msg);
     return json(200, { ok: true, modo_teste: modoTeste, ativos: ativos.bytes, ...resumo });
   } catch (e) {
     const msg = String(e?.message || e).slice(0, 300);
-    await logAdvbox('dossie', 'erro', `worker do dossie falhou: ${msg}`, {}).catch(() => {});
+    await logAdvbox('dossie', 'erro', `worker do PDF de apresentacao falhou: ${msg}`, {}).catch(() => {});
     await heartbeat('videochamada-dossie', false, msg);
     return json(500, { ok: false, error: msg });
   }

@@ -56,6 +56,28 @@ export function elegivel(linha, config, agora = new Date()) {
 }
 
 /**
+ * Estamos em horario civilizado para mandar e-mail?
+ *
+ * ⚠️ Descoberto na hora de ligar a recuperacao: o worker roda de 15 em 15 minutos,
+ * 24 horas por dia, entao os 8 e-mails de recuperacao pendentes sairiam as 3 da
+ * manha. E-mail de escritorio chegando de madrugada parece spam, e o material
+ * inteiro existe para o escritorio parecer serio.
+ *
+ * Vale para lembrete e recuperacao. NAO vale para o PDF de apresentacao: aquele
+ * sai logo apos o agendamento, e o agendamento so acontece em horario comercial.
+ *
+ * @param {Date} agora
+ * @param {number} inicio hora BRT a partir da qual pode enviar (padrao 7)
+ * @param {number} fim    hora BRT ate a qual pode enviar, exclusiva (padrao 20)
+ */
+export function horarioCivilizado(agora = new Date(), inicio = 7, fim = 20) {
+  const hora = Number(new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', hour: '2-digit', hour12: false,
+  }).format(agora)) % 24;
+  return hora >= inicio && hora < fim;
+}
+
+/**
  * Data e hora por extenso, SEMPRE no horario de Brasilia.
  *
  * REGRA #11 do projeto: o runtime das functions e UTC, e uma chamada as 21h30 BRT
