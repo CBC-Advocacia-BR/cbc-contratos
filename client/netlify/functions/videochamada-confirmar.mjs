@@ -41,6 +41,20 @@ export default async (req) => {
   const resposta = url.searchParams.get('r') || '';
   const token = url.searchParams.get('t') || '';
 
+  // Amostra: a assinatura e conferida igual, mas nada e gravado. Existe para a
+  // equipe clicar nos botoes do e-mail de teste e ver a tela real, sem tocar no
+  // agendamento de nenhum cliente.
+  if (eventId.startsWith('AMOSTRA-') && conferir(eventId, resposta, token, RPC_SECRET)) {
+    if (resposta === 'remarcar') {
+      return new Response(null, { status: 302, headers: { Location: WHATS, 'Cache-Control': 'no-store' } });
+    }
+    return html(pagina('Presença confirmada',
+      'Obrigado! Nos vemos no horário combinado. O link da videochamada está no convite '
+      + 'da sua agenda e no e-mail de lembrete.<br><br>'
+      + '<span style="font-size:13px;color:#9ca3af">(esta é a tela de amostra: nada foi '
+      + 'registrado)</span>', '#15803d'));
+  }
+
   if (!conferir(eventId, resposta, token, RPC_SECRET)) {
     return html(pagina('Link inválido ou expirado',
       'Se você quer confirmar ou remarcar a sua videochamada, fale com a gente pelo WhatsApp '

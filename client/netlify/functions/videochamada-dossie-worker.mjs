@@ -98,8 +98,14 @@ async function enviarAmostra({ amostra, para, cfg }) {
   const vendedora = 'anacristina@advocaciacbc.com';
 
   if (amostra === 'lembrete') {
+    // com os MESMOS botoes assinados que vao no e-mail real; o id 'AMOSTRA-' faz o
+    // endpoint publico mostrar a tela de verdade sem gravar nada
+    const base = process.env.URL || 'https://contratos-cbc.netlify.app';
+    const idAmostra = 'AMOSTRA-lembrete';
     const m = montarLembrete({
       nome, quando, meetLink: 'https://meet.google.com/exemplo-teste-abc', config: cfg,
+      urlSim: linkConfirmacao(base, idAmostra, 'sim', RPC_SECRET),
+      urlRemarcar: linkConfirmacao(base, idAmostra, 'remarcar', RPC_SECRET),
     });
     return enviarPeloGmail({
       de: DE, para: destino, responderPara: vendedora,
