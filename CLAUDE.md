@@ -7,11 +7,37 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
-### 🟡 DEPLOYADO 12/08/2026, DESLIGADO — dossiê institucional por e-mail ao agendar videochamada
+### ✅ DEPLOYADO 14/08/2026 — um PDF de apresentação por closer, com Dr./Dra.
 
-**Deploy `6a7ccd0a...`** (rollback: `./rollback.sh 6a7cc2cd27c059ea5b70ef9b`). **927 testes** (78 novos), lint no baseline 18, smoke 200/200/200. Migração `dossie_videochamada` aplicada.
+**Deploy `6a7f2808c53472add845f66b`** (rollback: `./rollback.sh 6a7da8902d35468dea4db4f9`). **1.008 testes**, lint no baseline 18, smoke 200/200/200. Sem migração.
 
-⚠️ **NADA é enviado hoje.** `bot_config.dossie_videochamada` está com `ativo: false` **e** `corte_em: null`, duas travas independentes, e `modo_teste: true`. Ligar exige os dois passos do Paulo no Google (abaixo).
+Ideia dos próprios closers, aprovada pelo Paulo: cada um tem o seu export do Canva, **com a foto dele**. O lead chega à conversa sabendo quem vai aparecer do outro lado, que é o antídoto mais direto para o medo de golpe.
+
+🔑 **Dos 13 páginas de cada arquivo, 11 são idênticas nos quatro** (medido página a página por hash de pixel). Guardar quatro documentos completos custaria ~16 MB e faria uma correção numa página comum precisar ser refeita quatro vezes. Então o comum sai de **um** arquivo:
+
+| Ativo | O que é |
+|---|---|
+| `dossie-miolo.pdf` | as 10 páginas iguais para todos (3,9 MB) |
+| `dossie-closer-<slug>.pdf` | 2 páginas do closer: "quem irá te atender" + "como funciona" (~0,5 MB cada) |
+| `dossie-videochamada-generico.pdf` | "como funciona" sem closer, para agenda fora do mapa (0,4 MB) |
+
+O envio monta na hora (105 ms, 4,4 MB) na **ordem do Canva**, mantida por decisão do Paulo: capa · closer · miolo 1-5 · closer (como funciona) · miolo 6-10. A promoção da página "como funciona" para a 2ª posição (12/08) deixou de fazer sentido com a do closer ocupando aquele lugar.
+
+**Agenda sem closer cadastrado não quebra e não mostra o rosto do colega errado**: cai na versão genérica, um documento completo, só sem a página de apresentação. O log grava `closer: 'generico'`, que é o único sinal de que uma agenda entrou sem estar no mapa.
+
+**Tratamento Dr./Dra. no PDF e no e-mail** (decisão do Paulo, 14/08). A linha do nome é **reescrita inteira** (redação + `TextWriter`), não prefixada: o Canva compõe o nome com um espaço entre cada letra e a linha é centralizada, então enfiar "Dra." numa linha já composta desalinharia tudo. Tamanho auto-ajustado para caber em 500 pt (25,4 a 31,4 pt conforme o nome). ⚠️ Os closers **não** têm número de OAB na página; se algum deles não for advogado, vale conferir o Provimento 205/2021 do CFOAB.
+
+⚠️ **O nome vive em dois lugares por necessidade**: o mapa em `_lib/dossieClosers.mjs` alimenta o **e-mail**, e o espelho em `gerar_ativos.py` escreve dentro do **PDF**. `dossieClosers.test.mjs` compara os dois lendo a camada de texto do PDF gerado, então divergir reprova em vez de chegar ao cliente.
+
+⚠️ **Os exports de 14/08 voltaram a dizer "cerca de 30 minutos"** e trouxeram `{{nome}}`/`{{horário}}` de volta na capa. O remendo da duração foi reaplicado nos quatro. Enquanto o marketing não corrigir no Canva, **todo export novo precisa passar pelo gerador**.
+
+Chaves das agendas: `anacristina@` (Dra. Ana Cristina Piva) · `beatriz@` (Dra. Beatriz Cavalcante) · `emerson@` (Dr. Emerson Calista) · `marianamaciel@` (**Dra. Mariana Beraldo** — a caixa postal ficou com o sobrenome antigo, confirmado pelo Paulo).
+
+### 🟢 LIGADO desde 13/08/2026 — dossiê institucional por e-mail ao agendar videochamada
+
+**Deploy inicial `6a7ccd0a...`**. Migração `dossie_videochamada` aplicada.
+
+⚠️ **Este bloco descrevia o sistema DESLIGADO; ele está ligado desde 13/08** (`ativo: true`, `corte_em` definido, `modo_teste: false`), por autorização do Paulo ("pode disparar para todas reuniões pendentes e para todas novas a partir de agora"). O cron passou de 45 para **15 minutos**. Entraram depois do texto abaixo: lembrete de 3 h antes com link do Meet e **confirmação em um clique** (`videochamada-confirmar`, link assinado por HMAC), **e-mail de recuperação de no-show**, **aviso de e-mail digitado errado** (nota no Kommo ou sino) e a **janela de horário civilizado** de 7 h às 20 h BRT.
 
 Quando a videochamada é agendada numa das agendas, o lead recebe no e-mail o PDF institucional do Canva **com o nome dele e o dia e a hora na capa**, enviado de `institucional@advocaciacbc.com`. Objetivo: autoridade, menos no-show (**22,3% de falta** em 90 dias, 96 de 430 conferidas pelo Meet) e desarmar a objeção de golpe.
 
@@ -19,7 +45,8 @@ Quando a videochamada é agendada numa das agendas, o lead recebe no e-mail o PD
 
 | Peça | O que é |
 |---|---|
-| `_assets/dossie-{capa-base,miolo}.pdf` + 2 TTF | 16,5 MB do Canva viraram capa de 49 KB e miolo de 4,1 MB. Gerados **offline** por `scripts/dossie/gerar_ativos.py` |
+| `_assets/*.pdf` + 2 TTF | 17 MB do Canva viram capa de 49 KB, miolo de 3,9 MB e 2 páginas por closer. Gerados **offline** por `scripts/dossie/gerar_ativos.py` (ver o bloco de 14/08) |
+| `_lib/dossieClosers.mjs` | mapa agenda → closer, fonte única do nome no e-mail |
 | `_lib/dossieNome.mjs` | cascata do nome |
 | `_lib/dossieVideochamada.mjs` | elegibilidade + data por extenso em BRT |
 | `_lib/dossieTexto.mjs` | assunto e corpo do e-mail (editáveis em `bot_config`) |
