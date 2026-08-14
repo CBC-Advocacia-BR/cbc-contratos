@@ -22,6 +22,7 @@ import { montarEmail } from './_lib/dossieTexto.mjs';
 import { montarLembrete } from './_lib/dossieLembrete.mjs';
 import { montarRecuperacao } from './_lib/dossieRecuperacao.mjs';
 import { montarDossie, ativosDisponiveis } from './_lib/dossiePdf.mjs';
+import { closerDaAgenda } from './_lib/dossieClosers.mjs';
 import { enviarPeloGmail } from './_lib/gmailEnviar.mjs';
 import { avaliarEmail, textoDoAviso } from './_lib/emailSuspeito.mjs';
 import { linkConfirmacao } from './_lib/confirmacaoToken.mjs';
@@ -82,11 +83,13 @@ async function avisarEmailSuspeito(linha, avaliacao, quandoTexto) {
  * exemplo. Existe porque revisar copy olhando codigo nao funciona, e esperar um
  * atendimento real para ver como o e-mail chega e lento demais.
  *
- * POST { amostra: 'dossie' | 'lembrete' | 'recuperacao', para: 'alguem@...' }
+ * POST { amostra: 'dossie' | 'lembrete' | 'recuperacao', para: 'alguem@...',
+ *        agenda?: 'beatriz@advocaciacbc.com' }
+ * `agenda` escolhe de qual closer sai o PDF e o nome no texto; sem ela vale a Ana.
  * Exige x-bot-key. So envia para endereco @advocaciacbc.com: amostra e coisa
  * interna, e um erro de digitacao aqui mandaria texto de teste para um cliente.
  */
-async function enviarAmostra({ amostra, para, cfg }) {
+async function enviarAmostra({ amostra, para, agenda, cfg }) {
   const destino = String(para || '').trim().toLowerCase();
   if (!/@advocaciacbc\.com$/.test(destino)) {
     return { ok: false, erro: 'amostra so vai para endereco do escritorio' };
@@ -95,7 +98,8 @@ async function enviarAmostra({ amostra, para, cfg }) {
   const nome = 'Sueli';
   const quando = quandoPorExtenso(new Date(Date.now() + 3 * 3600e3).toISOString());
   const ontem = quandoPorExtenso(new Date(Date.now() - 20 * 3600e3).toISOString());
-  const vendedora = 'anacristina@advocaciacbc.com';
+  const vendedora = String(agenda || 'anacristina@advocaciacbc.com').trim().toLowerCase();
+  const closer = closerDaAgenda(vendedora);
 
   if (amostra === 'lembrete') {
     // com os MESMOS botoes assinados que vao no e-mail real; o id 'AMOSTRA-' faz o
@@ -103,7 +107,7 @@ async function enviarAmostra({ amostra, para, cfg }) {
     const base = process.env.URL || 'https://contratos-cbc.netlify.app';
     const idAmostra = 'AMOSTRA-lembrete';
     const m = montarLembrete({
-      nome, quando, meetLink: 'https://meet.google.com/exemplo-teste-abc', config: cfg,
+      nome, quando, meetLink: 'https://meet.google.com/exemplo-teste-abc', closer, config: cfg,
       urlSim: linkConfirmacao(base, idAmostra, 'sim', RPC_SECRET),
       urlRemarcar: linkConfirmacao(base, idAmostra, 'remarcar', RPC_SECRET),
     });
@@ -122,11 +126,14 @@ async function enviarAmostra({ amostra, para, cfg }) {
   }
 
   if (amostra === 'dossie') {
-    const m = montarEmail({ nome, quando, vendedoraEmail: vendedora, config: cfg });
-    const pdf = await montarDossie({ nome, quandoTexto: quando.texto });
+    const m = montarEmail({ nome, quando, vendedoraEmail: vendedora, closer, config: cfg });
+    const pdf = await montarDossie({
+      nome, quandoTexto: quando.texto, closerSlug: closer?.slug || null,
+    });
     return enviarPeloGmail({
       de: DE, para: destino, responderPara: vendedora,
-      assunto: `[AMOSTRA] ${m.assunto}`, html: m.html, texto: m.texto,
+      assunto: `[AMOSTRA${closer ? ` ${closer.nome.split(/\s+/)[0]}` : ''}] ${m.assunto}`,
+      html: m.html, texto: m.texto,
       anexo: { nome: ANEXO, bytes: pdf },
     });
   }
@@ -146,8 +153,12 @@ export default async (req) => {
   if (corpo?.amostra) {
     if (!doPainel) return json(403, { ok: false, error: 'amostra exige x-bot-key' });
     const cfg = (await getConfig())?.dossie_videochamada || {};
-    const r = await enviarAmostra({ amostra: corpo.amostra, para: corpo.para, cfg });
-    return json(r.ok ? 200 : 400, { ok: r.ok, amostra: corpo.amostra, para: corpo.para, erro: r.erro });
+    const r = await enviarAmostra({
+      amostra: corpo.amostra, para: corpo.para, agenda: corpo.agenda, cfg,
+    });
+    return json(r.ok ? 200 : 400, {
+      ok: r.ok, amostra: corpo.amostra, para: corpo.para, agenda: corpo.agenda, erro: r.erro,
+    });
   }
 
   const resumo = {
@@ -214,13 +225,17 @@ export default async (req) => {
 
       const nome = primeiroNome(linha.titulo, linha.nome_kommo);
       const quando = quandoPorExtenso(linha.scheduled_at);
+      // quem atende sai da AGENDA em que o evento nasceu, nao do titulo
+      const closer = closerDaAgenda(linha.vendedora_email);
       const { assunto, html, texto, responderPara } = montarEmail({
-        nome, quando, vendedoraEmail: linha.vendedora_email, config: cfg,
+        nome, quando, vendedoraEmail: linha.vendedora_email, closer, config: cfg,
       });
 
       let resultado;
       try {
-        const pdf = await montarDossie({ nome, quandoTexto: quando.texto });
+        const pdf = await montarDossie({
+          nome, quandoTexto: quando.texto, closerSlug: closer?.slug || null,
+        });
         resultado = await enviarPeloGmail({
           de: DE,
           para: paraQuem(linha.cliente_email),
@@ -244,7 +259,12 @@ export default async (req) => {
 
       if (resultado.ok) {
         resumo.enviados += 1;
-        resumo.detalhe.push({ event_id: linha.event_id, enviado: true, teste: modoTeste });
+        // o closer vai no log: "generico" no painel e o sinal de que uma agenda
+        // entrou sem estar no mapa, e ninguem saberia de outro jeito
+        resumo.detalhe.push({
+          event_id: linha.event_id, enviado: true, teste: modoTeste,
+          closer: closer?.slug || 'generico',
+        });
       } else {
         resumo.falhas += 1;
         resumo.detalhe.push({ event_id: linha.event_id, erro: resultado.erro });
@@ -282,6 +302,7 @@ export default async (req) => {
         const base = process.env.URL || 'https://contratos-cbc.netlify.app';
         const { assunto, html, texto } = montarLembrete({
           nome, quando, meetLink: linha.meet_link, config: cfg,
+          closer: closerDaAgenda(linha.vendedora_email),
           urlSim: linkConfirmacao(base, linha.event_id, 'sim', RPC_SECRET),
           urlRemarcar: linkConfirmacao(base, linha.event_id, 'remarcar', RPC_SECRET),
         });

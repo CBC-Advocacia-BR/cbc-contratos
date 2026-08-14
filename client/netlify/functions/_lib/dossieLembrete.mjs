@@ -31,18 +31,31 @@ const botao = (href, cor, texto) => `<a href="${href}"
 
 /**
  * @param {{nome: string|null, quando: object, meetLink: string|null,
- *           urlSim: string|null, urlRemarcar: string|null, config: object}} p
- *   `quando` é o retorno de quandoPorExtenso(); as urls vêm assinadas por
- *   confirmacaoToken. Sem elas o e-mail cai no botão único do WhatsApp.
+ *           urlSim: string|null, urlRemarcar: string|null, closer: object|null,
+ *           config: object}} p
+ *   `quando` é o retorno de quandoPorExtenso(); `closer` o de closerDaAgenda(), que
+ *   pode ser null. As urls vêm assinadas por confirmacaoToken; sem elas o e-mail
+ *   cai no botão único do WhatsApp.
  * @returns {{assunto: string, html: string, texto: string}}
  */
-export function montarLembrete({ nome, quando, meetLink, urlSim, urlRemarcar, config = {} }) {
+export function montarLembrete({ nome, quando, meetLink, urlSim, urlRemarcar,
+                                closer = null, config = {} }) {
   const assunto = String(config.assunto_lembrete || 'Sua videochamada é hoje às {{hora}}')
     .replace(/\{\{hora\}\}/g, quando.hora)
     .replace(/\{\{primeiro_nome\}\}/g, nome || '')
     .trim();
 
   const saudacao = nome ? `Olá, ${escapeHtml(nome)}.` : 'Olá!';
+
+  // No dia da conversa o nome de quem vai atender vale de novo: o primeiro e-mail
+  // saiu dias antes e a pessoa nao lembra. Aqui vai a forma curta, porque o corpo
+  // inteiro deste e-mail cabe numa tela de celular e o nome completo pesaria.
+  const comQuem = closer
+    ? ` com ${closer.artigo} <strong>${escapeHtml(closer.nomeCurto)}</strong>`
+    : ' com o nosso escritório';
+  const comQuemTexto = closer
+    ? ` com ${closer.artigo} ${closer.nomeCurto}`
+    : ' com o nosso escritório';
 
   // Sem link do Meet o botão principal não existe; o e-mail ainda serve como
   // lembrete, e aponta para o convite da agenda em vez de um botão quebrado.
@@ -58,7 +71,7 @@ export function montarLembrete({ nome, quando, meetLink, urlSim, urlRemarcar, co
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px">
   <p style="margin:0 0 16px">${saudacao}</p>
 
-  <p style="margin:0 0 20px">Sua videochamada com o nosso escritório é
+  <p style="margin:0 0 20px">Sua videochamada${comQuem} é
     <strong>hoje às ${quando.hora}</strong>.</p>
 
   ${blocoEntrar}
@@ -89,7 +102,7 @@ export function montarLembrete({ nome, quando, meetLink, urlSim, urlRemarcar, co
   const texto = [
     nome ? `Olá, ${nome}.` : 'Olá!',
     '',
-    `Sua videochamada com o nosso escritório é HOJE às ${quando.hora}.`,
+    `Sua videochamada${comQuemTexto} é HOJE às ${quando.hora}.`,
     '',
     meetLink ? `Entrar na videochamada: ${meetLink}` : 'O link está no convite da sua agenda.',
     '',

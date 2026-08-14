@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { montarLembrete } from '../dossieLembrete.mjs';
 import { quandoPorExtenso } from '../dossieVideochamada.mjs';
+import { closerDaAgenda } from '../dossieClosers.mjs';
 
 const QUANDO = quandoPorExtenso('2026-08-13T13:30:00Z');   // 10h30 BRT
 const MEET = 'https://meet.google.com/abc-defg-hij';
@@ -16,6 +17,28 @@ describe('assunto', () => {
   it('e trocavel sem deploy', () => {
     const r = base({ config: { assunto_lembrete: '{{primeiro_nome}}, é hoje às {{hora}}' } });
     expect(r.assunto).toBe('Sueli, é hoje às 10h30');
+  });
+});
+
+describe('com quem e a conversa', () => {
+  it('usa a forma curta, que cabe numa tela de celular', () => {
+    // no primeiro e-mail vai o nome completo; aqui o corpo inteiro e curto de
+    // proposito e "Dra. Mariana Beraldo" pesaria
+    const r = base({ closer: closerDaAgenda('marianamaciel@advocaciacbc.com') });
+    expect(r.html).toContain('Sua videochamada com a <strong>Dra. Mariana</strong>');
+    expect(r.texto).toContain('Sua videochamada com a Dra. Mariana é HOJE');
+  });
+
+  it('concorda o artigo com o tratamento', () => {
+    const r = base({ closer: closerDaAgenda('emerson@advocaciacbc.com') });
+    expect(r.html).toContain('com o <strong>Dr. Emerson</strong>');
+  });
+
+  it('sem closer volta a falar em nome do escritorio', () => {
+    const r = base();
+    expect(r.html).toContain('Sua videochamada com o nosso escritório');
+    expect(r.texto).toContain('com o nosso escritório');
+    expect(r.html).not.toContain('undefined');
   });
 });
 

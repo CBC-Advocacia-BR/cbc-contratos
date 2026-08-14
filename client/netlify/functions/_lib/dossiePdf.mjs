@@ -1,11 +1,19 @@
 /**
- * Monta o dossie personalizado: desenha a capa e cola o miolo atras.
+ * Monta o dossie personalizado: desenha a capa e cola o resto atras.
  *
  * O QUE ESTA FUNCAO NAO FAZ, de proposito: comprimir imagem e remover texto. As
  * duas coisas sao feitas UMA VEZ, offline, por scripts/dossie/gerar_ativos.py. O
  * pdf-lib nem saberia fazer, e repetir isso a cada envio seria desperdicio: o
  * miolo e sempre o mesmo. Medido: 98 ms por dossie, 4,1 MB de saida, 19 links
  * das materias preservados.
+ *
+ * O DOCUMENTO E MONTADO EM TRES PARTES, e nao guardado inteiro por closer:
+ *   dossie-capa-base.pdf           1 pagina, o nome e a data sao desenhados aqui
+ *   dossie-closer-<slug>.pdf       2 paginas do closer (apresentacao + como funciona)
+ *   dossie-miolo.pdf               10 paginas iguais para todos
+ * Guardar os quatro documentos completos custaria ~16 MB e faria uma correcao numa
+ * pagina comum ter de ser refeita quatro vezes. A ordem final e a do Canva:
+ * capa, closer, miolo[0..4], closer(como funciona), miolo[5..9].
  *
  * GEOMETRIA (medida na capa do Canva de agosto/2026): pagina 810 x 1012,5 pt,
  * fundo #86CBFF, texto #0b2342, zona livre entre y=300 e y=555 medindo do TOPO
@@ -17,6 +25,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { readFileSync, statSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { CLOSERS } from './dossieClosers.mjs';
 
 const NAVY = rgb(0x0b / 255, 0x23 / 255, 0x42 / 255);
 const ALT_PAGINA = 1012.5;
@@ -61,24 +70,23 @@ function caminhoAtivo(n) {
 }
 
 // lidos uma vez por instancia da function, nao a cada envio
-let cache = null;
-function ativos() {
-  if (!cache) {
-    cache = {
-      capa: readFileSync(caminhoAtivo('dossie-capa-base.pdf')),
-      miolo: readFileSync(caminhoAtivo('dossie-miolo.pdf')),
-      media: readFileSync(caminhoAtivo('Montserrat-Medium.ttf')),
-      bold: readFileSync(caminhoAtivo('Montserrat-Bold.ttf')),
-    };
-  }
-  return cache;
-}
+const cache = new Map();
+const lido = (n) => {
+  if (!cache.has(n)) cache.set(n, readFileSync(caminhoAtivo(n)));
+  return cache.get(n);
+};
+
+/** Arquivo das 2 paginas do closer, ou null para agenda fora do mapa. */
+const arquivoDoCloser = (slug) => (slug ? `dossie-closer-${slug}.pdf` : null);
 
 const NOMES_ATIVOS = ['dossie-capa-base.pdf', 'dossie-miolo.pdf',
-                      'Montserrat-Medium.ttf', 'Montserrat-Bold.ttf'];
+                      'dossie-videochamada-generico.pdf',
+                      'Montserrat-Medium.ttf', 'Montserrat-Bold.ttf',
+                      ...Object.values(CLOSERS).map((c) => arquivoDoCloser(c.slug))];
 
 /**
- * Os quatro ativos chegaram ao servidor?
+ * Todos os ativos chegaram ao servidor? (capa, miolo, generico, 2 fontes e um
+ * arquivo por closer)
  *
  * Existe por causa de uma armadilha que so aparece em producao: o empacotador da
  * Netlify segue os imports de JS e ignora qualquer outro arquivo. Sem o
@@ -86,8 +94,12 @@ const NOMES_ATIVOS = ['dossie-capa-base.pdf', 'dossie-miolo.pdf',
  * envio de verdade, quando estoura ENOENT. Como o worker so le os ativos ao montar
  * um PDF, um sistema desligado (ou sem pendencias) nunca revelaria a falta.
  *
- * Chamado a cada rodada do worker, custa 4 statSync e transforma uma falha muda
- * numa linha no console do Monitor.
+ * Confere os arquivos dos closers TAMBEM: sem isso, um PDF de closer que nao subiu
+ * so apareceria quando aquela pessoa especifica tivesse um agendamento, e no meio
+ * de um dia de trabalho.
+ *
+ * Chamado a cada rodada do worker, custa um statSync por ativo e transforma uma
+ * falha muda numa linha no console do Monitor.
  *
  * @returns {{ok: boolean, faltando: string[], bytes: Object<string, number>}}
  */
@@ -132,18 +144,19 @@ export function quebrarLinhas(texto, fonte, tamanho, larguraMax) {
 }
 
 /**
- * @param {{nome: string|null, quandoTexto: string}} p
- * @returns {Promise<Buffer>} PDF de 12 paginas, pronto para anexar
+ * @param {{nome: string|null, quandoTexto: string, closerSlug?: string|null}} p
+ *   closerSlug ausente ou desconhecido = versao generica, sem a pagina de
+ *   apresentacao e com a "como funciona" sem foto de ninguem.
+ * @returns {Promise<Buffer>} PDF de 13 paginas (12 na versao generica)
  */
-export async function montarDossie({ nome, quandoTexto }) {
-  const a = ativos();
-  const doc = await PDFDocument.load(a.capa);
+export async function montarDossie({ nome, quandoTexto, closerSlug = null }) {
+  const doc = await PDFDocument.load(lido('dossie-capa-base.pdf'));
   doc.registerFontkit(fontkit);
   // subset:true embute so os glifos usados, o que mantem a saida enxuta.
   // A fonte inteira precisa estar aqui (e nao o subconjunto que veio do Canva)
   // porque um nome com "Ç" ou "Õ" fora do subconjunto sairia EM BRANCO.
-  const med = await doc.embedFont(a.media, { subset: true });
-  const bold = await doc.embedFont(a.bold, { subset: true });
+  const med = await doc.embedFont(lido('Montserrat-Medium.ttf'), { subset: true });
+  const bold = await doc.embedFont(lido('Montserrat-Bold.ttf'), { subset: true });
   const pagina = doc.getPage(0);
 
   pagina.drawText(nome ? `Olá, ${nome}.` : 'Olá!', {
@@ -158,9 +171,29 @@ export async function montarDossie({ nome, quandoTexto }) {
 
   pagina.drawText(quandoTexto, { x: X, y: doTopo(512), size: 29, font: bold, color: NAVY });
 
-  const src = await PDFDocument.load(a.miolo);
-  const paginas = await doc.copyPages(src, src.getPageIndices());
-  for (const p of paginas) doc.addPage(p);
+  // Um closer que nao esta no mapa nao pode virar erro nem virar o rosto do
+  // colega errado: cai na versao generica, que e um documento completo, so sem a
+  // pagina de apresentacao.
+  const arquivo = arquivoDoCloser(closerSlug);
+  const temCloser = !!arquivo && NOMES_ATIVOS.includes(arquivo);
+
+  const miolo = await PDFDocument.load(lido('dossie-miolo.pdf'));
+  const comuns = await doc.copyPages(miolo, miolo.getPageIndices());
+
+  if (temCloser) {
+    const src = await PDFDocument.load(lido(arquivo));
+    const [apresentacao, comoFunciona] = await doc.copyPages(src, [0, 1]);
+    doc.addPage(apresentacao);
+    comuns.slice(0, 5).forEach((p) => doc.addPage(p));
+    doc.addPage(comoFunciona);
+    comuns.slice(5).forEach((p) => doc.addPage(p));
+  } else {
+    const src = await PDFDocument.load(lido('dossie-videochamada-generico.pdf'));
+    const [comoFunciona] = await doc.copyPages(src, [0]);
+    comuns.slice(0, 5).forEach((p) => doc.addPage(p));
+    doc.addPage(comoFunciona);
+    comuns.slice(5).forEach((p) => doc.addPage(p));
+  }
 
   doc.setTitle('Conforto, Bergonsi & Cavalari Advogados');
   doc.setAuthor('Conforto, Bergonsi & Cavalari Sociedade de Advogados');

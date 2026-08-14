@@ -62,44 +62,46 @@ describe('ativos do dossie', () => {
     expect(statSync(ativo('dossie-capa-base.pdf')).size).toBeLessThan(300 * 1024);
   });
 
-  it('o miolo tem as 11 paginas restantes', async () => {
+  it('o miolo tem as 10 paginas comuns a todos os closers', async () => {
     const doc = await PDFDocument.load(readFileSync(ativo('dossie-miolo.pdf')));
-    expect(doc.getPageCount()).toBe(11);
+    expect(doc.getPageCount()).toBe(10);
   });
 
-  it('o miolo diz a duracao NOVA, e nao a antiga', async () => {
-    // o e-mail diz 10 a 15 minutos; se o anexo disser 30, ele contradiz o
-    // proprio e-mail na pagina mais lida do documento
-    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
-    expect(texto).toContain('10 a 15 minutos');
-    expect(texto).not.toContain('30 minutos');
+  it('o miolo NAO leva pagina de closer nenhum', async () => {
+    // as duas personalizadas (apresentacao e "como funciona") moram nos arquivos
+    // por closer; se uma vazar para o miolo, todo cliente veria o rosto da
+    // mesma pessoa, qualquer que fosse a agenda
+    const doc = await PDFDocument.load(readFileSync(ativo('dossie-miolo.pdf')));
+    for (let i = 1; i <= doc.getPageCount(); i += 1) {
+      const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), i);
+      expect(texto, `pagina ${i}`).not.toContain('Quem irá te atender');
+      expect(texto, `pagina ${i}`).not.toContain('minutos e é conduzida');
+    }
   });
 
-  it('o remendo da duracao nao comeu o titulo da pagina', async () => {
-    // a redacao remove o texto INTEIRO que encostar no retangulo, e o titulo
-    // desce ate y=442,3: por 6 pt de folga ele sumia
-    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
-    expect(texto).toContain('chamada?');
-  });
-
-  it('o miolo comeca por "Como funciona a videochamada"', async () => {
-    // a razao de existir da reordenacao: essa e a pagina que reduz falta, e no
-    // celular quase ninguem chegava ate a setima
-    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 1);
-    expect(texto).toContain('10 a 15 minutos');
-    expect(texto).toContain('não é necessário tomar nenhuma decisão');
-  });
-
-  it('o miolo termina pelos contatos', async () => {
-    const texto = await textoDaPagina(ativo('dossie-miolo.pdf'), 11);
-    expect(texto).toContain('institucional@advocaciacbc.com');
-    expect(texto).toContain('56.096.172/0001-65');
+  it('o miolo comeca pelo "Sobre" e termina pelos contatos', async () => {
+    // texto justificado: o Canva separa as palavras com varios espacos
+    const inicio = (await textoDaPagina(ativo('dossie-miolo.pdf'), 1)).replace(/\s+/g, ' ');
+    expect(inicio).toContain('Desde 2017');
+    const fim = await textoDaPagina(ativo('dossie-miolo.pdf'), 10);
+    expect(fim).toContain('institucional@advocaciacbc.com');
+    expect(fim).toContain('56.096.172/0001-65');
   });
 
   it('o miolo cabe em anexo de e-mail', () => {
     // 4,1 MB medido. O teto existe porque acima de ~10 MB varios provedores
     // recusam o anexo e o e-mail some sem erro visivel do nosso lado.
     expect(statSync(ativo('dossie-miolo.pdf')).size).toBeLessThan(6 * 1024 * 1024);
+  });
+
+  it('o generico existe, com a duracao certa e sem rosto de closer no texto', async () => {
+    // e ele que salva o dia em que entrar um closer novo, ou alguem sair
+    const doc = await PDFDocument.load(readFileSync(ativo('dossie-videochamada-generico.pdf')));
+    expect(doc.getPageCount()).toBe(1);
+    const texto = await textoDaPagina(ativo('dossie-videochamada-generico.pdf'), 1);
+    expect(texto).toContain('10 a 15 minutos');
+    expect(texto).not.toContain('30 minutos');
+    expect(texto).toContain('chamada?');   // o titulo sobreviveu a redacao
   });
 
   it('as duas fontes estao presentes e sao TTF de verdade', () => {
@@ -110,5 +112,34 @@ describe('ativos do dossie', () => {
       expect(bytes.length).toBeGreaterThan(50_000);
       expect(bytes.subarray(0, 4).toString('hex')).toBe('00010000'); // assinatura TrueType
     }
+  });
+});
+
+describe('as 2 paginas de cada closer', () => {
+  it.each(['anacristina', 'beatriz', 'emerson', 'mariana'])('%s', async (slug) => {
+    const arquivo = ativo(`dossie-closer-${slug}.pdf`);
+
+    const doc = await PDFDocument.load(readFileSync(arquivo));
+    expect(doc.getPageCount()).toBe(2);
+    const { width, height } = doc.getPage(0).getSize();
+    expect(Math.round(width)).toBe(810);
+    expect(Math.round(height * 10)).toBe(10125);
+
+    // 1a: quem ira te atender, com o tratamento e sem sobra do nome antigo
+    const apresentacao = (await textoDaPagina(arquivo, 1)).replace(/\s+/g, ' ');
+    expect(apresentacao).toContain('Quem irá te atender');
+    // "D R A." ou "D R." (o espaco entre R e A tambem e literal aqui: o nome sai
+    // do Canva com um espaco entre cada letra)
+    expect(apresentacao).toMatch(/D R( A)?\./);
+
+    // 2a: como funciona, com a duracao remendada e o titulo intacto
+    const chamada = await textoDaPagina(arquivo, 2);
+    expect(chamada).toContain('10 a 15 minutos');
+    expect(chamada).not.toContain('30 minutos');
+    expect(chamada).toContain('chamada?');
+    expect(chamada).toContain('não é necessário tomar nenhuma decisão');
+
+    // leve: sao 4 arquivos, e todos viajam no bundle da function
+    expect(statSync(arquivo).size).toBeLessThan(1.5 * 1024 * 1024);
   });
 });

@@ -1,13 +1,16 @@
 /**
  * Assunto e corpo do e-mail que acompanha o dossie. Modulo PURO.
  *
- * TRES ESCOLHAS DE CONTEUDO, e o porque de cada uma:
+ * QUATRO ESCOLHAS DE CONTEUDO, e o porque de cada uma:
  *  1. o corpo REPETE o essencial do anexo (duracao, que nao precisa decidir nada,
  *     o que ajuda ter em maos): anexo de 4,5 MB muita gente nao abre no celular;
  *  2. o bloco "nossos dados" existe so para desarmar a objecao de golpe, que e o
  *     objetivo numero um do material, e e justamente o que falta no PDF do Canva
  *     (que nao traz o endereco do escritorio em pagina nenhuma);
- *  3. sem travessao em lugar nenhum (REGRA #6 do CLAUDE.md).
+ *  3. o bloco "quem vai te atender" nomeia a pessoa e aponta a pagina em que ela
+ *     aparece (decisao do Paulo, 14/08/2026): chegar sabendo o rosto de quem vai
+ *     estar do outro lado e o antidoto mais direto para o medo de golpe;
+ *  4. sem travessao em lugar nenhum (REGRA #6 do CLAUDE.md).
  *
  * O Responder-para vai na VENDEDORA: nao a poe como destinataria, mas faz a
  * resposta do lead chegar em quem vai atende-lo, em vez de morrer numa caixa
@@ -35,11 +38,13 @@ const preencher = (modelo, vars) =>
   String(modelo).replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? ''));
 
 /**
- * @param {{nome: string|null, quando: object, vendedoraEmail: string, config: object}} p
- *   `quando` e o retorno de quandoPorExtenso()
+ * @param {{nome: string|null, quando: object, vendedoraEmail: string,
+ *           closer: object|null, config: object}} p
+ *   `quando` e o retorno de quandoPorExtenso(); `closer` o de closerDaAgenda(),
+ *   que pode ser null (agenda fora do mapa) e ai o bloco de apresentacao some.
  * @returns {{assunto: string, html: string, texto: string, responderPara: string}}
  */
-export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
+export function montarEmail({ nome, quando, vendedoraEmail, closer = null, config = {} }) {
   const vars = {
     primeiro_nome: nome || '',
     dia_semana: quando.diaSemana,
@@ -55,6 +60,18 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
 
   const saudacao = nome ? `Olá, ${escapeHtml(nome)}.` : 'Olá!';
 
+  // Dizer o nome de quem vai atender e a versao mais forte de "voce sabe com quem
+  // esta falando": a pessoa chega a chamada esperando um rosto conhecido, e nao um
+  // desconhecido qualquer. Sem closer no mapa o bloco some, e o e-mail continua
+  // correto, so mais impessoal.
+  const blocoCloser = closer ? `
+  <p style="margin:0 0 8px"><strong>Quem vai te atender</strong></p>
+  <p style="margin:0 0 16px">A sua conversa será com ${closer.artigo}
+    <strong>${escapeHtml(closer.completo)}</strong>, da nossa equipe. A foto
+    ${closer.artigo === 'a' ? 'dela' : 'dele'} está na segunda página do PDF em anexo, para
+    você já saber quem vai aparecer na chamada.</p>
+` : '';
+
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f2937;max-width:600px">
   <p style="margin:0 0 16px">${saudacao}</p>
 
@@ -64,7 +81,7 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
 
   <p style="margin:0 0 16px">Enviamos este e-mail para que você chegue à conversa sabendo com
     quem está falando.</p>
-
+${blocoCloser}
   <table role="presentation" cellpadding="0" cellspacing="0" width="100%"
          style="margin:0 0 20px;background:#F0F4F8;border-left:4px solid #1B3A5C;border-radius:4px">
     <tr><td style="padding:16px 18px">
@@ -112,6 +129,12 @@ export function montarEmail({ nome, quando, vendedoraEmail, config = {} }) {
     '',
     'Enviamos este e-mail para que você chegue à conversa sabendo com quem está falando.',
     '',
+    ...(closer
+      ? [`Quem vai te atender: a sua conversa será com ${closer.artigo} ${closer.completo}, da`,
+         `nossa equipe. A foto ${closer.artigo === 'a' ? 'dela' : 'dele'} está na segunda página do PDF em anexo, para você já`,
+         'saber quem vai aparecer na chamada.',
+         '']
+      : []),
     '>> EM ANEXO: a apresentação do escritório, em PDF.',
     '   Quem somos, os sócios com os números de OAB, a equipe, como conduzimos um caso',
     '   do início ao fim e como funciona a videochamada.',

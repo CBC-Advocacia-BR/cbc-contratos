@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { montarEmail } from '../dossieTexto.mjs';
 import { quandoPorExtenso } from '../dossieVideochamada.mjs';
+import { closerDaAgenda } from '../dossieClosers.mjs';
 
 const QUANDO = quandoPorExtenso('2026-08-14T18:00:00Z');
 const base = (extra = {}) => montarEmail({
@@ -92,6 +93,43 @@ describe('corpo', () => {
 
   it('devolve a vendedora como responder-para', () => {
     expect(base().responderPara).toBe('beatriz@advocaciacbc.com');
+  });
+});
+
+describe('quem vai atender', () => {
+  const comCloser = (email) => base({ closer: closerDaAgenda(email) });
+
+  it('nomeia a closer com o tratamento e aponta a pagina do PDF', () => {
+    const r = comCloser('marianamaciel@advocaciacbc.com');
+    expect(r.html).toContain('Quem vai te atender');
+    expect(r.html).toContain('Dra. Mariana Beraldo');
+    expect(r.html).toContain('segunda página do PDF');
+    expect(r.texto).toContain('Dra. Mariana Beraldo');
+  });
+
+  it('concorda o artigo e o pronome com o tratamento', () => {
+    // o HTML e escrito em varias linhas; o que importa e a frase, nao a indentacao
+    const frase = (email) => comCloser(email).html.replace(/\s+/g, ' ');
+    expect(frase('emerson@advocaciacbc.com')).toContain('será com o <strong>Dr. Emerson');
+    expect(frase('emerson@advocaciacbc.com')).toContain('A foto dele está');
+    expect(frase('beatriz@advocaciacbc.com')).toContain('será com a <strong>Dra. Beatriz');
+    expect(frase('beatriz@advocaciacbc.com')).toContain('A foto dela está');
+  });
+
+  it('sem closer o bloco some inteiro, e o e-mail continua correto', () => {
+    // agenda fora do mapa: o PDF vai na versao generica, sem pagina de
+    // apresentacao, entao apontar "a foto esta na segunda pagina" seria mentira
+    const r = base();
+    expect(r.html).not.toContain('Quem vai te atender');
+    expect(r.html).not.toContain('segunda página');
+    expect(r.texto).not.toContain('Quem vai te atender');
+    expect(r.html).not.toContain('undefined');
+  });
+
+  it('nao deixa o bloco colar no paragrafo seguinte', () => {
+    // o bloco entra no meio de um template; sem quebra a lista de anexo sobe junto
+    expect(comCloser('beatriz@advocaciacbc.com').texto)
+      .toContain('saber quem vai aparecer na chamada.\n\n>> EM ANEXO');
   });
 });
 
