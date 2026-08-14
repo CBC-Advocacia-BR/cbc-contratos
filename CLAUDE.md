@@ -31,7 +31,11 @@ O envio monta na hora (105 ms, 4,4 MB) na **ordem do Canva**, mantida por decis�
 
 ⚠️ **Os exports de 14/08 voltaram a dizer "cerca de 30 minutos"** e trouxeram `{{nome}}`/`{{horário}}` de volta na capa. O remendo da duração foi reaplicado nos quatro. Enquanto o marketing não corrigir no Canva, **todo export novo precisa passar pelo gerador**.
 
-Chaves das agendas: `anacristina@` (Dra. Ana Cristina Piva) · `beatriz@` (Dra. Beatriz Cavalcante) · `emerson@` (Dr. Emerson Calista) · `marianamaciel@` (**Dra. Mariana Beraldo** — a caixa postal ficou com o sobrenome antigo, confirmado pelo Paulo).
+Chaves das agendas: `anacristina@` (Dra. Ana Cristina Piva) · `beatriz@` (Dra. Beatriz Cavalcante) · `emerson@` (Dr. Emerson Calista) · `marianamaciel@` (**Dra. Mariana Beraldo** — a caixa postal ficou com o sobrenome antigo, confirmado pelo Paulo). Conferido na tabela: essas quatro são as **únicas** que aparecem em `agenda_videochamadas`, então nenhum agendamento cai no genérico hoje.
+
+**Ninguém recebe as duas versões.** Os 32 que já receberam a antiga (11 com a chamada ainda por acontecer) têm `dossie_email_em` preenchido, e isso barra em dois lugares independentes: a RPC `dossie_pendentes` nem devolve a linha, e o `elegivel()` responderia `ja_enviado`. A substituição vale para agendamento novo, não para reenvio.
+
+**Migração `dossie_claim_atomico`** (arquivo `supabase_dossie_claim_atomico.sql`): as três filas (dossiê, lembrete, recuperação) eram SELECT-depois-UPDATE, sem o lock atômico que a REGRA #3 exige. Duas rodadas sobrepostas mandariam o mesmo e-mail duas vezes, e a janela abre justamente quando alguém dispara o worker à mão logo depois do cron. Agora a seleção **reserva** (`<fila>_lock_em` + `for update skip locked`), com expiração de 10 min para worker que morre no meio. ⚠️ Sem parâmetro novo de propósito: um `p_lock_min` com default criaria a mesma ambiguidade de nome que derrubou o `cleanup_old_logs`.
 
 ### 🟢 LIGADO desde 13/08/2026 — dossiê institucional por e-mail ao agendar videochamada
 
