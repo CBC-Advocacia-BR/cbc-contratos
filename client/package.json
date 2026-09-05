@@ -17,6 +17,7 @@
     "assets:webp": "node scripts/generate-webp.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@heroicons/react": "^2.2.0",
     "@sentry/react": "^10.47.0",
     "@supabase/supabase-js": "^2.100.0",
