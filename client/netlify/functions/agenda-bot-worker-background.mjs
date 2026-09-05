@@ -336,23 +336,23 @@ export default async (req) => {
     if (!texto && msg.anexoLink) {
       imagemTipo = tipoAnexoImagem(msg.anexoTipo, msg.anexoLink);
       if (imagemTipo && anexoPermitido(msg.anexoLink)) {
+        let pular = false;
         try {
           const head = await fetch(msg.anexoLink, { method: 'HEAD', signal: AbortSignal.timeout(10000) });
-          const cl = head.headers.get('content-length');
-          if (Number(cl) > 4_000_000) {
-            await logAdvbox('agenda', 'aviso', `imagem acima do teto (${cl} bytes) — nao baixada`, { leadId });
-          } else {
+          const cl = Number(head.headers.get('content-length'));
+          if (Number.isFinite(cl) && cl > 4_000_000) { pular = true; await logAdvbox('agenda', 'aviso', `imagem acima do teto (${cl} bytes)`, { leadId }); }
+        } catch { /* HEAD falhou: segue p/ o GET, o teto pos-download segura */ }
+        if (!pular) {
+          try {
             const r = await fetch(msg.anexoLink, { signal: AbortSignal.timeout(15000) });
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const ct = String(r.headers.get('content-type') || '');
-            if (!ct.startsWith('image/')) {
-              await logAdvbox('agenda', 'aviso', `anexo nao e imagem (content-type: ${ct}) — nao baixado`, { leadId });
-            } else {
-              const buf = Buffer.from(await r.arrayBuffer());
-              if (buf.length <= 4_000_000) imagemBase64 = buf.toString('base64');
-            }
-          }
-        } catch (e) { await logAdvbox('agenda', 'aviso', `imagem nao baixada: ${e.message}`, { leadId }); }
+            if (!ct.startsWith('image/')) throw new Error(`content-type ${ct || 'vazio'}`);
+            const buf = Buffer.from(await r.arrayBuffer());
+            if (buf.length <= 4_000_000) imagemBase64 = buf.toString('base64');
+            else await logAdvbox('agenda', 'aviso', `imagem acima do teto apos download (${buf.length} bytes)`, { leadId });
+          } catch (e) { await logAdvbox('agenda', 'aviso', `imagem nao baixada: ${e.message}`, { leadId }); }
+        }
       }
       if (!imagemBase64) await logAdvbox('agenda', 'info', 'anexo nao suportado — ignorado', { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
     }
