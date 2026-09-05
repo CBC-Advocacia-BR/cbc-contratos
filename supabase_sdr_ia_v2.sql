@@ -70,7 +70,9 @@ returns table (grade_inicio time, grade_fim time, grade_dias int[])
 language plpgsql security definer set search_path = public as $$
 begin
   if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
-  return query select c.grade_inicio, c.grade_fim, c.grade_dias from sdr_config c where c.id = 1;
+  -- casts explicitos: sdr_config e tabela de OUTRO sistema (nao nasce em nenhum .sql daqui) e
+  -- as colunas podem ser time/text e int[]/smallint[]. O cast normaliza sem exigir DDL la.
+  return query select c.grade_inicio::time, c.grade_fim::time, c.grade_dias::int[] from sdr_config c where c.id = 1;
 end $$;
 
 -- a policy da v1 liberava a LINHA INTEIRA de sdr_config p/ a anon key (que vai no bundle do
