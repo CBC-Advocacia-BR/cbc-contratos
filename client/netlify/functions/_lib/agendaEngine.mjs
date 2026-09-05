@@ -6,11 +6,16 @@ export function aplicarTemplate(txt, vars = {}) {
 }
 
 export function estadoInicial({ lead_id, contact_id = null, nome = '', origem = 'venda' }) {
+  // (revisao final I4) `dados` segue o vocabulario que o SDR de IA realmente grava
+  // (registrar_qualificacao): resort/situacao_cota/valor_pago/titular/observacoes. As chaves
+  // antigas (situacao, valor_aprox) so existiam aqui — nada mais no fluxo da Ana as escrevia,
+  // e agenda_bot_metricas contava "qualificadas" por `dados->>situacao`, que nunca preenchia.
+  // `situacao`, `nota` e `pipeline_id` sobem p/ o topo porque o worker/ferramentas os gravam.
   return { etapa: 'abertura', lead_id, contact_id, nome,
-    dados: { resort: null, situacao: null, valor_aprox: null },
+    dados: { resort: null, situacao_cota: null, valor_pago: null, titular: null, observacoes: null },
     slots_ofertados: [], recusas: 0, reagendamentos: 0,
     agendamento: { event_id: null, inicio: null, vendedora: null, meet_link: null },
-    pausada_ate: null, origem };
+    pausada_ate: null, situacao: null, nota: null, pipeline_id: null, origem };
 }
 
 const varsSlots = (slots, agora) => Object.fromEntries(slots.map((s, i) => [`slot${i + 1}`, formatarSlot(new Date(s.inicio), agora)]));

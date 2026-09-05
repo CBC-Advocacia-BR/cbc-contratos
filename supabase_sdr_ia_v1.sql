@@ -93,6 +93,7 @@ grant execute on function sdr_ia_fatos_listar(text) to anon, authenticated;
 grant execute on function sdr_ia_historico(text, bigint, int) to anon, authenticated;
 grant execute on function sdr_ia_plantao_pendentes(text) to anon, authenticated;
 
--- (fix Task 10) a grade do SDR e lida pelas functions com a anon key; horario nao e dado sensivel
-drop policy if exists sdr_config_read_anon on public.sdr_config;
-create policy sdr_config_read_anon on public.sdr_config for select to anon using (true);
+-- (revisao final M5) A policy `sdr_config_read_anon` que existia aqui foi REMOVIDA: ela abria
+-- a linha INTEIRA de sdr_config para qualquer portador da anon key (que viaja no bundle do
+-- site), e nao so os 3 campos de horario. A grade agora e lida pela RPC security definer
+-- `sdr_ia_grade(p_chave)` — ver supabase_sdr_ia_v2.sql, que tambem faz o `drop policy`.

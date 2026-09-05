@@ -127,6 +127,15 @@ describe('slotsParaOferta', () => {
     const out = slotsParaOferta({ slots, closer: 'a@x', aPartirDeISO: sp('2026-09-07T10:00:00').toISOString(), n: 3 });
     expect(out.map((s) => s.inicio.toISOString())).toEqual([sp('2026-09-07T14:00:00').toISOString(), sp('2026-09-08T08:30:00').toISOString()]);
   });
+  // (revisao final I3) o modelo preenche `a_partir_de` com texto livre de vez em quando
+  // ("segunda", "amanha"). new Date('segunda').getTime() e NaN, e TODA comparacao com NaN e
+  // false: o filtro derrubava os 4 slots e a Ana dizia que nao havia horario nenhum.
+  it('a_partir_de impossivel de interpretar vale como sem piso', () => {
+    const semPiso = slotsParaOferta({ slots, n: 4 }).map((s) => s.inicio.toISOString());
+    expect(slotsParaOferta({ slots, aPartirDeISO: 'segunda', n: 4 }).map((s) => s.inicio.toISOString())).toEqual(semPiso);
+    expect(slotsParaOferta({ slots, aPartirDeISO: '', n: 4 }).map((s) => s.inicio.toISOString())).toEqual(semPiso);
+    expect(slotsParaOferta({ slots, aPartirDeISO: 'amanhã de manhã', n: 4 })).toHaveLength(4);
+  });
   it('slotId e parseSlotId sao inversos', () => {
     const id = slotId(slots[0], 'a@x');
     expect(parseSlotId(id)).toEqual({ inicioISO: slots[0].inicio.toISOString(), closer: 'a@x' });

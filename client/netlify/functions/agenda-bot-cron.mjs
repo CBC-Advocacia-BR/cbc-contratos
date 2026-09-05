@@ -143,8 +143,10 @@ export default async () => {
     // (RPC/Kommo) nunca pode bloquear o loop de lembretes abaixo, que e o core do cron.
     let entrega = null;
     try {
-      const { data: sdrCfg, error: sdrCfgErr } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
-      if (sdrCfgErr || !sdrCfg) await logAdvbox('agenda', 'aviso', `sdr_config ausente/erro (${sdrCfgErr?.message || 'sem linha'}); usando fallback cfg.regras p/ a grade da entrega`);
+      // (revisao final M5) mesma RPC do worker; a policy anon sobre sdr_config foi removida.
+      const { data: gradeRows, error: sdrCfgErr } = await db.rpc('sdr_ia_grade', { p_chave: RPC_SECRET });
+      const sdrCfg = Array.isArray(gradeRows) ? gradeRows[0] : gradeRows;
+      if (sdrCfgErr || !sdrCfg) await logAdvbox('agenda', 'aviso', `grade do SDR ausente/erro (${sdrCfgErr?.message || 'sem linha'}); usando fallback cfg.regras p/ a grade da entrega`);
       const grade = gradeDeConfig(sdrCfg, cfg.regras);
       if (ehJanelaEntrega(new Date(), grade, cfg.regras.feriados || [])) entrega = await entregarPlantao(cfg);
     } catch (e) {

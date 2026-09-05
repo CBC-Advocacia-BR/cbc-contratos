@@ -85,7 +85,12 @@ export function periodoDoSlot(date) { return partesLocais(date).h < 12 ? 'manha'
 
 /** Escolhe ate n slots: primeiro os do periodo pedido, depois completa com os demais; filtra closer e piso de horario. */
 export function slotsParaOferta({ slots, preferencia = 'qualquer', aPartirDeISO = null, closer = null, n = 3 }) {
-  const piso = aPartirDeISO ? new Date(aPartirDeISO).getTime() : 0;
+  // (revisao final I3) `a_partir_de` vem do modelo e as vezes chega como texto livre
+  // ("segunda", "amanhã de manhã"). Date.parse disso e NaN, e toda comparacao com NaN e
+  // false: o filtro abaixo zerava a oferta e a Ana anunciava que nao havia horario nenhum.
+  // Data impossivel de interpretar vale como SEM piso (comporta-se como a_partir_de null).
+  const parsed = aPartirDeISO ? Date.parse(aPartirDeISO) : NaN;
+  const piso = Number.isFinite(parsed) ? parsed : 0;
   const base = (slots || []).filter((s) => new Date(s.inicio).getTime() >= piso && (!closer || (s.vendedoras || []).includes(closer)));
   const pref = preferencia === 'qualquer' ? base : base.filter((s) => periodoDoSlot(new Date(s.inicio)) === preferencia);
   const out = pref.slice(0, n);

@@ -36,7 +36,10 @@ describe('fluxo de qualificação', () => {
   it('pula perguntas já respondidas (lead contou tudo de uma vez) e pede slots', () => {
     const est = { ...estadoInicial({ lead_id: 1 }), etapa: 'qual_resort' };
     const r = decidir({ estado: est, interp: interp({ intencao: 'responde_qualificacao', resort: 'Hot Beach', situacao: 'pagando', valor_aprox: 'R$ 20.000' }), cfg: CFG, agora: AGORA });
-    expect(r.novoEstado.dados).toEqual({ resort: 'Hot Beach', situacao: 'pagando', valor_aprox: 'R$ 20.000' });
+    // (revisao final I4) estadoInicial passou a semear `dados` com o vocabulario do SDR de IA
+    // (situacao_cota/valor_pago/titular/observacoes); o motor legado segue gravando as suas
+    // proprias chaves por cima, entao a assercao vira toMatchObject.
+    expect(r.novoEstado.dados).toMatchObject({ resort: 'Hot Beach', situacao: 'pagando', valor_aprox: 'R$ 20.000' });
     expect(r.acoes[0]).toEqual({ tipo: 'salvar_campos', campos: { investimento: 'R$ 20.000' } });
     expect(r.acoes[1]).toEqual({ tipo: 'buscar_slots' });
     expect(r.novoEstado.etapa).toBe('oferta');

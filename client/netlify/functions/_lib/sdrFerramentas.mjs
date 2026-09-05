@@ -2,7 +2,7 @@
 // devolve TEXTO curto p/ o modelo e grava o efeito ANTES de devolver. Erros lancam: o loop
 // converte em tool_result is_error e o modelo avisa o lead. As partes puras (formatarOferta,
 // etapaDeEncerramento) sao testadas em src/utils/__tests__/sdrFerramentas.test.js.
-import { db, logAdvbox, upsertConversation } from './botDb.mjs';
+import { db, logAdvbox, upsertConversation, getConversation } from './botDb.mjs';
 import { setLeadField, moveLeadStage, createKommoTask, postNote } from './kommo.mjs';
 import { gerarSlots, slotsParaOferta, slotId, parseSlotId, formatarSlot } from './agendaSlots.mjs';
 import { calcularNota, escolherCloser } from './sdrRoteamento.mjs';
@@ -55,7 +55,7 @@ export function podeMoverEtapa(pipelineId, pipelineSdr) {
  */
 export function criarExecutor(ctx) {
   if (!ctx.grade?.dias) throw new Error('criarExecutor: ctx.grade obrigatorio');
-  const { cfg, leadId, fone, estado, channel, agora } = ctx;
+  const { cfg, leadId, fone, estado, channel, agora, plantaoFim } = ctx;
   const etapas = cfg.kommo.etapas;
   let tokenGoogle = null;
   const at = async () => (tokenGoogle ||= await getAccessToken());
@@ -78,6 +78,25 @@ export function criarExecutor(ctx) {
   }
 
   async function persistir() { await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado }); }
+
+  // (revisao final I1) reserva ATOMICA do par (closer, inicio) no Postgres. O free/busy do
+  // Google e um cheque otimista: entre ele e o createEventComMeet cabe outro turno (ou outro
+  // lead) pegando o MESMO horario — o Google aceita os dois eventos e a closer fica com dois
+  // leads no mesmo slot. A RPC insere com `on conflict do nothing` e devolve false quando a
+  // linha ja e de OUTRO lead (mesmo lead = idempotente, retry nao se auto-bloqueia).
+  // Fail-open: RPC ausente (SQL v2 ainda nao aplicado) ou com erro => segue so com o freeBusy.
+  async function reservarSlot(inicioISO, closer) {
+    const { data, error } = await db.rpc('sdr_ia_reservar', { p_chave: RPC_SECRET, p_vendedora: closer, p_inicio: inicioISO, p_lead: leadId });
+    if (error) { await logAdvbox('agenda', 'aviso', `reserva de slot indisponivel (segue so com o freeBusy): ${error.message}`.slice(0, 300), { leadId }); return; }
+    if (data === false) throw new Error('esse horário acabou de ser reservado; chame consultar_horarios de novo');
+  }
+
+  /** Devolve o slot ao pool (cancelamento, remarcacao, rollback). Best-effort: falha vira log. */
+  async function liberarSlot(inicioISO, closer) {
+    if (!inicioISO || !closer) return;
+    const { error } = await db.rpc('sdr_ia_liberar', { p_chave: RPC_SECRET, p_vendedora: closer, p_inicio: new Date(inicioISO).toISOString() });
+    if (error) await logAdvbox('agenda', 'aviso', `liberar reserva falhou (${closer} ${inicioISO}): ${error.message}`.slice(0, 300), { leadId });
+  }
 
   async function espelhoUpsert(row) {
     const { error } = await db.rpc('agenda_videochamadas_upsert', { p_chave: RPC_SECRET, p_rows: [row] });
@@ -104,20 +123,37 @@ export function criarExecutor(ctx) {
       const p = parseSlotId(slot_id);
       if (!p || !(estado.slots_ofertados || []).some((s) => s.id === slot_id)) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
       if (estado.agendamento?.event_id) throw new Error('já existe videochamada marcada; use remarcar');
+      // (revisao final I1) o guard acima so ve a copia em MEMORIA deste turno. Duas mensagens
+      // do mesmo lead em paralelo (webhook duplicado, lead escrevendo duas vezes) leem o mesmo
+      // estado antigo e as duas criam evento. Re-le o que ja foi persistido antes de reservar.
+      const persistido = await getConversation(channel).catch(() => null);
+      if (persistido?.context?.agendamento?.event_id) {
+        estado.agendamento = persistido.context.agendamento; // adota o agendamento real p/ remarcar/cancelar
+        throw new Error('já existe videochamada marcada; use remarcar');
+      }
       // fix9 item 6: mensagem honesta quando o slot so expirou de tao proximo (antecedencia
       // minima), em vez de cair no "acabou de ser ocupado" do free/busy logo abaixo.
       if (new Date(p.inicioISO) < new Date(agora.getTime() + (cfg.regras.antecedencia_min_minutos ?? 60) * 60000)) throw new Error('esse horário já está muito próximo; chame consultar_horarios de novo');
       // revalida concorrencia: o horario ainda esta livre p/ essa closer?
       const livre = (await slotsLivres()).find((s) => new Date(s.inicio).toISOString() === p.inicioISO && s.vendedoras.includes(p.closer));
       if (!livre) throw new Error('esse horário acabou de ser ocupado; chame consultar_horarios de novo');
+      await reservarSlot(p.inicioISO, p.closer); // (I1) trava o par (closer, inicio) antes de criar o evento
       const ini = new Date(p.inicioISO); const fim = new Date(ini.getTime() + cfg.regras.duracao_evento_min * 60000);
       const d = estado.dados || {};
-      const { eventId, meetLink } = await createEventComMeet({
-        calendarId: p.closer, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
-        titulo: `Videochamada — ${nome || estado.nome || fone} (CBC/Ana)`,
-        descricao: descricaoEvento(d, leadId, fone),
-        leadId, telefone: fone, nome: nome || estado.nome, accessToken: await at(), convidados: email ? [email] : [],
-      });
+      let eventId; let meetLink;
+      try {
+        ({ eventId, meetLink } = await createEventComMeet({
+          calendarId: p.closer, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
+          titulo: `Videochamada — ${nome || estado.nome || fone} (CBC/Ana)`,
+          descricao: descricaoEvento(d, leadId, fone),
+          leadId, telefone: fone, nome: nome || estado.nome, accessToken: await at(), convidados: email ? [email] : [],
+        }));
+      } catch (e) {
+        // (I1) sem evento criado a reserva nao pode ficar de pe: ela bloquearia esse horario
+        // para sempre (o freeBusy mostraria livre e a reserva recusaria todo mundo).
+        await liberarSlot(p.inicioISO, p.closer);
+        throw e;
+      }
       estado.agendamento = { event_id: eventId, inicio: ini.toISOString(), vendedora: p.closer, meet_link: meetLink, email };
       estado.nome = nome || estado.nome;
       await persistir(); // ANTES dos efeitos no Kommo: se algo falhar, a proxima msg cai em remarcar, nunca em duplicar
@@ -134,7 +170,7 @@ export function criarExecutor(ctx) {
       } catch (e) {
         await logAdvbox('agenda', 'erro', `agendar: efeito pos-booking falhou (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId });
       }
-      return `Agendado: ${fmtHora(ini)} com ${vend?.nome || 'a advogada'}. Link do Meet: ${meetLink}. Convite enviado para ${email}.`;
+      return `Agendado: ${fmtHora(ini)} com ${vend?.nome || 'a equipe'}. Link do Meet: ${meetLink}. Convite enviado para ${email}.`;
     },
 
     async remarcar({ slot_id }) {
@@ -147,6 +183,7 @@ export function criarExecutor(ctx) {
       if (new Date(p.inicioISO) < new Date(agora.getTime() + (cfg.regras.antecedencia_min_minutos ?? 60) * 60000)) throw new Error('esse horário já está muito próximo; chame consultar_horarios de novo');
       const livre = (await slotsLivres()).find((s) => new Date(s.inicio).toISOString() === p.inicioISO && s.vendedoras.includes(p.closer));
       if (!livre) throw new Error('esse horário acabou de ser ocupado; chame consultar_horarios de novo');
+      await reservarSlot(p.inicioISO, p.closer); // (I1) mesma trava do agendar
       const ini = new Date(p.inicioISO); const fim = new Date(ini.getTime() + cfg.regras.duracao_evento_min * 60000);
       const closerAnterior = ag.vendedora;
       let eventId = ag.event_id; let meetLink = ag.meet_link;
@@ -156,7 +193,17 @@ export function criarExecutor(ctx) {
         const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: ini.toISOString() });
         if (error) await logAdvbox('agenda', 'erro', `reset reagendamento falhou: ${error.message}`, { leadId, eventId });
       } else {
-        try { await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at(), notificar: true }); } catch (e) { await logAdvbox('agenda', 'aviso', `cancelEvent falhou ao remarcar (segue): ${e.message}`, { leadId }); }
+        // (revisao final I6) engolir esta falha era o pior dos mundos: o evento ANTIGO segue
+        // vivo na agenda da closer anterior, um evento NOVO nasce na outra, e o estado passa a
+        // apontar so para o novo — a videochamada zumbi nunca mais e cancelavel pela Ana.
+        // Falhou o cancelamento => nada acontece, estado intacto, o modelo avisa o lead.
+        try {
+          await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at(), notificar: true });
+        } catch (e) {
+          await logAdvbox('agenda', 'erro', `remarcar: cancelEvent do evento anterior falhou (abortado): ${e.message}`.slice(0, 300), { leadId, eventId: ag.event_id });
+          await liberarSlot(p.inicioISO, p.closer); // desfaz a reserva do horario novo, que nao sera usado
+          throw new Error('não consegui liberar o horário anterior; tente remarcar com o mesmo horário mais tarde ou use escalar_para_humano');
+        }
         // fix9 item 1: retira o espelho do evento ANTIGO antes de criar o novo — sem isso o
         // cron de lembrete continua achando o evento cancelado como se estivesse ativo.
         await espelhoUpsert({ event_id: ag.event_id, vendedora_email: ag.vendedora, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
@@ -172,6 +219,9 @@ export function criarExecutor(ctx) {
           // lead ficaria com um agendamento fantasma (estado aponta p/ evento que nao existe).
           estado.agendamento = { event_id: null, inicio: null, vendedora: null, meet_link: null };
           await persistir();
+          // (I1) o antigo ja foi cancelado e o novo nao nasceu: devolve os DOIS horarios ao pool.
+          await liberarSlot(ag.inicio, ag.vendedora);
+          await liberarSlot(p.inicioISO, p.closer);
           await logAdvbox('agenda', 'erro', `remarcar: recriar evento em outra closer falhou: ${e.message}`.slice(0, 300), { leadId });
           throw new Error('não consegui recriar o evento; chame consultar_horarios e agendar de novo');
         }
@@ -182,6 +232,9 @@ export function criarExecutor(ctx) {
       estado.agendamento = { ...ag, event_id: eventId, inicio: ini.toISOString(), vendedora: p.closer, meet_link: meetLink };
       estado.reagendamentos = (estado.reagendamentos || 0) + 1;
       await persistir();
+      // (I1) o horario ANTIGO voltou a ficar livre na agenda: sem devolver a reserva, ele
+      // ficaria bloqueado para sempre para qualquer outro lead.
+      if (ag.inicio && !(ag.vendedora === p.closer && ag.inicio === ini.toISOString())) await liberarSlot(ag.inicio, ag.vendedora);
       await postNote(leadId, `CBC.ana.remarcou:${eventId}:${estado.reagendamentos}`, `Ana remarcou para ${fmtHora(ini)} (${estado.reagendamentos}ª vez).`);
       // fix9 item 5: tarefa da closer (possivelmente nova) + aviso p/ quem perdeu a call.
       const vend = cfg.vendedoras.find((v) => v.email === p.closer);
@@ -199,6 +252,7 @@ export function criarExecutor(ctx) {
         await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at(), notificar: true });
         await espelhoUpsert({ event_id: ag.event_id, vendedora_email: ag.vendedora, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
           status: 'cancelada', color_id: null, scheduled_at: ag.inicio, tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
+        await liberarSlot(ag.inicio, ag.vendedora); // (I1) horario volta ao pool p/ os proximos leads
       }
       estado.agendamento = { event_id: null, inicio: null, vendedora: null, meet_link: null };
       await persistir();
@@ -232,11 +286,18 @@ export function criarExecutor(ctx) {
       estado.escalado = true; estado.escalado_motivo = motivo;
       try {
         await moverEtapa(etapas.precisa_humano, 'precisa_humano');
-        await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, null);
+        // (revisao final M6) tarefa sem responsavel some da fila de todo mundo no Kommo. Quando
+        // a config traz `sdr_user_id`, a escalada cai na pessoa certa; sem ela, segue como antes.
+        await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, cfg.kommo.sdr_user_id || null);
         await postNote(leadId, `CBC.ana.escalou:${new Date().toISOString().slice(0, 10)}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
       } catch (e) { estado.escalado = false; estado.escalado_motivo = null; throw e; }
       await persistir();
-      const volta = proximoInicioExpediente(new Date(), ctx.grade, cfg.regras.feriados || []);
+      // (revisao final M12) o worker ja calculou o fim do plantao neste turno (ctx.plantaoFim);
+      // recalcular aqui com `new Date()` dava uma segunda resposta p/ a mesma pergunta — e a
+      // Ana podia prometer ao lead um horario diferente do que o [Contexto] do prompt dizia.
+      const volta = plantaoFim instanceof Date && !Number.isNaN(plantaoFim.getTime())
+        ? plantaoFim
+        : proximoInicioExpediente(new Date(), ctx.grade, cfg.regras.feriados || []);
       return `Escalado. Diga ao lead que a equipe responde a partir de ${fmtHora(volta)}.`;
     },
 

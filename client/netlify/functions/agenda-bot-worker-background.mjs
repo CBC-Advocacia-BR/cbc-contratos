@@ -286,8 +286,12 @@ export default async (req) => {
 
     // PLANTAO: a Ana so responde FORA da grade do SDR humano (sdr_config) e em feriado.
     // Dentro do expediente quem atende e a equipe — o worker sai antes de qualquer custo.
-    const { data: sdrCfg, error: sdrErr } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
-    if (sdrErr || !sdrCfg) await logAdvbox('agenda', 'aviso', 'sdr_config indisponivel, usando cfg.regras', { erro: sdrErr?.message || null });
+    // (revisao final M5) a grade vem por RPC security definer, nao por SELECT com a anon key:
+    // a policy `sdr_config_read_anon` abria a linha inteira de config do SDR para qualquer um
+    // com a chave publica (que vai no bundle do site). A RPC devolve so os 3 campos da grade.
+    const { data: gradeRows, error: sdrErr } = await db.rpc('sdr_ia_grade', { p_chave: RPC_SECRET });
+    const sdrCfg = Array.isArray(gradeRows) ? gradeRows[0] : gradeRows;
+    if (sdrErr || !sdrCfg) await logAdvbox('agenda', 'aviso', 'grade do SDR indisponivel, usando cfg.regras', { erro: sdrErr?.message || null });
     const grade = gradeDeConfig(sdrCfg, cfg.regras);
     const agora = new Date();
     if (!foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
@@ -410,6 +414,37 @@ export default async (req) => {
     estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
     const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim, pipelineId: estado.pipeline_id });
 
+    // (revisao final I2) TETO DE CUSTO POR LEAD/24h. Um lead em loop (ou um ataque simples:
+    // mandar mensagem sem parar de madrugada) fazia a Ana chamar o modelo indefinidamente, sem
+    // nenhum limite alem do bom senso do proprio modelo. Passou do teto: nao chama o modelo,
+    // manda a transicao, escala e registra o turno com stop_reason='teto_custo'.
+    // Fail-open: RPC ausente (SQL v2 ainda nao aplicado) ou com erro => segue normal, com aviso.
+    const tetoUsd = Number(cfg.llm?.teto_usd_lead_dia ?? 1.0);
+    const { data: gasto24h, error: gastoErr } = await db.rpc('sdr_ia_custo_lead_24h', { p_chave: RPC_SECRET, p_lead: leadId });
+    if (gastoErr) await logAdvbox('agenda', 'aviso', `teto de custo nao verificado (segue): ${gastoErr.message}`.slice(0, 300), { leadId });
+    else if (Number(gasto24h) >= tetoUsd) {
+      const aviso = cfg.mensagens?.transicao_humano || 'Vou pedir para a nossa equipe continuar com você no próximo horário de atendimento. Obrigada pela paciência!';
+      await falar(leadId, aviso, cfg);
+      if (!estado.escalado) {
+        try { await exec.executar('escalar_para_humano', { motivo: `teto de custo do lead atingido (US$ ${Number(gasto24h).toFixed(4)} em 24h)`, resumo: 'Ver conversa.' }); }
+        catch (e) { await logAdvbox('agenda', 'erro', `escalada por teto de custo falhou: ${e.message}`.slice(0, 300), { leadId }); }
+      }
+      estado.ultima_fala_ana = new Date().toISOString();
+      await logMessage(convId, 'out', aviso, situacao.acao, { stop: 'teto_custo' });
+      await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+      const { error: tetoErr } = await db.rpc('sdr_ia_turno_gravar', { p_chave: RPC_SECRET, p_row: {
+        lead_id: leadId, conversation_id: convId, contact_id: Number(msg.contactId),
+        entrada: texto || null, entrada_tipo: imagemBase64 ? 'imagem' : (estado.mandou_audio && !msg.text ? 'audio' : 'texto'),
+        resposta: aviso, ferramentas: [], modelo: cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low',
+        input_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0, output_tokens: 0,
+        custo_usd: 0, latencia_ms: Date.now() - t0, stop_reason: 'teto_custo', fallback_model: null,
+        situacao: situacao.acao, erro: null,
+      } });
+      if (tetoErr) await logAdvbox('agenda', 'erro', `telemetria do teto nao gravada: ${tetoErr.message}`.slice(0, 300), { leadId, convId });
+      await logAdvbox('agenda', 'aviso', `Ana(IA) teto_custo lead ${leadId}: US$ ${Number(gasto24h).toFixed(4)} em 24h (teto ${tetoUsd})`, { leadId });
+      return new Response('teto de custo', { status: 200 });
+    }
+
     let r; let erroApi = null;
     try {
       r = await rodarAgente({ client: criarCliente(), modelo: cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low', maxTokens: cfg.llm?.max_tokens || 2048,
@@ -431,6 +466,13 @@ export default async (req) => {
         try { await exec.executar('escalar_para_humano', { motivo: `agente sem resposta (${r.stop_reason})`, resumo: 'Ver conversa.' }); }
         catch (e) { await logAdvbox('agenda', 'erro', `escalada de fallback falhou: ${e.message}`.slice(0, 300), { leadId }); }
       }
+    }
+    // (revisao final M1) max_tokens COM texto: o lead recebe uma fala cortada no meio sem
+    // ninguem saber. Registra o aviso e, quando a frase nao termina em pontuacao, marca a
+    // interrupcao com reticencias — melhor um "..." honesto do que uma frase pela metade.
+    if (r.stop_reason === 'max_tokens' && r.texto) {
+      await logAdvbox('agenda', 'aviso', `resposta truncada por max_tokens (${r.texto.length} chars)`, { leadId });
+      if (!/[.!?…:)\]"']\s*$/.test(resposta)) resposta = `${resposta}…`;
     }
     await falar(leadId, resposta, cfg);
     estado.ultima_fala_ana = new Date().toISOString();

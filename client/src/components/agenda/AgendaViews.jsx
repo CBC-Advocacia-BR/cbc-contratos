@@ -521,12 +521,15 @@ const ESTADO_INICIAL_EXEMPLO = {
   lead_id: 0,
   contact_id: null,
   nome: '',
-  dados: { resort: null, situacao: null, valor_aprox: null },
+  dados: { resort: null, situacao_cota: null, valor_pago: null, titular: null, observacoes: null },
   slots_ofertados: [],
   recusas: 0,
   reagendamentos: 0,
   agendamento: { event_id: null, inicio: null, vendedora: null, meet_link: null },
   pausada_ate: null,
+  situacao: null,
+  nota: null,
+  pipeline_id: null,
   origem: 'venda',
 };
 
