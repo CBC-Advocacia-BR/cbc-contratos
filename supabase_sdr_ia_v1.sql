@@ -77,7 +77,7 @@ returns table (channel text, customer_id text, customer_name text, context jsonb
 language plpgsql security definer set search_path = public as $$
 begin
   if not _bot_chave_ok(p_chave) then raise exception 'acesso negado'; end if;
-  return query select b.channel, b.customer_id, b.customer_name, b.context
+  return query select b.channel, b.customer_id::text, b.customer_name, b.context
     from bot_conversations b
     where b.channel like 'agenda:%'
       and (b.context->>'plantao_ativo') = 'true'
