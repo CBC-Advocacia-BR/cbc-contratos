@@ -33,4 +33,10 @@ describe('situacaoDoLead', () => {
   it('pipeline com desde_inicio responde desde a primeira mensagem', () => {
     expect(situacaoDoLead({ lead: lead(107389179, 13916619), cfg, ultimaMsgEscritorio: null }).acao).toBe('inicio');
   });
+  it('etapa agendada vence o texto: "vou verificar" com evento futuro -> remarcar', () => {
+    expect(situacaoDoLead({ lead: lead(109397019), cfg, ultimaMsgEscritorio: 'Vou verificar isso e já te respondo.', temEventoFuturo: true }).acao).toBe('remarcar');
+  });
+  it('Meet ja enviado silencia tambem o escalado por texto', () => {
+    expect(situacaoDoLead({ lead: lead(109397015), cfg, ultimaMsgEscritorio: 'Vou verificar isso e já te respondo.', temMeetEnviado: true })).toBeNull();
+  });
 });

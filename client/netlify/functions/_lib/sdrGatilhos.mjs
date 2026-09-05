@@ -15,6 +15,9 @@ export function situacaoDoLead({ lead, cfg, ultimaMsgEscritorio = null, temEvent
   if (st === e.agendada) return temEventoFuturo ? { acao: 'remarcar', motivo: 'lead com call marcada escreveu' } : null;
   if (st === e.nao_compareceu) return { acao: 'noshow', motivo: 'lead faltou e escreveu' };
   if (g.desde_inicio) return { acao: 'inicio', motivo: 'pipeline de piloto' };
+  // Precedencia intencional: etapas (precisa_humano/agendada/nao_compareceu) decidem ANTES do
+  // texto; e um Meet ja enviado pelo escritorio silencia os gatilhos por texto (handoff E
+  // escalado), porque significa que um humano ja assumiu esse lead.
   if (temMeetEnviado) return null;
   const u = String(ultimaMsgEscritorio || '');
   if (RE_HANDOFF.test(u)) return { acao: 'handoff', motivo: 'roteiro terminou com sim' };
