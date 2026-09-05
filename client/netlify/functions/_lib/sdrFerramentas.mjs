@@ -194,21 +194,26 @@ export function criarExecutor(ctx) {
       return `Registrado. Nota do lead: ${estado.nota}.`;
     },
 
+    // (fix Task 10) efeitos no Kommo ANTES de marcar estado.escalado — se moveLeadStage/
+    // createKommoTask/postNote falharem, estado.escalado fica false e o proximo turno
+    // tenta escalar de novo (com escalado=true antes, uma falha no Kommo deixava o lead
+    // marcado como escalado sem NENHUM efeito real, e o retry nunca acontecia).
     async escalar_para_humano({ motivo, resumo }) {
-      estado.escalado = true; estado.escalado_motivo = motivo;
-      await persistir();
       await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.precisa_humano });
       await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, null);
       await postNote(leadId, `CBC.ana.escalou:${Date.now()}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
+      estado.escalado = true; estado.escalado_motivo = motivo;
+      await persistir();
       const volta = proximoInicioExpediente(new Date(), ctx.grade, cfg.regras.feriados || []);
       return `Escalado. Diga ao lead que a equipe responde a partir de ${fmtHora(volta)}.`;
     },
 
+    // mesmo principio de ordenacao do escalar_para_humano acima.
     async encerrar({ motivo }) {
-      estado.encerrado = true; estado.encerrado_motivo = motivo;
-      await persistir();
       await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapaDeEncerramento(motivo, etapas) });
       await postNote(leadId, `CBC.ana.encerrou:${Date.now()}`, `Ana encerrou. Motivo: ${motivo}.`);
+      estado.encerrado = true; estado.encerrado_motivo = motivo;
+      await persistir();
       return `Encerrado (${motivo}). Despeça-se em uma frase.`;
     },
   };

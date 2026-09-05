@@ -284,6 +284,15 @@ describe('helpers do historico (SDR de IA)', () => {
     expect(filtrarMsgAtual([], 'x', new Date())).toEqual([]);
   });
 
+  // (fix Task 10) mensagem so-imagem/audio chega com texto vazio (STT falhou ou e so
+  // anexo) — nao pode casar por corpo vazio e apagar uma entrada real do espelho.
+  it('filtrarMsgAtual com texto vazio devolve o historico intacto (nao casa por corpo vazio)', () => {
+    const comImagem = [...h, { autor: 'cliente', autor_nome: 'X', corpo: '', enviada_em: '2026-09-05T20:02:00Z' }];
+    expect(filtrarMsgAtual(comImagem, '', new Date('2026-09-05T20:02:30Z'))).toEqual(comImagem);
+    expect(filtrarMsgAtual(comImagem, '   ', new Date('2026-09-05T20:02:30Z'))).toEqual(comImagem);
+    expect(filtrarMsgAtual(comImagem, null, new Date('2026-09-05T20:02:30Z'))).toEqual(comImagem);
+  });
+
   it('tipoAnexoImagem por tipo ou extensao', () => {
     expect(tipoAnexoImagem('picture', 'https://x.kommo.com/a.bin')).toBe('image/jpeg');
     expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.png')).toBe('image/png');

@@ -165,6 +165,7 @@ export function temMeetNoHistorico(historico) {
 /** O espelho (sync de 2 min) pode ja conter a mensagem que acabou de chegar: tira a duplicata. */
 export function filtrarMsgAtual(historico, texto, agora) {
   const t = String(texto || '').trim();
+  if (!t) return historico || [];
   return (historico || []).filter((h) => !(h.autor === 'cliente' && String(h.corpo || '').trim() === t && Math.abs(new Date(h.enviada_em) - agora) < 10 * 60000));
 }
 
@@ -265,7 +266,8 @@ export default async (req) => {
 
     // PLANTAO: a Ana so responde FORA da grade do SDR humano (sdr_config) e em feriado.
     // Dentro do expediente quem atende e a equipe — o worker sai antes de qualquer custo.
-    const { data: sdrCfg } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
+    const { data: sdrCfg, error: sdrErr } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
+    if (sdrErr || !sdrCfg) await logAdvbox('agenda', 'aviso', 'sdr_config indisponivel, usando cfg.regras', { erro: sdrErr?.message || null });
     const grade = gradeDeConfig(sdrCfg, cfg.regras);
     const agora = new Date();
     if (!foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
@@ -335,9 +337,21 @@ export default async (req) => {
       imagemTipo = tipoAnexoImagem(msg.anexoTipo, msg.anexoLink);
       if (imagemTipo && anexoPermitido(msg.anexoLink)) {
         try {
-          const r = await fetch(msg.anexoLink, { signal: AbortSignal.timeout(15000) });
-          const buf = Buffer.from(await r.arrayBuffer());
-          if (buf.length <= 4_000_000) imagemBase64 = buf.toString('base64');
+          const head = await fetch(msg.anexoLink, { method: 'HEAD', signal: AbortSignal.timeout(10000) });
+          const cl = head.headers.get('content-length');
+          if (Number(cl) > 4_000_000) {
+            await logAdvbox('agenda', 'aviso', `imagem acima do teto (${cl} bytes) — nao baixada`, { leadId });
+          } else {
+            const r = await fetch(msg.anexoLink, { signal: AbortSignal.timeout(15000) });
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const ct = String(r.headers.get('content-type') || '');
+            if (!ct.startsWith('image/')) {
+              await logAdvbox('agenda', 'aviso', `anexo nao e imagem (content-type: ${ct}) — nao baixado`, { leadId });
+            } else {
+              const buf = Buffer.from(await r.arrayBuffer());
+              if (buf.length <= 4_000_000) imagemBase64 = buf.toString('base64');
+            }
+          }
         } catch (e) { await logAdvbox('agenda', 'aviso', `imagem nao baixada: ${e.message}`, { leadId }); }
       }
       if (!imagemBase64) await logAdvbox('agenda', 'info', 'anexo nao suportado — ignorado', { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
@@ -389,7 +403,10 @@ export default async (req) => {
     if (!resposta) {
       const parcial = r.stop_reason === 'max_iter' ? (r.textos || []).slice(-1)[0] : null;
       resposta = parcial || cfg.mensagens?.transicao_humano || `Vou pedir para a nossa equipe continuar com você a partir de ${plantaoFim.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', hour: '2-digit', minute: '2-digit' })}. Obrigada!`;
-      if (!estado.escalado) { try { await exec.executar('escalar_para_humano', { motivo: `agente sem resposta (${r.stop_reason})`, resumo: 'Ver conversa.' }); } catch { /* best-effort */ } }
+      if (!estado.escalado) {
+        try { await exec.executar('escalar_para_humano', { motivo: `agente sem resposta (${r.stop_reason})`, resumo: 'Ver conversa.' }); }
+        catch (e) { await logAdvbox('agenda', 'erro', `escalada de fallback falhou: ${e.message}`.slice(0, 300), { leadId }); }
+      }
     }
     await falar(leadId, resposta, cfg);
     estado.ultima_fala_ana = new Date().toISOString();

@@ -2,7 +2,7 @@
 -- fatos citaveis e RPCs security definer (padrao _bot_chave_ok / BOT_RPC_SECRET).
 create table if not exists sdr_ia_turnos (
   id bigint generated always as identity primary key,
-  lead_id bigint, conversation_id uuid, contact_id bigint,
+  lead_id bigint, conversation_id bigint, contact_id bigint,
   recebido_em timestamptz not null default now(),
   entrada text, entrada_tipo text,
   resposta text,
@@ -92,3 +92,7 @@ grant execute on function sdr_ia_turno_gravar(text, jsonb) to anon, authenticate
 grant execute on function sdr_ia_fatos_listar(text) to anon, authenticated;
 grant execute on function sdr_ia_historico(text, bigint, int) to anon, authenticated;
 grant execute on function sdr_ia_plantao_pendentes(text) to anon, authenticated;
+
+-- (fix Task 10) a grade do SDR e lida pelas functions com a anon key; horario nao e dado sensivel
+drop policy if exists sdr_config_read_anon on public.sdr_config;
+create policy sdr_config_read_anon on public.sdr_config for select to anon using (true);
