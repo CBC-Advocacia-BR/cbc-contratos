@@ -360,3 +360,11 @@ describe('eventosDepoisDe', () => {
     expect(eventosDepoisDe(null, ref)).toEqual([]);
   });
 });
+
+describe('leadIdsDoContato (SDR de IA)', () => {
+  it('devolve os ids do mais recente para o mais antigo e ignora lixo', async () => {
+    const { leadIdsDoContato } = await import('../../../netlify/functions/agenda-bot-worker-background.mjs');
+    expect(leadIdsDoContato({ _embedded: { leads: [{ id: 5663434 }, { id: 12824030 }, { id: 'x' }] } })).toEqual([12824030, 5663434]);
+    expect(leadIdsDoContato({})).toEqual([]);
+  });
+});

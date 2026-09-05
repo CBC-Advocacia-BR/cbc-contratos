@@ -13,7 +13,7 @@
  * { contentType, raw } (raw = corpo original do Kommo: form-encoded OU json).
  */
 import { getConfig, db, findTesterByPhone, getConversation, upsertConversation, logMessage, logAdvbox, hashKey } from './_lib/botDb.mjs';
-import { getContact, extractPhones, firstLeadId, kommoGet, setLeadField, postNote, runSalesbot } from './_lib/kommo.mjs';
+import { getContact, extractPhones, kommoGet, setLeadField, postNote, runSalesbot } from './_lib/kommo.mjs';
 import { estadoInicial } from './_lib/agendaEngine.mjs';
 import { transcrever } from './_lib/agendaInterprete.mjs';
 import { gradeDeConfig, foraDoHorario, proximoInicioExpediente } from './_lib/sdrHorario.mjs';
@@ -168,6 +168,12 @@ export function chaveDedupeFallback(contactId, texto, agoraMs = Date.now()) {
 }
 
 // ===================== PURAS (SDR de IA) =====================
+/** Ids dos leads do contato, do mais recente (maior id) para o mais antigo. */
+export function leadIdsDoContato(contato) {
+  const leads = contato?._embedded?.leads || [];
+  return leads.map((l) => Number(l.id)).filter((n) => Number.isFinite(n)).sort((a, b) => b - a);
+}
+
 
 /** Ultima fala do escritorio no espelho (o gatilho por texto le ela). null se nao houver. */
 export function ultimaMsgDoEscritorio(historico) {
@@ -310,9 +316,13 @@ export default async (req) => {
       if (!tester) return new Response('nao testador', { status: 200 });
     }
 
-    const leadId = firstLeadId(contato);
-    if (!leadId) return new Response('sem lead', { status: 200 });
-    const g = await leadNoGatilho(leadId, cfg);
+    // Um contato pode ter varios leads (cliente antigo + lead novo). Escolhe o PRIMEIRO lead do
+    // contato que cai num pipeline com gatilho (mais recente primeiro), em vez de so o primeiro
+    // da lista — senao um contato com lead em Pos Venda nunca seria atendido pela Ana no SDR.
+    const leadIds = leadIdsDoContato(contato);
+    if (!leadIds.length) return new Response('sem lead', { status: 200 });
+    let leadId = null; let g = { ok: false };
+    for (const id of leadIds) { const r = await leadNoGatilho(id, cfg); if (r.ok) { leadId = id; g = r; break; } }
     if (!g.ok) return new Response('fora do gatilho', { status: 200 });
 
     // estado (o mesmo bot_conversations de sempre; origem 'sdr' desde o SDR de IA)
