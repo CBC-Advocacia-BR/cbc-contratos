@@ -32,9 +32,26 @@ export function etapaDeEncerramento(motivo, etapas) {
 }
 
 /**
- * ctx = { cfg, grade, leadId, fone, nome, estado, channel, agora, plantaoFim }
+ * (revisao final C1 — CRITICO) So mexe na etapa do lead quando ele esta no PROPRIO funil do
+ * SDR. Os gatilhos incluem um pipeline de piloto (`{ pipeline_id: 13916619, desde_inicio }`),
+ * e `cfg.kommo.etapas.*` sao status ids do funil SDR: aplica-los num lead de outro funil
+ * moveria esse lead para um estagio que nao existe no funil dele. FAIL-CLOSED: pipeline
+ * desconhecido (estado antigo sem `pipeline_id`, config sem `pipeline_sdr`) nao move nada —
+ * a Ana segue conversando e o efeito perdido vira log, nunca lead no funil errado.
+ */
+export function podeMoverEtapa(pipelineId, pipelineSdr) {
+  if (pipelineId == null || pipelineSdr == null) return false;
+  const a = Number(pipelineId); const b = Number(pipelineSdr);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  return a === b;
+}
+
+/**
+ * ctx = { cfg, grade, leadId, fone, nome, estado, channel, agora, plantaoFim, pipelineId }
  * estado e MUTADO (dados, nota, slots_ofertados, agendamento, reagendamentos, escalado, encerrado)
  * e persistido pelo caller. Token do Google e obtido uma vez por turno, sob demanda.
+ * `pipelineId` = pipeline REAL do lead (worker le de g.lead.pipeline_id): so com ele igual
+ * ao `cfg.kommo.pipeline_sdr` e que as ferramentas mexem na etapa do funil (ver podeMoverEtapa).
  */
 export function criarExecutor(ctx) {
   if (!ctx.grade?.dias) throw new Error('criarExecutor: ctx.grade obrigatorio');
@@ -42,6 +59,16 @@ export function criarExecutor(ctx) {
   const etapas = cfg.kommo.etapas;
   let tokenGoogle = null;
   const at = async () => (tokenGoogle ||= await getAccessToken());
+
+  // (revisao final C1) unico ponto que move etapa nas 7 ferramentas. Lead de piloto (outro
+  // pipeline) nunca entra no funil do SDR: o efeito vira log e a conversa segue igual.
+  async function moverEtapa(statusId, rotulo) {
+    if (podeMoverEtapa(ctx.pipelineId, cfg.kommo.pipeline_sdr)) {
+      await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId });
+      return;
+    }
+    await logAdvbox('agenda', 'info', `etapa nao movida (pipeline ${ctx.pipelineId} != SDR): ${rotulo}`, { leadId });
+  }
 
   async function slotsLivres() {
     const emails = cfg.vendedoras.filter((v) => v.ativa).map((v) => v.email);
@@ -101,7 +128,7 @@ export function criarExecutor(ctx) {
       try {
         await espelhoUpsert({ event_id: eventId, vendedora_email: p.closer, cliente_email: email || null, cliente_nome: estado.nome || null,
           status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
-        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.agendada });
+        await moverEtapa(etapas.agendada, 'agendada');
         if (vend?.user_id) await createKommoTask(leadId, 'leads', `Videochamada (Ana): ${fmtHora(ini)} — Meet: ${meetLink}`, Math.max(1, (ini - Date.now()) / 36e5), vend.user_id);
         await postNote(leadId, `CBC.ana.agendou:${eventId}`, `Ana agendou ${fmtHora(ini)} com ${vend?.nome || p.closer}. Meet: ${meetLink}. E-mail: ${email}. Dados: ${JSON.stringify(d)}`);
       } catch (e) {
@@ -176,7 +203,7 @@ export function criarExecutor(ctx) {
       estado.agendamento = { event_id: null, inicio: null, vendedora: null, meet_link: null };
       await persistir();
       const statusId = motivo === 'desistiu' ? etapas.nao_quer : etapas.follow_up_bot;
-      await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId });
+      await moverEtapa(statusId, `cancelar (${motivo})`);
       await postNote(leadId, `CBC.ana.cancelou:${Date.now()}`, `Ana cancelou a videochamada. Motivo: ${motivo}.`);
       return `Cancelado (${motivo}).`;
     },
@@ -204,7 +231,7 @@ export function criarExecutor(ctx) {
       // (falha no Kommo nao grava 'escalado', entao o proximo turno pode tentar de novo)
       estado.escalado = true; estado.escalado_motivo = motivo;
       try {
-        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.precisa_humano });
+        await moverEtapa(etapas.precisa_humano, 'precisa_humano');
         await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, null);
         await postNote(leadId, `CBC.ana.escalou:${new Date().toISOString().slice(0, 10)}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
       } catch (e) { estado.escalado = false; estado.escalado_motivo = null; throw e; }
@@ -218,7 +245,7 @@ export function criarExecutor(ctx) {
       if (estado.encerrado) return 'Já encerrado.';
       estado.encerrado = true; estado.encerrado_motivo = motivo;
       try {
-        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapaDeEncerramento(motivo, etapas) });
+        await moverEtapa(etapaDeEncerramento(motivo, etapas), `encerrar (${motivo})`);
         await postNote(leadId, `CBC.ana.encerrou:${new Date().toISOString().slice(0, 10)}`, `Ana encerrou. Motivo: ${motivo}.`);
       } catch (e) { estado.encerrado = false; estado.encerrado_motivo = null; throw e; }
       await persistir();

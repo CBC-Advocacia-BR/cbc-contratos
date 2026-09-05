@@ -139,6 +139,24 @@ export function ehEventoHumano(eventos, mensagensAnaOut, tolMs = 120000) {
 }
 
 /**
+ * (revisao final C2) Recorta os eventos outgoing do Kommo para a janela que interessa: so o
+ * que veio DEPOIS da ultima fala da Ana (com `tolMs` de folga p/ relogios distintos). Sem
+ * este recorte, um evento ANTIGO sem par nas 10 ultimas bot_messages (a propria Ana num turno
+ * anterior, ou um humano de dias atras) fazia ehEventoHumano devolver true para sempre, e a
+ * Ana ficava pausada em toda conversa com historico. Referencia invalida/ausente => devolve
+ * tudo (o fail-open de humanoAssumiu decide depois); evento sem created_at => descartado,
+ * porque nao da p/ situa-lo no tempo.
+ */
+export function eventosDepoisDe(eventos, isoRef, tolMs = 120000) {
+  const ref = Date.parse(isoRef);
+  if (!Number.isFinite(ref)) return eventos || [];
+  return (eventos || []).filter((ev) => {
+    const ms = Number(ev?.created_at) * 1000;
+    return Number.isFinite(ms) && ms > 0 && ms > ref - tolMs;
+  });
+}
+
+/**
  * (pós-review Opus #5) Chave composta p/ dedupe quando o Kommo NÃO manda msgId no
  * payload — nunca fica sem dedupe. Bucket por minuto + hash do início do texto (mesmo
  * princípio do fallback do bot ADVBOX, mas namespaced 'agenda:' p/ não colidir com ele
@@ -224,6 +242,8 @@ async function humanoAssumiu(contactId, ultimaFalaAnaISO, convId) {
     await logAdvbox('agenda', 'aviso', `humanoAssumiu: events API falhou (segue sem pausar): ${e.message}`.slice(0, 300), { contactId });
     return false;
   }
+  // (revisao final C2) so o que veio DEPOIS da ultima fala da Ana; ver eventosDepoisDe.
+  eventos = eventosDepoisDe(eventos, ultimaFalaAnaISO);
   if (!eventos.length) return false;
   let mensagensAnaOut = [];
   if (convId) {
@@ -295,6 +315,10 @@ export default async (req) => {
     const channel = `agenda:${fone}`;
     const conv = await getConversation(channel);
     let estado = conv?.context?.lead_id ? conv.context : estadoInicial({ lead_id: leadId, contact_id: Number(msg.contactId), nome: contato?.name || '', origem: 'sdr' });
+    // (revisao final C1 — CRITICO) pipeline REAL do lead, renovado a cada turno: e ele, e nao
+    // cfg.kommo.pipeline_sdr, que decide se as ferramentas podem mexer na etapa do funil.
+    // Leads do piloto (gatilho `desde_inicio` noutro pipeline) nunca entram no funil do SDR.
+    estado.pipeline_id = Number.isFinite(Number(g.lead?.pipeline_id)) ? Number(g.lead.pipeline_id) : null;
     if (estado.encerrado) return new Response('encerrado', { status: 200 });
     if (estado.pausada_ate && new Date(estado.pausada_ate) > new Date()) return new Response('pausada', { status: 200 });
     const ultimaFala = conv?.context?.ultima_fala_ana || null;
@@ -384,7 +408,7 @@ export default async (req) => {
     const system = montarSystem({ cfg, fatos: fatos || [] });
     const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim }), imagemBase64, imagemTipo });
     estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
-    const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim });
+    const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim, pipelineId: estado.pipeline_id });
 
     let r; let erroApi = null;
     try {

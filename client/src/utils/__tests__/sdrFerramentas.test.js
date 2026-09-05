@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatarOferta, etapaDeEncerramento } from '../../../netlify/functions/_lib/sdrFerramentas.mjs';
+import { formatarOferta, etapaDeEncerramento, podeMoverEtapa } from '../../../netlify/functions/_lib/sdrFerramentas.mjs';
 
 const sp = (s) => new Date(`${s}-03:00`);
 describe('formatarOferta', () => {
@@ -30,5 +30,24 @@ describe('etapaDeEncerramento', () => {
     expect(etapaDeEncerramento('ja_e_cliente', etapas)).toBe(2);
     expect(etapaDeEncerramento('nao_e_lead', etapas)).toBe(3);
     expect(etapaDeEncerramento('outro', etapas)).toBe(3);
+  });
+});
+
+// (revisao final C1) leads do PILOTO vivem em outro pipeline (gatilho `desde_inicio`); mover
+// a etapa deles com os status ids do funil SDR jogaria o lead num funil que nao e o dele.
+// Fail-closed: sem pipeline conhecido (estado antigo, config sem pipeline_sdr) NAO move.
+describe('podeMoverEtapa', () => {
+  it('so libera quando o pipeline do lead e o pipeline do SDR', () => {
+    expect(podeMoverEtapa(14170107, 14170107)).toBe(true);
+    expect(podeMoverEtapa('14170107', 14170107)).toBe(true);
+    expect(podeMoverEtapa(13916619, 14170107)).toBe(false);
+  });
+  it('fail-closed com pipeline desconhecido dos dois lados', () => {
+    expect(podeMoverEtapa(null, 14170107)).toBe(false);
+    expect(podeMoverEtapa(undefined, 14170107)).toBe(false);
+    expect(podeMoverEtapa(14170107, null)).toBe(false);
+    expect(podeMoverEtapa(null, null)).toBe(false);
+    expect(podeMoverEtapa(undefined, undefined)).toBe(false);
+    expect(podeMoverEtapa('abc', 14170107)).toBe(false);
   });
 });

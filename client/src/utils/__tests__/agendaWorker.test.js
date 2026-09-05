@@ -3,7 +3,7 @@
 // validada no piloto (Task 15). Aqui: parse do payload, allowlist de host do anexo
 // e a decisao do teto de bytes do audio.
 import { describe, it, expect } from 'vitest';
-import { parsePayload, anexoPermitido, tetoBytes, excedeTeto, gatilhoAtende, ETAPAS_TERMINAIS, ehEventoHumano, chaveDedupeFallback, ultimaMsgDoEscritorio, temMeetNoHistorico, filtrarMsgAtual, tipoAnexoImagem } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
+import { parsePayload, anexoPermitido, tetoBytes, excedeTeto, gatilhoAtende, ETAPAS_TERMINAIS, ehEventoHumano, eventosDepoisDe, chaveDedupeFallback, ultimaMsgDoEscritorio, temMeetNoHistorico, filtrarMsgAtual, tipoAnexoImagem } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
 
 describe('parsePayload', () => {
   it('JSON: extrai texto, contato, msgId e anexo de message.add[0]', () => {
@@ -327,5 +327,36 @@ describe('gatilhoAtende sem status_ids (config do SDR de IA)', () => {
 
   it('gatilho so com pipeline_id nao bate em outro pipeline', () => {
     expect(gatilhoAtende({ pipeline_id: 1, desde_inicio: true }, lead(10, 2))).toBe(false);
+  });
+});
+
+// (revisao final C2) a auto-pausa lia os 5 ultimos eventos outgoing do CONTATO sem recortar
+// a janela: um evento ANTIGO (a propria Ana antes de o espelho ter bot_messages, ou um humano
+// de dias atras) nao tem par nas 10 ultimas bot_messages e pausava a Ana para sempre. So
+// interessa o que veio DEPOIS da ultima fala da Ana (com a mesma tolerancia de 2 min).
+describe('eventosDepoisDe', () => {
+  const ref = '2026-09-05T21:00:00.000Z';
+  const epoch = (iso) => Math.floor(Date.parse(iso) / 1000);
+  it('mantem evento posterior a referencia', () => {
+    const ev = [{ created_at: epoch('2026-09-05T21:05:00Z'), text: 'depois' }];
+    expect(eventosDepoisDe(ev, ref)).toEqual(ev);
+  });
+  it('descarta evento anterior a referencia (fora da tolerancia)', () => {
+    const ev = [{ created_at: epoch('2026-09-05T20:00:00Z'), text: 'antes' }];
+    expect(eventosDepoisDe(ev, ref)).toEqual([]);
+  });
+  it('mantem evento pouco antes, dentro da tolerancia de 2 min (relogios distintos)', () => {
+    const ev = [{ created_at: epoch('2026-09-05T20:59:00Z'), text: 'quase junto' }];
+    expect(eventosDepoisDe(ev, ref)).toHaveLength(1);
+    expect(eventosDepoisDe(ev, ref, 0)).toHaveLength(0);
+  });
+  it('descarta evento sem created_at (nao da p/ situar no tempo)', () => {
+    expect(eventosDepoisDe([{ text: 'sem data' }, { created_at: null }], ref)).toEqual([]);
+  });
+  it('referencia invalida/ausente devolve a lista inteira (fail-open, como o humanoAssumiu)', () => {
+    const ev = [{ created_at: epoch('2026-09-05T20:00:00Z') }, { text: 'x' }];
+    expect(eventosDepoisDe(ev, null)).toEqual(ev);
+    expect(eventosDepoisDe(ev, 'segunda')).toEqual(ev);
+    expect(eventosDepoisDe(null, ref)).toEqual([]);
   });
 });

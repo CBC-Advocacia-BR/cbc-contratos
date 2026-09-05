@@ -16,6 +16,7 @@ import { formatarSlot, gerarSlots } from './_lib/agendaSlots.mjs';
 import { getAccessToken, freeBusy } from './_lib/googleAgenda.mjs';
 import { janelaAberta } from './_lib/assinaturaWhatsapp.mjs';
 import { gradeDeConfig, ehJanelaEntrega } from './_lib/sdrHorario.mjs';
+import { podeMoverEtapa } from './_lib/sdrFerramentas.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 
@@ -102,11 +103,27 @@ async function entregarPlantao(cfg) {
   for (const row of rows || []) {
     const estado = row.context || {};
     const leadId = estado.lead_id || row.customer_id;
-    if (!leadId) continue;
+    // (revisao final M13) sem lead nao ha nota nem etapa a mexer, mas o plantao PRECISA ser
+    // desligado: um `continue` seco deixava a conversa em plantao_ativo=true para sempre e ela
+    // voltava em TODA rodada de sdr_ia_plantao_pendentes, pesando o lote todo dia.
+    if (!leadId) {
+      try {
+        await upsertConversation(row.channel, { context: { ...estado, plantao_ativo: false, entregue_em: new Date().toISOString() } });
+        await logAdvbox('agenda', 'aviso', `entrega da manha sem lead_id no canal ${row.channel}: plantao desligado sem nota`, { channel: row.channel });
+      } catch (e) { await logAdvbox('agenda', 'erro', `entrega da manha sem lead (${row.channel}): ${e.message}`.slice(0, 300)); }
+      continue;
+    }
     try {
       await postNote(leadId, `CBC.ana.plantao:${hoje}`, `Plantão da Ana (${hoje}).\n${resumoPlantao(estado)}`);
+      // (revisao final C1 — CRITICO) mesma regra das ferramentas: so move a etapa se o lead
+      // estiver no proprio funil do SDR (o piloto roda noutro pipeline). Fail-closed: estado
+      // antigo sem `pipeline_id` nao move nada, so registra.
       if (!estado.agendamento?.inicio && !estado.escalado && !estado.encerrado) {
-        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: cfg.kommo.etapas.precisa_humano });
+        if (podeMoverEtapa(estado.pipeline_id, cfg.kommo.pipeline_sdr)) {
+          await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: cfg.kommo.etapas.precisa_humano });
+        } else {
+          await logAdvbox('agenda', 'info', `etapa nao movida (pipeline ${estado.pipeline_id} != SDR): entrega da manha`, { leadId });
+        }
       }
       await upsertConversation(row.channel, { context: { ...estado, plantao_ativo: false, entregue_em: new Date().toISOString() } });
       entregues++;
