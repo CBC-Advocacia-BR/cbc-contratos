@@ -200,10 +200,14 @@ export function criarExecutor(ctx) {
     // marcado como escalado sem NENHUM efeito real, e o retry nunca acontecia).
     async escalar_para_humano({ motivo, resumo }) {
       if (estado.escalado) return 'Já escalado nesta conversa. Apenas avise o lead do prazo.';
-      await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.precisa_humano });
-      await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, null);
-      await postNote(leadId, `CBC.ana.escalou:${new Date().toISOString().slice(0, 10)}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
+      // flag em memoria ANTES dos efeitos (bloqueia repeticao no mesmo turno); persiste DEPOIS
+      // (falha no Kommo nao grava 'escalado', entao o proximo turno pode tentar de novo)
       estado.escalado = true; estado.escalado_motivo = motivo;
+      try {
+        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.precisa_humano });
+        await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, null);
+        await postNote(leadId, `CBC.ana.escalou:${new Date().toISOString().slice(0, 10)}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
+      } catch (e) { estado.escalado = false; estado.escalado_motivo = null; throw e; }
       await persistir();
       const volta = proximoInicioExpediente(new Date(), ctx.grade, cfg.regras.feriados || []);
       return `Escalado. Diga ao lead que a equipe responde a partir de ${fmtHora(volta)}.`;
@@ -212,9 +216,11 @@ export function criarExecutor(ctx) {
     // mesmo principio de ordenacao do escalar_para_humano acima.
     async encerrar({ motivo }) {
       if (estado.encerrado) return 'Já encerrado.';
-      await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapaDeEncerramento(motivo, etapas) });
-      await postNote(leadId, `CBC.ana.encerrou:${new Date().toISOString().slice(0, 10)}`, `Ana encerrou. Motivo: ${motivo}.`);
       estado.encerrado = true; estado.encerrado_motivo = motivo;
+      try {
+        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapaDeEncerramento(motivo, etapas) });
+        await postNote(leadId, `CBC.ana.encerrou:${new Date().toISOString().slice(0, 10)}`, `Ana encerrou. Motivo: ${motivo}.`);
+      } catch (e) { estado.encerrado = false; estado.encerrado_motivo = null; throw e; }
       await persistir();
       return `Encerrado (${motivo}). Despeça-se em uma frase.`;
     },
