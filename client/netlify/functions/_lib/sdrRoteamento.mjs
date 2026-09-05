@@ -1,7 +1,7 @@
 // Nota do lead e escolha da closer: melhores leads -> preferida (Mariana), resto -> rodizio.
 // PURO (testado em src/utils/__tests__/sdrRoteamento.test.js). Parametros vem de
 // bot_config.agenda_bot.roteamento (editaveis sem deploy); ROTEAMENTO_PADRAO e o fallback.
-import { sortearVendedora } from './agendaSlots.mjs';
+import { sortearVendedora, partesLocais } from './agendaSlots.mjs';
 
 export const ROTEAMENTO_PADRAO = {
   limiar: 3,
@@ -35,8 +35,8 @@ export function escolherCloser({ nota, cfg, slots, seed }) {
   const preferida = ativas.find((v) => v.email === rot.preferida);
   if (preferida && Number(nota) >= rot.limiar) {
     // dias uteis distintos dos slots, em ordem; a preferida precisa ter slot nos primeiros N
-    const dias = [...new Set((slots || []).map((s) => new Date(s.inicio).toISOString().slice(0, 10)))].slice(0, rot.janela_dias_uteis);
-    const temNaJanela = (slots || []).some((s) => (s.vendedoras || []).includes(preferida.email) && dias.includes(new Date(s.inicio).toISOString().slice(0, 10)));
+    const dias = [...new Set((slots || []).map((s) => partesLocais(new Date(s.inicio)).ymd))].slice(0, rot.janela_dias_uteis);
+    const temNaJanela = (slots || []).some((s) => (s.vendedoras || []).includes(preferida.email) && dias.includes(partesLocais(new Date(s.inicio)).ymd));
     if (temNaJanela) return { email: preferida.email, motivo: 'nota' };
   }
   const outras = ativas.filter((v) => v.email !== rot.preferida);

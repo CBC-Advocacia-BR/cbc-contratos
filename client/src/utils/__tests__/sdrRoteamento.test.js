@@ -39,4 +39,21 @@ describe('escolherCloser', () => {
   it('sem slot nenhum -> null', () => {
     expect(escolherCloser({ nota: 5, cfg, slots: [], seed: 'x' })).toBeNull();
   });
+  it('janela conta dias uteis em SP, nao em UTC (slot 22h30 SP conta no mesmo dia util que 09h SP)', () => {
+    // 2026-09-07 22:30 -03:00 (segunda, SP) = 2026-09-08 01:30 UTC (terca) -- o dia UTC muda,
+    // o dia de SP nao. Com janela_dias_uteis:1 e a Mariana livre so as 22h30 de segunda (SP),
+    // ela tem que ganhar por nota: e o mesmo dia util da outra closer, livre as 9h de segunda.
+    const cfgJanela1 = { ...cfg, roteamento: { janela_dias_uteis: 1 } };
+    const slotsSp = [
+      { inicio: sp('2026-09-07T09:00:00'), vendedoras: ['beatriz@advocaciacbc.com'] },
+      { inicio: sp('2026-09-07T22:30:00'), vendedoras: ['marianamaciel@advocaciacbc.com'] },
+    ];
+    expect(escolherCloser({ nota: 5, cfg: cfgJanela1, slots: slotsSp, seed: 'lead-sp' }))
+      .toEqual({ email: 'marianamaciel@advocaciacbc.com', motivo: 'nota' });
+  });
+  it('nota abaixo do limiar e so a Mariana tem horario -> ela mesma, motivo rodizio', () => {
+    const soMariana = [{ inicio: sp('2026-09-07T09:00:00'), vendedoras: ['marianamaciel@advocaciacbc.com'] }];
+    expect(escolherCloser({ nota: 1, cfg, slots: soMariana, seed: 'lead-so-mariana' }))
+      .toEqual({ email: 'marianamaciel@advocaciacbc.com', motivo: 'rodizio' });
+  });
 });
