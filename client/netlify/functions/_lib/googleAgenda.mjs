@@ -127,10 +127,10 @@ export async function createEventComMeet({ calendarId, inicioISO, fimISO, titulo
 }
 
 /** Reagenda (PATCH) o horário de um evento existente. Lança em erro.
- *  `sendUpdates=all` (Task 9, SDR de IA Ana): avisa o(s) convidado(s) (o lead, quando agendado
- *  via Ana) da mudança de horário. */
-export async function patchEventHorario({ calendarId, eventId, inicioISO, fimISO, accessToken }) {
-  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`, {
+ *  notificar=true envia e-mail aos convidados (usado pela Ana, cujo lead e convidado); painel/admin mantem o padrao silencioso. */
+export async function patchEventHorario({ calendarId, eventId, inicioISO, fimISO, accessToken, notificar = false }) {
+  const url = `${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}${notificar ? '?sendUpdates=all' : ''}`;
+  const r = await fetch(url, {
     method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ start: { dateTime: inicioISO, timeZone: 'America/Sao_Paulo' }, end: { dateTime: fimISO, timeZone: 'America/Sao_Paulo' } }),
     signal: AbortSignal.timeout(20000),
@@ -159,9 +159,10 @@ export async function setEventColor({ calendarId, eventId, colorId, accessToken 
 }
 
 /** Cancela (DELETE) um evento. Tolera 404/410 (já não existe/já foi excluído). Lança em outros erros.
- *  `sendUpdates=all` (Task 9, SDR de IA Ana): avisa o(s) convidado(s) do cancelamento. */
-export async function cancelEvent({ calendarId, eventId, accessToken }) {
-  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`, {
+ *  notificar=true envia e-mail aos convidados (usado pela Ana, cujo lead e convidado); painel/admin mantem o padrao silencioso. */
+export async function cancelEvent({ calendarId, eventId, accessToken, notificar = false }) {
+  const url = `${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}${notificar ? '?sendUpdates=all' : ''}`;
+  const r = await fetch(url, {
     method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(20000),
   });
   if (![200, 204, 404, 410].includes(r.status)) throw new Error(`cancelEvent HTTP ${r.status}`);

@@ -124,12 +124,12 @@ export function criarExecutor(ctx) {
       const closerAnterior = ag.vendedora;
       let eventId = ag.event_id; let meetLink = ag.meet_link;
       if (p.closer === ag.vendedora) {
-        await patchEventHorario({ calendarId: ag.vendedora, eventId, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: await at() });
+        await patchEventHorario({ calendarId: ag.vendedora, eventId, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: await at(), notificar: true });
         try { await setEventColor({ calendarId: ag.vendedora, eventId, colorId: null, accessToken: await at() }); } catch (e) { await logAdvbox('agenda', 'aviso', `setEventColor falhou (nao fatal): ${e.message}`, { leadId }); }
         const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: ini.toISOString() });
         if (error) await logAdvbox('agenda', 'erro', `reset reagendamento falhou: ${error.message}`, { leadId, eventId });
       } else {
-        try { await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at() }); } catch (e) { await logAdvbox('agenda', 'aviso', `cancelEvent falhou ao remarcar (segue): ${e.message}`, { leadId }); }
+        try { await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at(), notificar: true }); } catch (e) { await logAdvbox('agenda', 'aviso', `cancelEvent falhou ao remarcar (segue): ${e.message}`, { leadId }); }
         // fix9 item 1: retira o espelho do evento ANTIGO antes de criar o novo — sem isso o
         // cron de lembrete continua achando o evento cancelado como se estivesse ativo.
         await espelhoUpsert({ event_id: ag.event_id, vendedora_email: ag.vendedora, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
@@ -169,7 +169,7 @@ export function criarExecutor(ctx) {
     async cancelar({ motivo }) {
       const ag = estado.agendamento || {};
       if (ag.event_id) {
-        await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at() });
+        await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at(), notificar: true });
         await espelhoUpsert({ event_id: ag.event_id, vendedora_email: ag.vendedora, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
           status: 'cancelada', color_id: null, scheduled_at: ag.inicio, tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
       }
