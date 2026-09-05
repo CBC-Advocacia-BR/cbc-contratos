@@ -1,19 +1,26 @@
 /**
- * Worker background do bot Ana (ate 15 min). Fluxo por mensagem recebida:
- * parse -> contato/telefone/lead -> filtros (ativo, teste, gatilho, pausa, humano)
- * -> transcreve audio (com allowlist + teto) -> interpreta (LLM) -> engine.decidir
- * -> executa acoes -> persiste estado. NUNCA derruba sem log; sempre responde 200.
+ * Worker background da Ana (ate 15 min). Desde o SDR de IA (set/2026) ela NAO e mais uma
+ * maquina de estados: o turno inteiro e decidido por um agente (Claude + 7 ferramentas).
+ * Fluxo por mensagem recebida: parse -> guard incoming-only -> config -> PLANTAO (so fora
+ * da grade do SDR humano) -> contato/telefone/lead -> filtros (teste, gatilho, encerrado,
+ * pausa, humano) -> texto (audio via STT / imagem em base64) -> historico do espelho +
+ * situacao (gatilho) -> agente com ferramentas -> falar() -> telemetria (sdr_ia_turnos).
+ * NUNCA derruba sem log; sempre responde 200.
  *
- * Falas ao lead SO via templates/engine (cfg.mensagens) — nunca string solta.
+ * Falar ao lead so via falar() (campo do lead + Salesbot). Sem resposta do agente (recusa,
+ * max_iter, erro de API) o lead recebe a mensagem de transicao e o caso vai p/ humano.
  * Invocado exclusivamente pelo despachante kommo-agenda-webhook.mjs, que posta
  * { contentType, raw } (raw = corpo original do Kommo: form-encoded OU json).
  */
 import { getConfig, db, findTesterByPhone, getConversation, upsertConversation, logMessage, logAdvbox, hashKey } from './_lib/botDb.mjs';
-import { getContact, extractPhones, firstLeadId, kommoGet, setLeadField, moveLeadStage, createKommoTask, postNote, runSalesbot } from './_lib/kommo.mjs';
-import { decidir, confirmar, estadoInicial, aplicarTemplate } from './_lib/agendaEngine.mjs';
-import { gerarSlots, sortearVendedora, slotMaisProximo, formatarSlot } from './_lib/agendaSlots.mjs';
-import { interpretar, transcrever } from './_lib/agendaInterprete.mjs';
-import { getAccessToken, freeBusy, createEventComMeet, cancelEvent, patchEventHorario, setEventColor } from './_lib/googleAgenda.mjs';
+import { getContact, extractPhones, firstLeadId, kommoGet, setLeadField, postNote, runSalesbot } from './_lib/kommo.mjs';
+import { estadoInicial } from './_lib/agendaEngine.mjs';
+import { transcrever } from './_lib/agendaInterprete.mjs';
+import { gradeDeConfig, foraDoHorario, proximoInicioExpediente } from './_lib/sdrHorario.mjs';
+import { situacaoDoLead } from './_lib/sdrGatilhos.mjs';
+import { FERRAMENTAS, montarSystem, montarMensagens, contextoDoTurno } from './_lib/sdrPrompt.mjs';
+import { criarCliente, rodarAgente, custoUsd } from './_lib/sdrAgente.mjs';
+import { criarExecutor } from './_lib/sdrFerramentas.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const TIPOS_AUDIO = ['voice', 'audio', 'ptt'];
@@ -88,15 +95,18 @@ export function excedeTeto(contentLength, cfg) {
 }
 
 /**
- * (pós-review Opus #3) Um gatilho bate no lead se o pipeline casar E (a) status_ids for
- * uma lista explícita que contenha o status atual (literal, como sempre foi) OU (b) for
- * 'todas' E o lead NÃO estiver numa etapa terminal (ganho/perdido) — 'todas' não deve
- * reabrir a Ana num lead já encerrado.
+ * (pós-review Opus #3 + SDR de IA) Um gatilho bate no lead se o pipeline casar E (a)
+ * status_ids for uma lista explícita que contenha o status atual (literal, como sempre
+ * foi) OU (b) for 'todas' — ou estiver AUSENTE, que é a forma da config do SDR de IA
+ * (`[{ pipeline_id }, { pipeline_id, desde_inicio }]`) — E o lead NÃO estiver numa etapa
+ * terminal (ganho/perdido): nem 'todas' nem gatilho sem etapa devem reabrir a Ana num
+ * lead já encerrado. Quem decide as demais etapas de saída é situacaoDoLead.
  */
 export function gatilhoAtende(gatilho, lead) {
-  if (!gatilho || !lead || lead.pipeline_id !== gatilho.pipeline_id) return false;
+  if (!gatilho || !lead || Number(lead.pipeline_id) !== Number(gatilho.pipeline_id)) return false;
   if (Array.isArray(gatilho.status_ids)) return gatilho.status_ids.includes(lead.status_id);
-  return gatilho.status_ids === 'todas' && !ETAPAS_TERMINAIS.includes(lead.status_id);
+  if (gatilho.status_ids == null || gatilho.status_ids === 'todas') return !ETAPAS_TERMINAIS.includes(lead.status_id);
+  return false;
 }
 
 /** (defensivo — formato exato do campo de texto do evento Kommo só confirmado no piloto,
@@ -137,6 +147,34 @@ export function ehEventoHumano(eventos, mensagensAnaOut, tolMs = 120000) {
 export function chaveDedupeFallback(contactId, texto, agoraMs = Date.now()) {
   const minuto = Math.floor(agoraMs / 60000);
   return `agenda:c:${contactId}:${minuto}:${hashKey(String(texto || '').slice(0, 80))}`;
+}
+
+// ===================== PURAS (SDR de IA) =====================
+
+/** Ultima fala do escritorio no espelho (o gatilho por texto le ela). null se nao houver. */
+export function ultimaMsgDoEscritorio(historico) {
+  for (let i = (historico || []).length - 1; i >= 0; i--) if (historico[i].autor === 'atendente') return historico[i].corpo || null;
+  return null;
+}
+
+/** Meet ja enviado PELO ESCRITORIO => humano ja assumiu esse lead (silencia gatilho por texto). */
+export function temMeetNoHistorico(historico) {
+  return (historico || []).some((h) => h.autor === 'atendente' && /meet\.google\.com/i.test(h.corpo || ''));
+}
+
+/** O espelho (sync de 2 min) pode ja conter a mensagem que acabou de chegar: tira a duplicata. */
+export function filtrarMsgAtual(historico, texto, agora) {
+  const t = String(texto || '').trim();
+  return (historico || []).filter((h) => !(h.autor === 'cliente' && String(h.corpo || '').trim() === t && Math.abs(new Date(h.enviada_em) - agora) < 10 * 60000));
+}
+
+/** Tipo MIME da imagem do anexo (extensao manda; senao o tipo do Kommo). null = nao e imagem. */
+export function tipoAnexoImagem(anexoTipo, link) {
+  const l = String(link || '').toLowerCase();
+  if (/\.png(\?|$)/.test(l)) return 'image/png';
+  if (/\.webp(\?|$)/.test(l)) return 'image/webp';
+  if (/\.jpe?g(\?|$)/.test(l) || ['picture', 'image', 'photo'].includes(String(anexoTipo || '').toLowerCase())) return 'image/jpeg';
+  return null;
 }
 
 // ===================== I/O (orquestracao — validada no piloto) =====================
@@ -201,22 +239,6 @@ async function falar(leadId, mensagem, cfg) {
   await runSalesbot(cfg.kommo.salesbot_id, leadId, 'leads');
 }
 
-async function upsertVC(row) {
-  const { error } = await db.rpc('agenda_videochamadas_upsert', { p_chave: RPC_SECRET, p_rows: [row] });
-  if (error) throw new Error(`upsert vc: ${error.message}`);
-}
-
-// (CRITICAL — revisão final #1) usada SÓ quando o reagendar reaproveita o MESMO event_id
-// (mesma vendedora, patchEventHorario) — em vez do upsert genérico, que não inclui
-// lembrete_1h_em/lembrete_t0_em/noshow_msg_em na lista de colunas (de propósito: o sync de
-// calendário chama o MESMO upsert genérico a cada 45min p/ todo evento; se essas 3 colunas
-// entrassem nele, o sync zeraria os lembretes de qualquer atendimento inalterado a cada
-// rodada). Ver supabase_agenda_bot.sql (agenda_videochamadas_reset_reagendamento).
-async function resetReagendamento(eventId, novoInicioISO) {
-  const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: novoInicioISO });
-  if (error) throw new Error(`reset reagendamento: ${error.message}`);
-}
-
 // upsertConversation ja retorna a linha (.select().single()); fallback defensivo p/ o id
 // via getConversation caso o upsert nao devolva a linha (ajuste obrigatorio #1).
 async function convIdDe(channel, fields) {
@@ -224,16 +246,6 @@ async function convIdDe(channel, fields) {
   if (row?.id) return row.id;
   const again = await getConversation(channel);
   return again?.id || null;
-}
-
-async function montarSlots(cfg, agora, desejadoISO = null) {
-  const at = await getAccessToken();
-  const emails = cfg.vendedoras.filter((v) => v.ativa).map((v) => v.email);
-  const fim = new Date(agora.getTime() + (cfg.regras.horizonte_dias_uteis + 4) * 864e5);
-  const busy = await freeBusy(emails, agora.toISOString(), fim.toISOString(), at);
-  let slots = gerarSlots({ regras: cfg.regras, busyPorVendedora: busy, agora, limite: 12 });
-  if (desejadoISO) { const s = slotMaisProximo(slots, desejadoISO); slots = s ? [s, ...slots.filter((x) => x !== s)] : slots; }
-  return { slots, at };
 }
 
 export default async (req) => {
@@ -250,6 +262,14 @@ export default async (req) => {
     const cfgAll = await getConfig();
     const cfg = cfgAll.agenda_bot;
     if (!cfg?.ativo) return new Response('inativo', { status: 200 });
+
+    // PLANTAO: a Ana so responde FORA da grade do SDR humano (sdr_config) e em feriado.
+    // Dentro do expediente quem atende e a equipe — o worker sai antes de qualquer custo.
+    const { data: sdrCfg } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
+    const grade = gradeDeConfig(sdrCfg, cfg.regras);
+    const agora = new Date();
+    if (!foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
+
     if (!msg.contactId) return new Response('sem contato', { status: 200 });
     if (msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return new Response('dupe', { status: 200 });
 
@@ -269,15 +289,11 @@ export default async (req) => {
     const g = await leadNoGatilho(leadId, cfg);
     if (!g.ok) return new Response('fora do gatilho', { status: 200 });
 
-    // estado
+    // estado (o mesmo bot_conversations de sempre; origem 'sdr' desde o SDR de IA)
     const channel = `agenda:${fone}`;
     const conv = await getConversation(channel);
-    // (pos-review Opus #6b) origem config-driven — antes comparava com o pipeline_id
-    // 13760367 hardcoded; agora usa o mesmo pipeline configurado p/ a etapa de agendado.
-    let estado = conv?.context?.etapa ? conv.context
-      : estadoInicial({ lead_id: leadId, contact_id: Number(msg.contactId), nome: contato?.name || '',
-          origem: g.lead.pipeline_id === cfg.kommo?.etapa_agendado?.pipeline_id ? 'venda' : 'disparo' });
-
+    let estado = conv?.context?.lead_id ? conv.context : estadoInicial({ lead_id: leadId, contact_id: Number(msg.contactId), nome: contato?.name || '', origem: 'sdr' });
+    if (estado.encerrado) return new Response('encerrado', { status: 200 });
     if (estado.pausada_ate && new Date(estado.pausada_ate) > new Date()) return new Response('pausada', { status: 200 });
     const ultimaFala = conv?.context?.ultima_fala_ana || null;
     if (await humanoAssumiu(msg.contactId, ultimaFala, conv?.id || null)) {
@@ -311,200 +327,91 @@ export default async (req) => {
         return new Response('stt falhou', { status: 200 });
       }
     }
-    // anexo presente mas nao-audio (ou campos de attachment ainda nao mapeados): loga o raw
-    // p/ o piloto ajustar os nomes dos campos, e segue como "sem texto".
+
+    // anexo nao-audio: se for imagem de host confiavel, vai p/ o modelo em base64 (o lead
+    // manda print do contrato/boleto). Qualquer outro anexo continua ignorado, com log.
+    let imagemBase64 = null; let imagemTipo = null;
     if (!texto && msg.anexoLink) {
-      await logAdvbox('agenda', 'info', 'mensagem com anexo nao-audio/ sem texto — ignorada (validar campos no piloto)', { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
+      imagemTipo = tipoAnexoImagem(msg.anexoTipo, msg.anexoLink);
+      if (imagemTipo && anexoPermitido(msg.anexoLink)) {
+        try {
+          const r = await fetch(msg.anexoLink, { signal: AbortSignal.timeout(15000) });
+          const buf = Buffer.from(await r.arrayBuffer());
+          if (buf.length <= 4_000_000) imagemBase64 = buf.toString('base64');
+        } catch (e) { await logAdvbox('agenda', 'aviso', `imagem nao baixada: ${e.message}`, { leadId }); }
+      }
+      if (!imagemBase64) await logAdvbox('agenda', 'info', 'anexo nao suportado — ignorado', { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
     }
-    if (!texto) return new Response('sem texto', { status: 200 });
+    if (!texto && !imagemBase64) return new Response('sem texto', { status: 200 });
+    if (TIPOS_AUDIO.includes(String(msg.anexoTipo))) estado.mandou_audio = true;
     // (pos-review Opus #5) fallback composto de dedupe (sem msgId) so AQUI — precisa do
     // `texto` ja resolvido (audio via STT incluso); rodar antes colidiria entre audios
-    // distintos no mesmo minuto (ver comentario em jaProcessada).
-    if (!msg.msgId && await jaProcessada(chaveDedupeFallback(msg.contactId, texto))) return new Response('dupe', { status: 200 });
+    // distintos no mesmo minuto (ver comentario em jaProcessada). Mensagem so-imagem nao
+    // tem texto: entra o link do anexo, senao 2 imagens no mesmo minuto viravam duplicata.
+    if (!msg.msgId && await jaProcessada(chaveDedupeFallback(msg.contactId, texto || msg.anexoLink))) return new Response('dupe', { status: 200 });
 
     const convId = await convIdDe(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
-    await logMessage(convId, 'in', texto, null, { msgId: msg.msgId, anexo: msg.anexoTipo || null });
+    await logMessage(convId, 'in', texto || '[imagem]', null, { msgId: msg.msgId, anexo: msg.anexoTipo || null });
 
-    // interpreta + decide (com ate 1 re-entrada por buscar_slots)
-    const agora = new Date();
-    const interp = estado.etapa === 'abertura' ? { intencao: 'saudacao', confianca: 1 } : await interpretar({ mensagem: texto, estado, cfg });
-    let r = decidir({ estado, interp, cfg, agora });
-    let slotsCtx = null;
-    if (r.acoes.some((a) => a.tipo === 'buscar_slots')) {
-      const desejado = r.acoes.find((a) => a.tipo === 'buscar_slots')?.desejado || null;
-      try {
-        slotsCtx = await montarSlots(cfg, agora, desejado);
-      } catch (e) {
-        // (IMPORTANT — revisão final #3) sem fallback aqui, uma falha do Google (rate limit,
-        // timeout, ou — pertinente agora — o token OAuth hoje só tem escopo de leitura)
-        // deixava o lead sem NENHUMA resposta: a exceção subia até o catch genérico do
-        // handler, que só loga e devolve 200 silencioso. Mesmo padrão de createEventComMeet:
-        // avisa o lead + cria tarefa p/ a equipe assumir manualmente.
-        await logAdvbox('agenda', 'erro', `montarSlots falhou (buscar_slots): ${e.message}`.slice(0, 300), { leadId });
-        await falar(leadId, cfg.mensagens.impasse, cfg);
-        estado.ultima_fala_ana = new Date().toISOString();
-        await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
-        await createKommoTask(leadId, 'leads', 'Ana falhou ao buscar horários no Calendar. Combinar horário manualmente.', 1, null);
-        return new Response('google falhou', { status: 200 });
-      }
-      r = decidir({ estado, interp, cfg, agora, slotsDisponiveis: slotsCtx.slots });
-    }
-    let estadoFinal = r.novoEstado;
+    // historico do espelho (atendimento.*) + situacao (gatilho): quem decide SE a Ana fala
+    // e em que modo. Sai antes de gastar token quando o roteiro do Salesbot ainda esta em curso.
+    const { data: histRaw, error: histErr } = await db.rpc('sdr_ia_historico', { p_chave: RPC_SECRET, p_contact_id: Number(msg.contactId), p_limite: 40 });
+    // falha aqui nao derruba o turno, mas SILENCIA a Ana nos gatilhos por texto (sem
+    // historico nao ha ultima fala do escritorio) — por isso vira aviso no console.
+    if (histErr) await logAdvbox('agenda', 'aviso', `historico do espelho falhou (segue sem contexto): ${histErr.message}`.slice(0, 300), { leadId });
+    const historico = filtrarMsgAtual(histRaw || [], texto, agora);
+    const temEventoFuturo = !!(estado.agendamento?.inicio && new Date(estado.agendamento.inicio) > agora);
+    const situacao = situacaoDoLead({ lead: g.lead, cfg, ultimaMsgEscritorio: ultimaMsgDoEscritorio(historico), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
+    if (!situacao) return new Response('fora dos gatilhos', { status: 200 });
 
-    for (const acao of r.acoes) {
-      if (acao.tipo === 'responder') {
-        await falar(leadId, acao.mensagem, cfg);
-        estadoFinal.ultima_fala_ana = new Date().toISOString();
-        await logMessage(convId, 'out', acao.mensagem, interp.intencao, {});
-      } else if (acao.tipo === 'salvar_campos') {
-        if (acao.campos.investimento) await setLeadField(leadId, cfg.kommo.campo_investimento_id, acao.campos.investimento);
-        if (acao.campos.preferencia) await setLeadField(leadId, cfg.kommo.campo_preferencia_id, acao.campos.preferencia);
-      } else if (acao.tipo === 'agendar' || acao.tipo === 'reagendar') {
-        const slot = estadoFinal.slots_ofertados[acao.slotIdx];
-        let slots, at;
-        try {
-          ({ slots, at } = slotsCtx || await montarSlots(cfg, agora));
-        } catch (e) {
-          // (IMPORTANT — revisão final #3) mesmo fallback do ponto de buscar_slots acima:
-          // sem try/catch aqui a exceção subia até o catch genérico do handler (200 silencioso,
-          // sem avisar o lead nem abrir tarefa). Mesmo padrão de createEventComMeet abaixo.
-          await logAdvbox('agenda', 'erro', `montarSlots falhou (revalidacao ${acao.tipo}): ${e.message}`.slice(0, 300), { leadId });
-          await falar(leadId, cfg.mensagens.impasse, cfg);
-          estadoFinal.ultima_fala_ana = new Date().toISOString();
-          await createKommoTask(leadId, 'leads', 'Ana falhou ao confirmar horário no Calendar. Combinar horário manualmente.', 1, null);
-          break;
-        }
-        // revalida o slot (concorrencia): confere se ainda ha vendedora livre nesse horario
-        const aindaLivre = slots.find((s) => new Date(s.inicio).getTime() === new Date(slot.inicio).getTime());
-        if (!aindaLivre) {
-          const dois = slots.slice(0, cfg.regras.slots_por_oferta);
-          estadoFinal.slots_ofertados = dois.map((x) => ({ inicio: new Date(x.inicio).toISOString(), vendedoras: [...x.vendedoras] }));
-          const vars = Object.fromEntries(dois.map((s, i) => [`slot${i + 1}`, formatarSlot(new Date(s.inicio), agora)]));
-          await falar(leadId, aplicarTemplate(cfg.mensagens.slot_ocupado, vars), cfg);
-          estadoFinal.ultima_fala_ana = new Date().toISOString();
-          break;
-        }
-        const vend = sortearVendedora(cfg.vendedoras, aindaLivre.vendedoras, String(leadId));
-        if (!vend) {
-          // nenhuma vendedora elegivel (peso 0 / inativa) — nao fabrica fala; alerta a equipe.
-          await logAdvbox('agenda', 'aviso', 'sem vendedora elegivel p/ o slot (peso/ativa) — handoff', { leadId, inicio: slot.inicio });
-          await createKommoTask(leadId, 'leads', 'Ana nao achou vendedora p/ o horario aceito. Combinar manualmente.', 1, null);
-          await postNote(leadId, `CBC.agenda.handoff:${Date.now()}`, 'Ana -> humano. Sem vendedora elegivel p/ o slot aceito.');
-          break;
-        }
-        const ini = new Date(slot.inicio);
-        const fim = new Date(ini.getTime() + cfg.regras.duracao_evento_min * 60000);
+    // prompt + agente
+    const { data: fatos } = await db.rpc('sdr_ia_fatos_listar', { p_chave: RPC_SECRET });
+    const plantaoFim = proximoInicioExpediente(agora, grade, cfg.regras.feriados || []);
+    const system = montarSystem({ cfg, fatos: fatos || [] });
+    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim }), imagemBase64, imagemTipo });
+    estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
+    const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim });
 
-        // (pos-review Opus #6a) evento atual capturado ANTES do confirmar() sobrescrever
-        // estadoFinal.agendamento.
-        const eventoAtual = (acao.tipo === 'reagendar') ? estadoFinal.agendamento : null;
-        // mesma vendedora do evento atual => reaproveita o MESMO event_id. Guardado numa
-        // flag (em vez de só o `if` inline) porque também decide COMO resetar o espelho lá
-        // embaixo (achado CRITICAL da revisão final: o upsert genérico não reseta
-        // lembrete_1h_em/lembrete_t0_em/noshow_msg_em, então o cron nunca mais dispara nada
-        // pro novo horário).
-        const mesmoEvento = !!(eventoAtual?.event_id && eventoAtual.vendedora === vend);
-        let eventId, meetLink;
-        if (mesmoEvento) {
-          // mesma vendedora do evento atual: reposiciona o MESMO evento (preserva o link
-          // do Meet — nao cancela+recria so por causa do horario mudar).
-          try {
-            await patchEventHorario({ calendarId: vend, eventId: eventoAtual.event_id, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: at });
-            eventId = eventoAtual.event_id;
-            meetLink = eventoAtual.meet_link;
-            // (IMPORTANT — revisão final #2) limpa a cor REAL do evento: se ele já tinha um
-            // desfecho marcado (no_show/realizada/fechou), a cor antiga fica no Calendar e o
-            // sync (até 45min) a releria, revertendo o status que o reset do espelho (abaixo)
-            // acabou de zerar. Não fatal — o reset do espelho é a defesa principal. NOTA: o
-            // token OAuth hoje é readonly, então isso só será exercitado de fato no piloto
-            // (pilot-verify), após o re-consent.
-            try {
-              await setEventColor({ calendarId: vend, eventId: eventoAtual.event_id, colorId: null, accessToken: at });
-            } catch (e) {
-              await logAdvbox('agenda', 'aviso', `setEventColor(null) falhou ao reagendar (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId: eventoAtual.event_id });
-            }
-          } catch (e) {
-            await logAdvbox('agenda', 'erro', `patchEventHorario falhou ao reagendar: ${e.message}`.slice(0, 300), { leadId });
-            await falar(leadId, cfg.mensagens.impasse, cfg);
-            estadoFinal.ultima_fala_ana = new Date().toISOString();
-            await createKommoTask(leadId, 'leads', 'Ana falhou ao reagendar a videochamada no Calendar. Combinar horário manualmente.', 1, null);
-            break;
-          }
-        } else {
-          if (eventoAtual?.event_id) {
-            // vendedora mudou: cancela o evento anterior. Falha aqui NAO e engolida —
-            // loga aviso e segue tentando criar o novo (travar o reagendamento por causa
-            // de um evento orfao no Calendar seria pior).
-            try {
-              await cancelEvent({ calendarId: eventoAtual.vendedora, eventId: eventoAtual.event_id, accessToken: at });
-            } catch (e) {
-              await logAdvbox('agenda', 'aviso', `cancelEvent falhou ao reagendar (segue criando o novo evento): ${e.message}`.slice(0, 300), { leadId, eventId: eventoAtual.event_id });
-            }
-          }
-          try {
-            const criado = await createEventComMeet({ calendarId: vend, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
-              titulo: `Videochamada — ${estadoFinal.nome || fone} (CBC/Ana)`,
-              descricao: `Lead: https://advocaciacbc.kommo.com/leads/detail/${leadId}\nTelefone: ${fone}\nResort: ${estadoFinal.dados.resort || '?'} | Situação: ${estadoFinal.dados.situacao || '?'} | Já pagou: ${estadoFinal.dados.valor_aprox || '?'}`,
-              leadId, telefone: fone, nome: estadoFinal.nome, accessToken: at });
-            eventId = criado.eventId; meetLink = criado.meetLink;
-          } catch (e) {
-            // create falhou (possivelmente ja cancelamos o evento anterior acima) — o
-            // lead NAO pode ficar sem aviso (pos-review Opus #6a).
-            await logAdvbox('agenda', 'erro', `createEventComMeet falhou ao ${acao.tipo}: ${e.message}`.slice(0, 300), { leadId });
-            await falar(leadId, cfg.mensagens.impasse, cfg);
-            estadoFinal.ultima_fala_ana = new Date().toISOString();
-            await createKommoTask(leadId, 'leads', 'Ana falhou ao criar o evento no Calendar. Combinar horário manualmente.', 1, null);
-            break;
-          }
-        }
-
-        const c = confirmar({ estado: estadoFinal, slot: aindaLivre, agora, cfg, eventId, meetLink, vendedora: vend });
-        estadoFinal = c.novoEstado;
-
-        // (CRITICAL — pos-review Opus #1) persiste o estado duravel IMEDIATAMENTE apos o
-        // booking confirmado (event_id ja gravado em estadoFinal.agendamento), ANTES de
-        // qualquer side-effect subsequente. O msg_id ja foi marcado processado no INICIO
-        // do worker (jaProcessada) — o Kommo NAO reentrega este webhook, entao nao ha
-        // reentrega para auto-curar. Se falar/upsertVC/moveLeadStage/createKommoTask
-        // falhar DAQUI PRA FRENTE, o estado gravado ja diz 'confirmado' + event_id: a
-        // proxima mensagem do lead cai em reagendamento (patch ou cancela+cria), nunca em
-        // double-booking.
-        await upsertConversation(channel, { context: estadoFinal });
-
-        await falar(leadId, c.mensagem, cfg);
-        estadoFinal.ultima_fala_ana = new Date().toISOString();
-        await logMessage(convId, 'out', c.mensagem, 'confirmado', { eventId });
-        try {
-          if (mesmoEvento) {
-            // (CRITICAL — revisão final #1) RPC dedicada EM VEZ do upsert genérico: reseta
-            // scheduled_at/status/color_id E os 3 timestamps de lembrete/no-show num único
-            // UPDATE. O upsert genérico (branch abaixo) não inclui essas 3 colunas de
-            // propósito — ver comentário de resetReagendamento acima.
-            await resetReagendamento(eventId, ini.toISOString());
-          } else {
-            await upsertVC({ event_id: eventId, vendedora_email: vend, cliente_email: null, cliente_nome: estadoFinal.nome || null,
-              status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live',
-              origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
-          }
-        } catch (e) {
-          // (pos-review Opus #1) NAO fatal: o Calendar (fonte da verdade) ja tem o evento
-          // certo; o espelho agenda_videochamadas e reconciliado pelo agenda-videochamadas-
-          // sync via extendedProperties.cbc_origem mesmo se este upsert/reset falhar agora.
-          await logAdvbox('agenda', 'erro', `upsertVC/reset falhou (nao fatal — calendar-sync reconcilia): ${e.message}`.slice(0, 300), { leadId, eventId });
-        }
-        const vendCfg = cfg.vendedoras.find((v) => v.email === vend);
-        await moveLeadStage(leadId, { pipelineId: cfg.kommo.etapa_agendado.pipeline_id, statusId: cfg.kommo.etapa_agendado.status_id });
-        if (vendCfg?.user_id) await createKommoTask(leadId, 'leads', `Videochamada (Ana): ${ini.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} — Meet: ${meetLink}`, Math.max(1, (ini - Date.now()) / 36e5), vendCfg.user_id);
-      } else if (acao.tipo === 'handoff') {
-        await createKommoTask(leadId, 'leads', `Ana pediu apoio humano (${acao.motivo}). Ver conversa e assumir.`, 1, null);
-        await postNote(leadId, `CBC.agenda.handoff:${Date.now()}`, `Ana → humano. Motivo: ${acao.motivo}. Dados: ${JSON.stringify(estadoFinal.dados)}`);
-      } else if (acao.tipo === 'nota') {
-        await postNote(leadId, `CBC.agenda.nota:${Date.now()}`, acao.texto);
-      }
+    let r; let erroApi = null;
+    try {
+      r = await rodarAgente({ client: criarCliente(), modelo: cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low', maxTokens: cfg.llm?.max_tokens || 2048,
+        system, tools: FERRAMENTAS, messages, executar: exec.executar });
+    } catch (e) {
+      erroApi = e.message;
+      await logAdvbox('agenda', 'erro', `Claude falhou: ${e.message}`.slice(0, 300), { leadId });
+      r = { texto: null, stop_reason: 'api_error', iteracoes: [], chamadas: [], textos: [] };
     }
 
-    await upsertConversation(channel, { customer_id: leadId, customer_name: estadoFinal.nome, context: estadoFinal });
-    await logAdvbox('agenda', 'info', `Ana ${estado.etapa}→${estadoFinal.etapa} lead ${leadId} (${Date.now() - t0}ms)`, { interp: interp.intencao, conf: interp.confianca });
+    // r.texto vazio = recusa, max_iter, max_tokens sem nenhum texto, ou erro de API. O lead
+    // NUNCA fica sem resposta: se o modelo chegou a escrever algo antes de estourar as
+    // iteracoes, essa fala vale; senao vai a mensagem de transicao. Nos dois casos escala.
+    let resposta = r.texto;
+    if (!resposta) {
+      const parcial = r.stop_reason === 'max_iter' ? (r.textos || []).slice(-1)[0] : null;
+      resposta = parcial || cfg.mensagens?.transicao_humano || `Vou pedir para a nossa equipe continuar com você a partir de ${plantaoFim.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', hour: '2-digit', minute: '2-digit' })}. Obrigada!`;
+      if (!estado.escalado) { try { await exec.executar('escalar_para_humano', { motivo: `agente sem resposta (${r.stop_reason})`, resumo: 'Ver conversa.' }); } catch { /* best-effort */ } }
+    }
+    await falar(leadId, resposta, cfg);
+    estado.ultima_fala_ana = new Date().toISOString();
+    await logMessage(convId, 'out', resposta, situacao.acao, { stop: r.stop_reason });
+    await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+
+    // telemetria por chamada (sdr_ia_turnos): tokens, custo, ferramentas, latencia, stop.
+    const usoTotal = (k) => r.iteracoes.reduce((s, it) => s + (it.usage?.[k] || 0), 0);
+    const avisos = [];
+    const custo = custoUsd(r.iteracoes, avisos);
+    const { error: turnoErr } = await db.rpc('sdr_ia_turno_gravar', { p_chave: RPC_SECRET, p_row: {
+      lead_id: leadId, conversation_id: convId, contact_id: Number(msg.contactId),
+      entrada: texto || null, entrada_tipo: imagemBase64 ? 'imagem' : (estado.mandou_audio && !msg.text ? 'audio' : 'texto'),
+      resposta, ferramentas: r.chamadas, modelo: r.modeloFinal || cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low',
+      input_tokens: usoTotal('input_tokens'), cache_read_tokens: usoTotal('cache_read_input_tokens'), cache_write_tokens: usoTotal('cache_creation_input_tokens'), output_tokens: usoTotal('output_tokens'),
+      custo_usd: custo, latencia_ms: Date.now() - t0, stop_reason: r.stop_reason,
+      fallback_model: (r.modeloFinal && r.modeloFinal !== (cfg.llm?.modelo || 'claude-opus-5')) ? r.modeloFinal : null,
+      situacao: situacao.acao, erro: erroApi,
+    } });
+    if (turnoErr) await logAdvbox('agenda', 'erro', `telemetria do turno nao gravada: ${turnoErr.message}`.slice(0, 300), { leadId, convId });
+    await logAdvbox('agenda', 'info', `Ana(IA) ${situacao.acao} lead ${leadId} ${r.stop_reason} ${r.chamadas.map((c) => c.nome).join(',')} (${Date.now() - t0}ms)`,
+      { custo_usd: custo, ...(avisos.length ? { modelos_sem_preco: avisos } : {}) });
     return new Response('ok', { status: 200 });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `worker Ana: ${e.message}`.slice(0, 300), { stack: (e.stack || '').slice(0, 500), raw: String(raw).slice(0, 1500) }).catch(() => {});

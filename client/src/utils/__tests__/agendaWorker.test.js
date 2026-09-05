@@ -3,7 +3,7 @@
 // validada no piloto (Task 15). Aqui: parse do payload, allowlist de host do anexo
 // e a decisao do teto de bytes do audio.
 import { describe, it, expect } from 'vitest';
-import { parsePayload, anexoPermitido, tetoBytes, excedeTeto, gatilhoAtende, ETAPAS_TERMINAIS, ehEventoHumano, chaveDedupeFallback } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
+import { parsePayload, anexoPermitido, tetoBytes, excedeTeto, gatilhoAtende, ETAPAS_TERMINAIS, ehEventoHumano, chaveDedupeFallback, ultimaMsgDoEscritorio, temMeetNoHistorico, filtrarMsgAtual, tipoAnexoImagem } from '../../../netlify/functions/agenda-bot-worker-background.mjs';
 
 describe('parsePayload', () => {
   it('JSON: extrai texto, contato, msgId e anexo de message.add[0]', () => {
@@ -232,5 +232,91 @@ describe('chaveDedupeFallback (dedupe sem msgId)', () => {
     expect(() => chaveDedupeFallback('1', '', agora)).not.toThrow();
     expect(() => chaveDedupeFallback('1', null, agora)).not.toThrow();
     expect(chaveDedupeFallback('1', '', agora)).toBe(chaveDedupeFallback('1', null, agora));
+  });
+});
+
+// ===================== SDR de IA (Task 10) =====================
+// Helpers puros do worker no modo agente: historico do espelho (ultima fala do
+// escritorio, Meet ja enviado, deduplicacao da mensagem atual) e tipo da imagem.
+describe('helpers do historico (SDR de IA)', () => {
+  const h = [
+    { autor: 'atendente', autor_nome: 'Salesbot', corpo: 'Combinado, vou reservar o seu horário', enviada_em: '2026-09-05T20:00:00Z' },
+    { autor: 'cliente', autor_nome: 'X', corpo: 'De manhã', enviada_em: '2026-09-05T20:01:00Z' },
+  ];
+
+  it('ultimaMsgDoEscritorio pega a ultima do atendente', () => {
+    expect(ultimaMsgDoEscritorio(h)).toMatch(/vou reservar/);
+    expect(ultimaMsgDoEscritorio([])).toBeNull();
+    expect(ultimaMsgDoEscritorio(null)).toBeNull();
+  });
+
+  it('ultimaMsgDoEscritorio ignora as do cliente mesmo sendo as ultimas', () => {
+    const so = [{ autor: 'cliente', corpo: 'oi' }];
+    expect(ultimaMsgDoEscritorio(so)).toBeNull();
+  });
+
+  it('temMeetNoHistorico detecta link enviado pelo escritorio', () => {
+    expect(temMeetNoHistorico(h)).toBe(false);
+    expect(temMeetNoHistorico([...h, { autor: 'atendente', corpo: 'Link: https://meet.google.com/abc-defg-hij' }])).toBe(true);
+  });
+
+  it('temMeetNoHistorico ignora link colado pelo proprio lead', () => {
+    expect(temMeetNoHistorico([{ autor: 'cliente', corpo: 'https://meet.google.com/abc-defg-hij' }])).toBe(false);
+    expect(temMeetNoHistorico(null)).toBe(false);
+  });
+
+  it('filtrarMsgAtual remove a propria mensagem se o espelho ja a tiver', () => {
+    expect(filtrarMsgAtual(h, 'De manhã', new Date('2026-09-05T20:02:00Z'))).toHaveLength(1);
+    expect(filtrarMsgAtual(h, 'Outra coisa', new Date('2026-09-05T20:02:00Z'))).toHaveLength(2);
+  });
+
+  it('filtrarMsgAtual so remove dentro da janela de 10 min', () => {
+    expect(filtrarMsgAtual(h, 'De manhã', new Date('2026-09-05T20:30:00Z'))).toHaveLength(2);
+  });
+
+  it('filtrarMsgAtual nunca remove fala do atendente com o mesmo texto', () => {
+    const eco = [{ autor: 'atendente', corpo: 'De manhã', enviada_em: '2026-09-05T20:01:00Z' }];
+    expect(filtrarMsgAtual(eco, 'De manhã', new Date('2026-09-05T20:02:00Z'))).toHaveLength(1);
+  });
+
+  it('filtrarMsgAtual tolera historico vazio/nulo', () => {
+    expect(filtrarMsgAtual(null, 'x', new Date())).toEqual([]);
+    expect(filtrarMsgAtual([], 'x', new Date())).toEqual([]);
+  });
+
+  it('tipoAnexoImagem por tipo ou extensao', () => {
+    expect(tipoAnexoImagem('picture', 'https://x.kommo.com/a.bin')).toBe('image/jpeg');
+    expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.png')).toBe('image/png');
+    expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.pdf')).toBeNull();
+  });
+
+  it('tipoAnexoImagem aceita extensao com querystring e maiuscula', () => {
+    expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.WEBP?sig=1')).toBe('image/webp');
+    expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.JPG')).toBe('image/jpeg');
+    expect(tipoAnexoImagem('file', 'https://x.kommo.com/a.jpeg?x=1')).toBe('image/jpeg');
+  });
+
+  it('tipoAnexoImagem: audio/nulo nunca vira imagem', () => {
+    expect(tipoAnexoImagem('voice', 'https://x.kommo.com/a.ogg')).toBeNull();
+    expect(tipoAnexoImagem(null, null)).toBeNull();
+  });
+});
+
+// (Task 10) A config da Ana IA traz gatilhos SEM status_ids: valem para qualquer etapa
+// nao terminal do pipeline (as etapas de encerramento quem decide e situacaoDoLead).
+describe('gatilhoAtende sem status_ids (config do SDR de IA)', () => {
+  const lead = (status_id, pipeline_id = 1) => ({ status_id, pipeline_id });
+
+  it('gatilho so com pipeline_id bate em etapa nao terminal', () => {
+    expect(gatilhoAtende({ pipeline_id: 1 }, lead(10))).toBe(true);
+  });
+
+  it('gatilho so com pipeline_id NAO bate em etapa terminal', () => {
+    expect(gatilhoAtende({ pipeline_id: 1 }, lead(142))).toBe(false);
+    expect(gatilhoAtende({ pipeline_id: 1 }, lead(143))).toBe(false);
+  });
+
+  it('gatilho so com pipeline_id nao bate em outro pipeline', () => {
+    expect(gatilhoAtende({ pipeline_id: 1, desde_inicio: true }, lead(10, 2))).toBe(false);
   });
 });
