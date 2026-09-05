@@ -79,3 +79,24 @@ export function formatarSlot(date, agora) {
   const [, mm, dd] = ymd.split('-');
   return `${nomes[dow]} (${dd}/${mm}) às ${hora}`;
 }
+
+// ---- SDR de IA: oferta de slots (PURO, testado em agendaSlots.test.js) ----
+export function periodoDoSlot(date) { return partesLocais(date).h < 12 ? 'manha' : 'tarde'; }
+
+/** Escolhe ate n slots: primeiro os do periodo pedido, depois completa com os demais; filtra closer e piso de horario. */
+export function slotsParaOferta({ slots, preferencia = 'qualquer', aPartirDeISO = null, closer = null, n = 3 }) {
+  const piso = aPartirDeISO ? new Date(aPartirDeISO).getTime() : 0;
+  const base = (slots || []).filter((s) => new Date(s.inicio).getTime() >= piso && (!closer || (s.vendedoras || []).includes(closer)));
+  const pref = preferencia === 'qualquer' ? base : base.filter((s) => periodoDoSlot(new Date(s.inicio)) === preferencia);
+  const out = pref.slice(0, n);
+  for (const s of base) { if (out.length >= n) break; if (!out.includes(s)) out.push(s); }
+  return out.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+}
+
+export function slotId(slot, closer) { return `${new Date(slot.inicio).toISOString()}|${closer}`; }
+
+export function parseSlotId(id) {
+  const [iso, closer] = String(id || '').split('|');
+  if (!iso || !closer || Number.isNaN(Date.parse(iso))) return null;
+  return { inicioISO: new Date(iso).toISOString(), closer };
+}

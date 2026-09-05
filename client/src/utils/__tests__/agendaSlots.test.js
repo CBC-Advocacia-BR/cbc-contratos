@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gerarSlots, sortearVendedora, slotMaisProximo, formatarSlot, dentroDoExpediente } from '../../../netlify/functions/_lib/agendaSlots.mjs';
+import { periodoDoSlot, slotsParaOferta, slotId, parseSlotId } from '../../../netlify/functions/_lib/agendaSlots.mjs';
 
 const REGRAS = { dias: [1,2,3,4,5], hora_inicio: '08:00', hora_fim: '17:00', granularidade_min: 30,
   antecedencia_min_minutos: 60, horizonte_dias_uteis: 5, almoco: null, slots_por_oferta: 2,
@@ -103,5 +104,32 @@ describe('slotMaisProximo/formatarSlot', () => {
     expect(formatarSlot(new Date('2026-07-21T17:30:00Z'), AGORA)).toBe('hoje às 14h30');
     expect(formatarSlot(new Date('2026-07-22T12:00:00Z'), AGORA)).toBe('amanhã às 9h');
     expect(formatarSlot(new Date('2026-07-23T13:00:00Z'), AGORA)).toBe('quinta (23/07) às 10h');
+  });
+});
+
+describe('slotsParaOferta', () => {
+  const sp = (s) => new Date(`${s}-03:00`);
+  const slots = [
+    { inicio: sp('2026-09-07T08:30:00'), vendedoras: ['a@x', 'b@x'] },
+    { inicio: sp('2026-09-07T09:00:00'), vendedoras: ['b@x'] },
+    { inicio: sp('2026-09-07T14:00:00'), vendedoras: ['a@x'] },
+    { inicio: sp('2026-09-08T08:30:00'), vendedoras: ['a@x'] },
+  ];
+  it('periodoDoSlot: antes das 12h e manha', () => {
+    expect(periodoDoSlot(sp('2026-09-07T11:59:00'))).toBe('manha');
+    expect(periodoDoSlot(sp('2026-09-07T12:00:00'))).toBe('tarde');
+  });
+  it('prefere o periodo pedido e completa com os demais ate n', () => {
+    const out = slotsParaOferta({ slots, preferencia: 'tarde', n: 2 });
+    expect(out.map((s) => s.inicio.toISOString())).toEqual([sp('2026-09-07T08:30:00').toISOString(), sp('2026-09-07T14:00:00').toISOString()]);
+  });
+  it('filtra por closer e por a_partir_de', () => {
+    const out = slotsParaOferta({ slots, closer: 'a@x', aPartirDeISO: sp('2026-09-07T10:00:00').toISOString(), n: 3 });
+    expect(out.map((s) => s.inicio.toISOString())).toEqual([sp('2026-09-07T14:00:00').toISOString(), sp('2026-09-08T08:30:00').toISOString()]);
+  });
+  it('slotId e parseSlotId sao inversos', () => {
+    const id = slotId(slots[0], 'a@x');
+    expect(parseSlotId(id)).toEqual({ inicioISO: slots[0].inicio.toISOString(), closer: 'a@x' });
+    expect(parseSlotId('lixo')).toBeNull();
   });
 });
