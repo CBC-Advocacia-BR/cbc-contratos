@@ -2,7 +2,7 @@
 // Todas as datas em Date UTC; regras expressas no fuso America/Sao_Paulo.
 const TZ = 'America/Sao_Paulo';
 
-function partesLocais(d) {
+export function partesLocais(d) {
   const p = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short' }).formatToParts(d);
   const g = (t) => p.find((x) => x.type === t)?.value;
