@@ -188,7 +188,16 @@ export function criarExecutor(ctx) {
       const closerAnterior = ag.vendedora;
       let eventId = ag.event_id; let meetLink = ag.meet_link;
       if (p.closer === ag.vendedora) {
-        await patchEventHorario({ calendarId: ag.vendedora, eventId, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: await at(), notificar: true });
+        // (revisao final I7) sem este try/catch, um patchEventHorario que falhasse deixava
+        // a reserva do horario novo de pe para sempre: o freeBusy mostraria livre e a RPC de
+        // reserva recusaria todo mundo — o mesmo vazamento que o agendar() ja evitava (I1).
+        try {
+          await patchEventHorario({ calendarId: ag.vendedora, eventId, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: await at(), notificar: true });
+        } catch (e) {
+          await liberarSlot(p.inicioISO, p.closer);
+          await logAdvbox('agenda', 'erro', `remarcar: patchEventHorario falhou (reserva liberada): ${e.message}`.slice(0, 300), { leadId, eventId });
+          throw new Error('não consegui mover o evento; chame consultar_horarios de novo');
+        }
         try { await setEventColor({ calendarId: ag.vendedora, eventId, colorId: null, accessToken: await at() }); } catch (e) { await logAdvbox('agenda', 'aviso', `setEventColor falhou (nao fatal): ${e.message}`, { leadId }); }
         const { error } = await db.rpc('agenda_videochamadas_reset_reagendamento', { p_chave: RPC_SECRET, p_event_id: eventId, p_novo_inicio: ini.toISOString() });
         if (error) await logAdvbox('agenda', 'erro', `reset reagendamento falhou: ${error.message}`, { leadId, eventId });

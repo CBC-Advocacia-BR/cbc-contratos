@@ -333,18 +333,32 @@ export default async (req) => {
       return new Response('humano assumiu', { status: 200 });
     }
 
+    // (revisao final I8) mensagem de "nao entendi, pode escrever?" para audio nao-processavel.
+    // Antes so chamava falar() sem gravar ultima_fala_ana/log: a proxima checagem de
+    // humanoAssumiu() nao tinha essa fala como referencia (ultimaFala vem do estado persistido
+    // do turno ANTERIOR) e um evento outgoing qualquer no Kommo virava "humano respondeu" —
+    // a Ana se autopausava por 24h so por ter pedido pro lead mandar texto. Roda cedo demais
+    // p/ ter convId (so calculado depois do STT/gate de imagem): resolve a conversa sozinho.
+    async function pedirTexto() {
+      await falar(leadId, cfg.mensagens.pede_texto, cfg);
+      estado.ultima_fala_ana = new Date().toISOString();
+      await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+      const convIdPede = await convIdDe(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+      await logMessage(convIdPede, 'out', cfg.mensagens.pede_texto, 'pede_texto', {});
+    }
+
     // texto da mensagem (audio -> STT, com allowlist de host + teto de bytes)
     let texto = msg.text || '';
     if (!texto && msg.anexoLink && TIPOS_AUDIO.includes(String(msg.anexoTipo))) {
       if (!anexoPermitido(msg.anexoLink)) {
-        await falar(leadId, cfg.mensagens.pede_texto, cfg);
+        await pedirTexto();
         await logAdvbox('agenda', 'aviso', 'anexo de host nao permitido — audio nao baixado', { leadId, link: String(msg.anexoLink).slice(0, 200) });
         return new Response('anexo bloqueado', { status: 200 });
       }
       try {
         const head = await fetch(msg.anexoLink, { method: 'HEAD', signal: AbortSignal.timeout(10000) });
         if (excedeTeto(head.headers.get('content-length'), cfg)) {
-          await falar(leadId, cfg.mensagens.pede_texto, cfg);
+          await pedirTexto();
           await logAdvbox('agenda', 'aviso', `audio acima do teto (${head.headers.get('content-length')} bytes)`, { leadId });
           return new Response('audio grande', { status: 200 });
         }
@@ -352,7 +366,7 @@ export default async (req) => {
       const t = await transcrever({ url: msg.anexoLink, cfg });
       if (t.texto) texto = t.texto;
       else {
-        await falar(leadId, cfg.mensagens.pede_texto, cfg);
+        await pedirTexto();
         await logAdvbox('agenda', 'aviso', `STT falhou: ${t.erro}`, { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
         return new Response('stt falhou', { status: 200 });
       }
@@ -420,29 +434,36 @@ export default async (req) => {
     // manda a transicao, escala e registra o turno com stop_reason='teto_custo'.
     // Fail-open: RPC ausente (SQL v2 ainda nao aplicado) ou com erro => segue normal, com aviso.
     const tetoUsd = Number(cfg.llm?.teto_usd_lead_dia ?? 1.0);
-    const { data: gasto24h, error: gastoErr } = await db.rpc('sdr_ia_custo_lead_24h', { p_chave: RPC_SECRET, p_lead: leadId });
-    if (gastoErr) await logAdvbox('agenda', 'aviso', `teto de custo nao verificado (segue): ${gastoErr.message}`.slice(0, 300), { leadId });
-    else if (Number(gasto24h) >= tetoUsd) {
-      const aviso = cfg.mensagens?.transicao_humano || 'Vou pedir para a nossa equipe continuar com você no próximo horário de atendimento. Obrigada pela paciência!';
-      await falar(leadId, aviso, cfg);
-      if (!estado.escalado) {
-        try { await exec.executar('escalar_para_humano', { motivo: `teto de custo do lead atingido (US$ ${Number(gasto24h).toFixed(4)} em 24h)`, resumo: 'Ver conversa.' }); }
-        catch (e) { await logAdvbox('agenda', 'erro', `escalada por teto de custo falhou: ${e.message}`.slice(0, 300), { leadId }); }
+    // tetoUsd <= 0 = teto DESLIGADO (config explicita do Paulo) — nem consulta a RPC.
+    if (tetoUsd > 0) {
+      const { data: gasto24h, error: gastoErr } = await db.rpc('sdr_ia_custo_lead_24h', { p_chave: RPC_SECRET, p_lead: leadId });
+      if (gastoErr) await logAdvbox('agenda', 'aviso', `teto de custo nao verificado (segue): ${gastoErr.message}`.slice(0, 300), { leadId });
+      else if (Number(gasto24h) >= tetoUsd) {
+        const aviso = cfg.mensagens?.transicao_humano || 'Vou pedir para a nossa equipe continuar com você no próximo horário de atendimento. Obrigada pela paciência!';
+        await falar(leadId, aviso, cfg);
+        if (!estado.escalado) {
+          try { await exec.executar('escalar_para_humano', { motivo: `teto de custo do lead atingido (US$ ${Number(gasto24h).toFixed(4)} em 24h)`, resumo: 'Ver conversa.' }); }
+          catch (e) { await logAdvbox('agenda', 'erro', `escalada por teto de custo falhou: ${e.message}`.slice(0, 300), { leadId }); }
+        }
+        estado.ultima_fala_ana = new Date().toISOString();
+        // (revisao final I9) sem pausar aqui, toda mensagem seguinte do lead (ainda dentro
+        // das 24h de gasto) reprocessava o mesmo teto e mandava a MESMA transicao de novo —
+        // agora o pausada_ate existente (checado logo no inicio do turno) segura o resto.
+        estado.pausada_ate = new Date(Date.now() + (cfg.regras.silencio_humano_horas || 24) * 36e5).toISOString();
+        await logMessage(convId, 'out', aviso, situacao.acao, { stop: 'teto_custo' });
+        await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+        const { error: tetoErr } = await db.rpc('sdr_ia_turno_gravar', { p_chave: RPC_SECRET, p_row: {
+          lead_id: leadId, conversation_id: convId, contact_id: Number(msg.contactId),
+          entrada: texto || null, entrada_tipo: imagemBase64 ? 'imagem' : (estado.mandou_audio && !msg.text ? 'audio' : 'texto'),
+          resposta: aviso, ferramentas: [], modelo: cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low',
+          input_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0, output_tokens: 0,
+          custo_usd: 0, latencia_ms: Date.now() - t0, stop_reason: 'teto_custo', fallback_model: null,
+          situacao: situacao.acao, erro: null,
+        } });
+        if (tetoErr) await logAdvbox('agenda', 'erro', `telemetria do teto nao gravada: ${tetoErr.message}`.slice(0, 300), { leadId, convId });
+        await logAdvbox('agenda', 'aviso', `Ana(IA) teto_custo lead ${leadId}: US$ ${Number(gasto24h).toFixed(4)} em 24h (teto ${tetoUsd})`, { leadId });
+        return new Response('teto de custo', { status: 200 });
       }
-      estado.ultima_fala_ana = new Date().toISOString();
-      await logMessage(convId, 'out', aviso, situacao.acao, { stop: 'teto_custo' });
-      await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
-      const { error: tetoErr } = await db.rpc('sdr_ia_turno_gravar', { p_chave: RPC_SECRET, p_row: {
-        lead_id: leadId, conversation_id: convId, contact_id: Number(msg.contactId),
-        entrada: texto || null, entrada_tipo: imagemBase64 ? 'imagem' : (estado.mandou_audio && !msg.text ? 'audio' : 'texto'),
-        resposta: aviso, ferramentas: [], modelo: cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low',
-        input_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0, output_tokens: 0,
-        custo_usd: 0, latencia_ms: Date.now() - t0, stop_reason: 'teto_custo', fallback_model: null,
-        situacao: situacao.acao, erro: null,
-      } });
-      if (tetoErr) await logAdvbox('agenda', 'erro', `telemetria do teto nao gravada: ${tetoErr.message}`.slice(0, 300), { leadId, convId });
-      await logAdvbox('agenda', 'aviso', `Ana(IA) teto_custo lead ${leadId}: US$ ${Number(gasto24h).toFixed(4)} em 24h (teto ${tetoUsd})`, { leadId });
-      return new Response('teto de custo', { status: 200 });
     }
 
     let r; let erroApi = null;
