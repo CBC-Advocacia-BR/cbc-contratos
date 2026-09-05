@@ -3,7 +3,7 @@
 // orquestracao (RPCs, Kommo, Calendar, janela de 24h da Meta) fica sem unit test — validada
 // no piloto (Task 15), mesmo padrao de agenda-bot-worker-background.mjs/agendaWorker.test.js.
 import { describe, it, expect } from 'vitest';
-import { decidirLembrete } from '../../../netlify/functions/agenda-bot-cron.mjs';
+import { decidirLembrete, resumoPlantao } from '../../../netlify/functions/agenda-bot-cron.mjs';
 
 const vc = (over = {}) => ({ status: 'agendada', lembrete_1h_em: null, lembrete_t0_em: null, noshow_msg_em: null, ...over });
 
@@ -60,5 +60,19 @@ describe('decidirLembrete', () => {
   it('nenhuma janela bate -> null (ex.: faltando 3h, ou ja passou de 30min do horario)', () => {
     expect(decidirLembrete(vc(), 180)).toBe(null);
     expect(decidirLembrete(vc(), -180)).toBe(null);
+  });
+});
+
+describe('resumoPlantao', () => {
+  it('3 linhas: quem, o que quer, o que falta', () => {
+    const s = resumoPlantao({ nome: 'Diomar', dados: { resort: 'Praias do Lago', situacao_cota: 'quitada', valor_pago: 40000 }, nota: 3, situacao: 'handoff', agendamento: { inicio: null }, escalado: false });
+    expect(s.split('\n')).toHaveLength(3);
+    expect(s).toContain('Diomar');
+    expect(s).toContain('Praias do Lago');
+    expect(s).toMatch(/falta/i);
+  });
+  it('com videochamada marcada diz que esta agendada', () => {
+    const s = resumoPlantao({ nome: 'X', dados: {}, agendamento: { inicio: '2026-09-07T11:30:00Z', vendedora: 'marianamaciel@advocaciacbc.com' } });
+    expect(s).toMatch(/agendad/i);
   });
 });

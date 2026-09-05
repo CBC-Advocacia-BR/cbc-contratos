@@ -10,11 +10,12 @@
  * NUNCA derruba sem log (logAdvbox); sempre responde JSON { ok }.
  */
 import { getConfig, db, logAdvbox, getConversation, upsertConversation } from './_lib/botDb.mjs';
-import { setLeadField, runSalesbot, createKommoTask, postNote, kommoGet } from './_lib/kommo.mjs';
+import { setLeadField, runSalesbot, createKommoTask, postNote, kommoGet, moveLeadStage } from './_lib/kommo.mjs';
 import { aplicarTemplate } from './_lib/agendaEngine.mjs';
 import { formatarSlot, gerarSlots } from './_lib/agendaSlots.mjs';
 import { getAccessToken, freeBusy } from './_lib/googleAgenda.mjs';
 import { janelaAberta } from './_lib/assinaturaWhatsapp.mjs';
+import { gradeDeConfig, ehJanelaEntrega } from './_lib/sdrHorario.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 
@@ -32,6 +33,17 @@ export function decidirLembrete(vc, min) {
   if (min <= 2 && min > -5 && !vc.lembrete_t0_em) return 'lembrete_t0';
   if (min <= -10 && min > -30 && !vc.noshow_msg_em && vc.status === 'agendada') return 'noshow';
   return null;
+}
+
+/** Nota de 3 linhas p/ o SDR humano pegar o lead que a Ana tocou no plantao. */
+export function resumoPlantao(estado) {
+  const d = estado?.dados || {};
+  const ag = estado?.agendamento || {};
+  const quem = `Quem: ${estado?.nome || '?'} · resort ${d.resort || '?'} · cota ${d.situacao_cota || '?'} · pagou ${d.valor_pago ?? '?'} · nota ${estado?.nota ?? '?'}`;
+  const oque = ag.inicio ? `Status: videochamada agendada ${new Date(ag.inicio).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} com ${ag.vendedora || '?'}`
+    : estado?.escalado ? `Status: escalado pela Ana (${estado.escalado_motivo || '?'})` : `Status: conversou com a Ana (${estado?.situacao || '?'}), sem horário fechado`;
+  const falta = ag.inicio ? 'Falta: nada; só acompanhar a confirmação.' : 'Falta: propor horário e fechar; ler a conversa acima.';
+  return `${quem}\n${oque}\n${falta}`;
 }
 
 // ===================== I/O (orquestracao — validada no piloto) =====================
@@ -78,11 +90,49 @@ async function marcar(eventId, campo) {
   if (error) throw new Error(`marcar ${campo}: ${error.message}`);
 }
 
+/** Entrega da manha: para cada conversa que a Ana tocou no plantao (sdr_ia_plantao_pendentes),
+ * posta nota de 3 linhas no lead, escala p/ "Precisa de humano" se nao houver agendamento nem
+ * escalonamento/encerramento previo, e desliga o plantao (context.plantao_ativo=false). Falha
+ * por item nao aborta o lote (mesmo padrao do loop de lembretes acima). */
+async function entregarPlantao(cfg) {
+  const { data: rows, error } = await db.rpc('sdr_ia_plantao_pendentes', { p_chave: RPC_SECRET });
+  if (error) { await logAdvbox('agenda', 'erro', `plantao_pendentes: ${error.message}`); return { entregues: 0 }; }
+  let entregues = 0;
+  const hoje = new Date().toISOString().slice(0, 10);
+  for (const row of rows || []) {
+    const estado = row.context || {};
+    const leadId = estado.lead_id || row.customer_id;
+    if (!leadId) continue;
+    try {
+      await postNote(leadId, `CBC.ana.plantao:${hoje}`, `Plantão da Ana (${hoje}).\n${resumoPlantao(estado)}`);
+      if (!estado.agendamento?.inicio && !estado.escalado && !estado.encerrado) {
+        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: cfg.kommo.etapas.precisa_humano });
+      }
+      await upsertConversation(row.channel, { context: { ...estado, plantao_ativo: false, entregue_em: new Date().toISOString() } });
+      entregues++;
+    } catch (e) { await logAdvbox('agenda', 'erro', `entrega da manha lead ${leadId}: ${e.message}`.slice(0, 300)); }
+  }
+  return { entregues };
+}
+
 export default async () => {
   const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
   try {
     const cfg = (await getConfig()).agenda_bot;
     if (!cfg?.ativo) return json({ ok: true, skip: 'inativo' });
+
+    // Entrega da manha (Task 11): no inicio da grade do SDR humano, entrega pro time o que a
+    // Ana tocou durante o plantao noturno. Guardada em try/catch propria — uma falha aqui
+    // (RPC/Kommo) nunca pode bloquear o loop de lembretes abaixo, que e o core do cron.
+    let entrega = null;
+    try {
+      const { data: sdrCfg, error: sdrCfgErr } = await db.from('sdr_config').select('grade_inicio,grade_fim,grade_dias').eq('id', 1).maybeSingle();
+      if (sdrCfgErr || !sdrCfg) await logAdvbox('agenda', 'aviso', `sdr_config ausente/erro (${sdrCfgErr?.message || 'sem linha'}); usando fallback cfg.regras p/ a grade da entrega`);
+      const grade = gradeDeConfig(sdrCfg, cfg.regras);
+      if (ehJanelaEntrega(new Date(), grade, cfg.regras.feriados || [])) entrega = await entregarPlantao(cfg);
+    } catch (e) {
+      await logAdvbox('agenda', 'erro', `entrega da manha: ${e.message}`.slice(0, 300));
+    }
 
     const { data: pend, error } = await db.rpc('agenda_bot_pendencias', { p_chave: RPC_SECRET });
     if (error) throw new Error(`pendencias: ${error.message}`);
@@ -139,7 +189,7 @@ export default async () => {
     if (n.lembrete1h + n.t0 + n.noshow) {
       await logAdvbox('agenda', 'info', `cron Ana: 1h=${n.lembrete1h} t0=${n.t0} noshow=${n.noshow}`, n);
     }
-    return json({ ok: true, ...n, pendentes: (pend || []).length });
+    return json({ ok: true, ...n, pendentes: (pend || []).length, entrega });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `cron Ana: ${e.message}`.slice(0, 300), {}).catch(() => {});
     return json({ ok: false, error: e.message }, 500);
