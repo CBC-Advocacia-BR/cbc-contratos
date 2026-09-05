@@ -100,13 +100,17 @@ export async function freeBusy(emails, timeMin, timeMax, accessToken) {
   return out;
 }
 
-/** Cria evento com Google Meet + extendedProperties (marca de origem 'ana'). Lança em erro. */
-export async function createEventComMeet({ calendarId, inicioISO, fimISO, titulo, descricao, leadId, telefone, nome, accessToken }) {
-  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1`, {
+/** Cria evento com Google Meet + extendedProperties (marca de origem 'ana'). Lança em erro.
+ *  `convidados` (Task 9, SDR de IA Ana): lista de e-mails convidados ao evento (o lead, ao
+ *  agendar via Ana) — quando não vazia, pede `sendUpdates=all` p/ o Google mandar o convite. */
+export async function createEventComMeet({ calendarId, inicioISO, fimISO, titulo, descricao, leadId, telefone, nome, accessToken, convidados = [] }) {
+  const url = `${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1${convidados.length ? '&sendUpdates=all' : ''}`;
+  const r = await fetch(url, {
     method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       summary: titulo, description: descricao,
       start: { dateTime: inicioISO, timeZone: 'America/Sao_Paulo' }, end: { dateTime: fimISO, timeZone: 'America/Sao_Paulo' },
+      ...(convidados.length ? { attendees: convidados.map((email) => ({ email })) } : {}),
       // Nonce (Date.now().toString(36)) evita colisão de requestId quando um slot é cancelado e
       // recriado em seguida para o mesmo leadId+horário — sem o nonce, o Google trataria o
       // segundo POST como idempotente ao primeiro (mesmo requestId) e devolveria a conferência
