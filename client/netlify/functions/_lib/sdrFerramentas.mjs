@@ -12,10 +12,17 @@ import { getAccessToken, freeBusy, createEventComMeet, patchEventHorario, cancel
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const fmtHora = (d) => new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', weekday: 'long', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).format(d);
 
-export function formatarOferta(slots, closer, agora) {
+export function formatarOferta(slots, closer, agora, nomeCloser = null) {
   if (!slots?.length) return 'Nenhum horário livre nos próximos dias úteis. Use escalar_para_humano.';
-  const linhas = slots.map((s) => `${slotId(s, closer)} | ${formatarSlot(new Date(s.inicio), agora)}`);
+  const sufixo = nomeCloser ? ` (${nomeCloser})` : '';
+  const linhas = slots.map((s) => `${slotId(s, closer)} | ${formatarSlot(new Date(s.inicio), agora)}${sufixo}`);
   return `Horários (id | quando):\n${linhas.join('\n')}`;
+}
+
+// Descricao do evento do Google Agenda (Task 9): extraida p/ ser reusada tanto em agendar()
+// quanto no ramo de troca de closer do remarcar() (fix9 item 8) — evita duas copias divergentes.
+function descricaoEvento(d, leadId, fone) {
+  return `Lead: https://advocaciacbc.kommo.com/leads/detail/${leadId}\nTelefone: ${fone}\nResort: ${d.resort || '?'} | Cota: ${d.situacao_cota || '?'} | Já pagou: ${d.valor_pago ?? '?'} | Titular: ${d.titular || '?'}\nObs: ${d.observacoes || ''}`;
 }
 
 export function etapaDeEncerramento(motivo, etapas) {
@@ -25,12 +32,13 @@ export function etapaDeEncerramento(motivo, etapas) {
 }
 
 /**
- * ctx = { cfg, grade, leadId, fone, nome, contactId, estado, channel, agora, plantaoFim }
+ * ctx = { cfg, grade, leadId, fone, nome, estado, channel, agora, plantaoFim }
  * estado e MUTADO (dados, nota, slots_ofertados, agendamento, reagendamentos, escalado, encerrado)
  * e persistido pelo caller. Token do Google e obtido uma vez por turno, sob demanda.
  */
 export function criarExecutor(ctx) {
-  const { cfg, leadId, fone, contactId, estado, channel, agora } = ctx;
+  if (!ctx.grade?.dias) throw new Error('criarExecutor: ctx.grade obrigatorio');
+  const { cfg, leadId, fone, estado, channel, agora } = ctx;
   const etapas = cfg.kommo.etapas;
   let tokenGoogle = null;
   const at = async () => (tokenGoogle ||= await getAccessToken());
@@ -53,19 +61,25 @@ export function criarExecutor(ctx) {
     async consultar_horarios({ preferencia = 'qualquer', a_partir_de = null }) {
       const slots = await slotsLivres();
       const nota = estado.nota ?? calcularNota({ ...(estado.dados || {}), mandou_audio: estado.mandou_audio }, cfg.roteamento);
-      const closer = estado.agendamento?.vendedora || escolherCloser({ nota, cfg, slots, seed: String(leadId) })?.email;
+      // fix9 item 3: fixa a closer entre consultas — sem isso cada chamada podia sortear outra
+      // closer (escolherCloser) e o lead recebia horarios de vendedoras diferentes a cada volta.
+      const closer = estado.agendamento?.vendedora || estado.closer_escolhida || escolherCloser({ nota, cfg, slots, seed: String(leadId) })?.email;
       if (!closer) { estado.slots_ofertados = []; return formatarOferta([], null, agora); }
       const oferta = slotsParaOferta({ slots, preferencia, aPartirDeISO: a_partir_de, closer, n: 3 });
       estado.slots_ofertados = oferta.map((s) => ({ id: slotId(s, closer), inicio: new Date(s.inicio).toISOString(), closer }));
       estado.closer_escolhida = closer;
       await persistir();
-      return formatarOferta(oferta, closer, agora);
+      const nomeCloser = cfg.vendedoras.find((v) => v.email === closer)?.nome;
+      return formatarOferta(oferta, closer, agora, nomeCloser);
     },
 
     async agendar({ slot_id, email, nome }) {
       const p = parseSlotId(slot_id);
       if (!p || !(estado.slots_ofertados || []).some((s) => s.id === slot_id)) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
       if (estado.agendamento?.event_id) throw new Error('já existe videochamada marcada; use remarcar');
+      // fix9 item 6: mensagem honesta quando o slot so expirou de tao proximo (antecedencia
+      // minima), em vez de cair no "acabou de ser ocupado" do free/busy logo abaixo.
+      if (new Date(p.inicioISO) < new Date(agora.getTime() + (cfg.regras.antecedencia_min_minutos ?? 60) * 60000)) throw new Error('esse horário já está muito próximo; chame consultar_horarios de novo');
       // revalida concorrencia: o horario ainda esta livre p/ essa closer?
       const livre = (await slotsLivres()).find((s) => new Date(s.inicio).toISOString() === p.inicioISO && s.vendedoras.includes(p.closer));
       if (!livre) throw new Error('esse horário acabou de ser ocupado; chame consultar_horarios de novo');
@@ -74,18 +88,25 @@ export function criarExecutor(ctx) {
       const { eventId, meetLink } = await createEventComMeet({
         calendarId: p.closer, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
         titulo: `Videochamada — ${nome || estado.nome || fone} (CBC/Ana)`,
-        descricao: `Lead: https://advocaciacbc.kommo.com/leads/detail/${leadId}\nTelefone: ${fone}\nResort: ${d.resort || '?'} | Cota: ${d.situacao_cota || '?'} | Já pagou: ${d.valor_pago ?? '?'} | Titular: ${d.titular || '?'}\nObs: ${d.observacoes || ''}`,
+        descricao: descricaoEvento(d, leadId, fone),
         leadId, telefone: fone, nome: nome || estado.nome, accessToken: await at(), convidados: email ? [email] : [],
       });
       estado.agendamento = { event_id: eventId, inicio: ini.toISOString(), vendedora: p.closer, meet_link: meetLink, email };
       estado.nome = nome || estado.nome;
       await persistir(); // ANTES dos efeitos no Kommo: se algo falhar, a proxima msg cai em remarcar, nunca em duplicar
-      await espelhoUpsert({ event_id: eventId, vendedora_email: p.closer, cliente_email: email || null, cliente_nome: estado.nome || null,
-        status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
-      await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.agendada });
       const vend = cfg.vendedoras.find((v) => v.email === p.closer);
-      if (vend?.user_id) await createKommoTask(leadId, 'leads', `Videochamada (Ana): ${fmtHora(ini)} — Meet: ${meetLink}`, Math.max(1, (ini - Date.now()) / 36e5), vend.user_id);
-      await postNote(leadId, `CBC.ana.agendou:${eventId}`, `Ana agendou ${fmtHora(ini)} com ${vend?.nome || p.closer}. Meet: ${meetLink}. E-mail: ${email}. Dados: ${JSON.stringify(d)}`);
+      // fix9 item 2: o evento JA existe no Google Agenda a essa altura — os efeitos abaixo
+      // (espelho/Kommo/nota) sao best-effort; falhar aqui nunca deve fazer o lead achar que
+      // o agendamento nao aconteceu (e tentar de novo, duplicando o evento).
+      try {
+        await espelhoUpsert({ event_id: eventId, vendedora_email: p.closer, cliente_email: email || null, cliente_nome: estado.nome || null,
+          status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
+        await moveLeadStage(leadId, { pipelineId: cfg.kommo.pipeline_sdr, statusId: etapas.agendada });
+        if (vend?.user_id) await createKommoTask(leadId, 'leads', `Videochamada (Ana): ${fmtHora(ini)} — Meet: ${meetLink}`, Math.max(1, (ini - Date.now()) / 36e5), vend.user_id);
+        await postNote(leadId, `CBC.ana.agendou:${eventId}`, `Ana agendou ${fmtHora(ini)} com ${vend?.nome || p.closer}. Meet: ${meetLink}. E-mail: ${email}. Dados: ${JSON.stringify(d)}`);
+      } catch (e) {
+        await logAdvbox('agenda', 'erro', `agendar: efeito pos-booking falhou (nao fatal): ${e.message}`.slice(0, 300), { leadId, eventId });
+      }
       return `Agendado: ${fmtHora(ini)} com ${vend?.nome || 'a advogada'}. Link do Meet: ${meetLink}. Convite enviado para ${email}.`;
     },
 
@@ -95,9 +116,12 @@ export function criarExecutor(ctx) {
       if ((estado.reagendamentos || 0) >= (cfg.regras.max_reagendamentos ?? 2)) throw new Error('limite de remarcações atingido; use escalar_para_humano');
       const p = parseSlotId(slot_id);
       if (!p || !(estado.slots_ofertados || []).some((s) => s.id === slot_id)) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
+      // fix9 item 6: mesma mensagem honesta do agendar quando o slot so expirou de tao proximo.
+      if (new Date(p.inicioISO) < new Date(agora.getTime() + (cfg.regras.antecedencia_min_minutos ?? 60) * 60000)) throw new Error('esse horário já está muito próximo; chame consultar_horarios de novo');
       const livre = (await slotsLivres()).find((s) => new Date(s.inicio).toISOString() === p.inicioISO && s.vendedoras.includes(p.closer));
       if (!livre) throw new Error('esse horário acabou de ser ocupado; chame consultar_horarios de novo');
       const ini = new Date(p.inicioISO); const fim = new Date(ini.getTime() + cfg.regras.duracao_evento_min * 60000);
+      const closerAnterior = ag.vendedora;
       let eventId = ag.event_id; let meetLink = ag.meet_link;
       if (p.closer === ag.vendedora) {
         await patchEventHorario({ calendarId: ag.vendedora, eventId, inicioISO: ini.toISOString(), fimISO: fim.toISOString(), accessToken: await at() });
@@ -106,9 +130,24 @@ export function criarExecutor(ctx) {
         if (error) await logAdvbox('agenda', 'erro', `reset reagendamento falhou: ${error.message}`, { leadId, eventId });
       } else {
         try { await cancelEvent({ calendarId: ag.vendedora, eventId: ag.event_id, accessToken: await at() }); } catch (e) { await logAdvbox('agenda', 'aviso', `cancelEvent falhou ao remarcar (segue): ${e.message}`, { leadId }); }
-        const c = await createEventComMeet({ calendarId: p.closer, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
-          titulo: `Videochamada — ${estado.nome || fone} (CBC/Ana)`, descricao: `Lead: https://advocaciacbc.kommo.com/leads/detail/${leadId}\nTelefone: ${fone}`,
-          leadId, telefone: fone, nome: estado.nome, accessToken: await at(), convidados: ag.email ? [ag.email] : [] });
+        // fix9 item 1: retira o espelho do evento ANTIGO antes de criar o novo — sem isso o
+        // cron de lembrete continua achando o evento cancelado como se estivesse ativo.
+        await espelhoUpsert({ event_id: ag.event_id, vendedora_email: ag.vendedora, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
+          status: 'cancelada', color_id: null, scheduled_at: ag.inicio, tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
+        const d = estado.dados || {};
+        let c;
+        try {
+          c = await createEventComMeet({ calendarId: p.closer, inicioISO: ini.toISOString(), fimISO: fim.toISOString(),
+            titulo: `Videochamada — ${estado.nome || fone} (CBC/Ana)`, descricao: descricaoEvento(d, leadId, fone),
+            leadId, telefone: fone, nome: estado.nome, accessToken: await at(), convidados: ag.email ? [ag.email] : [] });
+        } catch (e) {
+          // fix9 item 4: o evento antigo ja foi cancelado (ou tentamos) — sem rollback aqui o
+          // lead ficaria com um agendamento fantasma (estado aponta p/ evento que nao existe).
+          estado.agendamento = { event_id: null, inicio: null, vendedora: null, meet_link: null };
+          await persistir();
+          await logAdvbox('agenda', 'erro', `remarcar: recriar evento em outra closer falhou: ${e.message}`.slice(0, 300), { leadId });
+          throw new Error('não consegui recriar o evento; chame consultar_horarios e agendar de novo');
+        }
         eventId = c.eventId; meetLink = c.meetLink;
         await espelhoUpsert({ event_id: eventId, vendedora_email: p.closer, cliente_email: ag.email || null, cliente_nome: estado.nome || null,
           status: 'agendada', color_id: null, scheduled_at: ini.toISOString(), tem_meet: true, source: 'live', origem: 'ana', lead_id: leadId, telefone: fone, raw: {} });
@@ -117,6 +156,13 @@ export function criarExecutor(ctx) {
       estado.reagendamentos = (estado.reagendamentos || 0) + 1;
       await persistir();
       await postNote(leadId, `CBC.ana.remarcou:${eventId}:${estado.reagendamentos}`, `Ana remarcou para ${fmtHora(ini)} (${estado.reagendamentos}ª vez).`);
+      // fix9 item 5: tarefa da closer (possivelmente nova) + aviso p/ quem perdeu a call.
+      const vend = cfg.vendedoras.find((v) => v.email === p.closer);
+      if (vend?.user_id) await createKommoTask(leadId, 'leads', `Videochamada (Ana): ${fmtHora(ini)} — Meet: ${meetLink}`, Math.max(1, (ini - Date.now()) / 36e5), vend.user_id);
+      if (closerAnterior && closerAnterior !== p.closer) {
+        const vendAnterior = cfg.vendedoras.find((v) => v.email === closerAnterior);
+        await postNote(leadId, `CBC.ana.remarcou_closer:${eventId}`, `Ana remarcou e trocou de closer: ${vendAnterior?.nome || closerAnterior} não tem mais esta videochamada.`);
+      }
       return `Remarcado: ${fmtHora(ini)}. Link do Meet: ${meetLink}.`;
     },
 

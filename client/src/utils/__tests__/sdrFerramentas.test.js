@@ -12,6 +12,16 @@ describe('formatarOferta', () => {
     expect(s).toContain('segunda (07/09) às 8h30');
     expect(formatarOferta([], 'a@x', agora)).toMatch(/nenhum horário/i);
   });
+
+  it('acrescenta o nome da closer quando informado', () => {
+    const agora = sp('2026-09-05T21:00:00');
+    const slots = [{ inicio: sp('2026-09-07T08:30:00'), vendedoras: ['a@x'] }, { inicio: sp('2026-09-07T09:00:00'), vendedoras: ['a@x'] }];
+    const s = formatarOferta(slots, 'a@x', agora, 'Mariana');
+    const linhas = s.split('\n');
+    expect(linhas).toHaveLength(3);
+    expect(linhas[1].endsWith(' (Mariana)')).toBe(true);
+    expect(linhas[2].endsWith(' (Mariana)')).toBe(true);
+  });
 });
 describe('etapaDeEncerramento', () => {
   const etapas = { nao_quer: 1, cliente: 2, precisa_humano: 3 };

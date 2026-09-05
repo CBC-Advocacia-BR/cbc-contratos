@@ -126,9 +126,11 @@ export async function createEventComMeet({ calendarId, inicioISO, fimISO, titulo
   return { eventId: j.id, meetLink };
 }
 
-/** Reagenda (PATCH) o horário de um evento existente. Lança em erro. */
+/** Reagenda (PATCH) o horário de um evento existente. Lança em erro.
+ *  `sendUpdates=all` (Task 9, SDR de IA Ana): avisa o(s) convidado(s) (o lead, quando agendado
+ *  via Ana) da mudança de horário. */
 export async function patchEventHorario({ calendarId, eventId, inicioISO, fimISO, accessToken }) {
-  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, {
+  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`, {
     method: 'PATCH', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ start: { dateTime: inicioISO, timeZone: 'America/Sao_Paulo' }, end: { dateTime: fimISO, timeZone: 'America/Sao_Paulo' } }),
     signal: AbortSignal.timeout(20000),
@@ -156,9 +158,10 @@ export async function setEventColor({ calendarId, eventId, colorId, accessToken 
   if (j.error) throw new Error(`setEventColor: ${j.error.message}`);
 }
 
-/** Cancela (DELETE) um evento. Tolera 404/410 (já não existe/já foi excluído). Lança em outros erros. */
+/** Cancela (DELETE) um evento. Tolera 404/410 (já não existe/já foi excluído). Lança em outros erros.
+ *  `sendUpdates=all` (Task 9, SDR de IA Ana): avisa o(s) convidado(s) do cancelamento. */
 export async function cancelEvent({ calendarId, eventId, accessToken }) {
-  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`, {
+  const r = await fetch(`${CAL_URL}/calendars/${encodeURIComponent(calendarId)}/events/${eventId}?sendUpdates=all`, {
     method: 'DELETE', headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(20000),
   });
   if (![200, 204, 404, 410].includes(r.status)) throw new Error(`cancelEvent HTTP ${r.status}`);
