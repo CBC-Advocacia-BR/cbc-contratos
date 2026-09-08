@@ -68,12 +68,13 @@ export function escolherTagResort(nomeResort, candidatos = []) {
     }
     if (!score) continue;
     if (tc[0] === tn[0]) score += 10;
-    if (TAGS_RESORT_PREFERIDAS[c.id]) score += 15;
+    if (TAGS_RESORT_PREFERIDAS[c.id]) score += 20; // 'Praias em Goias' e Praias do Lago (Caldas Novas), nao a tag solta 'PRAIAS'
     if (/-/.test(c.name)) score -= 30; // combinacoes "BRENDA-Ondas Praia", "Ondas Praia-Quitado"
     if (/quitad|conjuge|cônjuge|brenda|bruno|cancelamento|acordo/i.test(c.name)) score -= 30;
-    if (!melhor || score > melhor.score || (score === melhor.score && c.name.length < melhor.name.length)) melhor = { id: Number(c.id), name: c.name, score };
+    const pref = !!TAGS_RESORT_PREFERIDAS[c.id];
+    if (!melhor || score > melhor.score || (score === melhor.score && ((pref && !melhor.pref) || (pref === melhor.pref && c.name.length < melhor.name.length)))) melhor = { id: Number(c.id), name: c.name, score, pref };
   }
-  return melhor && melhor.score >= 60 ? melhor : null;
+  return melhor && melhor.score >= 60 ? { id: melhor.id, name: melhor.name, score: melhor.score } : null;
 }
 
 /** Conjunto final de tags do lead: mantem as atuais, troca a tag de situacao, soma a de resort. */

@@ -12,7 +12,8 @@ export function estadoInicial({ lead_id, contact_id = null, nome = '', origem = 
   // e agenda_bot_metricas contava "qualificadas" por `dados->>situacao`, que nunca preenchia.
   // `situacao`, `nota` e `pipeline_id` sobem p/ o topo porque o worker/ferramentas os gravam.
   return { etapa: 'abertura', lead_id, contact_id, nome,
-    dados: { resort: null, situacao_cota: null, valor_pago: null, titular: null, observacoes: null },
+    dados: { nome: null, resort: null, situacao_cota: null, tempo: null, motivo_saida: null, valor_pago: null, titular: null, observacoes: null },
+    slot_escolhido: null,
     slots_ofertados: [], recusas: 0, reagendamentos: 0,
     agendamento: { event_id: null, inicio: null, vendedora: null, meet_link: null },
     pausada_ate: null, situacao: null, nota: null, pipeline_id: null, origem };

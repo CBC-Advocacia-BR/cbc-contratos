@@ -146,7 +146,19 @@ export function criarExecutor(ctx) {
       return formatarOferta(oferta, closer, agora, nomeCloser);
     },
 
+    async escolher_horario({ slot_id }) {
+      const s = (estado.slots_ofertados || []).find((x) => x.id === slot_id);
+      if (!s) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
+      estado.slot_escolhido = { id: s.id, inicio: s.inicio, closer: s.closer };
+      await persistir();
+      const d = estado.dados || {};
+      const falta = [d.valor_pago == null ? 'valor aproximado já pago (1 pergunta; se não souber, siga)' : null, !d.nome ? 'nome do lead' : null, 'e-mail'].filter(Boolean);
+      return `Anotado: ${fmtHora(new Date(s.inicio))}. Não ofereça horário de novo. Falta perguntar, uma por mensagem: ${falta.join(', ')}. Depois chame agendar com slot_id ${s.id}.`;
+    },
+
     async agendar({ slot_id, email, nome }) {
+      if (!(estado.slots_ofertados || []).some((x) => x.id === slot_id) && estado.slot_escolhido?.id) slot_id = estado.slot_escolhido.id;
+      if (nome) { estado.dados = { ...(estado.dados || {}), nome: String(nome).trim() }; }
       const p = parseSlotId(slot_id);
       if (!p || !(estado.slots_ofertados || []).some((s) => s.id === slot_id)) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
       if (estado.agendamento?.event_id) throw new Error('já existe videochamada marcada; use remarcar');
@@ -183,6 +195,7 @@ export function criarExecutor(ctx) {
       }
       estado.agendamento = { event_id: eventId, inicio: ini.toISOString(), vendedora: p.closer, meet_link: meetLink, email };
       estado.nome = nome || estado.nome;
+      estado.slot_escolhido = null;
       await persistir(); // ANTES dos efeitos no Kommo: se algo falhar, a proxima msg cai em remarcar, nunca em duplicar
       const vend = cfg.vendedoras.find((v) => v.email === p.closer);
       // fix9 item 2: o evento JA existe no Google Agenda a essa altura — os efeitos abaixo
@@ -298,8 +311,9 @@ export function criarExecutor(ctx) {
       return `Cancelado (${motivo}).`;
     },
 
-    async registrar_qualificacao({ resort, situacao_cota, tempo, motivo_saida, titular, valor_pago, observacoes }) {
+    async registrar_qualificacao({ nome, resort, situacao_cota, tempo, motivo_saida, titular, valor_pago, observacoes }) {
       estado.dados = { ...(estado.dados || {}) };
+      if (nome) { estado.dados.nome = String(nome).trim(); estado.nome = estado.dados.nome; }
       if (resort) estado.dados.resort = resort;
       if (situacao_cota) estado.dados.situacao_cota = situacao_cota;
       if (tempo) estado.dados.tempo = tempo;

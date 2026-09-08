@@ -3,7 +3,7 @@ import { FERRAMENTAS, montarSystem, montarMensagens, contextoDoTurno } from '../
 
 describe('FERRAMENTAS', () => {
   it('sao 7, estritas, com additionalProperties false e required', () => {
-    expect(FERRAMENTAS.map((f) => f.name)).toEqual(['consultar_horarios', 'agendar', 'remarcar', 'cancelar', 'registrar_qualificacao', 'escalar_para_humano', 'encerrar']);
+    expect(FERRAMENTAS.map((f) => f.name)).toEqual(['consultar_horarios', 'escolher_horario', 'agendar', 'remarcar', 'cancelar', 'registrar_qualificacao', 'escalar_para_humano', 'encerrar']);
     for (const f of FERRAMENTAS) {
       expect(f.strict).toBe(true);
       expect(f.input_schema.additionalProperties).toBe(false);
@@ -55,6 +55,9 @@ describe('montarSystem', () => {
     expect(txt).not.toMatch(/avise que é atendimento automatizado/);
     expect(txt).toMatch(/termina com UMA pergunta/);
     expect(txt).toMatch(/motivo_saida/);
+    expect(txt).toMatch(/RESORTS que mais atendemos/);
+    expect(txt).toMatch(/PRAIAS DO LAGO/);
+    expect(txt).toMatch(/nunca em duas mensagens seguidas/);
   });
 });
 
@@ -185,5 +188,16 @@ describe('contextoDoTurno: apresentacao e modo teste', () => {
     expect(contextoDoTurno({ ...base, cadastro: { eh_cliente: true, nome: 'MARIA', empreendimentos: 'ONDAS PRAIA' } })).toMatch(/CONSTA como cliente \(MARIA; empreendimentos: ONDAS PRAIA\)/);
     expect(contextoDoTurno({ ...base, cadastro: { pulado: true } })).toMatch(/verificação pulada/);
     expect(contextoDoTurno(base)).not.toMatch(/Cadastro do escritório/);
+  });
+  it('mostra o horario ja aceito e cobra nome/e-mail, e nunca oferece o nome do cadastro', () => {
+    const base = { agora: new Date('2026-09-08T16:00:00-03:00'), situacao: { acao: 'inicio' }, fimPlantao: new Date('2026-09-09T08:00:00-03:00') };
+    const s1 = contextoDoTurno({ ...base, estado: { nome: 'PC', dados: {}, agendamento: {}, slot_escolhido: { id: 'x', inicio: '2026-09-09T11:00:00.000Z', closer: 'e@x' } } });
+    expect(s1).toMatch(/Horário JÁ ACEITO pelo lead: quarta-feira, 09\/09, 08:00/);
+    expect(s1).toMatch(/falta o nome e o e-mail/);
+    expect(s1).toMatch(/nome informado pelo lead=\? \(pergunte/);
+    expect(s1).not.toMatch(/nome informado pelo lead=PC/);
+    const s2 = contextoDoTurno({ ...base, estado: { dados: { nome: 'Paulo' }, agendamento: {}, slot_escolhido: { id: 'x', inicio: '2026-09-09T11:00:00.000Z' } } });
+    expect(s2).toMatch(/falta o e-mail/);
+    expect(s2).toMatch(/nome informado pelo lead=Paulo/);
   });
 });

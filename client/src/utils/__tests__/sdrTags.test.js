@@ -15,6 +15,8 @@ describe('sdrTags', () => {
     expect(escolherTagResort('Hot Beach', [])?.id).toBe(54522);
     expect(escolherTagResort('hot beach you', [])?.id).toBe(54638);
     expect(escolherTagResort('Thermas de São Pedro', [])?.id).toBe(54366);
+    // caso real do piloto 08/09: 'Praias em Goiás' e Praias do Lago (Caldas Novas), nao a tag solta 'PRAIAS'
+    expect(escolherTagResort('Praias em Goiás', [{ id: 203792, name: 'PRAIAS' }, { id: 86848, name: 'BRENDA-Praias do Lago' }])?.id).toBe(54608);
   });
   it('nao arrisca tag quando nao ha casamento razoavel', () => {
     expect(escolherTagResort('um lugar em Gramado que nao lembro', [])).toBeNull();
