@@ -3,7 +3,8 @@
 // converte em tool_result is_error e o modelo avisa o lead. As partes puras (formatarOferta,
 // etapaDeEncerramento) sao testadas em src/utils/__tests__/sdrFerramentas.test.js.
 import { db, logAdvbox, upsertConversation, getConversation } from './botDb.mjs';
-import { setLeadField, moveLeadStage, createKommoTask, postNote } from './kommo.mjs';
+import { setLeadField, moveLeadStage, createKommoTask, postNote, getEntity, listTags, setLeadTags } from './kommo.mjs';
+import { escolherTagResort, palavraChave, unirTags, TAG_SITUACAO } from './sdrTags.mjs';
 import { gerarSlots, slotsParaOferta, slotId, parseSlotId, formatarSlot } from './agendaSlots.mjs';
 import { calcularNota, escolherCloser } from './sdrRoteamento.mjs';
 import { proximoInicioExpediente } from './sdrHorario.mjs';
@@ -68,6 +69,32 @@ export function criarExecutor(ctx) {
       return;
     }
     await logAdvbox('agenda', 'info', `etapa nao movida (pipeline ${ctx.pipelineId} != SDR): ${rotulo}`, { leadId });
+  }
+
+  // Tags de resort/situacao no lead. O PATCH do Kommo SUBSTITUI o conjunto (testado 08/09/2026),
+  // entao le as atuais, une e grava. Devolve os nomes aplicados de novo (vazio = nada mudou).
+  async function aplicarTags({ resort, situacao_cota }) {
+    const situacaoId = situacao_cota ? (TAG_SITUACAO[situacao_cota] || null) : null;
+    let resortTag = null;
+    if (resort) {
+      const chave = palavraChave(resort);
+      const candidatos = chave ? await listTags(chave).catch(() => []) : [];
+      resortTag = escolherTagResort(resort, candidatos);
+    }
+    if (!resortTag && !situacaoId) return [];
+    const lead = await getEntity('leads', leadId);
+    const atuais = (lead?._embedded?.tags || []).map((t) => Number(t.id));
+    const novas = unirTags(atuais, { resortId: resortTag?.id || null, situacaoId });
+    const mudou = novas.length !== atuais.length || novas.some((id) => !atuais.includes(id));
+    if (!mudou) return [];
+    await setLeadTags(leadId, novas);
+    const nomes = [];
+    if (resortTag && !atuais.includes(resortTag.id)) nomes.push(resortTag.name);
+    if (situacaoId && !atuais.includes(situacaoId)) nomes.push(situacao_cota);
+    estado.tags_kommo = novas;
+    await persistir();
+    await logAdvbox('agenda', 'info', `tags aplicadas no lead ${leadId}: ${nomes.join(', ') || '(reordenadas)'}`, { leadId, tags: novas });
+    return nomes;
   }
 
   async function slotsLivres() {
@@ -271,17 +298,25 @@ export function criarExecutor(ctx) {
       return `Cancelado (${motivo}).`;
     },
 
-    async registrar_qualificacao({ resort, situacao_cota, titular, valor_pago, observacoes }) {
+    async registrar_qualificacao({ resort, situacao_cota, tempo, motivo_saida, titular, valor_pago, observacoes }) {
       estado.dados = { ...(estado.dados || {}) };
       if (resort) estado.dados.resort = resort;
       if (situacao_cota) estado.dados.situacao_cota = situacao_cota;
+      if (tempo) estado.dados.tempo = tempo;
+      if (motivo_saida) estado.dados.motivo_saida = motivo_saida;
       if (titular) estado.dados.titular = titular;
       if (valor_pago != null) estado.dados.valor_pago = Number(valor_pago);
       if (observacoes) estado.dados.observacoes = observacoes;
       estado.nota = calcularNota({ ...estado.dados, mandou_audio: estado.mandou_audio }, cfg.roteamento);
       await persistir();
       if (valor_pago != null && cfg.kommo.campo_investimento_id) await setLeadField(leadId, cfg.kommo.campo_investimento_id, String(valor_pago));
-      return `Registrado. Nota do lead: ${estado.nota}.`;
+      // Tags no lead (pedido do Paulo 08/09): resort + situacao, SO tags que ja existem. Best-effort:
+      // falha vira log, nunca derruba o turno. Vale em qualquer pipeline (inclusive piloto).
+      const aplicadas = await aplicarTags({ resort: resort || null, situacao_cota: situacao_cota || null }).catch(async (e) => {
+        await logAdvbox('agenda', 'aviso', `tags nao aplicadas: ${e.message}`.slice(0, 300), { leadId });
+        return [];
+      });
+      return `Registrado. Nota do lead: ${estado.nota}.${aplicadas.length ? ` Tags no Kommo: ${aplicadas.join(', ')}.` : ''}`;
     },
 
     // (fix Task 10) efeitos no Kommo ANTES de marcar estado.escalado — se moveLeadStage/

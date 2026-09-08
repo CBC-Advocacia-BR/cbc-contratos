@@ -328,6 +328,21 @@ export async function findCustomFieldByName(name) {
   return null;
 }
 
+/** Tags de lead (GET /leads/tags?query=...). Sem resultado o Kommo responde 204 => []. */
+export async function listTags(query = '') {
+  const r = await kGet(`/leads/tags?limit=250${query ? `&query=${encodeURIComponent(query)}` : ''}`);
+  return r?._embedded?.tags || [];
+}
+
+/** Define o CONJUNTO de tags do lead. Testado 08/09/2026: o PATCH SUBSTITUI as tags, entao
+ *  quem chama precisa mandar as atuais + novas (ver sdrTags.unirTags). */
+export async function setLeadTags(leadId, tagIds) {
+  const body = JSON.stringify({ _embedded: { tags: (tagIds || []).map((id) => ({ id: Number(id) })) } });
+  const r = await kommoFetch(`/leads/${leadId}`, { method: 'PATCH', body }, 'PATCH');
+  if (!r.ok) throw new Error(`Kommo PATCH tags lead ${leadId} HTTP ${r.status} ${(await r.text().catch(() => '')).slice(0, 200)}`);
+  return true;
+}
+
 /** GET de uma entidade (lead/contato) com seus custom_fields_values */
 export async function getEntity(entity, id) {
   return kGet(`/${entity}/${id}`);

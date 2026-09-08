@@ -327,11 +327,22 @@ export default async (req) => {
     const fone = (phones[0] || '').replace(/\D/g, '');
     if (!fone) return sair('sem fone', {}, 'aviso');
 
+    let tester = null;
     if (cfg.modo_teste) {
-      let tester = null;
       for (const ph of phones) { tester = await findTesterByPhone(ph); if (tester) break; }
       if (!tester) return sair('nao testador', { fone: fone.slice(-8) });
     }
+    // Cadastro unico (cliente_telefones -> clientes.eh_cliente): e isso, e nao o historico de
+    // mensagens, que diz se o telefone e de cliente. Testador em modo_teste pula (o Paulo e o
+    // Mizael constam como cliente no cadastro). Falha da RPC = 'desconhecido' (undefined).
+    let cadastro;
+    if (tester) cadastro = { pulado: true };
+    else {
+      const { data: cad, error: cadErr } = await db.rpc('sdr_ia_cadastro_por_fone', { p_chave: RPC_SECRET, p_fone: fone });
+      if (cadErr) await logAdvbox('agenda', 'aviso', `cadastro por fone falhou (segue sem): ${cadErr.message}`.slice(0, 300), {});
+      else cadastro = (Array.isArray(cad) ? cad[0] : cad) || null;
+    }
+    rastro.cadastro = cadastro === undefined ? 'erro' : (cadastro === null ? 'nao_cliente' : (cadastro.pulado ? 'testador' : 'cliente'));
 
     // Um contato pode ter varios leads (cliente antigo + lead novo). Escolhe o PRIMEIRO lead do
     // contato que cai num pipeline com gatilho (mais recente primeiro), em vez de so o primeiro
@@ -452,7 +463,7 @@ export default async (req) => {
     const { data: fatos } = await db.rpc('sdr_ia_fatos_listar', { p_chave: RPC_SECRET });
     const plantaoFim = proximoInicioExpediente(agora, grade, cfg.regras.feriados || []);
     const system = montarSystem({ cfg, fatos: fatos || [] });
-    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim, jaSeApresentou: !!estado.ultima_fala_ana, modoTeste: !!cfg.modo_teste }), imagemBase64, imagemTipo });
+    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim, jaSeApresentou: !!estado.ultima_fala_ana, modoTeste: !!cfg.modo_teste, cadastro }), imagemBase64, imagemTipo });
     estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
     const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim, pipelineId: estado.pipeline_id });
 

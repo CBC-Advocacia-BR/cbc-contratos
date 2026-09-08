@@ -50,7 +50,10 @@ describe('montarSystem', () => {
     const txt = a.map((x) => x.text).join('\n');
     expect(txt).toContain('<mensagem_do_lead>');
     expect(txt).toContain('Se a conversa não avançar em 2 turnos seus, use escalar_para_humano.');
-    expect(txt).toContain('atendimento automatizado');
+    expect(txt).toContain('assistente virtual');
+    expect(txt).not.toMatch(/atendimento automatizado/);
+    expect(txt).toMatch(/termina com UMA pergunta/);
+    expect(txt).toMatch(/motivo_saida/);
   });
 });
 
@@ -174,5 +177,12 @@ describe('contextoDoTurno: apresentacao e modo teste', () => {
     expect(contextoDoTurno({ ...base, jaSeApresentou: true })).toMatch(/JÁ se apresentou/);
     expect(contextoDoTurno({ ...base, modoTeste: true })).toMatch(/MODO DE TESTE/);
     expect(contextoDoTurno(base)).not.toMatch(/MODO DE TESTE/);
+  });
+  it('leva o cadastro unico para o contexto (cliente / nao cliente / testador / desconhecido)', () => {
+    const base = { agora: new Date('2026-09-05T21:14:00-03:00'), situacao: { acao: 'inicio' }, estado: { dados: {}, agendamento: {} }, fimPlantao: new Date('2026-09-07T08:00:00-03:00') };
+    expect(contextoDoTurno({ ...base, cadastro: null })).toMatch(/NÃO consta como cliente/);
+    expect(contextoDoTurno({ ...base, cadastro: { eh_cliente: true, nome: 'MARIA', empreendimentos: 'ONDAS PRAIA' } })).toMatch(/CONSTA como cliente \(MARIA; empreendimentos: ONDAS PRAIA\)/);
+    expect(contextoDoTurno({ ...base, cadastro: { pulado: true } })).toMatch(/verificação pulada/);
+    expect(contextoDoTurno(base)).not.toMatch(/Cadastro do escritório/);
   });
 });
