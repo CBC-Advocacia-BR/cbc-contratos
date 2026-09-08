@@ -300,7 +300,10 @@ export default async (req) => {
     if (sdrErr || !sdrCfg) await logAdvbox('agenda', 'aviso', 'grade do SDR indisponivel, usando cfg.regras', { erro: sdrErr?.message || null });
     const grade = gradeDeConfig(sdrCfg, cfg.regras);
     const agora = new Date();
-    if (!foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
+    // Em modo_teste (so testadores respondem) a chave regras.teste_ignora_horario deixa o piloto
+    // rodar em horario comercial sem mexer na grade do SDR humano. Fora do teste, nunca.
+    const ignoraHorario = !!(cfg.modo_teste && cfg.regras?.teste_ignora_horario);
+    if (!ignoraHorario && !foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
 
     if (!msg.contactId) return new Response('sem contato', { status: 200 });
     if (msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return new Response('dupe', { status: 200 });
