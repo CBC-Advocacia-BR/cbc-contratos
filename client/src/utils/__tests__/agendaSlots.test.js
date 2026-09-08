@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gerarSlots, sortearVendedora, slotMaisProximo, formatarSlot, dentroDoExpediente } from '../../../netlify/functions/_lib/agendaSlots.mjs';
-import { periodoDoSlot, slotsParaOferta, slotId, parseSlotId } from '../../../netlify/functions/_lib/agendaSlots.mjs';
+import { periodoDoSlot, slotsParaOferta, slotId, parseSlotId, prioridadeHora, ymdProximoDiaUtil } from '../../../netlify/functions/_lib/agendaSlots.mjs';
 
 const REGRAS = { dias: [1,2,3,4,5], hora_inicio: '08:00', hora_fim: '17:00', granularidade_min: 30,
   antecedencia_min_minutos: 60, horizonte_dias_uteis: 5, almoco: null, slots_por_oferta: 2,
@@ -140,5 +140,32 @@ describe('slotsParaOferta', () => {
     const id = slotId(slots[0], 'a@x');
     expect(parseSlotId(id)).toEqual({ inicioISO: slots[0].inicio.toISOString(), closer: 'a@x' });
     expect(parseSlotId('lixo')).toBeNull();
+  });
+});
+
+
+describe('slotsParaOferta: so hoje/proximo dia util e prioridade de horario (08/09/2026)', () => {
+  const sp = (s) => new Date(`${s}-03:00`);
+  const mk = (s) => ({ inicio: sp(s), vendedoras: ['a@x'] });
+  it('prioridade: 8-11h e 13-14h primeiro, 15-16h por ultimo', () => {
+    expect(prioridadeHora(9)).toBe(0); expect(prioridadeHora(13)).toBe(1); expect(prioridadeHora(12)).toBe(2); expect(prioridadeHora(16)).toBe(3);
+  });
+  it('proximo dia util pula o fim de semana', () => {
+    expect(ymdProximoDiaUtil(sp('2026-09-11T20:00:00'))).toBe('2026-09-14'); // sexta -> segunda
+    expect(ymdProximoDiaUtil(sp('2026-09-08T20:00:00'))).toBe('2026-09-09');
+  });
+  it('sem dia pedido, corta em amanha e ordena por horario que comparece mais', () => {
+    const slots = [mk('2026-09-09T15:00:00'), mk('2026-09-09T16:00:00'), mk('2026-09-09T13:00:00'), mk('2026-09-09T09:00:00'), mk('2026-09-11T09:00:00')];
+    const out = slotsParaOferta({ slots, n: 2, agora: sp('2026-09-08T20:00:00') }).map((s) => s.inicio.toISOString());
+    expect(out).toEqual([sp('2026-09-09T09:00:00').toISOString(), sp('2026-09-09T13:00:00').toISOString()]);
+  });
+  it('com a_partir_de (lead pediu o dia) o teto some', () => {
+    const slots = [mk('2026-09-09T09:00:00'), mk('2026-09-11T09:00:00'), mk('2026-09-11T14:00:00')];
+    const out = slotsParaOferta({ slots, n: 2, agora: sp('2026-09-08T20:00:00'), aPartirDeISO: sp('2026-09-11T08:00:00').toISOString() }).map((s) => s.inicio.toISOString());
+    expect(out).toEqual([sp('2026-09-11T09:00:00').toISOString(), sp('2026-09-11T14:00:00').toISOString()]);
+  });
+  it('sem nada ate amanha, cai no que houver em vez de oferta vazia', () => {
+    const slots = [mk('2026-09-11T09:00:00')];
+    expect(slotsParaOferta({ slots, n: 2, agora: sp('2026-09-08T20:00:00') })).toHaveLength(1);
   });
 });

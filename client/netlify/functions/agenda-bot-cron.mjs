@@ -29,10 +29,15 @@ const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
  * pois a videochamada pode ter sido concluida/cancelada por outro fluxo entre o fetch da
  * RPC (agenda_bot_pendencias ja filtra status='agendada') e este loop.
  */
-export function decidirLembrete(vc, min) {
+export function decidirLembrete(vc, min, opts = {}) {
+  // (08/09/2026) UM lembrete so, 1h antes, ja com o link (quem escreve depois de marcar
+  // comparece 87%; 3+ mensagens do escritorio, 76%). O T0 fica desligado por padrao.
+  if (min <= 24 * 60 && min > 24 * 60 - 20 && !vc.lembrete_vespera_em && opts.vespera) return 'lembrete_vespera';
   if (min <= 60 && min > 40 && !vc.lembrete_1h_em) return 'lembrete_1h';
-  if (min <= 2 && min > -5 && !vc.lembrete_t0_em) return 'lembrete_t0';
-  if (min <= -10 && min > -30 && !vc.noshow_msg_em && vc.status === 'agendada') return 'noshow';
+  if (opts.t0 && min <= 2 && min > -5 && !vc.lembrete_t0_em) return 'lembrete_t0';
+  // No-show so quando a auditoria do Meet confirmou (roda de hora em hora): o status da agenda
+  // e subjetivo e demora; mandar "nao conseguimos falar" para quem compareceu seria pior.
+  if (vc.meet_status === 'no_show' && !vc.noshow_msg_em && min <= -10) return 'noshow';
   return null;
 }
 
@@ -132,6 +137,35 @@ async function entregarPlantao(cfg) {
   return { entregues };
 }
 
+/** Reservas vencidas: o escritorio respondeu? (qualquer outgoing no contato depois da msg do
+ *  lead) -> cancela; senao re-despacha o worker com `reserva: true` (pula a grade e o dedupe). */
+async function processarReservas(cfg) {
+  const r = { vistas: 0, assumidas: 0, canceladas: 0 };
+  if (!(Number(cfg.regras?.reserva_comercial_min) > 0)) return r;
+  const { data: rows, error } = await db.rpc('sdr_ia_reservas_pendentes', { p_chave: RPC_SECRET });
+  if (error) throw new Error(`reservas_pendentes: ${error.message}`);
+  for (const row of rows || []) {
+    r.vistas++;
+    const ctx = row.context || {}; const res = ctx.reserva_pendente || {};
+    const limpar = async () => upsertConversation(row.channel, { context: { ...ctx, reserva_pendente: null } });
+    try {
+      let respondeu = false;
+      if (res.contact_id) {
+        const ev = await kommoGet(`/events?filter[type]=outgoing_chat_message&filter[entity]=contact&filter[entity_id][]=${res.contact_id}&limit=5`);
+        respondeu = (ev?._embedded?.events || []).some((e) => Number(e.created_at) * 1000 > Date.parse(res.msg_em || 0));
+      }
+      if (respondeu) { await limpar(); r.canceladas++; await logAdvbox('ana', 'info', 'reserva cancelada: escritorio respondeu', { leadId: ctx.lead_id, contactId: res.contact_id }); continue; }
+      await limpar();
+      const resp = await fetch(`${process.env.URL}/.netlify/functions/agenda-bot-worker-background`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentType: res.contentType, raw: res.raw, reserva: true }) });
+      r.assumidas++;
+      await logAdvbox('ana', 'info', 'reserva assumida: Ana entra em horario comercial', { leadId: ctx.lead_id, contactId: res.contact_id, http: resp.status });
+    } catch (e) {
+      await logAdvbox('agenda', 'erro', `reserva ${row.channel}: ${e.message}`.slice(0, 300));
+    }
+  }
+  return r;
+}
+
 export default async () => {
   const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
   try {
@@ -161,7 +195,9 @@ export default async () => {
 
     for (const vc of pend || []) {
       const min = (new Date(vc.scheduled_at).getTime() - agora) / 60000;
-      const acao = decidirLembrete(vc, min);
+      const canalPrev = `agenda:${(vc.telefone || '').replace(/\D/g, '')}`;
+      const convPrev = vc.origem === 'ana' && min > 60 ? await getConversation(canalPrev) : null;
+      const acao = decidirLembrete(vc, min, { t0: !!cfg.regras.lembrete_t0, vespera: !!convPrev?.context?.horario_fora_padrao });
       if (!acao) continue;
 
       // (RECOMENDADO — revisão final #4) try/catch por item: sem isso, uma falha isolada
@@ -176,9 +212,15 @@ export default async () => {
 
         if (acao === 'lembrete_1h') {
           const hora = formatarSlot(new Date(vc.scheduled_at), new Date()).split(' às ')[1] || '';
-          await enviar({ vc, cfg, estado, template: 'ana_lembrete_1h', mensagem: aplicarTemplate(cfg.mensagens.lembrete_1h, { hora }) });
+          const link = estado?.agendamento?.meet_link || vc.raw?.meetLink || '';
+          await enviar({ vc, cfg, estado, template: 'ana_lembrete_1h', mensagem: aplicarTemplate(cfg.mensagens.lembrete_1h, { hora, link }) });
           await marcar(vc.event_id, 'lembrete_1h_em');
           n.lembrete1h++;
+        } else if (acao === 'lembrete_vespera') {
+          const quando = formatarSlot(new Date(vc.scheduled_at), new Date());
+          await enviar({ vc, cfg, estado, template: 'ana_lembrete_vespera', mensagem: aplicarTemplate(cfg.mensagens.lembrete_vespera || 'Passando para confirmar a nossa videochamada de {{quando}} 😊 Continua de pé para você?', { quando }) });
+          await marcar(vc.event_id, 'lembrete_vespera_em');
+          n.vespera = (n.vespera || 0) + 1;
         } else if (acao === 'lembrete_t0') {
           const link = estado?.agendamento?.meet_link || '';
           await enviar({ vc, cfg, estado, template: 'ana_link_meet', mensagem: aplicarTemplate(cfg.mensagens.lembrete_t0, { link }) });
@@ -205,7 +247,15 @@ export default async () => {
       }
     }
 
-    if (n.lembrete1h + n.t0 + n.noshow) {
+    // (08/09/2026, item 1) RESERVA EM HORARIO COMERCIAL: o worker guardou a mensagem do lead
+    // (context.reserva_pendente) porque estava dentro da grade; passados `reserva_comercial_min`
+    // sem NENHUMA resposta do escritorio (humano ou bot), a Ana assume. 16% dos "sim" ao convite
+    // nunca recebem resposta humana; respondidos em ate 1h agendam 60%.
+    let reservas = { vistas: 0, assumidas: 0, canceladas: 0 };
+    try { reservas = await processarReservas(cfg); } catch (e) { await logAdvbox('agenda', 'erro', `reservas: ${e.message}`.slice(0, 300)); }
+    if (reservas.assumidas || reservas.canceladas) n.reservas = reservas;
+
+    if (n.lembrete1h + n.t0 + n.noshow + (n.vespera || 0)) {
       await logAdvbox('agenda', 'info', `cron Ana: 1h=${n.lembrete1h} t0=${n.t0} noshow=${n.noshow}`, n);
     }
     const fezAlgo = Object.values(n || {}).some((v) => Number(v) > 0) || (entrega && entrega.entregues > 0);

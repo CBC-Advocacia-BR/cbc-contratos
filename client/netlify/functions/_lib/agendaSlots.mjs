@@ -84,17 +84,54 @@ export function formatarSlot(date, agora) {
 export function periodoDoSlot(date) { return partesLocais(date).h < 12 ? 'manha' : 'tarde'; }
 
 /** Escolhe ate n slots: primeiro os do periodo pedido, depois completa com os demais; filtra closer e piso de horario. */
-export function slotsParaOferta({ slots, preferencia = 'qualquer', aPartirDeISO = null, closer = null, n = 3 }) {
+/** Prioridade de horario medida em 682 videochamadas (jun-set/2026): 8-11h e 13-14h comparecem
+ *  81-82%, 12h 77%, 15-16h 72-73%. Menor = oferecido antes. */
+export function prioridadeHora(h) {
+  if (h >= 8 && h <= 11) return 0;
+  if (h === 13 || h === 14) return 1;
+  if (h === 12) return 2;
+  if (h === 15 || h === 16) return 3;
+  return 4;
+}
+
+/** ymd (local) do proximo dia util a partir de `agora` (sabado/domingo pulam para segunda). */
+export function ymdProximoDiaUtil(agora) {
+  let t = new Date(agora.getTime());
+  for (let i = 0; i < 7; i++) {
+    t = new Date(t.getTime() + 864e5);
+    const { dow, ymd } = partesLocais(t);
+    if (dow >= 1 && dow <= 5) return ymd;
+  }
+  return partesLocais(t).ymd;
+}
+
+/**
+ * Oferta p/ o lead. Regras (analise 08/09/2026):
+ *  - sem `aPartirDeISO` (lead nao pediu dia), so HOJE e o PROXIMO DIA UTIL entram (dia seguinte
+ *    comparece 80%, 2-3 dias 72%); com `aPartirDeISO` valido o lead escolheu o dia e vale tudo;
+ *  - ordem por prioridadeHora (8-11h e 13-14h primeiro), depois pelo horario; a saida volta
+ *    em ordem cronologica p/ a fala da Ana ficar natural.
+ */
+export function slotsParaOferta({ slots, preferencia = 'qualquer', aPartirDeISO = null, closer = null, n = 3, agora = null }) {
   // (revisao final I3) `a_partir_de` vem do modelo e as vezes chega como texto livre
   // ("segunda", "amanhã de manhã"). Date.parse disso e NaN, e toda comparacao com NaN e
   // false: o filtro abaixo zerava a oferta e a Ana anunciava que nao havia horario nenhum.
   // Data impossivel de interpretar vale como SEM piso (comporta-se como a_partir_de null).
   const parsed = aPartirDeISO ? Date.parse(aPartirDeISO) : NaN;
-  const piso = Number.isFinite(parsed) ? parsed : 0;
-  const base = (slots || []).filter((s) => new Date(s.inicio).getTime() >= piso && (!closer || (s.vendedoras || []).includes(closer)));
-  const pref = preferencia === 'qualquer' ? base : base.filter((s) => periodoDoSlot(new Date(s.inicio)) === preferencia);
+  const pediuDia = Number.isFinite(parsed);
+  const piso = pediuDia ? parsed : 0;
+  let base = (slots || []).filter((s) => new Date(s.inicio).getTime() >= piso && (!closer || (s.vendedoras || []).includes(closer)));
+  if (!pediuDia && agora instanceof Date && !Number.isNaN(agora.getTime())) {
+    const teto = ymdProximoDiaUtil(agora);
+    const curto = base.filter((s) => partesLocais(new Date(s.inicio)).ymd <= teto);
+    if (curto.length) base = curto; // sem nada ate amanha, cai no que houver (nunca oferta vazia por regra)
+  }
+  const chave = (s) => { const { h } = partesLocais(new Date(s.inicio)); return [prioridadeHora(h), new Date(s.inicio).getTime()]; };
+  const cmp = (a, b) => { const ka = chave(a), kb = chave(b); return ka[0] - kb[0] || ka[1] - kb[1]; };
+  const ordenada = [...base].sort(cmp);
+  const pref = preferencia === 'qualquer' ? ordenada : ordenada.filter((s) => periodoDoSlot(new Date(s.inicio)) === preferencia);
   const out = pref.slice(0, n);
-  for (const s of base) { if (out.length >= n) break; if (!out.includes(s)) out.push(s); }
+  for (const s of ordenada) { if (out.length >= n) break; if (!out.includes(s)) out.push(s); }
   return out.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
 }
 

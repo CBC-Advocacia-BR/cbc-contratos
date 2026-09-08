@@ -317,10 +317,16 @@ export default async (req) => {
     // Em modo_teste (so testadores respondem) a chave regras.teste_ignora_horario deixa o piloto
     // rodar em horario comercial sem mexer na grade do SDR humano. Fora do teste, nunca.
     const ignoraHorario = !!(cfg.modo_teste && cfg.regras?.teste_ignora_horario);
-    if (!ignoraHorario && !foraDoHorario(agora, grade, cfg.regras.feriados || [])) return sair('horario comercial', { grade });
+    const reservaMin = Number(cfg.regras?.reserva_comercial_min || 0);
+    const emHorarioComercial = !ignoraHorario && !foraDoHorario(agora, grade, cfg.regras.feriados || []);
+    // (08/09/2026, item 1) Em horario comercial a Ana nao responde na hora: guarda a mensagem e o
+    // cron a chama de volta (body.reserva) se ninguem do escritorio responder em reservaMin.
+    // Sem reserva configurada, comportamento antigo (sai).
+    const modoReserva = emHorarioComercial && !body?.reserva;
+    if (emHorarioComercial && !reservaMin && !body?.reserva) return sair('horario comercial', { grade });
 
     if (!msg.contactId) return sair('sem contato', { raw: String(raw).slice(0, 300) }, 'aviso');
-    if (msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return sair('dupe');
+    if (!body?.reserva && msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return sair('dupe');
 
     const contato = await getContact(msg.contactId);
     const phones = extractPhones(contato);
@@ -363,6 +369,17 @@ export default async (req) => {
     // Leads do piloto (gatilho `desde_inicio` noutro pipeline) nunca entram no funil do SDR.
     estado.pipeline_id = Number.isFinite(Number(g.lead?.pipeline_id)) ? Number(g.lead.pipeline_id) : null;
     if (estado.encerrado) return sair('encerrado', { motivo: estado.encerrado_motivo || null });
+    if (modoReserva) {
+      // Ana ja esta conduzindo esta conversa (falou nas ultimas 12h)? Entao responde na hora,
+      // como fora do horario; senao guarda a reserva e sai.
+      const falouHaPouco = estado.ultima_fala_ana && (Date.now() - Date.parse(estado.ultima_fala_ana)) < 12 * 36e5;
+      if (!falouHaPouco) {
+        estado.reserva_pendente = { due_at: new Date(Date.now() + reservaMin * 60000).toISOString(), msg_em: new Date().toISOString(), contact_id: Number(msg.contactId), msg_id: msg.msgId || null, contentType: body?.contentType || '', raw: String(raw).slice(0, 20000) };
+        await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+        return sair('horario comercial (reserva)', { due_at: estado.reserva_pendente.due_at, reservaMin });
+      }
+    }
+    if (estado.reserva_pendente) estado.reserva_pendente = null;
     if (estado.pausada_ate && new Date(estado.pausada_ate) > new Date()) return sair('pausada', { pausada_ate: estado.pausada_ate });
     const ultimaFala = conv?.context?.ultima_fala_ana || null;
     if (await humanoAssumiu(msg.contactId, ultimaFala, conv?.id || null)) {
@@ -456,7 +473,9 @@ export default async (req) => {
     if (histErr) await logAdvbox('agenda', 'aviso', `historico do espelho falhou (segue sem contexto): ${histErr.message}`.slice(0, 300), { leadId });
     const historico = filtrarMsgAtual(histRaw || [], texto, agora);
     const temEventoFuturo = !!(estado.agendamento?.inicio && new Date(estado.agendamento.inicio) > agora);
+    if (temEventoFuturo && /^\s*(ok|okay|beleza|combinado|certo|confirmo|confirmado|show|blz|perfeito|👍|✅)\b/i.test(texto || '')) estado.ok_recebido = true;
     const situacao = situacaoDoLead({ lead: g.lead, cfg, ultimaMsgEscritorio: ultimaMsgDoEscritorio(historico), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
+    if (situacao && body?.reserva) situacao.motivo = `${situacao.motivo ? situacao.motivo + '; ' : ''}reserva em horário comercial`;
     if (!situacao) return sair('fora dos gatilhos', { pipeline: g.lead?.pipeline_id, status: g.lead?.status_id, ultimaMsgEscritorio: (ultimaMsgDoEscritorio(historico) || '').slice(0, 80), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
 
     // prompt + agente

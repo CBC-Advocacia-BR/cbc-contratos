@@ -138,7 +138,7 @@ export function criarExecutor(ctx) {
       // closer (escolherCloser) e o lead recebia horarios de vendedoras diferentes a cada volta.
       const closer = estado.agendamento?.vendedora || estado.closer_escolhida || escolherCloser({ nota, cfg, slots, seed: String(leadId) })?.email;
       if (!closer) { estado.slots_ofertados = []; return formatarOferta([], null, agora); }
-      const oferta = slotsParaOferta({ slots, preferencia, aPartirDeISO: a_partir_de, closer, n: 3 });
+      const oferta = slotsParaOferta({ slots, preferencia, aPartirDeISO: a_partir_de, closer, n: 3, agora });
       estado.slots_ofertados = oferta.map((s) => ({ id: slotId(s, closer), inicio: new Date(s.inicio).toISOString(), closer }));
       estado.closer_escolhida = closer;
       await persistir();
@@ -150,6 +150,9 @@ export function criarExecutor(ctx) {
       const s = (estado.slots_ofertados || []).find((x) => x.id === slot_id);
       if (!s) throw new Error('slot_id não é um dos horários oferecidos; chame consultar_horarios de novo');
       estado.slot_escolhido = { id: s.id, inicio: s.inicio, closer: s.closer };
+      // Marcou para depois de amanha (o lead pediu o dia): o cron manda lembrete na vespera
+      // (analise 08/09: 2-3 dias comparece 72% vs 80% no dia seguinte).
+      estado.horario_fora_padrao = new Date(s.inicio).getTime() > agora.getTime() + 36 * 36e5;
       await persistir();
       const d = estado.dados || {};
       const falta = [d.valor_pago == null ? 'valor aproximado já pago (1 pergunta; se não souber, siga)' : null, !d.nome ? 'nome do lead' : null, 'e-mail'].filter(Boolean);

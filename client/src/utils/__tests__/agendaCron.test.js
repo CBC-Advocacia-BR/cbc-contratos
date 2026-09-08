@@ -23,10 +23,19 @@ describe('decidirLembrete', () => {
     expect(decidirLembrete(vc(), 40)).toBe(null);
   });
 
-  it('dispara lembrete_t0 entre 2min antes e 5min depois, se ainda nao marcado', () => {
-    expect(decidirLembrete(vc(), 2)).toBe('lembrete_t0');
-    expect(decidirLembrete(vc(), 0)).toBe('lembrete_t0');
-    expect(decidirLembrete(vc(), -4)).toBe('lembrete_t0');
+  it('lembrete_t0 fica DESLIGADO por padrao (um lembrete so, 08/09/2026) e liga com opts.t0', () => {
+    expect(decidirLembrete(vc(), 2)).toBe(null);
+    expect(decidirLembrete(vc(), 0)).toBe(null);
+    expect(decidirLembrete(vc(), 0, { t0: true })).toBe('lembrete_t0');
+    expect(decidirLembrete(vc(), -4, { t0: true })).toBe('lembrete_t0');
+  });
+
+  it('lembrete_vespera so com opts.vespera (call marcada com 2+ dias), 24h antes, uma vez', () => {
+    expect(decidirLembrete(vc(), 24 * 60)).toBe(null);
+    expect(decidirLembrete(vc(), 24 * 60, { vespera: true })).toBe('lembrete_vespera');
+    expect(decidirLembrete(vc(), 24 * 60 - 19, { vespera: true })).toBe('lembrete_vespera');
+    expect(decidirLembrete(vc(), 24 * 60 - 20, { vespera: true })).toBe(null);
+    expect(decidirLembrete(vc({ lembrete_vespera_em: '2026-07-21T10:00:00Z' }), 24 * 60, { vespera: true })).toBe(null);
   });
 
   it('nao repete lembrete_t0 se ja marcado', () => {
@@ -38,10 +47,13 @@ describe('decidirLembrete', () => {
     expect(decidirLembrete(vc(), -5)).toBe(null);
   });
 
-  it('dispara noshow entre 10 e 30 minutos depois, se ainda agendada e nao marcado', () => {
-    expect(decidirLembrete(vc(), -10)).toBe('noshow');
-    expect(decidirLembrete(vc(), -20)).toBe('noshow');
-    expect(decidirLembrete(vc(), -29)).toBe('noshow');
+  it('noshow so quando a auditoria do Meet confirmou (meet_status=no_show), 10min+ depois, uma vez', () => {
+    expect(decidirLembrete(vc(), -15)).toBe(null); // agenda ainda 'agendada' nao basta
+    expect(decidirLembrete(vc({ meet_status: 'no_show' }), -15)).toBe('noshow');
+    expect(decidirLembrete(vc({ meet_status: 'no_show' }), -600)).toBe('noshow');
+    expect(decidirLembrete(vc({ meet_status: 'no_show' }), -5)).toBe(null);
+    expect(decidirLembrete(vc({ meet_status: 'no_show', noshow_msg_em: '2026-07-21T10:00:00Z' }), -15)).toBe(null);
+    expect(decidirLembrete(vc({ meet_status: 'realizada' }), -15)).toBe(null);
   });
 
   it('nao repete noshow se ja marcado', () => {
