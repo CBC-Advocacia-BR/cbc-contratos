@@ -111,7 +111,7 @@ export function montarSystem({ cfg, fatos = [] }) {
 }
 
 /** Bloco volatil do turno: vai no fim da mensagem do usuario, nunca no system. */
-export function contextoDoTurno({ agora, situacao, estado, fimPlantao }) {
+export function contextoDoTurno({ agora, situacao, estado, fimPlantao, jaSeApresentou = false, modoTeste = false }) {
   const d = estado?.dados || {};
   const ag = estado?.agendamento || {};
   let linhaAgendamento = 'Sem videochamada marcada.';
@@ -127,6 +127,8 @@ export function contextoDoTurno({ agora, situacao, estado, fimPlantao }) {
     `Já sabido: resort=${d.resort || '?'}, cota=${d.situacao_cota || '?'}, titular=${d.titular || '?'}, valor_pago=${d.valor_pago ?? '?'}, nota=${estado?.nota ?? '?'}.`,
     linhaAgendamento,
   ];
+  linhas.push(jaSeApresentou ? 'Você JÁ se apresentou e já avisou que é atendimento automatizado nesta conversa: não repita a apresentação, vá direto ao assunto.' : 'Primeira fala sua nesta conversa: apresente-se e avise que é atendimento automatizado.');
+  if (modoTeste) linhas.push('MODO DE TESTE interno: quem escreve é um testador do escritório simulando um lead novo. Ignore o histórico antigo do contato (cobranças, avisos, processos) e NUNCA encerre por "já é cliente"; trate como lead novo e siga o roteiro até agendar.');
   return `[Contexto]\n${linhas.join('\n')}`;
 }
 

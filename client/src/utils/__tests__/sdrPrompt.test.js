@@ -165,3 +165,14 @@ describe('contextoDoTurno', () => {
     expect(s).toContain('Beatriz');
   });
 });
+
+
+describe('contextoDoTurno: apresentacao e modo teste', () => {
+  it('diz se ja se apresentou e sinaliza o modo de teste', () => {
+    const base = { agora: new Date('2026-09-05T21:14:00-03:00'), situacao: { acao: 'inicio' }, estado: { dados: {}, agendamento: {} }, fimPlantao: new Date('2026-09-07T08:00:00-03:00') };
+    expect(contextoDoTurno(base)).toMatch(/Primeira fala sua/);
+    expect(contextoDoTurno({ ...base, jaSeApresentou: true })).toMatch(/JÁ se apresentou/);
+    expect(contextoDoTurno({ ...base, modoTeste: true })).toMatch(/MODO DE TESTE/);
+    expect(contextoDoTurno(base)).not.toMatch(/MODO DE TESTE/);
+  });
+});

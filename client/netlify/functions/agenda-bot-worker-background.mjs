@@ -452,7 +452,7 @@ export default async (req) => {
     const { data: fatos } = await db.rpc('sdr_ia_fatos_listar', { p_chave: RPC_SECRET });
     const plantaoFim = proximoInicioExpediente(agora, grade, cfg.regras.feriados || []);
     const system = montarSystem({ cfg, fatos: fatos || [] });
-    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim }), imagemBase64, imagemTipo });
+    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim, jaSeApresentou: !!estado.ultima_fala_ana, modoTeste: !!cfg.modo_teste }), imagemBase64, imagemTipo });
     estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
     const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim, pipelineId: estado.pipeline_id });
 
