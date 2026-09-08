@@ -51,7 +51,8 @@ describe('montarSystem', () => {
     expect(txt).toContain('<mensagem_do_lead>');
     expect(txt).toContain('Se a conversa não avançar em 2 turnos seus, use escalar_para_humano.');
     expect(txt).toContain('assistente virtual');
-    expect(txt).not.toMatch(/atendimento automatizado/);
+    expect(txt).toMatch(/Me chamo Ana, sou a assistente virtual/);
+    expect(txt).not.toMatch(/avise que é atendimento automatizado/);
     expect(txt).toMatch(/termina com UMA pergunta/);
     expect(txt).toMatch(/motivo_saida/);
   });
