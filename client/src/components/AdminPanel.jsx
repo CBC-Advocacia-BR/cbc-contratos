@@ -33,6 +33,7 @@ const TAB_LIST = [
   { key: 'dashboard', label: 'Dashboard', Icon: ChartBarIcon },
   { key: 'sdr', label: 'SDR', Icon: QueueListIcon },
   { key: 'trafego', label: 'Tráfego', Icon: MegaphoneIcon },
+  { key: 'agenda', label: 'Agenda Ana', Icon: BoltIcon },
   { key: 'asaas', label: 'Asaas', Icon: CreditCardIcon },
   { key: 'boletos', label: 'Boletos', Icon: DocumentIcon },
   // (chatguru removal 2026-05) Aba ChatGuru removida
