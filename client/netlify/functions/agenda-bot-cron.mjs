@@ -208,6 +208,8 @@ export default async () => {
     if (n.lembrete1h + n.t0 + n.noshow) {
       await logAdvbox('agenda', 'info', `cron Ana: 1h=${n.lembrete1h} t0=${n.t0} noshow=${n.noshow}`, n);
     }
+    const fezAlgo = Object.values(n || {}).some((v) => Number(v) > 0) || (entrega && entrega.entregues > 0);
+    if (fezAlgo) await logAdvbox('ana', 'info', 'cron', { ...n, pendentes: (pend || []).length, entrega }).catch(() => {});
     return json({ ok: true, ...n, pendentes: (pend || []).length, entrega });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `cron Ana: ${e.message}`.slice(0, 300), {}).catch(() => {});

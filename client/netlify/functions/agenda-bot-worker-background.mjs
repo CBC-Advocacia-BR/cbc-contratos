@@ -261,9 +261,14 @@ async function humanoAssumiu(contactId, ultimaFalaAnaISO, convId) {
   return ehEventoHumano(eventos, mensagensAnaOut);
 }
 
+/** Grava o texto no campo do lead e dispara o Salesbot megafone. Devolve o resultado da fila
+ *  ({ ok, id, status, error } | { direct } | { skipped }) para o rastro de entrega. */
 async function falar(leadId, mensagem, cfg) {
-  await setLeadField(leadId, cfg.kommo.campo_ana_id, mensagem);
-  await runSalesbot(cfg.kommo.salesbot_id, leadId, 'leads');
+  const campo = await setLeadField(leadId, cfg.kommo.campo_ana_id, mensagem);
+  const bot = await runSalesbot(cfg.kommo.salesbot_id, leadId, 'leads');
+  const entrega = { campo_ok: campo?.ok !== false, bot_ok: bot?.ok !== false, bot_status: bot?.status || (bot?.direct ? 'direct' : bot?.skipped ? 'skipped' : 'done'), erro: bot?.error || campo?.error || null };
+  if (!entrega.campo_ok || !entrega.bot_ok) await logAdvbox('ana', 'erro', `entrega falhou: ${entrega.erro || 'sem detalhe'}`, { leadId, entrega }).catch(() => {});
+  return entrega;
 }
 
 // upsertConversation ja retorna a linha (.select().single()); fallback defensivo p/ o id
@@ -278,17 +283,26 @@ async function convIdDe(channel, fields) {
 export default async (req) => {
   const t0 = Date.now();
   let raw = '';
+  // RASTRO: toda saida do worker (antes ou depois da Claude) vira uma linha em advbox_api_log
+  // com origem 'ana', mensagem 'saida: <motivo>' e contexto {contactId, leadId, msgId, ms, ...}.
+  // E o que permite responder "por que a Ana nao respondeu" sem adivinhar (ver scripts/ana-diagnostico.mjs).
+  const rastro = { contactId: null, leadId: null, msgId: null };
+  const sair = async (motivo, extra = {}, nivel = 'info') => {
+    if (motivo !== 'nao-incoming') await logAdvbox('ana', nivel, `saida: ${motivo}`, { ...rastro, ...extra, ms: Date.now() - t0 }).catch(() => {});
+    return new Response(motivo, { status: 200 });
+  };
   try {
     const body = await req.json();
     raw = body?.raw || '';
     const msg = parsePayload(body?.contentType, raw);
+    rastro.contactId = msg.contactId || null; rastro.msgId = msg.msgId || null;
     // (pos-review Opus #4) guard incoming-only — impede a Ana de tratar a propria fala
     // (via Salesbot) ou fala de humano/bot como entrada do lead (evita loop de
     // auto-resposta). Espelha o mesmo guard do advbox-bot-worker-background.mjs.
-    if (/out|robot|bot/i.test(msg.type || '')) return new Response('nao-incoming', { status: 200 });
+    if (/out|robot|bot/i.test(msg.type || '')) return sair('nao-incoming');
     const cfgAll = await getConfig();
     const cfg = cfgAll.agenda_bot;
-    if (!cfg?.ativo) return new Response('inativo', { status: 200 });
+    if (!cfg?.ativo) return sair('inativo');
 
     // PLANTAO: a Ana so responde FORA da grade do SDR humano (sdr_config) e em feriado.
     // Dentro do expediente quem atende e a equipe — o worker sai antes de qualquer custo.
@@ -303,30 +317,31 @@ export default async (req) => {
     // Em modo_teste (so testadores respondem) a chave regras.teste_ignora_horario deixa o piloto
     // rodar em horario comercial sem mexer na grade do SDR humano. Fora do teste, nunca.
     const ignoraHorario = !!(cfg.modo_teste && cfg.regras?.teste_ignora_horario);
-    if (!ignoraHorario && !foraDoHorario(agora, grade, cfg.regras.feriados || [])) return new Response('horario comercial', { status: 200 });
+    if (!ignoraHorario && !foraDoHorario(agora, grade, cfg.regras.feriados || [])) return sair('horario comercial', { grade });
 
-    if (!msg.contactId) return new Response('sem contato', { status: 200 });
-    if (msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return new Response('dupe', { status: 200 });
+    if (!msg.contactId) return sair('sem contato', { raw: String(raw).slice(0, 300) }, 'aviso');
+    if (msg.msgId && await jaProcessada(`agenda:${msg.msgId}`)) return sair('dupe');
 
     const contato = await getContact(msg.contactId);
     const phones = extractPhones(contato);
     const fone = (phones[0] || '').replace(/\D/g, '');
-    if (!fone) return new Response('sem fone', { status: 200 });
+    if (!fone) return sair('sem fone', {}, 'aviso');
 
     if (cfg.modo_teste) {
       let tester = null;
       for (const ph of phones) { tester = await findTesterByPhone(ph); if (tester) break; }
-      if (!tester) return new Response('nao testador', { status: 200 });
+      if (!tester) return sair('nao testador', { fone: fone.slice(-8) });
     }
 
     // Um contato pode ter varios leads (cliente antigo + lead novo). Escolhe o PRIMEIRO lead do
     // contato que cai num pipeline com gatilho (mais recente primeiro), em vez de so o primeiro
     // da lista — senao um contato com lead em Pos Venda nunca seria atendido pela Ana no SDR.
     const leadIds = leadIdsDoContato(contato);
-    if (!leadIds.length) return new Response('sem lead', { status: 200 });
+    if (!leadIds.length) return sair('sem lead', {}, 'aviso');
     let leadId = null; let g = { ok: false };
     for (const id of leadIds) { const r = await leadNoGatilho(id, cfg); if (r.ok) { leadId = id; g = r; break; } }
-    if (!g.ok) return new Response('fora do gatilho', { status: 200 });
+    rastro.leadId = leadId || null;
+    if (!g.ok) return sair('fora do gatilho', { leads: leadIds, pipeline: g.lead?.pipeline_id || null, status: g.lead?.status_id || null });
 
     // estado (o mesmo bot_conversations de sempre; origem 'sdr' desde o SDR de IA)
     const channel = `agenda:${fone}`;
@@ -336,14 +351,14 @@ export default async (req) => {
     // cfg.kommo.pipeline_sdr, que decide se as ferramentas podem mexer na etapa do funil.
     // Leads do piloto (gatilho `desde_inicio` noutro pipeline) nunca entram no funil do SDR.
     estado.pipeline_id = Number.isFinite(Number(g.lead?.pipeline_id)) ? Number(g.lead.pipeline_id) : null;
-    if (estado.encerrado) return new Response('encerrado', { status: 200 });
-    if (estado.pausada_ate && new Date(estado.pausada_ate) > new Date()) return new Response('pausada', { status: 200 });
+    if (estado.encerrado) return sair('encerrado', { motivo: estado.encerrado_motivo || null });
+    if (estado.pausada_ate && new Date(estado.pausada_ate) > new Date()) return sair('pausada', { pausada_ate: estado.pausada_ate });
     const ultimaFala = conv?.context?.ultima_fala_ana || null;
     if (await humanoAssumiu(msg.contactId, ultimaFala, conv?.id || null)) {
       estado.pausada_ate = new Date(Date.now() + (cfg.regras.silencio_humano_horas || 24) * 36e5).toISOString();
       await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
       await postNote(leadId, `CBC.agenda.pausa:${Date.now()}`, 'Ana pausada: atendente humano respondeu nesta conversa.');
-      return new Response('humano assumiu', { status: 200 });
+      return sair('humano assumiu', { pausada_ate: estado.pausada_ate });
     }
 
     // (revisao final I8) mensagem de "nao entendi, pode escrever?" para audio nao-processavel.
@@ -366,14 +381,14 @@ export default async (req) => {
       if (!anexoPermitido(msg.anexoLink)) {
         await pedirTexto();
         await logAdvbox('agenda', 'aviso', 'anexo de host nao permitido — audio nao baixado', { leadId, link: String(msg.anexoLink).slice(0, 200) });
-        return new Response('anexo bloqueado', { status: 200 });
+        return sair('anexo bloqueado', {}, 'aviso');
       }
       try {
         const head = await fetch(msg.anexoLink, { method: 'HEAD', signal: AbortSignal.timeout(10000) });
         if (excedeTeto(head.headers.get('content-length'), cfg)) {
           await pedirTexto();
           await logAdvbox('agenda', 'aviso', `audio acima do teto (${head.headers.get('content-length')} bytes)`, { leadId });
-          return new Response('audio grande', { status: 200 });
+          return sair('audio grande', {}, 'aviso');
         }
       } catch { /* HEAD falhou/sem Content-Length: prossegue — teto de 25MB do transcrever segura */ }
       const t = await transcrever({ url: msg.anexoLink, cfg });
@@ -381,7 +396,7 @@ export default async (req) => {
       else {
         await pedirTexto();
         await logAdvbox('agenda', 'aviso', `STT falhou: ${t.erro}`, { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
-        return new Response('stt falhou', { status: 200 });
+        return sair('stt falhou', {}, 'aviso');
       }
     }
 
@@ -411,13 +426,13 @@ export default async (req) => {
       }
       if (!imagemBase64) await logAdvbox('agenda', 'info', 'anexo nao suportado — ignorado', { leadId, anexoTipo: msg.anexoTipo, raw: String(raw).slice(0, 1500) });
     }
-    if (!texto && !imagemBase64) return new Response('sem texto', { status: 200 });
+    if (!texto && !imagemBase64) return sair('sem texto', { anexoTipo: msg.anexoTipo || null });
     if (TIPOS_AUDIO.includes(String(msg.anexoTipo))) estado.mandou_audio = true;
     // (pos-review Opus #5) fallback composto de dedupe (sem msgId) so AQUI — precisa do
     // `texto` ja resolvido (audio via STT incluso); rodar antes colidiria entre audios
     // distintos no mesmo minuto (ver comentario em jaProcessada). Mensagem so-imagem nao
     // tem texto: entra o link do anexo, senao 2 imagens no mesmo minuto viravam duplicata.
-    if (!msg.msgId && await jaProcessada(chaveDedupeFallback(msg.contactId, texto || msg.anexoLink))) return new Response('dupe', { status: 200 });
+    if (!msg.msgId && await jaProcessada(chaveDedupeFallback(msg.contactId, texto || msg.anexoLink))) return sair('dupe');
 
     const convId = await convIdDe(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
     await logMessage(convId, 'in', texto || '[imagem]', null, { msgId: msg.msgId, anexo: msg.anexoTipo || null });
@@ -431,7 +446,7 @@ export default async (req) => {
     const historico = filtrarMsgAtual(histRaw || [], texto, agora);
     const temEventoFuturo = !!(estado.agendamento?.inicio && new Date(estado.agendamento.inicio) > agora);
     const situacao = situacaoDoLead({ lead: g.lead, cfg, ultimaMsgEscritorio: ultimaMsgDoEscritorio(historico), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
-    if (!situacao) return new Response('fora dos gatilhos', { status: 200 });
+    if (!situacao) return sair('fora dos gatilhos', { pipeline: g.lead?.pipeline_id, status: g.lead?.status_id, ultimaMsgEscritorio: (ultimaMsgDoEscritorio(historico) || '').slice(0, 80), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
 
     // prompt + agente
     const { data: fatos } = await db.rpc('sdr_ia_fatos_listar', { p_chave: RPC_SECRET });
@@ -475,7 +490,7 @@ export default async (req) => {
         } });
         if (tetoErr) await logAdvbox('agenda', 'erro', `telemetria do teto nao gravada: ${tetoErr.message}`.slice(0, 300), { leadId, convId });
         await logAdvbox('agenda', 'aviso', `Ana(IA) teto_custo lead ${leadId}: US$ ${Number(gasto24h).toFixed(4)} em 24h (teto ${tetoUsd})`, { leadId });
-        return new Response('teto de custo', { status: 200 });
+        return sair('teto de custo', { gasto24h, tetoUsd }, 'aviso');
       }
     }
 
@@ -508,7 +523,7 @@ export default async (req) => {
       await logAdvbox('agenda', 'aviso', `resposta truncada por max_tokens (${r.texto.length} chars)`, { leadId });
       if (!/[.!?…:)\]"']\s*$/.test(resposta)) resposta = `${resposta}…`;
     }
-    await falar(leadId, resposta, cfg);
+    const entrega = await falar(leadId, resposta, cfg);
     estado.ultima_fala_ana = new Date().toISOString();
     await logMessage(convId, 'out', resposta, situacao.acao, { stop: r.stop_reason });
     await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
@@ -522,16 +537,16 @@ export default async (req) => {
       entrada: texto || null, entrada_tipo: imagemBase64 ? 'imagem' : (estado.mandou_audio && !msg.text ? 'audio' : 'texto'),
       resposta, ferramentas: r.chamadas, modelo: r.modeloFinal || cfg.llm?.modelo || 'claude-opus-5', effort: cfg.llm?.effort || 'low',
       input_tokens: usoTotal('input_tokens'), cache_read_tokens: usoTotal('cache_read_input_tokens'), cache_write_tokens: usoTotal('cache_creation_input_tokens'), output_tokens: usoTotal('output_tokens'),
-      custo_usd: custo, latencia_ms: Date.now() - t0, stop_reason: r.stop_reason,
+      custo_usd: custo, latencia_ms: Date.now() - t0, stop_reason: r.stop_reason, entrega,
       fallback_model: (r.modeloFinal && r.modeloFinal !== (cfg.llm?.modelo || 'claude-opus-5')) ? r.modeloFinal : null,
       situacao: situacao.acao, erro: erroApi,
     } });
     if (turnoErr) await logAdvbox('agenda', 'erro', `telemetria do turno nao gravada: ${turnoErr.message}`.slice(0, 300), { leadId, convId });
     await logAdvbox('agenda', 'info', `Ana(IA) ${situacao.acao} lead ${leadId} ${r.stop_reason} ${r.chamadas.map((c) => c.nome).join(',')} (${Date.now() - t0}ms)`,
       { custo_usd: custo, ...(avisos.length ? { modelos_sem_preco: avisos } : {}) });
-    return new Response('ok', { status: 200 });
+    return sair('ok', { situacao: situacao.acao, stop: r.stop_reason, ferramentas: r.chamadas.map((c) => c.nome), entrega, custo_usd: custo });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `worker Ana: ${e.message}`.slice(0, 300), { stack: (e.stack || '').slice(0, 500), raw: String(raw).slice(0, 1500) }).catch(() => {});
-    return new Response('erro', { status: 200 });
+    return sair('erro', { erro: e.message }, 'erro');
   }
 };

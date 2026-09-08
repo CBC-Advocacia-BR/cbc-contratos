@@ -19,6 +19,11 @@ export default async (req) => {
   let raw = '';
   try { raw = await req.text(); } catch { /* corpo vazio */ }
   const contentType = req.headers.get('content-type') || '';
+  // RASTRO: 1 linha por webhook recebido (contact_id extraido do corpo) — permite provar que o
+  // Kommo chamou (ou nao) sem depender do log do Netlify.
+  const contactId = (raw.match(/contact_id[%\]]*=(\d+)/) || [])[1] || (raw.match(/"contact_id":\s*"?(\d+)/) || [])[1] || null;
+  const tipo = decodeURIComponent((raw.match(/\[type\]=([^&]+)/) || [])[1] || '');
+  if (!/out|robot|bot/i.test(tipo)) await logAdvbox('ana', 'info', 'webhook recebido', { contactId, tipo, bytes: raw.length, contentType }).catch(() => {});
   try {
     await fetch(`${SELF_URL}/.netlify/functions/agenda-bot-worker-background`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
