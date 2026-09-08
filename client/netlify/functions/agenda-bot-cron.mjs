@@ -17,6 +17,8 @@ import { getAccessToken, freeBusy } from './_lib/googleAgenda.mjs';
 import { janelaAberta } from './_lib/assinaturaWhatsapp.mjs';
 import { gradeDeConfig, ehJanelaEntrega } from './_lib/sdrHorario.mjs';
 import { podeMoverEtapa } from './_lib/sdrFerramentas.mjs';
+import { atualizarMemoria } from './agenda-bot-worker-background.mjs';
+import { unificarHistorico } from './_lib/sdrMemoria.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 
@@ -119,7 +121,20 @@ async function entregarPlantao(cfg) {
       continue;
     }
     try {
-      await postNote(leadId, `CBC.ana.plantao:${hoje}`, `Plantão da Ana (${hoje}).\n${resumoPlantao(estado)}`);
+      // (08/09) memoria do contato ao fechar o plantao (Haiku); o resumo vai junto na nota
+      let memoriaTxt = '';
+      if (estado.contact_id) {
+        try {
+          const { data: histRaw } = await db.rpc('sdr_ia_historico', { p_chave: RPC_SECRET, p_contact_id: Number(estado.contact_id), p_limite: 40 });
+          const { data: memRows } = await db.rpc('sdr_ia_memoria_get', { p_chave: RPC_SECRET, p_contact_id: Number(estado.contact_id) });
+          const mem = (Array.isArray(memRows) ? memRows[0] : memRows) || null;
+          const convRow = await getConversation(row.channel);
+          const { data: botRows } = convRow?.id ? await db.from('bot_messages').select('direction,text,created_at').eq('conversation_id', convRow.id).order('created_at', { ascending: false }).limit(40) : { data: [] };
+          const nova = await atualizarMemoria({ memoria: mem, historico: unificarHistorico(histRaw || [], botRows || []), contactId: Number(estado.contact_id), fone: row.channel.replace('agenda:', ''), leadId, nome: estado.dados?.nome || estado.nome });
+          memoriaTxt = nova?.resumo ? `\n\nMemória: ${nova.resumo}` : '';
+        } catch (e) { await logAdvbox('agenda', 'aviso', `memoria (entrega) ${leadId}: ${e.message}`.slice(0, 300)); }
+      }
+      await postNote(leadId, `CBC.ana.plantao:${hoje}`, `Plantão da Ana (${hoje}).\n${resumoPlantao(estado)}${memoriaTxt}`);
       // (revisao final C1 — CRITICO) mesma regra das ferramentas: so move a etapa se o lead
       // estiver no proprio funil do SDR (o piloto roda noutro pipeline). Fail-closed: estado
       // antigo sem `pipeline_id` nao move nada, so registra.

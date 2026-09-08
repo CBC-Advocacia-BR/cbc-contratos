@@ -2,6 +2,7 @@
 // PURO (testado em src/utils/__tests__/sdrPrompt.test.js). O system NAO pode conter nada
 // volatil (data, hora, ids) — e o prefixo cacheado por 1h. Tudo que muda vai em `messages`.
 import { TAGS_RESORT_PREFERIDAS } from './sdrTags.mjs';
+import { linhaMemoria } from './sdrMemoria.mjs';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -139,7 +140,7 @@ export function montarSystem({ cfg, fatos = [] }) {
 }
 
 /** Bloco volatil do turno: vai no fim da mensagem do usuario, nunca no system. */
-export function contextoDoTurno({ agora, situacao, estado, fimPlantao, jaSeApresentou = false, modoTeste = false, cadastro = undefined }) {
+export function contextoDoTurno({ agora, situacao, estado, fimPlantao, jaSeApresentou = false, modoTeste = false, cadastro = undefined, memoria = null }) {
   const d = estado?.dados || {};
   const ag = estado?.agendamento || {};
   let linhaAgendamento = 'Sem videochamada marcada.';
@@ -158,6 +159,7 @@ export function contextoDoTurno({ agora, situacao, estado, fimPlantao, jaSeApres
     linhaAgendamento,
   ];
   if (linhaSlot && !ag.inicio) linhas.push(linhaSlot);
+  const lm = linhaMemoria(memoria); if (lm) linhas.push(lm);
   if (ag.inicio && estado?.ok_recebido) linhas.push('O lead já confirmou com ok. Só responda se ele perguntar algo; caso contrário, uma despedida de uma linha.');
   if (situacao?.acao === 'reserva') linhas.push('Você entrou porque a equipe não respondeu em horário comercial. Siga o roteiro normalmente.');
   linhas.push(jaSeApresentou ? 'Você JÁ se apresentou nesta conversa: não repita seu nome nem a apresentação, vá direto ao assunto.' : 'Primeira fala sua nesta conversa: apresente-se uma vez, como manda a persona.');
@@ -186,6 +188,13 @@ export function montarMensagens({ historico = [], textoAtual = '', contexto = ''
   }
   if (turnos.length && turnos[0].role !== 'user') turnos.unshift({ role: 'user', text: marcarTextoDoLead('[início da conversa]') });
   const messages = turnos.map((t) => ({ role: t.role, content: [{ type: 'text', text: t.text }] }));
+  // Cache incremental do historico (08/09/2026): o ultimo bloco que ja existia no turno anterior
+  // leva cache_control (5 min). O turno seguinte reencontra o mesmo prefixo (system + tools +
+  // historico) e paga 10% por ele; so a mensagem nova e o [Contexto] entram a preco cheio.
+  if (messages.length) {
+    const ult = messages[messages.length - 1];
+    ult.content[ult.content.length - 1].cache_control = { type: 'ephemeral' };
+  }
   const atual = [];
   if (imagemBase64) atual.push({ type: 'image', source: { type: 'base64', media_type: imagemTipo, data: imagemBase64 } });
   const textoLead = textoAtual || (imagemBase64 ? '[o lead enviou uma imagem]' : '[mensagem sem texto]');

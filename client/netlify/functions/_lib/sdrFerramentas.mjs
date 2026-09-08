@@ -199,6 +199,7 @@ export function criarExecutor(ctx) {
       estado.agendamento = { event_id: eventId, inicio: ini.toISOString(), vendedora: p.closer, meet_link: meetLink, email };
       estado.nome = nome || estado.nome;
       estado.slot_escolhido = null;
+      estado.memoria_pendente = true; // fim de sessao: o worker gera/atualiza a memoria do contato
       await persistir(); // ANTES dos efeitos no Kommo: se algo falhar, a proxima msg cai em remarcar, nunca em duplicar
       const vend = cfg.vendedoras.find((v) => v.email === p.closer);
       // fix9 item 2: o evento JA existe no Google Agenda a essa altura — os efeitos abaixo
@@ -352,6 +353,7 @@ export function criarExecutor(ctx) {
         await createKommoTask(leadId, 'leads', `Ana escalou (${motivo}). ${resumo}`, 1, cfg.kommo.sdr_user_id || null);
         await postNote(leadId, `CBC.ana.escalou:${new Date().toISOString().slice(0, 10)}`, `Ana → humano. Motivo: ${motivo}. Resumo: ${resumo}`);
       } catch (e) { estado.escalado = false; estado.escalado_motivo = null; throw e; }
+      estado.memoria_pendente = true;
       await persistir();
       // (revisao final M12) o worker ja calculou o fim do plantao neste turno (ctx.plantaoFim);
       // recalcular aqui com `new Date()` dava uma segunda resposta p/ a mesma pergunta — e a
@@ -370,6 +372,7 @@ export function criarExecutor(ctx) {
         await moverEtapa(etapaDeEncerramento(motivo, etapas), `encerrar (${motivo})`);
         await postNote(leadId, `CBC.ana.encerrou:${new Date().toISOString().slice(0, 10)}`, `Ana encerrou. Motivo: ${motivo}.`);
       } catch (e) { estado.encerrado = false; estado.encerrado_motivo = null; throw e; }
+      estado.memoria_pendente = true;
       await persistir();
       return `Encerrado (${motivo}). Despeça-se em uma frase.`;
     },

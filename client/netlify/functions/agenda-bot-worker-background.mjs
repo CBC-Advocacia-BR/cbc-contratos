@@ -19,6 +19,7 @@ import { transcrever } from './_lib/agendaInterprete.mjs';
 import { gradeDeConfig, foraDoHorario, proximoInicioExpediente } from './_lib/sdrHorario.mjs';
 import { situacaoDoLead } from './_lib/sdrGatilhos.mjs';
 import { FERRAMENTAS, montarSystem, montarMensagens, contextoDoTurno } from './_lib/sdrPrompt.mjs';
+import { unificarHistorico, historicoAposMemoria, memoriaEstaVelha, gerarMemoria } from './_lib/sdrMemoria.mjs';
 import { criarCliente, rodarAgente, custoUsd } from './_lib/sdrAgente.mjs';
 import { criarExecutor } from './_lib/sdrFerramentas.mjs';
 
@@ -280,6 +281,20 @@ async function convIdDe(channel, fields) {
   return again?.id || null;
 }
 
+/** Gera/atualiza a memoria do contato com o Haiku e grava via RPC. Devolve a linha nova. */
+export async function atualizarMemoria({ memoria, historico, contactId, fone, leadId, nome, agora = new Date() }) {
+  const ate = memoria?.msgs_ate ? Date.parse(memoria.msgs_ate) : 0;
+  const novas = (historico || []).filter((m) => Date.parse(m.enviada_em) > ate);
+  if (!novas.length && memoria) return memoria;
+  const g = await gerarMemoria({ client: criarCliente(), anterior: memoria?.resumo || null, mensagens: novas.length ? novas : historico, nomeContato: nome || '' });
+  const ultima = (historico || []).reduce((mx, m) => Math.max(mx, Date.parse(m.enviada_em) || 0), 0);
+  const row = { contact_id: contactId, fone, lead_id: leadId, resumo: g.resumo, fatos: g.fatos || {}, msgs_ate: new Date(ultima || agora.getTime()).toISOString(), n_msgs: (memoria?.n_msgs || 0) + novas.length, modelo: g.modelo, custo_usd: g.custo_usd, atualizado_em: agora.toISOString() };
+  const { error } = await db.rpc('sdr_ia_memoria_set', { p_chave: RPC_SECRET, p_row: row });
+  if (error) throw new Error(`memoria_set: ${error.message}`);
+  await logAdvbox('ana', 'info', `memoria do contato ${contactId} atualizada (${novas.length} msgs, US$ ${g.custo_usd.toFixed(4)})`, { contactId, leadId, custo_usd: g.custo_usd, in: g.usage?.input_tokens, out: g.usage?.output_tokens });
+  return row;
+}
+
 export default async (req) => {
   const t0 = Date.now();
   let raw = '';
@@ -471,7 +486,24 @@ export default async (req) => {
     // falha aqui nao derruba o turno, mas SILENCIA a Ana nos gatilhos por texto (sem
     // historico nao ha ultima fala do escritorio) — por isso vira aviso no console.
     if (histErr) await logAdvbox('agenda', 'aviso', `historico do espelho falhou (segue sem contexto): ${histErr.message}`.slice(0, 300), { leadId });
-    const historico = filtrarMsgAtual(histRaw || [], texto, agora);
+    // (08/09) log da Ana (bot_messages) fundido ao espelho: o espelho atrasa minutos e as
+    // proprias falas da Ana nao apareciam no turno seguinte. Memoria do contato (resumo de
+    // sessoes anteriores) entra no contexto e encurta o historico cru.
+    const { data: botRows } = await db.from('bot_messages').select('direction,text,created_at').eq('conversation_id', convId).order('created_at', { ascending: false }).limit(40);
+    let memoria = null;
+    try {
+      const { data: memRows, error: memErr } = await db.rpc('sdr_ia_memoria_get', { p_chave: RPC_SECRET, p_contact_id: Number(msg.contactId) });
+      if (memErr) await logAdvbox('agenda', 'aviso', `memoria_get falhou (segue sem): ${memErr.message}`.slice(0, 300), { leadId });
+      else memoria = (Array.isArray(memRows) ? memRows[0] : memRows) || null;
+    } catch (e) { await logAdvbox('agenda', 'aviso', `memoria_get: ${e.message}`.slice(0, 300), { leadId }); }
+    const historicoCompleto = filtrarMsgAtual(unificarHistorico(histRaw || [], botRows || []), texto, agora);
+    // memoria velha (24h+) com conversa nova desde entao: refaz ANTES do turno (Haiku, ~2 s)
+    if (memoriaEstaVelha(memoria, historicoCompleto, agora)) {
+      try { memoria = await atualizarMemoria({ memoria, historico: historicoCompleto, contactId: Number(msg.contactId), fone, leadId, nome: estado.dados?.nome || estado.nome, agora }); }
+      catch (e) { await logAdvbox('agenda', 'aviso', `memoria (lazy) falhou: ${e.message}`.slice(0, 300), { leadId }); }
+    }
+    const historico = historicoAposMemoria(historicoCompleto, memoria);
+    rastro.memoria = memoria ? 'sim' : 'nao'; rastro.hist = historico.length;
     const temEventoFuturo = !!(estado.agendamento?.inicio && new Date(estado.agendamento.inicio) > agora);
     if (temEventoFuturo && /^\s*(ok|okay|beleza|combinado|certo|confirmo|confirmado|show|blz|perfeito|👍|✅)\b/i.test(texto || '')) estado.ok_recebido = true;
     const situacao = situacaoDoLead({ lead: g.lead, cfg, ultimaMsgEscritorio: ultimaMsgDoEscritorio(historico), temEventoFuturo, temMeetEnviado: temMeetNoHistorico(historico) });
@@ -482,7 +514,7 @@ export default async (req) => {
     const { data: fatos } = await db.rpc('sdr_ia_fatos_listar', { p_chave: RPC_SECRET });
     const plantaoFim = proximoInicioExpediente(agora, grade, cfg.regras.feriados || []);
     const system = montarSystem({ cfg, fatos: fatos || [] });
-    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim, jaSeApresentou: !!estado.ultima_fala_ana, modoTeste: !!cfg.modo_teste, cadastro }), imagemBase64, imagemTipo });
+    const messages = montarMensagens({ historico, textoAtual: texto, contexto: contextoDoTurno({ agora, situacao, estado, fimPlantao: plantaoFim, jaSeApresentou: !!estado.ultima_fala_ana, modoTeste: !!cfg.modo_teste, cadastro, memoria }), imagemBase64, imagemTipo });
     estado.plantao_ativo = true; estado.entregue_em = null; estado.situacao = situacao.acao;
     const exec = criarExecutor({ cfg, grade, leadId, fone, nome: estado.nome, estado, channel, agora, plantaoFim, pipelineId: estado.pipeline_id });
 
@@ -557,6 +589,14 @@ export default async (req) => {
     estado.ultima_fala_ana = new Date().toISOString();
     await logMessage(convId, 'out', resposta, situacao.acao, { stop: r.stop_reason });
     await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+    if (estado.memoria_pendente) {
+      try {
+        const hist = unificarHistorico(histRaw || [], [...(botRows || []), { direction: 'in', text: texto || '', created_at: agora.toISOString() }, { direction: 'out', text: resposta, created_at: new Date().toISOString() }]);
+        await atualizarMemoria({ memoria, historico: hist, contactId: Number(msg.contactId), fone, leadId, nome: estado.dados?.nome || estado.nome, agora: new Date() });
+        estado.memoria_pendente = false;
+        await upsertConversation(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
+      } catch (e) { await logAdvbox('agenda', 'aviso', `memoria (fim de sessao) falhou: ${e.message}`.slice(0, 300), { leadId }); }
+    }
 
     // telemetria por chamada (sdr_ia_turnos): tokens, custo, ferramentas, latencia, stop.
     const usoTotal = (k) => r.iteracoes.reduce((s, it) => s + (it.usage?.[k] || 0), 0);
