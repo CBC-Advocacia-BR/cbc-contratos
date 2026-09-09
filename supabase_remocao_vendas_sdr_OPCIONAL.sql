@@ -103,3 +103,21 @@ update public.user_permissions
 --   alter table public.contratos drop column advbox_stage;
 --   alter table public.contratos drop column advbox_step;
 -- =====================================================================
+
+
+-- =====================================================================
+-- HEARTBEATS ORFAOS (higiene, opcional — NAO aplicado)
+--
+-- `commission-calculator` e `advbox-vendas-sync` deixaram 2 linhas paradas em
+-- cron_heartbeat (a ultima execucao de cada um, ambas com ok=true).
+--
+-- ⚠️ CONFERIDO EM 09/09: elas NAO produzem alarme. No monitor-watchdog a
+-- checagem `hb.ok === false` roda ANTES do `if (!sla) continue`, entao um
+-- heartbeat orfao com ok=FALSE viraria aviso diario eterno sobre robo que nao
+-- existe mais. Como os dois estao com ok=true, o laco passa direto.
+-- Se um dia remover um cron cujo ultimo heartbeat esteja com erro, APAGUE a
+-- linha junto — senao o Monitor reclama para sempre.
+--
+-- delete from public.cron_heartbeat
+--  where job in ('commission-calculator', 'advbox-vendas-sync');
+-- =====================================================================
