@@ -40,11 +40,14 @@ export default defineConfig({
       //
       // Ao subir a cobertura, SUBA ESTES NUMEROS junto: piso que fica para tras vira
       // enfeite. Nao vale baixar para fazer um teste que falha passar.
+      // (09/09/2026) Subiu com a remocao das abas Vendas/Socios/SDR: saiu o
+      // commissionClient.js (103 linhas, so rede, zero teste) e o denominador encolheu.
+      // Medido no dia: 41,65 / 75,09 / 81,5 — arredondado para baixo com folga.
       thresholds: {
-        statements: 37,
-        branches: 71,
-        functions: 78,
-        lines: 37,
+        statements: 41,
+        branches: 74,
+        functions: 80,
+        lines: 41,
       },
     },
   },

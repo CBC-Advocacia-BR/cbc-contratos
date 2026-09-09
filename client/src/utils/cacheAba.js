@@ -2,7 +2,7 @@
 // (auditoria 01/08/2026 — item 188) Cache de aba com validade.
 //
 // PROBLEMA: a arvore de abas DESMONTA o painel anterior. Voltar para Boletos,
-// Contratos ou Minhas Vendas refazia a consulta inteira — o painel de Boletos
+// Contratos ou Clientes refazia a consulta inteira — o painel de Boletos
 // pagina ~11 mil boletos e ~1,3 mil clientes a cada visita, mesmo cinco segundos
 // depois. Quatro paineis ja tinham inventado o seu proprio `let _cached...` no
 // topo do arquivo, o que resolve o SKELETON (a lista reaparece na hora) mas nao

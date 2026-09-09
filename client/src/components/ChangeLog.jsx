@@ -6,6 +6,17 @@ const SEEN_VERSION_KEY = 'cbc_seen_version';
 
 const VERSIONS = [
   {
+    version: '6.7.0',
+    date: '09/09/2026',
+    title: 'Abas Minhas Vendas, Sócios e SDR removidas',
+    changes: [
+      { type: 'improve', text: 'As abas "Minhas Vendas", "Param. Vendas", "Sócios" e "SDR" saíram do sistema: nunca chegaram a ser usadas no dia a dia (as tabelas de guias, documentos, metas e promoções estavam todas vazias)' },
+      { type: 'improve', text: 'Dois robôs que só serviam a essas telas foram desligados: o cálculo de comissão do dia 20 e a sincronização do quadro de vendas com o ADVBOX (3x/dia) — e saíram também da lista do vigia, que continuaria cobrando robô inexistente' },
+      { type: 'improve', text: 'Nada foi apagado do banco: os dados que existiam (2 comissões calculadas, as regras e a expectativa de honorários) continuam guardados' },
+      { type: 'improve', text: 'Sem mudança nas telas que ficam — Dashboard, Saúde do Funil, Tráfego, Contratos, Clientes, Asaas, Boletos, Bot, Portal, Monitor e Admin seguem iguais, inclusive a pontualidade dos vendedores e o SLA de 1ª resposta' },
+    ],
+  },
+  {
     version: '6.6.1',
     date: '18/06/2026',
     title: 'Boletos removidos não contam mais como inadimplência',

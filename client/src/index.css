@@ -1758,7 +1758,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 @media (min-width: 641px) and (max-width: 1024px) and (orientation: portrait) {
   .cbc-undo-toast { bottom: calc(var(--bottom-dock-height, 72px) + var(--safe-bottom) + 24px); }
 }
-/* Utilitária para toasts locais fixos (ContratosTab, VendasPanel, PDF progress) */
+/* Utilitária para toasts locais fixos (ContratosTab, PDF progress) */
 @media (max-width: 640px) {
   .toast-above-dock {
     bottom: calc(var(--bottom-dock-height, 64px) + var(--safe-bottom) + 24px) !important;
@@ -1853,8 +1853,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ─── (auditoria 01/08/2026 — item 281) A BARRA DE ABAS NÃO MOSTRAVA QUE HÁ MAIS ───
-   São até 15 abas com rolagem horizontal e barra de rolagem OCULTA (`scrollbar-hide`).
-   Em tela menor, quem nunca viu "Admin" ou "Param. Vendas" não descobre que existem:
+   São até 12 abas com rolagem horizontal e barra de rolagem OCULTA (`scrollbar-hide`).
+   Em tela menor, quem nunca viu "Admin" ou "Portal Cliente" não descobre que existem:
    não há seta, sombra, nem barra — a lista simplesmente parece terminar ali.
    A sombra abaixo aparece nas bordas quando há conteúdo cortado e some quando chega ao
    fim, usando `background-attachment: local` — truque puro de CSS, sem JavaScript e sem
@@ -1901,18 +1901,10 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 }
 
 /* ─── Utility genérica: elemento visível APENAS em dispositivos touch ─── */
-/* (auditoria 01/08/2026 — item 291) O quadro de Vendas so podia ser reorganizado
-   ARRASTANDO o card. Arrastar com mouse exclui quem usa so teclado e quem tem
-   dificuldade motora — e essas pessoas nao tinham NENHUMA alternativa no computador,
-   porque o seletor "Mover para..." aparecia apenas em tela de toque.
-   Agora ele existe no desktop tambem: fica escondido ate o cartao receber o mouse
-   OU o foco pelo teclado (`:focus-within`), entao o visual limpo do quadro nao muda
-   para quem arrasta, e quem navega por Tab encontra o seletor sem precisar de mouse. */
+/* (09/09/2026) A regra `@media (hover: hover)` que revelava o seletor "Mover para..."
+   no cartao do kanban saiu junto com a aba Vendas: `.cbc-kanban-card` nao existe em
+   componente nenhum. A classe permanece porque o SupabaseHealthMonitor a usa. */
 .cbc-touch-only { display: none !important; }
 @media (hover: none) {
   .cbc-touch-only { display: flex !important; }
-}
-@media (hover: hover) {
-  .cbc-kanban-card:hover .cbc-touch-only,
-  .cbc-kanban-card:focus-within .cbc-touch-only { display: flex !important; }
 }

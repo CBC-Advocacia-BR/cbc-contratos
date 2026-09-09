@@ -16,13 +16,10 @@ import {
   Cog6ToothIcon,
   BoltIcon,
   ExclamationTriangleIcon,
-  BanknotesIcon,
-  DocumentCheckIcon,
   ChatBubbleLeftRightIcon,
   LinkIcon,
   UserGroupIcon,
   MegaphoneIcon,
-  QueueListIcon,
 } from '@heroicons/react/24/outline';
 
 // (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios
@@ -31,15 +28,12 @@ const TAB_LIST = [
   { key: 'contratos', label: 'Contratos Salvos', Icon: DocumentTextIcon },
   { key: 'clientes', label: 'Clientes', Icon: UserGroupIcon },
   { key: 'dashboard', label: 'Dashboard', Icon: ChartBarIcon },
-  { key: 'sdr', label: 'SDR', Icon: QueueListIcon },
   { key: 'trafego', label: 'Tráfego', Icon: MegaphoneIcon },
   { key: 'asaas', label: 'Asaas', Icon: CreditCardIcon },
   { key: 'boletos', label: 'Boletos', Icon: DocumentIcon },
   // (chatguru removal 2026-05) Aba ChatGuru removida
   { key: 'monitor', label: 'Monitor', Icon: ComputerDesktopIcon },
   { key: 'admin', label: 'Admin', Icon: Cog6ToothIcon },
-  { key: 'vendas', label: 'Minhas Vendas', Icon: BanknotesIcon },
-  { key: 'parametrizacao_vendas', label: 'Parametrizacao Vendas', Icon: DocumentCheckIcon },
   { key: 'bot', label: 'Bot ADVBOX', Icon: ChatBubbleLeftRightIcon },
   { key: 'portal', label: 'Portal do Cliente', Icon: LinkIcon },
 ];

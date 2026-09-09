@@ -11,7 +11,7 @@
 // carteira e cairiam no mesmo buraco em silencio — todas paginam pelo mesmo helper.
 import { supabase } from '../lib/supabase';
 // (auditoria 01/08 — item 85) O laco de paginacao nasceu AQUI e virou utils/supabasePaged.js
-// para que Trafego/Socios/relatorios/cobranca parem de reimplementar cada um o seu.
+// para que Trafego/relatorios/cobranca parem de reimplementar cada um o seu.
 // A regra do ORDER BY TOTAL continua valendo (conferido no banco em 28/07:
 // event_id 2.883/2.883, lawsuit_id 188/188 e 178/178, (mes,campaign_id) 122/122).
 // So scheduled_at nao bastaria — 93 linhas da view dividem o mesmo instante.

@@ -7,6 +7,26 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### 🧹 09/09/2026 — abas Minhas Vendas, Sócios, Param. Vendas e SDR REMOVIDAS
+
+Pedido do Paulo: eram funções que nunca chegaram a ser usadas. **948 testes** (eram 1.008; os 60 a menos são os 3 arquivos de teste que saíram junto), lint no baseline 18, build e `npm run verificar` limpos. Backup completo em `backups/20260909_122652_remocao_vendas_socios_sdr/`.
+
+🔑 **A conferência que autorizou apagar**: as tabelas de trabalho estavam **vazias** — `vendas_guias_custas`, `vendas_documentos_enviados`, `vendas_leads_rapidos`, `vendas_metas`, `vendas_promocoes_sazonais`, `vendas_comissoes_detalhe`, `sdr_envios` e `sdr_lead_estado` com **0 linhas**. O que havia era seed e configuração (7 mapeamentos, 1 regra, 10+12 tipos de documento, 22 expectativas) mais **2 comissões calculadas**. Nenhum job do `pg_cron` toca nada disso.
+
+**Saíram (~9.300 linhas):** `VendasPanel.jsx` · `VendasParametrizacaoPanel.jsx` · `SociosDashboard.jsx` · `SdrPanel.jsx` + `components/sdr/` · `utils/{sdrRegras,sdrPontuacao,commissionClient}.js` (o `commissionClient` **já era código morto**, ninguém o importava) · functions `commission-calculator`, `advbox-vendas-sync`, `advbox-create-task`, `sdr-enviar` · `_lib/{comissaoCalculo,sdrAcessos}.mjs`.
+
+⚠️ **Cron removido tem que sair TAMBÉM das listas de vigilância**, senão o watchdog passa a alarmar todo dia por robô que não existe mais: `commission-calculator` e `advbox-vendas-sync` foram tirados de `_lib/cronSla.mjs` e de `_lib/reconciliacao.mjs`.
+
+⚠️ **`advbox-create-task` foi junto de propósito**: parecia infraestrutura do ADVBOX, mas o único chamador era o botão de guia de custas do VendasPanel. As colunas `kanban_col` / `advbox_stage` / `advbox_step` de `contratos` ficam órfãs (ninguém mais escreve nem lê) — **não foram removidas**, remover coluna é destrutivo.
+
+**O banco não foi tocado** (decisão do Paulo): as 12 tabelas `vendas_*`, as 3 `sdr_*` e as 5 views `vw_sdr_*` continuam de pé. SQL de descarte pronto, para quando ele quiser: `supabase_remocao_vendas_sdr_OPCIONAL.sql`. As 4 tabelas **`sdr_ia_*` (SDR IA "Ana") não têm relação com esta aba** — nenhum código deste repositório as usa, elas têm dados e ficam intactas, assim como a spec de 05/09.
+
+📈 **A cobertura SUBIU** e o piso do vitest subiu junto (37/71/78 → **41/74/80**): saiu o `commissionClient.js`, 103 linhas de rede sem nenhum teste, e o denominador encolheu. Medido: 41,65 / 75,09 / 81,5.
+
+**Ficaram de pé, conferidos um a um:** `SOCIOS_EMAILS` / `utils/acessos.js` (Dashboard, Saúde do Funil, Tráfego, Clientes, Boletos dependem dele) · **aba Saúde do Funil** e o `PontualidadePanel` dentro dela · `perfil_vendas` e `vendedora_email` (funil por vendedora, dossiê por closer, ImportContratoModal) · o evento `cbc:switchTab` (quem dispara é o Dashboard, não o VendasPanel).
+
+**Pendência de 1 minuto, se o Paulo quiser:** 7 usuários ainda têm as chaves `vendas`/`parametrizacao_vendas`/`sdr` no jsonb de `user_permissions`. São inofensivas (nada as lê), e o SQL de limpeza está no arquivo acima.
+
 ### ✅ DEPLOYADO 14/08/2026 — um PDF de apresentação por closer, com Dr./Dra.
 
 **Deploy `6a7f2808c53472add845f66b`** (rollback: `./rollback.sh 6a7da8902d35468dea4db4f9`). **1.008 testes**, lint no baseline 18, smoke 200/200/200. Sem migração.
@@ -587,11 +607,11 @@ Ver **`docs/planejamento/SUGESTOES_MELHORIAS.md`** (movido da raiz em 06/07/2026
 
 ### Status atual
 - **Em produção ativa** — https://contratos-cbc.netlify.app
-- Versão atual: **v6.6.0** (12-13/06/2026). Histórico recente no bloco "Estado atual" acima; changelog completo em `client/src/components/ChangeLog.jsx`.
+- Versão atual: **v6.7.0** (09/09/2026 — remoção das abas Vendas/Sócios/SDR). Histórico recente no bloco "Estado atual" acima; changelog completo em `client/src/components/ChangeLog.jsx`.
 - Conta Netlify: **Pro** ($20/mês, 1TB bandwidth), site `contratos-cbc` (ID `d7b38821-...`)
 - Supabase: org no **plano Pro** (8 GB), projeto `vygczeepvoyaehfchxko` — **compartilhado** com vários apps do escritório (Teses, Calculadora, Penhora, Prestação de Contas, Auditoria de Audiências…); o CBC Contratos usa um subconjunto das tabelas (ver §8)
 - Usuários ativos: advogados + secretárias + vendedores do escritório
-- **12 abas** (RBAC por `user_permissions.tabs`): Novo, Contratos, Minhas Vendas, Dashboard, Sócios, Asaas, Boletos, Bot ADVBOX, Portal Cliente, Monitor, Admin, Param. Vendas
+- **12 abas** (RBAC por `user_permissions.tabs`): Novo, Contratos, Clientes, Dashboard, Saúde do Funil, Tráfego, Asaas, Boletos, Bot ADVBOX, Portal Cliente, Monitor, Admin
 
 ---
 

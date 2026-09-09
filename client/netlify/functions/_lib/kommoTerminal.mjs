@@ -1,6 +1,6 @@
 /**
  * Decisao PURA sobre erro TERMINAL da fila do Kommo (sem rede, sem banco).
- * Modulo separado p/ ser testavel — mesmo padrao de asaasEventos/comissaoCalculo.
+ * Modulo separado p/ ser testavel — mesmo padrao de asaasEventos.
  *
  * ERRO 226 (investigacao 02/08/2026): `POST /leads/{id}/notes` devolvendo
  * {"code":226,"message":"Error 226."} significa **o lead alvo nao existe** (apagado,

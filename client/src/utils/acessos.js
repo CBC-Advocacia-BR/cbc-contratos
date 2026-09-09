@@ -1,7 +1,7 @@
 // (auditoria 01/08/2026 — item 206) FONTE UNICA de quem tem acesso privilegiado.
 //
 // A mesma lista de e-mails estava escrita A MAO em 6 arquivos do frontend
-// (App, Dashboard ×2, SociosDashboard, TrafegoPanel, ClientesTab, BoletosPanel) — e mais
+// (App, Dashboard ×2, FunnelHealthPanel, TrafegoPanel, ClientesTab, BoletosPanel) — e mais
 // uma vez DENTRO de uma funcao SQL (vendedor_pontualidade). Incluir ou remover alguem
 // exigia lembrar de todos os lugares; esquecer um vira furo de acesso silencioso — quem
 // saiu da sociedade continua vendo o painel financeiro numa tela que ninguem lembrou de

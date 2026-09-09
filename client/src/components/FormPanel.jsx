@@ -1135,34 +1135,6 @@ export default function FormPanel({ onSave, onSendZapSign, onPdfSave, onProcurac
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [signatureEstimate, setSignatureEstimate] = useState(null);
 
-  // (#vendas-fase6) Prefill vindo de lead rapido convertido no VendasPanel
-  // App.jsx dispara cbc:prefillNovoContract apos trocar para aba 'novo'.
-  // Preenchemos somente campos basicos do primeiro contratante; o resto
-  // do formulario o usuario completa normalmente.
-  useEffect(() => {
-    const handler = (e) => {
-      const d = e.detail || {};
-      const nome = (d.nome || '').trim();
-      const telefone = (d.telefone || '').trim();
-      // Aceita kommoLink/kommo (novos) + chatguruLink/chatguru (legado QR codes antigos)
-      const kommoLink = (d.kommoLink || d.kommo || d.chatguruLink || d.chatguru || '').trim();
-      const updates = {};
-      if (nome) updates.nome = nome;
-      if (telefone) updates.telefone = telefone;
-      if (kommoLink) updates.linkKommo = kommoLink;
-      if (Object.keys(updates).length > 0) {
-        // Garante que tem pelo menos 1 contratante selecionado
-        if (!data.numContratantes || data.numContratantes < 1) {
-          updateData({ numContratantes: 1 });
-        }
-        updateContratante(0, updates);
-      }
-    };
-    window.addEventListener('cbc:prefillNovoContract', handler);
-    return () => window.removeEventListener('cbc:prefillNovoContract', handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     // (#13) verifica duplicata (CPF+resort) de TODOS os contratantes, nao so do primeiro.
     const resort = data.resort;

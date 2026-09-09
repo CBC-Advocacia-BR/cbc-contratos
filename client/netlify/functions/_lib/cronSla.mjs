@@ -27,7 +27,6 @@ export const CRON_SLA = {
   'advbox-snapshot': 15 * 60,        // (auditoria #86) disparado em seq ao monitor
   'advbox-sweep-cron': 60,           // (auditoria #75) a cada 20min, 24/7
   'db-backup-cron': 26 * 60,         // (auditoria #87) 1x/dia
-  'commission-calculator': 33 * 24 * 60, // (auditoria #89) dia 20 do mes (~33d de folga)
   'kommo-queue-worker': 30,          // (auditoria #89) a cada 1min (drena a fila Kommo)
   // (06/08/2026) vigia do proprio banco: roda a cada 3 min e e o unico robo que continua
   // util com o Supabase fora. Se ELE parar, some a rede de seguranca — dai o SLA curto.
@@ -63,7 +62,6 @@ export const CRON_SLA = {
   // apagao de 16 dias do backup. Roda junto com o sync, entao mesmo prazo.
   'videochamada-dossie': 45,             // a cada 15min, despachado pelo sync das agendas
   'meet-auditoria-sync': 26 * 60,        // 1x/dia — comparecimento das calls
-  'advbox-vendas-sync': 14 * 60,         // 3x/dia (06h/12h/18h)
   'clientes-reconciliar': 26 * 60,       // 1x/dia — cadastro unico
   'cobranca-conciliar': 26 * 60,         // 1x/dia
   'zapsign-lembrete-cron': 26 * 60,      // (item 113) 1x/dia 09h BRT — cobranca de assinatura

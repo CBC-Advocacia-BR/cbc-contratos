@@ -42,7 +42,7 @@ export default function BotAdvboxPanel() {
 
   // O wrapper da aba (TabScrollContainer no App.jsx) usa overflow-hidden e espera
   // que o painel traga sua propria area de rolagem (padrao h-full + flex-1 overflow-y-auto,
-  // igual AsaasPanel/VendasParametrizacaoPanel). Cabecalho e sub-abas ficam fixos;
+  // igual ao AsaasPanel). Cabecalho e sub-abas ficam fixos;
   // o conteudo de cada sub-aba rola.
   return (
     <div className="h-full flex flex-col">

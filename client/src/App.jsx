@@ -32,21 +32,14 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 // LeadsTab removido — aba Leads desativada (cleanup 20260418_152512)
 // IntegracoesPanel removido — aba Integracoes desativada (cleanup 20260418_152512)
 // (chatguru removal 2026-05) ChatguruAutomationsPanel removido — comunicacao agora via Kommo manual
-// (#306) Dashboard Socios — lazy, restrito por email
-const SociosDashboard = lazy(() => import('./components/SociosDashboard'));
 const FunnelHealthPanel = lazy(() => import('./components/FunnelHealthPanel'));
 const TrafegoPanel = lazy(() => import('./components/TrafegoPanel'));
-// Vendas Fase 2 — painel do vendedor/assistente e parametrizacao (admin)
-const VendasPanel = lazy(() => import('./components/VendasPanel'));
-const VendasParametrizacaoPanel = lazy(() => import('./components/VendasParametrizacaoPanel'));
 // Bot ADVBOX (autoatendimento Kommo x ADVBOX) — versao de teste (06/2026)
 const BotAdvboxPanel = lazy(() => import('./components/BotAdvboxPanel'));
 // Portal do Cliente — gestao dos links de acesso (06/2026)
 const PortalClientePanel = lazy(() => import('./components/PortalClientePanel'));
 // Cadastro unico de clientes (golden record) — aba nova 06/2026
 const ClientesTab = lazy(() => import('./components/ClientesTab'));
-// Aba SDR (etapa 1, 11/08/2026): fila de trabalho + conversas sem resposta nossa
-const SdrPanel = lazy(() => import('./components/SdrPanel'));
 
 // (perf 31/05) Prefetch das abas lazy ao passar o mouse / focar o botao: o codigo da
 // aba chega "quentinho" antes do clique. Usa o MESMO path do lazy() acima, entao o
@@ -57,14 +50,10 @@ const TAB_PREFETCH = {
   boletos: () => import('./components/BoletosPanel'),
   monitor: () => import('./components/MonitorPanel'),
   admin: () => import('./components/AdminPanel'),
-  socios: () => import('./components/SociosDashboard'),
   funil: () => import('./components/FunnelHealthPanel'),
   trafego: () => import('./components/TrafegoPanel'),
-  vendas: () => import('./components/VendasPanel'),
-  parametrizacao_vendas: () => import('./components/VendasParametrizacaoPanel'),
   bot: () => import('./components/BotAdvboxPanel'),
   portal: () => import('./components/PortalClientePanel'),
-  sdr: () => import('./components/SdrPanel'),
   clientes: () => import('./components/ClientesTab'),
 };
 const _prefetchedTabs = new Set();
@@ -75,7 +64,8 @@ function prefetchTab(key) {
 }
 
 const ASAAS_USERS = ['paulo@advocaciacbc.com', 'paulo.conforto@outlook.com', 'bruno@advocaciacbc.com', 'anderson@advocaciacbc.com', 'lorenza@advocaciacbc.com', 'lucas@advocaciacbc.com'];
-// (#306) Socios — emails com acesso ao Dashboard Socios (restrito por email, nao por is_admin)
+// Socios — emails com acesso as telas restritas (Saude do Funil, comparativos do
+// Dashboard, custo de midia). Restrito por email, nao por is_admin.
 // (auditoria 01/08 — item 206) lista movida para utils/acessos.js (fonte unica)
 import { SOCIOS_EMAILS } from './utils/acessos';
 
@@ -128,16 +118,12 @@ import {
   DocumentTextIcon,
   ChartBarIcon,
   BoltIcon,
-  BriefcaseIcon,
-  BanknotesIcon,
-  DocumentCheckIcon,
   ChatBubbleLeftRightIcon,
   LinkIcon,
   MagnifyingGlassIcon,
   Squares2X2Icon,
   FunnelIcon,
   MegaphoneIcon,
-  QueueListIcon,
 } from '@heroicons/react/24/outline';
 // (mobile 06/2026) Sheet de navegação do dock — abas além das 3 fixas
 import MobileNavSheet from './components/MobileNavSheet';
@@ -146,11 +132,8 @@ import MobileNavSheet from './components/MobileNavSheet';
 const MOBILE_TAB_LABELS = {
   novo: 'Novo Contrato',
   contratos: 'Contratos',
-  vendas: 'Minhas Vendas',
   dashboard: 'Dashboard',
-  socios: 'Sócios',
   funil: 'Saúde do Funil',
-  sdr: 'SDR',
   trafego: 'Tráfego',
   asaas: 'Asaas',
   boletos: 'Boletos',
@@ -158,7 +141,6 @@ const MOBILE_TAB_LABELS = {
   portal: 'Portal Cliente',
   monitor: 'Monitor',
   admin: 'Admin',
-  parametrizacao_vendas: 'Param. Vendas',
 };
 
 // Mapa de ícones de abas
@@ -172,14 +154,10 @@ const TAB_ICONS = {
   dashboard: ChartBarIcon,
   contratos: DocumentTextIcon,
   novo: PlusIcon,
-  socios: BriefcaseIcon,
   funil: FunnelIcon,
   trafego: MegaphoneIcon,
-  vendas: BanknotesIcon,
-  parametrizacao_vendas: DocumentCheckIcon,
   bot: ChatBubbleLeftRightIcon,
   portal: LinkIcon,
-  sdr: QueueListIcon,
 };
 
 // (quality-14) intervalos das automacoes com nome (em vez de numeros magicos)
@@ -936,7 +914,7 @@ function AppContent() {
         else {
           // Auto-create with defaults
           // (cleanup 20260418_152512) removidos: leads, integracoes, comissoes_socios
-          supabase.from('user_permissions').insert({ email: user.email.toLowerCase(), display_name: user.email.split('@')[0], tabs: { novo: true, contratos: true, dashboard: true, asaas: false, boletos: false, monitor: false, admin: false, vendas: false, parametrizacao_vendas: false } }).then(() => {
+          supabase.from('user_permissions').insert({ email: user.email.toLowerCase(), display_name: user.email.split('@')[0], tabs: { novo: true, contratos: true, dashboard: true, asaas: false, boletos: false, monitor: false, admin: false } }).then(() => {
             setUserPerms({ tabs: { novo: true, contratos: true, dashboard: true } });
           });
         }
@@ -999,7 +977,7 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handler);
   }, [data, undoCtrl.lastAction, undoCtrl.undo, resetAll]);
 
-  // (#vendas-fase6) Listener para evento cbc:switchTab (troca aba programaticamente)
+  // Listener do evento cbc:switchTab (o Dashboard troca de aba programaticamente)
   useEffect(() => {
     const handler = (e) => {
       const { tab } = e.detail || {};
@@ -1007,22 +985,6 @@ function AppContent() {
     };
     window.addEventListener('cbc:switchTab', handler);
     return () => window.removeEventListener('cbc:switchTab', handler);
-  }, []);
-
-  // (#vendas-fase6) Listener para converter lead rapido em novo contrato.
-  // VendasPanel dispara cbc:openNovoFromLead com { nome, telefone, kommoLink }.
-  // Trocamos para aba 'novo' e repassamos via cbc:prefillNovoContract para o FormPanel.
-  useEffect(() => {
-    const handler = (e) => {
-      const detail = e.detail || {};
-      setMainTab('novo');
-      // Delay para garantir que o FormPanel esteja montado antes do prefill
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('cbc:prefillNovoContract', { detail }));
-      }, 300);
-    };
-    window.addEventListener('cbc:openNovoFromLead', handler);
-    return () => window.removeEventListener('cbc:openNovoFromLead', handler);
   }, []);
 
   const savingRef = useRef(false);
@@ -1242,18 +1204,15 @@ function AppContent() {
   // (mobile 06/2026) Mesmo filtro de permissão das top tabs, reutilizado pelo
   // sheet de navegação — mantém as duas navegações sempre em sincronia.
   const tabAllowed = (tab) => {
-    if (tab === 'socios') return SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
-    // (#17) "Saúde do Funil" — mesmo gating dos Sócios (so Paulo e Bruno).
+    // (#17) "Saúde do Funil" — restrita aos socios (so Paulo e Bruno).
     if (tab === 'funil') return SOCIOS_EMAILS.includes((user?.email || '').toLowerCase());
     // (#L19) is_admin SEMPRE mantem a aba Admin — evita auto-lockout caso o flag tabs.admin
     // seja desmarcado por engano (o checkbox da propria linha do admin era editavel).
-    // socio sempre ve a aba do SDR: a leitura do funil comercial e dele
-    if (tab === 'sdr' && SOCIOS_EMAILS.includes((user?.email || '').toLowerCase())) return true;
     if (tab === 'admin' && userPerms?.is_admin) return true;
     if (!userPerms?.tabs) return ['novo', 'contratos', 'dashboard'].includes(tab);
     return userPerms.tabs[tab];
   };
-  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'vendas', 'dashboard', 'socios', 'funil', 'sdr', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin', 'parametrizacao_vendas'].filter(tabAllowed);
+  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'dashboard', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin'].filter(tabAllowed);
 
   // (auditoria 01/08/2026 — item 282) Setas/Home/End andam pelas abas, como manda o
   // padrao WAI-ARIA. Junto com o tabIndex movel dos botoes, o Tab passa a levar direto
@@ -1492,12 +1451,8 @@ function AppContent() {
                     mainTab === 'boletos' ? 'Boletos' :
                     mainTab === 'monitor' ? 'Monitor' :
                     mainTab === 'admin' ? 'Admin' :
-                    mainTab === 'socios' ? 'Dashboard Socios' :
                     mainTab === 'funil' ? 'Saúde do Funil' :
-                    mainTab === 'sdr' ? 'SDR' :
                     mainTab === 'trafego' ? 'Tráfego' :
-                    mainTab === 'vendas' ? 'Minhas Vendas' :
-                    mainTab === 'parametrizacao_vendas' ? 'Parametrizacao Vendas' :
                     mainTab === 'bot' ? 'Bot ADVBOX' :
                     mainTab === 'portal' ? 'Portal do Cliente' : mainTab
                   }</span>
@@ -1540,14 +1495,10 @@ function AppContent() {
               : tab === 'boletos' ? 'Boletos'
               : tab === 'monitor' ? 'Monitor'
               : tab === 'admin' ? 'Admin'
-              : tab === 'socios' ? 'Socios'
               : tab === 'funil' ? 'Saúde do Funil'
               : tab === 'trafego' ? 'Tráfego'
-              : tab === 'vendas' ? 'Minhas Vendas'
-              : tab === 'parametrizacao_vendas' ? 'Param. Vendas'
               : tab === 'bot' ? 'Bot ADVBOX'
               : tab === 'portal' ? 'Portal Cliente'
-              : tab === 'sdr' ? 'SDR'
               : 'Dashboard';
             return (
               <React.Fragment key={tab}>
@@ -1695,12 +1646,6 @@ function AppContent() {
         <TabScrollContainer key={`tab-${mainTab}`} tabKey="contratos" className="flex-1 overflow-hidden bg-white page-enter"><ErrorBoundary><Suspense fallback={<SkeletonContratosTab />}><ContratosTab onLoadContract={handleLoadContract} onRequestDestructiveConfirm={setDestructiveConfirm} onRegisterUndo={undoCtrl.register} /></Suspense></ErrorBoundary></TabScrollContainer>
       ) : mainTab === 'clientes' && tabAllowed('clientes') ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonContratosTab />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="clientes" className="flex-1 overflow-hidden page-enter"><ClientesTab isAdmin={!!userPerms?.is_admin} userEmail={user?.email || ''} /></TabScrollContainer></ErrorBoundary></Suspense>
-      ) : mainTab === 'vendas' && userPerms?.tabs?.vendas ? (
-        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="vendas" className="flex-1 overflow-hidden page-enter"><div className="page-enter" key="tab-vendas"><VendasPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
-      ) : mainTab === 'parametrizacao_vendas' && userPerms?.tabs?.parametrizacao_vendas ? (
-        <Suspense fallback={<TabFallback skeleton={<SkeletonAdmin />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="parametrizacao_vendas" className="flex-1 overflow-hidden bg-white page-enter"><div className="page-enter" key="tab-parametrizacao-vendas"><VendasParametrizacaoPanel /></div></TabScrollContainer></ErrorBoundary></Suspense>
-      ) : mainTab === 'sdr' && tabAllowed('sdr') ? (
-        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="sdr" className="flex-1 overflow-hidden page-enter"><SdrPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'trafego' && userPerms?.tabs?.trafego ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="trafego" className="flex-1 overflow-hidden page-enter"><TrafegoPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'asaas' && userPerms?.tabs?.asaas ? (
@@ -1715,8 +1660,6 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonMonitor />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="monitor" className="flex-1 overflow-hidden bg-gray-50 page-enter"><MonitorPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'admin' && tabAllowed('admin') ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAdmin />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="admin" className="flex-1 overflow-hidden bg-white page-enter"><AdminPanel /></TabScrollContainer></ErrorBoundary></Suspense>
-      ) : mainTab === 'socios' && SOCIOS_EMAILS.includes((user?.email || '').toLowerCase()) ? (
-        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="socios" className="flex-1 overflow-hidden page-enter"><SociosDashboard /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'funil' && SOCIOS_EMAILS.includes((user?.email || '').toLowerCase()) ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="funil" className="flex-1 overflow-hidden page-enter"><FunnelHealthPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : tabAllowed('dashboard') ? (

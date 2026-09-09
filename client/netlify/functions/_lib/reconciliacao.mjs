@@ -27,11 +27,9 @@ export const AGENDADAS = [
   { nome: 'backup-diario', horaUtc: 6, critico: true, obs: 'worker chamavel: backup-worker-background' },
   { nome: 'cobranca-regua', horaUtc: 13, critico: true, obs: 'so seg a sex; grava o snapshot de inadimplencia' },
   { nome: 'asaas-sync-customers', horaUtc: 9, critico: false },
-  { nome: 'advbox-vendas-sync', horaUtc: 9, critico: false, obs: 'tambem 15h e 21h UTC' },
   { nome: 'datajud-refresh', horaUtc: 11, critico: false },
   { nome: 'clientes-reconciliar', horaUtc: 11, critico: false },
   { nome: 'meta-ads-sync', horaUtc: 10, critico: false },
-  { nome: 'commission-calculator', horaUtc: 3, critico: true, obs: 'so no dia 20 do mes' },
 ];
 
 const UM_DIA = 86400000;

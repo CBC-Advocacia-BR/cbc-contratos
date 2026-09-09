@@ -4,7 +4,7 @@
 // (db-max-rows) e um .limit(N) MAIOR NAO LEVANTA ESSE TETO — `.limit(20000)` devolve
 // 1000 linhas exatamente como se nao houvesse limit nenhum, sem erro e sem aviso.
 // Foi assim que o funil exibiu 112 calls no lugar de 191 em julho/26 (fix 28/07) e
-// e o mesmo defeito que a auditoria de 01/08 encontrou em mais 8 telas (Socios,
+// e o mesmo defeito que a auditoria de 01/08 encontrou em mais 8 telas (Dashboard,
 // Trafego, relatorios, cobranca, clientes).
 //
 // A implementacao nasceu em utils/funilSources.js e ficou presa la; TrafegoPanel,

@@ -348,7 +348,7 @@ export default function Dashboard() {
     }
   }, [dash.assinadosMes, loading]);
 
-  // ─── Navegação entre abas (evento global já usado pelo VendasPanel) ───
+  // ─── Navegação entre abas (evento global cbc:switchTab, ouvido pelo App) ───
   const navigate = useCallback((tab) => {
     window.dispatchEvent(new CustomEvent('cbc:switchTab', { detail: { tab } }));
   }, []);
