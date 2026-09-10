@@ -58,7 +58,7 @@ describe('fluxo de qualificação', () => {
 describe('negociação', () => {
   const emNegociacao = () => ({ ...estadoInicial({ lead_id: 1 }), etapa: 'negociacao',
     dados: { resort: 'X', situacao: 'pagando', valor_aprox: 'R$ 5 mil' },
-    slots_ofertados: SLOTS.map((s, i) => ({ inicio: s.inicio.toISOString(), vendedoras: s.vendedoras })) });
+    slots_ofertados: SLOTS.map((s) => ({ inicio: s.inicio.toISOString(), vendedoras: s.vendedoras })) });
   it('aceite do slot 2 → agendar', () => {
     const r = decidir({ estado: emNegociacao(), interp: interp({ intencao: 'aceita_slot', horario_aceito_idx: 1 }), cfg: CFG, agora: AGORA });
     expect(r.acoes[0]).toEqual({ tipo: 'agendar', slotIdx: 1 });
