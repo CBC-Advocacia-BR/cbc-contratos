@@ -9,7 +9,7 @@
  * WABA reais sao [PAULO]/piloto (Task 2 Step 5) — aqui so o branch precisa estar pronto.
  * NUNCA derruba sem log (logAdvbox); sempre responde JSON { ok }.
  */
-import { getConfig, db, logAdvbox, getConversation, upsertConversation } from './_lib/botDb.mjs';
+import { getConfig, db, logAdvbox, getConversation, upsertConversation, logMessage } from './_lib/botDb.mjs';
 import { setLeadField, runSalesbot, createKommoTask, postNote, kommoGet, moveLeadStage } from './_lib/kommo.mjs';
 import { aplicarTemplate } from './_lib/agendaEngine.mjs';
 import { formatarSlot, gerarSlots } from './_lib/agendaSlots.mjs';
@@ -76,6 +76,12 @@ async function ultimaMsgRecebida(contactId, leadId) {
  * configurado) ou nota+tarefa p/ envio manual. Retorna o canal usado (so p/ log/depuracao). */
 async function enviar({ vc, mensagem, template, cfg, estado }) {
   const contactId = estado?.contact_id || null;
+  // (10/09) registra no log da Ana ANTES de enviar: sem isso o worker via o lembrete como fala
+  // de humano (humanoAssumiu) e pausava a Ana por 24h — foi o que silenciou o Paulo em 10/09.
+  try {
+    const conv = await getConversation(`agenda:${(vc.telefone || '').replace(/\D/g, '')}`);
+    if (conv?.id) await logMessage(conv.id, 'out', mensagem, template, { eventId: vc.event_id, cron: true });
+  } catch { /* best-effort */ }
   const last = await ultimaMsgRecebida(contactId, vc.lead_id);
   const jan = janelaAberta(last, new Date().toISOString(), cfg.regras.janela_margem_min ?? 60);
   if (jan.aberta) {

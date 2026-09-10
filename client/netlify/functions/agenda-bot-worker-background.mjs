@@ -224,7 +224,7 @@ async function jaProcessada(chave) {
 }
 
 async function leadNoGatilho(leadId, cfg) {
-  const lead = await kommoGet(`/leads/${leadId}`);
+  const lead = await kommoGet(`/leads/${leadId}?with=contacts`); // with=contacts: aviso de lead com 2 contatos (msg em dobro)
   if (!lead) return { ok: false };
   for (const g of cfg.gatilhos || []) {
     if (gatilhoAtende(g, lead)) return { ok: true, lead };
@@ -373,6 +373,11 @@ export default async (req) => {
     let leadId = null; let g = { ok: false };
     for (const id of leadIds) { const r = await leadNoGatilho(id, cfg); if (r.ok) { leadId = id; g = r; break; } }
     rastro.leadId = leadId || null;
+    // (10/09) dois contatos com o MESMO telefone no mesmo lead = Salesbot manda a mensagem em
+    // dobro (caso do Bruno). Nao da p/ corrigir daqui; avisa no console p/ alguem desvincular.
+    if (g.ok && Array.isArray(g.lead?._embedded?.contacts) && g.lead._embedded.contacts.length > 1) {
+      await logAdvbox('ana', 'aviso', `lead ${leadId} tem ${g.lead._embedded.contacts.length} contatos: o Salesbot pode mandar a mensagem em dobro (desvincular o duplicado no Kommo)`, { leadId, contatos: g.lead._embedded.contacts.map((c) => c.id) }).catch(() => {});
+    }
     if (!g.ok) return sair('fora do gatilho', { leads: leadIds, pipeline: g.lead?.pipeline_id || null, status: g.lead?.status_id || null });
 
     // estado (o mesmo bot_conversations de sempre; origem 'sdr' desde o SDR de IA)
@@ -479,6 +484,17 @@ export default async (req) => {
 
     const convId = await convIdDe(channel, { customer_id: leadId, customer_name: estado.nome, context: estado });
     await logMessage(convId, 'in', texto || '[imagem]', null, { msgId: msg.msgId, anexo: msg.anexoTipo || null });
+    // (10/09) JANELA DE COALESCENCIA: lead que manda duas mensagens em sequencia ("Muito prazer" /
+    // "Meu nome e Bruno") recebia duas respostas quase iguais. Espera alguns segundos; se chegou
+    // mensagem mais nova, esta invocacao sai e a mais nova responde com as duas no historico.
+    const janela = Number(cfg.regras?.janela_coalescer_seg ?? 6);
+    if (janela > 0 && !body?.reserva) {
+      const ultimaIn = async () => (await db.from('bot_messages').select('id').eq('conversation_id', convId).eq('direction', 'in').order('created_at', { ascending: false }).limit(1)).data?.[0]?.id || null;
+      const minha = await ultimaIn();
+      await new Promise((r) => setTimeout(r, janela * 1000));
+      const agoraUlt = await ultimaIn();
+      if (minha && agoraUlt && agoraUlt !== minha) return sair('coalescida', { janela, msgId: msg.msgId });
+    }
 
     // historico do espelho (atendimento.*) + situacao (gatilho): quem decide SE a Ana fala
     // e em que modo. Sai antes de gastar token quando o roteiro do Salesbot ainda esta em curso.
