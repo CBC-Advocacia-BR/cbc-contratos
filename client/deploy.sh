@@ -3,12 +3,14 @@
 : "${NETLIFY_AUTH_TOKEN:?defina ~/.cbc-netlify-token ou rode: npx netlify login}"
 # Deploy script para CBC Contratos
 #
-# Uso: ./deploy.sh [--no-auto-rollback] [--pular-instalacao]
+# Uso: ./deploy.sh [--no-auto-rollback] [--pular-instalacao] [--so-conferir]
 #
 #   --no-auto-rollback   nao reverte sozinho se o smoke pos-deploy falhar
 #                        (use para inspecionar um deploy quebrado)
 #   --pular-instalacao   nao roda `npm ci` antes de construir (mais rapido,
 #                        mas usa o node_modules que estiver na maquina)
+#   --so-conferir        roda so as travas (inclusive a de ancestralidade) e sai,
+#                        sem instalar, construir nem publicar
 #   --ajuda              mostra este texto
 #
 # (auditoria 01/08/2026 — item 310) A ajuda documentava um `--force` que NUNCA
@@ -28,12 +30,14 @@ SITE_NAME="contratos-cbc"
 # para o ultimo deploy OK. Use --no-auto-rollback para inspecionar um deploy quebrado.
 AUTO_ROLLBACK=1
 INSTALAR=1
+SO_CONFERIR=0
 for arg in "$@"; do
   case "$arg" in
     --no-auto-rollback) AUTO_ROLLBACK=0 ;;
     --pular-instalacao) INSTALAR=0 ;;
+    --so-conferir) SO_CONFERIR=1 ;;
     --ajuda|-h|--help)
-      sed -n '4,12p' "$0" | sed 's/^# \?//'
+      sed -n '4,14p' "$0" | sed 's/^# \?//'
       exit 0 ;;
     *)
       echo "🛑 Flag desconhecido: $arg  (use --ajuda)"
@@ -109,6 +113,37 @@ if [ -n "$(git status --porcelain -- src netlify portal.html 2>/dev/null)" ]; th
   confirmar || { echo "🛑 Deploy cancelado. Commite antes."; exit 1; }
 fi
 echo "   ✓ sanidade do codigo-fonte OK (branch: $BRANCH)"
+
+# (10/09/2026) TRAVA DE ANCESTRALIDADE. Em 09/09 um deploy de agendamentos-design tirou a
+# Ana do ar: ela so existia em deploy/sdr-ia, e as sentinelas acima olham CONTEUDO, nao
+# historia. Regra: o commit que esta no ar (/api/version) tem de estar contido no HEAD;
+# senao este deploy apagaria de producao codigo que so existe noutra branch.
+# CBC_DEPLOY_CONFIRMADO=1 NAO passa por aqui de proposito (agentes usam esse atalho sempre).
+# Regressao intencional exige CBC_DEPLOY_REGRESSAO=1.
+PROD_COMMIT=$(curl -s --max-time 15 "https://${SITE_NAME}.netlify.app/api/version" \
+  | python3 -c "import json,sys; print(json.load(sys.stdin).get('commit') or '')" 2>/dev/null || true)
+if [ -z "$PROD_COMMIT" ]; then
+  echo "⚠️  Nao consegui ler o commit de producao em /api/version."
+  confirmar || { echo "🛑 Deploy cancelado."; exit 1; }
+elif ! git cat-file -e "${PROD_COMMIT}^{commit}" 2>/dev/null; then
+  echo "🛑 ABORTADO: producao roda ${PROD_COMMIT:0:7}, commit que nao existe neste repositorio."
+  echo "   Rode git fetch --all ou publique da arvore que tem esse commit."
+  exit 1
+elif ! git merge-base --is-ancestor "$PROD_COMMIT" HEAD; then
+  echo "🛑 ABORTADO: producao roda ${PROD_COMMIT:0:7}, que NAO esta contido no HEAD $(git rev-parse --short HEAD)."
+  echo "   Publicar agora tiraria do ar $(git rev-list --count HEAD.."$PROD_COMMIT") commit(s):"
+  git log --oneline HEAD.."$PROD_COMMIT" | head -10
+  echo "   Faca o merge desses commits antes. Regressao proposital: CBC_DEPLOY_REGRESSAO=1 ./deploy.sh"
+  [ "${CBC_DEPLOY_REGRESSAO:-0}" = "1" ] || exit 1
+  echo "   (regressao confirmada por CBC_DEPLOY_REGRESSAO=1)"
+else
+  echo "   ✓ producao (${PROD_COMMIT:0:7}) esta contida no HEAD"
+fi
+
+if [ "$SO_CONFERIR" = "1" ]; then
+  echo "=== --so-conferir: travas OK; nada foi instalado, construido ou publicado ==="
+  exit 0
+fi
 
 # 1. Salvar deploy atual antes de fazer o novo (rollback de emergencia)
 echo "[1/4] Salvando deploy atual como backup de rollback..."
