@@ -7,6 +7,22 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### ✅ DEPLOYADO 10/09/2026 (tarde) — Ana de volta: reconciliação com a `deploy/sdr-ia` + trava de ancestralidade no deploy.sh
+
+**Deploy `6aa2f04018d1983ba8032c29`** (commit `55fc3d7`, publicado 18:01 UTC; rollback: `./rollback.sh 6aa28f6298e7b6521165811e`). **1.194 testes**, lint no baseline 18, 166 functions, edge ok, cobertura 41,65/75,09/81,5 (piso 41/74/80), smoke 200/200/200, `kommo-agenda-webhook` GET 200 text/plain e `agenda-admin` 405 JSON (as duas voltaram). Sem migração. Backup: `backups/20260910_144507_reconcilia_ana/`.
+
+🚨 **O incidente**: em 09/09 às 15:37 UTC o deploy `6aa17d09` (commit `6f6077d`, remoção das abas Vendas/Sócios/SDR) saiu desta branch, que não tinha os 62 commits da `deploy/sdr-ia` (worktree `cbc-contratos-ana`, onde vivia a Ana). Sumiram `kommo-agenda-webhook`, `agenda-bot-worker-background`, `agenda-bot-cron` e `agenda-admin`; o Kommo passou a receber **404** no webhook `add_message` (id 47469703) e a Ana ficou ~26 h fora. Ninguém notou porque o `agenda-bot-cron` não está no `CRON_SLA` e o smoke só olhava home/health/portal-manifest. Impacto: nenhum lead real deixou de ser atendido (piloto em `modo_teste`), mas o aviso de no-show por WhatsApp, que vale para **qualquer** evento com `lead_id` e `meet_status='no_show'` (RPC `agenda_bot_pendencias`, fora do `modo_teste`), parou: 2 leads de 09/09 ficaram sem aviso (decisão do Paulo: ignorar).
+
+**O que mudou:**
+- Merge `18f550c` da `deploy/sdr-ia` nesta branch. Conflito só no `App.jsx` (6 trechos): ficou o lado de produção (sem Vendas/Sócios/Param./SDR) mais as entradas da aba `agenda`. `AdminPanel`, `kommo.mjs` e este guia mesclaram sozinhos; nenhum código da Ana usava o que `6f6077d` apagou.
+- `5348964`: o `agendaEngine.test.js` tinha um erro de lint desde 05/09 (`ec3408b`). A Ana foi ao ar com o portão vermelho porque o `deploy.sh` não roda lint.
+- `55fc3d7`: **trava de ancestralidade** no `deploy.sh`. Lê `/api/version` e aborta se o commit do ar não estiver contido no HEAD, listando o que sairia do ar. `CBC_DEPLOY_CONFIRMADO=1` não passa por ela; regressão proposital exige `CBC_DEPLOY_REGRESSAO=1`. Opção nova `--so-conferir` roda só as travas, sem instalar, construir nem publicar. Testada nos dois sentidos: passa aqui; numa cópia de `a224fa8` aborta listando os 5 commits de 09-10/09.
+- `main` e `agendamentos-design` apontam para o mesmo commit (ver REGRA DE DEPLOY). A `deploy/sdr-ia` e o worktree `cbc-contratos-ana` **não publicam mais**.
+
+🐛 **Regressão herdada da `deploy/sdr-ia`, achada no pós-deploy**: o `agenda-videochamadas-sync` dessa linha lê as agendas de `bot_config.agenda_bot.vendedoras` (só Mariana, Beatriz e Emerson) e ignora a lista fixa `VENDEDORAS` quando a config existe. A agenda da **Ana Cristina Piva** sai do sync (4 → 3 agendas; o mesmo aconteceu enquanto a Ana esteve no ar em 08-09/09). As linhas dela não somem (o sweep é escopado pelas agendas consultadas), mas agendamento, remarcação e cancelamento novos dela deixam de entrar. Conserto sem deploy: incluir `anacristina@` na config com `ativa: false`. O sync usa todas as vendedoras da config; oferta de horário, rodízio, no-show e agenda-admin filtram `ativa` (conferido no código). Aguarda OK do Paulo.
+
+⚠️ **Pendências**: esta branch não vai ao GitHub desde 04/08 (conferir os PDFs de `relatorios/` antes do push). O sync antigo regravou como `manual` o único evento criado pela Ana; ele volta a `ana` no próximo sync. Meu Painel e Listas nascem daqui: o plano do Meu Painel cita 964 testes e 150 functions (agora 1.194 e 166) e a aba `meu_painel` entra ao lado das entradas `agenda`.
+
 ### ✅ DEPLOYADO 10/09/2026 — lembrete de assinatura: 429 de cooldown do ZapSign deixa de ser falha
 
 **Deploy `6aa28f6298e7b6521165811e`** (commit `2c8e4a0`, rollback: `./rollback.sh 6aa17d09bdf75d2a12007473`). **962 testes** (14 novos), lint limpo, smoke 200/200/200, worker respondendo 401 sem chave (bundle carrega). Sem migração. Backup: `backups/20260910_075452_zapsign_lembrete_cooldown/`.
@@ -439,9 +455,15 @@ o repo estava no `main` desatualizado (snapshot de 24/03) quando um `vite build`
 1. **Deploy SÓ via `client/deploy.sh`** — nunca `netlify deploy` direto. O script
    tem trava que aborta se o `src/` for a versão antiga (AuthContext sem Supabase),
    se as funções do chat sumirem ou se `portal.html` estiver sem a aba Conversas.
-2. **`main` é o branch canônico e DEVE conter o estado de produção** (sincronizado
-   em 02/07/2026). Antes de qualquer build: `git branch --show-current` e
-   `git log -1` — se o código não bater com este changelog, PARE.
+2. **A branch de produção é `agendamentos-design`**; o `main` foi realinhado a ela em
+   10/09/2026 (mesmo commit, `55fc3d7`) e deve ser avançado junto. Antes de qualquer
+   build: `git branch --show-current` e `git log -1`; se o código não bater com este
+   changelog, PARE. Desde 10/09 o `deploy.sh` também **aborta se o commit que está no
+   ar (`/api/version`) não estiver contido no HEAD** (trava de ancestralidade, criada
+   depois que um deploy de `agendamentos-design` derrubou a Ana, que só existia em
+   `deploy/sdr-ia`). Feature nova nasce num worktree a partir de `agendamentos-design`
+   e volta para ela por merge antes de publicar. `./deploy.sh --so-conferir` testa as
+   travas sem publicar.
 3. **`client/portal.html` (raiz) é o canônico do Portal do Cliente** — entry do
    Vite. O `public/portal.html` NÃO é usado pelo build (ver CHAT-PORTAL.md).
 4. Funções que existem só como artefato recuperado ficam documentadas em
