@@ -6,12 +6,34 @@
  * Janela: [hoje-180d, hoje+30d], paginado. Upsert idempotente via RPC protegida por
  * BOT_RPC_SECRET (a tabela agenda_videochamadas tem RLS fechada por causa do PII de cliente).
  */
-import { db, logAdvbox, heartbeat } from './_lib/botDb.mjs';
+import { db, logAdvbox, heartbeat, getConfig } from './_lib/botDb.mjs';
 import { getAccessToken, listEvents, classifyEvent, VENDEDORAS } from './_lib/googleAgenda.mjs';
 
 const RPC_SECRET = process.env.BOT_RPC_SECRET || '';
 const JANELA_ATRAS_DIAS = 180;
 const JANELA_FRENTE_DIAS = 30;
+
+/**
+ * Resolve a lista de agendas (emails) a CONSULTAR no Google a partir da config.
+ * CRITICAL: NÃO filtra por `ativa`. `ativa` governa SLOTS (quem recebe novo agendamento,
+ * ver agendaSlots.mjs) — não o espelho. Encolher aqui o universo consultado faria o
+ * agenda_videochamadas_sweep (RPC) marcar como excluída toda a agenda de uma vendedora que
+ * ficou de fora só por estar inativa/de férias, mesmo ela tendo compromissos reais no
+ * Calendar (sweep em massa). Retorna TODAS as vendedoras da config com email válido (string
+ * contendo '@'). Robusto a config malformada: `vendedoras` que não seja array, ou itens
+ * null/sem email, são ignorados silenciosamente; se a lista resultante ficar vazia (config
+ * ausente, vazia, malformada, ou leitura falhou), cai no `fallback` (export VENDEDORAS).
+ * Camada 2 de defesa (a scoped sweep via p_vendedoras) cobre o caso de esta função falhar
+ * silenciosamente na config; ver supabase_agenda_bot.sql.
+ */
+export function resolverAgendas(cfgAll, fallback) {
+  const lista = cfgAll?.agenda_bot?.vendedoras;
+  const arr = Array.isArray(lista) ? lista : [];
+  const agendas = arr
+    .filter((v) => v && typeof v.email === 'string' && v.email.includes('@'))
+    .map((v) => v.email);
+  return { agendas: agendas.length ? agendas : fallback };
+}
 
 export default async () => {
   const json = (b, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -20,9 +42,15 @@ export default async () => {
     const timeMin = new Date(Date.now() - JANELA_ATRAS_DIAS * 864e5).toISOString();
     const timeMax = new Date(Date.now() + JANELA_FRENTE_DIAS * 864e5).toISOString();
 
+    // Config-driven: usa bot_config.agenda_bot.vendedoras (TODAS, sem filtrar ativa — ver
+    // resolverAgendas); cai na lista fixa VENDEDORAS se a config vier vazia/ausente/malformada
+    // ou a leitura falhar (nunca trava o sync por causa disso).
+    const cfgAll = await getConfig().catch(() => ({}));
+    const { agendas } = resolverAgendas(cfgAll, VENDEDORAS);
+
     let totalEventos = 0;
     const rows = [];
-    for (const cal of VENDEDORAS) {
+    for (const cal of agendas) {
       const eventos = await listEvents(cal, timeMin, timeMax, at);
       totalEventos += eventos.length;
       for (const ev of eventos) {
@@ -42,11 +70,16 @@ export default async () => {
     // (foram apagados). Auto-corrige: se o evento reaparecer, o upsert acima sobrescreve de volta.
     // So roda com lista de ids ativos NAO-vazia (a RPC tambem se protege) p/ nao zerar tudo num
     // sync transitorio. Nao toca em linhas de backfill (source <> 'live').
+    // CRITICAL (camada 2): escopado por p_vendedoras=agendas — o sweep so pode apagar linhas das
+    // vendedoras REALMENTE consultadas nesta rodada. Sem isso, qualquer motivo (bug, config
+    // malformada, falha parcial) que reduza `agendas` faria o sweep varrer TODAS as vendedoras
+    // (inclusive as que ficaram de fora), nao so as consultadas. Defesa em profundidade a
+    // resolverAgendas (camada 1, acima).
     let excluidas = 0;
     if (rows.length > 0) {
       const ids = rows.map((r) => r.event_id);
       const { data: sw, error: swErr } = await db.rpc('agenda_videochamadas_sweep', {
-        p_chave: RPC_SECRET, p_win_ini: timeMin, p_win_fim: timeMax, p_event_ids: ids,
+        p_chave: RPC_SECRET, p_win_ini: timeMin, p_win_fim: timeMax, p_event_ids: ids, p_vendedoras: agendas,
       });
       if (swErr) throw new Error('sweep: ' + swErr.message);
       excluidas = sw || 0;
@@ -81,11 +114,11 @@ export default async () => {
       await logAdvbox('dossie', 'erro', `despacho do dossie falhou: ${e.message}`.slice(0, 200), {}).catch(() => {});
     }
 
-    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${VENDEDORAS.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
+    await logAdvbox('agenda', 'info', `videochamadas: ${rows.length} atendimentos de ${totalEventos} eventos (${agendas.length} agendas)${excluidas ? `, ${excluidas} excluidas` : ''}${match ? `, match kommo: ${JSON.stringify(match)}` : ''}`, { atendimentos: rows.length, totalEventos, excluidas, match }).catch(() => {});
     // (observ 28/07) heartbeat p/ o watchdog enxergar: o token Google que sustenta as
     // agendas ja expirou uma vez (23/07) sem alerta.
     await heartbeat('agenda-videochamadas-sync', true, `${rows.length} atendimentos de ${totalEventos} eventos`);
-    return json({ ok: true, agendas: VENDEDORAS.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match, dossie });
+    return json({ ok: true, agendas: agendas.length, total_eventos: totalEventos, atendimentos: rows.length, upserted, excluidas, match, dossie });
   } catch (e) {
     await logAdvbox('agenda', 'erro', `videochamadas sync falhou: ${e.message}`.slice(0, 300), {}).catch(() => {});
     await heartbeat('agenda-videochamadas-sync', false, e.message);

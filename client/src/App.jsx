@@ -34,6 +34,8 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 // (chatguru removal 2026-05) ChatguruAutomationsPanel removido — comunicacao agora via Kommo manual
 const FunnelHealthPanel = lazy(() => import('./components/FunnelHealthPanel'));
 const TrafegoPanel = lazy(() => import('./components/TrafegoPanel'));
+// Agenda Ana — bot de agendamento de videochamada (Kommo x Google Calendar) (07/2026)
+const AgendaPanel = lazy(() => import('./components/AgendaPanel'));
 // Bot ADVBOX (autoatendimento Kommo x ADVBOX) — versao de teste (06/2026)
 const BotAdvboxPanel = lazy(() => import('./components/BotAdvboxPanel'));
 // Portal do Cliente — gestao dos links de acesso (06/2026)
@@ -52,6 +54,7 @@ const TAB_PREFETCH = {
   admin: () => import('./components/AdminPanel'),
   funil: () => import('./components/FunnelHealthPanel'),
   trafego: () => import('./components/TrafegoPanel'),
+  agenda: () => import('./components/AgendaPanel'),
   bot: () => import('./components/BotAdvboxPanel'),
   portal: () => import('./components/PortalClientePanel'),
   clientes: () => import('./components/ClientesTab'),
@@ -135,6 +138,7 @@ const MOBILE_TAB_LABELS = {
   dashboard: 'Dashboard',
   funil: 'Saúde do Funil',
   trafego: 'Tráfego',
+  agenda: 'Agenda Ana',
   asaas: 'Asaas',
   boletos: 'Boletos',
   bot: 'Bot ADVBOX',
@@ -156,6 +160,7 @@ const TAB_ICONS = {
   novo: PlusIcon,
   funil: FunnelIcon,
   trafego: MegaphoneIcon,
+  agenda: BoltIcon,
   bot: ChatBubbleLeftRightIcon,
   portal: LinkIcon,
 };
@@ -1212,7 +1217,7 @@ function AppContent() {
     if (!userPerms?.tabs) return ['novo', 'contratos', 'dashboard'].includes(tab);
     return userPerms.tabs[tab];
   };
-  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'dashboard', 'funil', 'trafego', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin'].filter(tabAllowed);
+  const allowedTabKeys = ['novo', 'contratos', 'clientes', 'dashboard', 'funil', 'trafego', 'agenda', 'asaas', 'boletos', 'bot', 'portal', 'monitor', 'admin'].filter(tabAllowed);
 
   // (auditoria 01/08/2026 — item 282) Setas/Home/End andam pelas abas, como manda o
   // padrao WAI-ARIA. Junto com o tabIndex movel dos botoes, o Tab passa a levar direto
@@ -1453,6 +1458,7 @@ function AppContent() {
                     mainTab === 'admin' ? 'Admin' :
                     mainTab === 'funil' ? 'Saúde do Funil' :
                     mainTab === 'trafego' ? 'Tráfego' :
+                    mainTab === 'agenda' ? 'Agendamento Videochamada' :
                     mainTab === 'bot' ? 'Bot ADVBOX' :
                     mainTab === 'portal' ? 'Portal do Cliente' : mainTab
                   }</span>
@@ -1497,6 +1503,7 @@ function AppContent() {
               : tab === 'admin' ? 'Admin'
               : tab === 'funil' ? 'Saúde do Funil'
               : tab === 'trafego' ? 'Tráfego'
+              : tab === 'agenda' ? 'Agenda Ana'
               : tab === 'bot' ? 'Bot ADVBOX'
               : tab === 'portal' ? 'Portal Cliente'
               : 'Dashboard';
@@ -1648,6 +1655,8 @@ function AppContent() {
         <Suspense fallback={<TabFallback skeleton={<SkeletonContratosTab />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="clientes" className="flex-1 overflow-hidden page-enter"><ClientesTab isAdmin={!!userPerms?.is_admin} userEmail={user?.email || ''} /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'trafego' && userPerms?.tabs?.trafego ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="trafego" className="flex-1 overflow-hidden page-enter"><TrafegoPanel /></TabScrollContainer></ErrorBoundary></Suspense>
+      ) : mainTab === 'agenda' && userPerms?.tabs?.agenda ? (
+        <Suspense fallback={<TabFallback skeleton={<SkeletonDashboard />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="agenda" className="flex-1 overflow-hidden page-enter"><AgendaPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'asaas' && userPerms?.tabs?.asaas ? (
         <Suspense fallback={<TabFallback skeleton={<SkeletonAsaas />} />}><ErrorBoundary><TabScrollContainer key={`tab-${mainTab}`} tabKey="asaas" className="flex-1 overflow-hidden bg-white page-enter"><AsaasPanel /></TabScrollContainer></ErrorBoundary></Suspense>
       ) : mainTab === 'boletos' && userPerms?.tabs?.boletos ? (

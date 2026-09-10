@@ -1,0 +1,84 @@
+-- =============================================================================
+-- DESAMBIGUACAO DA QUINTA CANONIZADORA DE TELEFONE: public.cbc_fone_key
+-- Migracao: comentario_cbc_fone_key_duplicata (04/08/2026)
+--
+-- Fecha a pendencia que o commit 9f575d8 deixou anotada por escrito ("existe
+-- uma QUINTA funcao, cbc_fone_key, com corpo funcionalmente identico ao de
+-- cbc_tel_canonico -- candidata a duplicata mas nao mexida aqui").
+--
+-- INVESTIGACAO (04/08/2026). A hipotese de trabalho era que cbc_fone_key fosse
+-- peso morto e pudesse ser arquivada/dropada. A HIPOTESE NAO SE CONFIRMOU:
+--
+--   1. TEM CONSUMIDOR VIVO. public.resolve_kommo_dados (SECURITY DEFINER) a
+--      chama TRES vezes -- no p_tel recebido, no clientes.telefone e no
+--      atendimento.contatos.whatsapp_numero. Essa RPC e o portao de link
+--      Kommo, consumido por client/netlify/functions/resolve-kommo-lead.mjs
+--      (deployado em 03/08/2026). Nao e codigo morto.
+--      Obs. metodologica: pg_depend veio VAZIO para esta funcao, o que e
+--      esperado -- chamada de funcao dentro do corpo de outra funcao nao gera
+--      dependencia rastreada pelo Postgres. Quem vale aqui e a busca textual
+--      em pg_proc/pg_views. Confiar so no pg_depend teria concluido, errado,
+--      que a funcao nao tem consumidor nenhum.
+--
+--   2. DROP NAO SERIA COMPROVADAMENTE SEGURO, mesmo que nao houvesse
+--      consumidor. As cinco canonizadoras tem EXECUTE para anon e
+--      authenticated, portanto sao expostas como RPC do PostgREST e
+--      alcancaveis por qualquer um dos aplicativos que dividem este banco.
+--      "Sem consumidor no catalogo" nunca prova "sem consumidor" aqui.
+--
+--   3. A EQUIVALENCIA COM cbc_tel_canonico E REAL E FOI MEDIDA, nao deduzida
+--      da leitura do codigo. Universo: 18.790 telefones distintos de
+--      public.clientes e atendimento.contatos (o dominio exato que
+--      resolve_kommo_dados percorre) mais 15 entradas adversariais -- NULL,
+--      vazio, "abc", 2/4/9/10/11/12/13/14 digitos, "(19) 99999-8888",
+--      "+55 11 99999-8888", "0055011999998888" e "00000000000".
+--      Resultado: ZERO divergencias. A unica diferenca de escrita e
+--      cosmetica: nullif(d,'') de um lado e "when length(digits)=0 then null"
+--      do outro, que sao a mesma coisa para d nao-nulo (e d nunca e nulo,
+--      porque vem de regexp_replace(coalesce(p,''),...)).
+--
+--   4. AS OUTRAS TRES NAO SAO SINONIMOS. Medidas no MESMO universo, contra
+--      cbc_fone_key: fn_tel_key 23 divergencias, cbc_telefone_canonico 130,
+--      fone_chave 646. Nenhuma das cinco e removivel: fone_chave sustenta
+--      idx_bot_cliente_fone_chave e idx_kommo_leads_fone_chave, e fn_tel_key
+--      sustenta atendimento.idx_contatos_tel_key -- dropar quebraria indice de
+--      expressao, nao apenas chamada.
+--
+-- DECISAO (Paulo, 04/08/2026): SO COMENTARIO, sem consolidar. Repontar
+-- resolve_kommo_dados para cbc_tel_canonico e uma troca provadamente no-op,
+-- mas exigiria alterar o corpo de uma funcao SECURITY DEFINER em producao no
+-- portao de link Kommo, para ganho apenas cosmetico -- e sem destravar o DROP,
+-- pelo motivo 2 acima.
+--
+-- NENHUM CORPO DE FUNCAO E ALTERADO POR ESTE ARQUIVO. Os corpos foram
+-- conferidos por checksum (md5 de pg_get_functiondef) antes e depois da
+-- migracao e sao identicos nos dois momentos:
+--   public.cbc_fone_key(text)     fbd60e0e3db23b4cc37d00e44000a633  (434 bytes)
+--   public.cbc_tel_canonico(text) fa63b183a47f21094072915e607fa959  (634 bytes)
+-- =============================================================================
+
+-- NAO recriar o corpo de nenhuma das duas aqui: cbc_fone_key e cbc_tel_canonico
+-- pertencem a outras migracoes e a outros consumidores. Este arquivo so
+-- acrescenta comentario, e cada lado avisa da existencia do outro -- o mesmo
+-- padrao de duas maos usado no commit 9f575d8 para o par
+-- cbc_tel_canonico / cbc_telefone_canonico.
+
+comment on function public.cbc_fone_key(text) is
+'Chave canonica de telefone: DDD + os 8 ULTIMOS digitos. Tira nao-digitos; tira o prefixo 55 so quando o total de digitos e exatamente 12 ou 13; se sobrarem 10 ou mais digitos devolve os 2 primeiros + os 8 ultimos, senao devolve o valor cru (NULL apenas se vazio). ATENCAO (review 04/08/2026): esta funcao e FUNCIONALMENTE IDENTICA a public.cbc_tel_canonico -- mesmo algoritmo, so escrito com CTEs de nomes diferentes (a/b aqui, d la). A equivalencia foi MEDIDA, nao deduzida: 18.790 telefones distintos de public.clientes e atendimento.contatos mais 15 entradas adversariais (NULL, vazio, "abc", 2/4/9/10/11/12/13/14 digitos, prefixo 55, +55 e 0055) -- ZERO divergencias. NAO e peso morto: consumidor e public.resolve_kommo_dados, a RPC do portao de link Kommo (client/netlify/functions/resolve-kommo-lead.mjs), que a chama 3 vezes. Mantida separada DE PROPOSITO: consolidar exigiria alterar o corpo de uma funcao SECURITY DEFINER em producao para ganho cosmetico, e o DROP nao seria comprovadamente seguro porque esta funcao tem EXECUTE para anon e authenticated, ou seja, e exposta como RPC do PostgREST e alcancavel por qualquer aplicativo que divida este banco. As OUTRAS TRES canonizadoras NAO sao sinonimos e nao podem ser trocadas por esta -- divergencias medidas no mesmo universo: fn_tel_key 23, cbc_telefone_canonico 130, fone_chave 646. Ver tambem os comentarios de cbc_tel_canonico e cbc_telefone_canonico.';
+
+-- Lado inverso: o comentario de cbc_tel_canonico (escrito em 9f575d8) so
+-- conhecia UMA irma, a cbc_telefone_canonico -- quem o lesse concluiria,
+-- errado, que era a unica. Texto anterior preservado palavra por palavra; o
+-- paragrafo "ATENCAO 2" e o unico acrescimo.
+comment on function public.cbc_tel_canonico(text) is
+'Chave canonica de telefone: DDD + os 8 ULTIMOS digitos. O corte em 8 e deliberado -- e o que faz o mesmo numero casar nos formatos antigo (10 digitos) e novo (11, com o 9). Medido em 03/08/2026: das 200 colisoes existentes, 199 sao esse casamento correto e 1 e numero digitado errado. NAO troque por 9 digitos (item 260): quebraria as 199 para evitar nenhuma. Para achar entrada malformada use cbc_tel_problema(). ATENCAO (review 04/08/2026): existe uma funcao irma de nome quase igual, public.cbc_telefone_canonico, criada para o indice de expressao de public.vw_pessoa_atendimentos -- NAO e este normalizador e NAO deve ser confundida com ele. As duas divergem em entrada malformada: (1) prefixo 55 -- esta funcao (cbc_tel_canonico) so tira o 55 quando o comprimento e exatamente 12 ou 13 digitos; cbc_telefone_canonico tira sempre que o comprimento e >=12, sem teto; (2) poucos digitos, menos de 10 apos a regra acima -- esta funcao devolve o valor cru (nao NULL); cbc_telefone_canonico devolve NULL. Exemplo medido: para a entrada 55119999999999 (14 digitos), esta funcao devolve 5599999999 (55 tratado como DDD) e cbc_telefone_canonico devolve 1199999999 (55 tratado como codigo de pais, corretamente removido). Esta funcao (cbc_tel_canonico) e a compartilhada entre aplicativos -- confirmado em uso por atendimento.ecossistema_contato, atendimento.buscar_contatos e public.vw_telefones_suspeitos; cbc_telefone_canonico serve so a vw_pessoa_atendimentos. Nao trocar uma pela outra. ATENCAO 2 (review 04/08/2026, sessao seguinte): existe AINDA uma quinta canonizadora, public.cbc_fone_key, e essa sim e FUNCIONALMENTE IDENTICA a esta -- mesmo algoritmo, so com CTEs de nomes diferentes. Medido no mesmo dia sobre os mesmos 18.790 telefones distintos mais 15 entradas adversariais: ZERO divergencias. cbc_fone_key serve a public.resolve_kommo_dados (portao de link Kommo) e foi mantida separada de proposito; tudo que este comentario diz sobre o corte em 8 digitos e sobre o item 260 vale igual para ela. As duas NAO foram consolidadas porque a troca exigiria alterar o corpo de uma funcao SECURITY DEFINER em producao, e o DROP nao seria comprovadamente seguro: ambas tem EXECUTE para anon e authenticated, logo sao expostas como RPC do PostgREST aos demais aplicativos deste banco.';
+
+-- Conferencia pos-migracao (rodar e esperar corpo_intacto = true nas duas):
+--   select p.proname,
+--          md5(pg_get_functiondef(p.oid)) as md5_atual,
+--          md5(pg_get_functiondef(p.oid)) in ('fbd60e0e3db23b4cc37d00e44000a633',
+--                                             'fa63b183a47f21094072915e607fa959') as corpo_intacto,
+--          obj_description(p.oid,'pg_proc') is not null as tem_comentario
+--   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--   where n.nspname = 'public' and p.prokind = 'f'
+--     and p.proname in ('cbc_fone_key','cbc_tel_canonico');

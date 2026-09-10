@@ -109,6 +109,15 @@ E um erro meu que vale como regra: **não procure texto nos bytes crus de um PDF
 **Decisões do Paulo (12/08):** páginas 9 a 11 do PDF (avaliações, depoimentos, matérias) **ficam**, com o risco do Provimento 205/2021 do CFOAB apresentado e assumido · só o cliente recebe, a vendedora não · sem envio retroativo · sem grupo de controle · link do Meet e automação dos números do acervo **ficam fora** desta leva.
 
 Spec: `docs/superpowers/specs/2026-08-12-dossie-videochamada-email-design.md` · Plano: `docs/superpowers/plans/2026-08-12-dossie-videochamada-email.md`
+### ✅ DEPLOYADO 07/08/2026 — lembrete de assinatura 2×/dia nos picos (11h e 16h)
+
+**Deploy `6a75bb659ba783f1b93d27f4`** (rollback: `./rollback.sh 6a75213d9af328d679c7a07a`). `npm run verificar` verde (lint baseline 18, 130 functions ok), smoke 200/200/200. Commit `bb829e6` na `agendamentos-design`.
+
+- **Base da decisão** (análise 07/08 sobre as 400 assinaturas por signatário em `zapsign_links`): picos às **11h e 16h** BRT; 81% das assinaturas entre 9h e 18h; fim de semana ≈ zero (4 sáb, 0 dom); retardatários (>24h) têm pico às 15h e 1/5 assina à noite. Decisão do Paulo: 2 lembretes/dia nesses horários.
+- `zapsign-lembrete-cron`: `0 12` → **`0 14,19 * * *`** (11h/16h BRT).
+- `zapsign-lembrete-worker`: elegibilidade por **`intervalo_horas` (padrão 4h)** no lugar das 24h de `intervalo_dias` — sem isso a rodada das 16h sairia vazia. `intervalo_dias` legado na config continua respeitado; voltar a 1×/dia = gravar `intervalo_horas: 24` em `bot_config.zapsign_lembrete`, sem redeploy.
+- Efeito: ~22 pendentes na janela (1–120 dias) passam a receber 2 reenvios de e-mail/dia. Contratos novos (pós-02/08) podem receber +1 do lembrete NATIVO do ZapSign — Paulo optou por manter.
+- ⚠️ **Verificação pendente do 1º disparo real**: conferir 2 linhas em `advbox_api_log` (origem `zapsign`) hoje ~11h e ~16h. A simulação em produção não pôde rodar da máquina (o token do deploy.sh não lê env vars pela API e não há `.env` local com `BOT_PANEL_KEY`); o caminho manual segue sendo o "Run now" no painel da Netlify com `?simular=1`.
 
 ### ✅ DEPLOYADO 03/08/2026 — Link Kommo conferido na ORIGEM (mata a causa do erro 226)
 
