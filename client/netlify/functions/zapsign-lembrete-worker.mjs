@@ -29,9 +29,15 @@
  *  - `?simular=1` lista quem receberia SEM enviar nada (use antes do disparo real);
  *  - heartbeat + log no Monitor (itens 141-144: cron sem heartbeat morre em silencio).
  *
+ * (10/09/2026) 429 `cooldown_period` do ZapSign NAO e falha: e o ZapSign recusando reenviar
+ * para o mesmo documento cedo demais. Conta como "em cooldown", nao marca `ultimo_em` (nada
+ * saiu, a proxima rodada tenta de novo) e nao pinta o heartbeat de vermelho. Medicao e
+ * motivo em `_lib/zapsignLembrete.mjs`.
+ *
  * Disparo manual: POST/GET com `x-bot-key` (ou ?key=) — ver BOT_PANEL_KEY.
  */
 import { db, heartbeat, logAdvbox } from './_lib/botDb.mjs';
+import { classificarReenvio } from './_lib/zapsignLembrete.mjs';
 
 // SEM `schedule` de proposito: a Netlify responde 403 a qualquer chamada HTTP externa
 // feita a uma function AGENDADA. Como este trabalho precisa poder ser disparado a mao
@@ -59,15 +65,19 @@ const json = (status, body) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 });
 
-/** Reenvia a notificacao a TODOS os signatarios pendentes de um documento. */
+/**
+ * Reenvia a notificacao a TODOS os signatarios pendentes de um documento.
+ * Devolve { tipo: 'enviado' } ou { tipo: 'cooldown', mensagem }; lanca nas falhas reais.
+ */
 async function reenviar(docToken) {
   const r = await fetch(
     `${ZAPSIGN_URL}/api/v1/docs/${docToken}/resend-notifications-bulk/?api_token=${ZAPSIGN_TOKEN}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20000) },
   );
   const texto = await r.text().catch(() => '');
-  if (!r.ok) throw new Error(`ZapSign ${r.status}: ${texto.slice(0, 200)}`);
-  return texto;
+  const res = classificarReenvio(r.status, texto);
+  if (res.tipo === 'falha') throw new Error(res.erro);
+  return res;
 }
 
 export default async (req) => {
@@ -153,9 +163,16 @@ export default async (req) => {
 
     let enviados = 0;
     const falhas = [];
+    const emCooldown = [];
     for (const c of elegiveis) {
       try {
-        await reenviar(c.zapsign_doc_token);
+        const res = await reenviar(c.zapsign_doc_token);
+        if (res.tipo === 'cooldown') {
+          // nada saiu: nao marca ultimo_em, a proxima rodada tenta de novo
+          emCooldown.push({ id: c.id, mensagem: res.mensagem });
+          await new Promise((r) => setTimeout(r, 300));
+          continue;
+        }
         enviados++;
         // marca DENTRO de advbox_data (jsonb ja existente) — sem coluna nova
         const advbox = { ...(c.advbox_data || {}) };
@@ -170,10 +187,10 @@ export default async (req) => {
       await new Promise((r) => setTimeout(r, 300)); // respiro entre chamadas
     }
 
-    const msg = `lembrete de assinatura: ${enviados} enviados, ${falhas.length} falhas (${elegiveis.length} elegiveis de ${(pendentes || []).length} pendentes)`;
-    await logAdvbox('zapsign', falhas.length ? 'aviso' : 'info', msg, { enviados, falhas });
+    const msg = `lembrete de assinatura: ${enviados} enviados, ${emCooldown.length} em cooldown do ZapSign, ${falhas.length} falhas (${elegiveis.length} elegiveis de ${(pendentes || []).length} pendentes)`;
+    await logAdvbox('zapsign', falhas.length ? 'aviso' : 'info', msg, { enviados, em_cooldown: emCooldown, falhas });
     await heartbeat('zapsign-lembrete-cron', falhas.length === 0, msg);
-    return json(200, { ok: true, enviados, falhas, elegiveis: elegiveis.length });
+    return json(200, { ok: true, enviados, em_cooldown: emCooldown.length, falhas, elegiveis: elegiveis.length });
   } catch (e) {
     const msg = String(e.message || e);
     await logAdvbox('zapsign', 'erro', `lembrete de assinatura falhou: ${msg}`, {});
