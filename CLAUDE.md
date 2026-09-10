@@ -7,6 +7,22 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### ✅ DEPLOYADO 10/09/2026 — lembrete de assinatura: 429 de cooldown do ZapSign deixa de ser falha
+
+**Deploy `6aa28f6298e7b6521165811e`** (commit `2c8e4a0`, rollback: `./rollback.sh 6aa17d09bdf75d2a12007473`). **962 testes** (14 novos), lint limpo, smoke 200/200/200, worker respondendo 401 sem chave (bundle carrega). Sem migração. Backup: `backups/20260910_075452_zapsign_lembrete_cooldown/`.
+
+Desde agosto quase toda rodada das 16h registrava "N enviados, M falhas" e o heartbeat ficava vermelho. **Todas as falhas eram `429 cooldown_period`** do `resend-notifications-bulk`: o ZapSign recusa reenviar para o mesmo documento pouco depois do último reenvio. **Nenhum lembrete se perdia**: o documento recebe na rodada das 11h.
+
+🔑 **O cooldown, medido (o ZapSign não publica a duração; a doc só diz que a mensagem "inclui tempo restante"):** documento novo aceita 11h e 16h nos primeiros ~5-6 dias (~10-12 reenvios); depois o 16h (5 h após o 11h) volta 429 e o 11h do dia seguinte (19 h depois) sempre passa. **O cooldown cresce com o uso e fica entre 5 h e 19 h.** O lembrete nativo (`reminder_every_n_days: 1`) **não é a causa**: as falhas das 16h dividem exatamente 202 docs novos x 202 antigos.
+
+⚠️ **O tempo restante nunca foi visto porque o nosso código o cortava**: o erro era truncado em 160 caracteres, exatamente onde termina "...notificações em massa" (as 417 mensagens gravadas têm 160). Agora a `message` é guardada inteira (até 300) em `contexto.em_cooldown` do `advbox_api_log`. **Depois da primeira rodada das 16h, ler o tempo restante ali** e, se quiser, ajustar `intervalo_horas` em `bot_config.zapsign_lembrete` (sem redeploy).
+
+**O que mudou:** `_lib/zapsignLembrete.mjs` (novo, puro) classifica a resposta. 429 `cooldown_period` vira "em cooldown": não marca `ultimo_em` (nada saiu, a próxima rodada tenta de novo), log em `info`, heartbeat verde. 429 **sem** esse código (limite de conta), 400 `document_not_in_progress` e 502 continuam falha. Kill-switch, teto por rodada, intervalo e `?simular=1` ganharam teste (`zapsignLembreteWorker.test.mjs`, com banco e ZapSign simulados).
+
+**Não existe linha `zapsign_lembrete` em `bot_config`**: o worker roda com o `PADRAO` do código (4 h, 60/rodada). Para usar o kill-switch, criar a linha com `{"ativo": false}`.
+
+🚨 **Pendência — o worker roda DUAS vezes por rodada**, às vezes simultâneas (08-09 e 09-07: dois logs no mesmo segundo). Coincide com o dispatcher abortando em 25 s ou levando 504. **Todas as 22 falhas históricas das 11h** são a 2ª execução batendo no cooldown de um documento que a 1ª acabara de lembrar, ou seja, **hoje é o cooldown do ZapSign que impede e-mail duplicado ao cliente**. Correção proposta à parte: reserva atômica como a das filas do dossiê (`supabase_dossie_claim_atomico.sql`).
+
 ### 🧹 09/09/2026 — abas Minhas Vendas, Sócios, Param. Vendas e SDR REMOVIDAS
 
 Pedido do Paulo: eram funções que nunca chegaram a ser usadas. **948 testes** (eram 1.008; os 60 a menos são os 3 arquivos de teste que saíram junto), lint no baseline 18, build e `npm run verificar` limpos. Backup completo em `backups/20260909_122652_remocao_vendas_socios_sdr/`.
