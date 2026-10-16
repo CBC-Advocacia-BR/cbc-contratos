@@ -7,6 +7,10 @@
 
 ## ⚡ Estado atual — LEIA ANTES
 
+### 🚧 EM DESENVOLVIMENTO 16/10/2026 — resumo automático das videochamadas pelo Claude (NÃO publicado)
+
+Branch `claude/claude-sdk-api-automation-rbhk21`. Depois de cada call **realizada** (`agenda_videochamadas`), lê a transcrição do Meet no Google da vendedora (conta de serviço com delegação em todo o domínio, **só leitura**, env `GOOGLE_SA_KEY_JSON`), pede ao Claude (SDK oficial `@anthropic-ai/sdk`, structured outputs) a ficha do atendimento e grava em `call_resumos`. Alerta de compliance vai só para o Monitor (origem `ia`); nota no Kommo (`CBC.call:<event_id>`) só com `postar_kommo=true`. Nasce **desligado** (`bot_config.call_resumo`). Peças: `call-resumo-cron` → `call-resumo-worker-background`, `_lib/callResumo.mjs` (puro, 20 testes), `_lib/googleSa.mjs`, `supabase_call_resumo.sql` (não aplicado). ⚠️ A transcrição **não** é copiada para o banco (LGPD). ⚠️ A chave da conta de serviço lê o Drive de qualquer conta do domínio — o código só aceita impersonar `googleAgenda.VENDEDORAS`. Passo a passo para ligar: **`docs/RESUMO_CALLS_IA.md`**.
+
 ### ✅ DEPLOYADO 03/08/2026 — Link Kommo conferido na ORIGEM (mata a causa do erro 226)
 
 **Deploy `6a7086c0408f6f7b3e0fd182`** (rollback: `./rollback.sh 6a7085acbf94677b8ead8856`). **774 testes** (era 732), lint no baseline 18, smoke 200/200/200, `resolve-kommo-lead` respondendo 401/405 em produção (não 502).

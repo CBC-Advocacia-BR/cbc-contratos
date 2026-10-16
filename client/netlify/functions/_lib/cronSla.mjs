@@ -74,4 +74,9 @@ export const CRON_SLA = {
   'tokens-vigia-cron': 26 * 60,
   // (item 162) verificacao semanal do backup — segundas 08h30 BRT (8 dias de folga)
   'backup-verificar-cron': 8 * 24 * 60,
+  // (16/10/2026) resumo automatico das calls pelo Claude — de hora em hora no expediente,
+  // seg-sab. 40h cobre a noite e o domingo (sab 21h20 -> seg 08h20 = ~35h). O worker bate
+  // ponto mesmo desligado, entao silencio aqui e falha de verdade.
+  'call-resumo-cron': 40 * 60,
+  'call-resumo-worker': 40 * 60,
 };
